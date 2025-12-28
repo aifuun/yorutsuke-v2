@@ -1,0 +1,26 @@
+# Tauri
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# React
+node_modules/
+dist/
+.env.local
+.env.*.local
+
+# CDK
+infra/node_modules/
+infra/cdk.out/
+*.js.map
+*.d.ts
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude (session-specific)
+.claude/archive/
