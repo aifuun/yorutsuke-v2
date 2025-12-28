@@ -1,0 +1,282 @@
+# SCHEMA.md
+
+> Data model - Local and Cloud storage
+
+## Overview
+
+**Architecture**: Local-First + Cloud-Sync
+**Local**: SQLite (Tauri plugin-sql)
+**Cloud**: DynamoDB + S3
+**Last Updated**: 2025-12-28
+
+## ER Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              LOCAL (SQLite)                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────┐         ┌─────────────────────┐                       │
+│  │     images      │────────▶│  transactions       │                       │
+│  │                 │  1:1    │                     │                       │
+│  │  id (PK)        │         │  id (PK)            │                       │
+│  │  user_id        │         │  user_id            │                       │
+│  │  status (FSM)   │         │  image_id (FK)      │                       │
+│  │  s3_key         │         │  type               │                       │
+│  │  local_path     │         │  category           │                       │
+│  └─────────────────┘         │  amount             │                       │
+│                              │  confirmed_at       │                       │
+│  ┌─────────────────┐         └─────────────────────┘                       │
+│  │    settings     │                                                        │
+│  │                 │         ┌─────────────────────┐                       │
+│  │  key (PK)       │         │  morning_reports    │                       │
+│  │  value          │         │                     │                       │
+│  └─────────────────┘         │  date (PK)          │                       │
+│                              │  data (JSON)        │                       │
+│                              │  synced_at          │                       │
+│                              └─────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              CLOUD (AWS)                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────┐         ┌─────────────────────┐                       │
+│  │   S3 Bucket     │         │    DynamoDB         │                       │
+│  │                 │────────▶│   transactions      │                       │
+│  │  uploads/       │  s3_key │                     │                       │
+│  │  {user}/{date}/ │         │  userId (PK)        │                       │
+│  │  {uuid}.webp    │         │  transactionId (SK) │                       │
+│  │                 │         │  s3_key             │                       │
+│  │  30-day TTL     │         │  ai_result          │                       │
+│  └─────────────────┘         └─────────────────────┘                       │
+│                                                                             │
+│  ┌─────────────────┐         ┌─────────────────────┐                       │
+│  │    Cognito      │         │    DynamoDB         │                       │
+│  │   User Pool     │────────▶│      users          │                       │
+│  │                 │  userId │                     │                       │
+│  │  Email/Password │         │  userId (PK)        │                       │
+│  └─────────────────┘         │  tier               │                       │
+│                              │  quota_used         │                       │
+│                              └─────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Local Tables (SQLite)
+
+### images
+
+Receipt images with status FSM.
+
+```sql
+CREATE TABLE images (
+  id TEXT PRIMARY KEY,              -- ImageId (UUID)
+  user_id TEXT NOT NULL,            -- UserId
+  status TEXT NOT NULL DEFAULT 'pending',
+                                    -- 'pending'|'compressed'|'uploading'|'uploaded'|'processed'|'failed'
+  local_path TEXT NOT NULL,         -- /tmp/yorutsuke/{uuid}.webp
+  s3_key TEXT,                      -- uploads/{userId}/{date}/{uuid}.webp
+  original_size INTEGER NOT NULL,   -- bytes
+  compressed_size INTEGER,          -- bytes
+  thumbnail_path TEXT,              -- thumbnail for UI
+  created_at TEXT NOT NULL,         -- ISO 8601
+  uploaded_at TEXT,                 -- ISO 8601
+  processed_at TEXT                 -- ISO 8601
+);
+
+CREATE INDEX idx_images_status ON images(status);
+CREATE INDEX idx_images_user_id ON images(user_id);
+```
+
+**Status FSM**:
+```
+pending → compressed → uploading → uploaded → processed
+    ↘ failed ← (any state can fail)
+```
+
+### transactions
+
+Transaction records (cached from cloud).
+
+```sql
+CREATE TABLE transactions (
+  id TEXT PRIMARY KEY,              -- TransactionId (UUID)
+  user_id TEXT NOT NULL,            -- UserId
+  image_id TEXT,                    -- ImageId (nullable)
+  type TEXT NOT NULL,               -- 'income'|'expense'
+  category TEXT NOT NULL,           -- 'purchase'|'sale'|'shipping'|'fee'|'other'
+  amount INTEGER NOT NULL,          -- JPY (always positive)
+  description TEXT NOT NULL,
+  merchant TEXT,
+  date TEXT NOT NULL,               -- 'YYYY-MM-DD'
+  created_at TEXT NOT NULL,         -- ISO 8601
+  updated_at TEXT NOT NULL,         -- ISO 8601
+  confirmed_at TEXT,                -- ISO 8601 (null = unconfirmed)
+  confidence REAL,                  -- 0.0-1.0 (AI confidence)
+  raw_text TEXT,                    -- OCR result
+  FOREIGN KEY (image_id) REFERENCES images(id)
+);
+
+CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+CREATE INDEX idx_transactions_date ON transactions(date);
+CREATE INDEX idx_transactions_confirmed ON transactions(confirmed_at);
+```
+
+### morning_reports
+
+Cached daily summaries.
+
+```sql
+CREATE TABLE morning_reports (
+  date TEXT PRIMARY KEY,            -- 'YYYY-MM-DD'
+  user_id TEXT NOT NULL,            -- UserId
+  data TEXT NOT NULL,               -- JSON (DailySummary)
+  synced_at TEXT NOT NULL           -- ISO 8601
+);
+```
+
+### settings
+
+User preferences (local only).
+
+```sql
+CREATE TABLE settings (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
+-- Default values
+INSERT INTO settings (key, value) VALUES
+  ('language', 'ja'),
+  ('theme', 'system'),
+  ('auto_upload', 'true');
+```
+
+## Cloud Tables (DynamoDB)
+
+### transactions
+
+AI-processed transaction results.
+
+```typescript
+interface CloudTransaction {
+  userId: string;           // PK - from Cognito
+  transactionId: string;    // SK - UUID
+  s3Key: string;            // S3 image path
+  amount: number | null;
+  merchant: string | null;
+  category: string | null;
+  receiptDate: string | null;
+  aiConfidence: number | null;
+  aiResult: object | null;  // Full AI response
+  status: 'uploaded' | 'processing' | 'processed' | 'failed' | 'skipped';
+  createdAt: string;        // ISO 8601
+  updatedAt: string;        // ISO 8601
+}
+```
+
+**GSI**: `byDate` (PK: userId, SK: date)
+
+### users
+
+User profiles and quotas.
+
+```typescript
+interface CloudUser {
+  userId: string;           // PK - from Cognito sub
+  email: string;
+  tier: 'free' | 'basic' | 'pro';
+  quotaUsedToday: number;   // Images uploaded today
+  quotaResetAt: string;     // ISO 8601 (JST midnight)
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## Cloud Storage (S3)
+
+### Bucket Structure
+
+```
+yorutsuke-images-{env}-{account}/
+└── uploads/
+    └── {userId}/
+        └── {date}/
+            └── {uuid}.webp
+```
+
+**Example**: `uploads/abc123/2025-12-28/550e8400-e29b-41d4.webp`
+
+### Lifecycle Rules
+
+| Rule | Action | Condition |
+|------|--------|-----------|
+| Expiration | Delete | 30 days after upload |
+| Transition | Intelligent-Tiering | 7 days |
+
+## Type Definitions
+
+### Branded Types (Pillar A)
+
+```typescript
+type UserId = string & { __brand: 'UserId' };
+type ImageId = string & { __brand: 'ImageId' };
+type TransactionId = string & { __brand: 'TransactionId' };
+type ReportId = string & { __brand: 'ReportId' };
+```
+
+### Enums
+
+```typescript
+type ImageStatus =
+  | 'pending'
+  | 'compressed'
+  | 'uploading'
+  | 'uploaded'
+  | 'processing'
+  | 'processed'
+  | 'confirmed'
+  | 'failed';
+
+type TransactionType = 'income' | 'expense';
+
+type TransactionCategory =
+  | 'purchase'   // 仕入れ
+  | 'sale'       // 売上
+  | 'shipping'   // 送料
+  | 'packaging'  // 梱包材
+  | 'fee'        // 手数料
+  | 'other';     // その他
+```
+
+## Sync Strategy
+
+### Local → Cloud
+
+```
+1. Image compressed locally
+2. Call presign Lambda → get S3 URL
+3. Upload to S3
+4. Update local status = 'uploaded'
+```
+
+### Cloud → Local
+
+```
+1. App launch / manual refresh
+2. Fetch transactions from API
+3. Upsert to local transactions table
+4. Update morning_reports cache
+```
+
+### Conflict Resolution
+
+- **Last-write-wins** for transactions
+- Cloud is source of truth after processing
+- Local edits create new `updatedAt`
+
+## References
+
+- Architecture: `./ARCHITECTURE.md`
+- Interfaces: `./INTERFACES.md`
+- Original schema: `../yorutsuke/docs/schema.md`
