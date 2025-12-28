@@ -1,0 +1,43 @@
+import type { TransactionId, ImageId, UserId } from '../../00_kernel/types';
+
+// Transaction categories
+export type TransactionCategory =
+  | 'purchase'    // 仕入れ - Buying items
+  | 'sale'        // 売上 - Selling items
+  | 'shipping'    // 送料 - Shipping costs
+  | 'packaging'   // 梱包材 - Packaging materials
+  | 'fee'         // 手数料 - Platform fees
+  | 'other';      // その他
+
+// Transaction type
+export type TransactionType = 'income' | 'expense';
+
+export interface Transaction {
+  id: TransactionId;
+  userId: UserId;
+  imageId: ImageId | null;
+  type: TransactionType;
+  category: TransactionCategory;
+  amount: number;           // Always positive
+  currency: 'JPY';
+  description: string;
+  merchant: string | null;
+  date: string;             // YYYY-MM-DD
+  createdAt: string;
+  updatedAt: string;
+  confirmedAt: string | null;
+
+  // AI extraction metadata
+  confidence: number | null;  // 0-1 from Nova Lite
+  rawText: string | null;     // OCR result
+}
+
+// Daily summary for morning report
+export interface DailySummary {
+  date: string;
+  totalIncome: number;
+  totalExpense: number;
+  netProfit: number;
+  transactionCount: number;
+  byCategory: Record<TransactionCategory, number>;
+}

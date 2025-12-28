@@ -1,0 +1,38 @@
+import type { ImageId, UserId } from '../../00_kernel/types';
+
+// Receipt image status FSM (Pillar D)
+export type ImageStatus =
+  | 'pending'      // Just dropped, waiting for compression
+  | 'compressed'   // WebP compressed, ready for upload
+  | 'uploading'    // Currently uploading to S3
+  | 'uploaded'     // In S3, waiting for batch processing
+  | 'processing'   // Being processed by Nova Lite
+  | 'processed'    // OCR complete, transaction extracted
+  | 'confirmed'    // User confirmed transaction
+  | 'failed';      // Processing failed
+
+export interface ReceiptImage {
+  id: ImageId;
+  userId: UserId;
+  status: ImageStatus;
+  localPath: string;
+  s3Key: string | null;
+  thumbnailPath: string | null;
+  originalSize: number;
+  compressedSize: number | null;
+  createdAt: string;
+  uploadedAt: string | null;
+  processedAt: string | null;
+}
+
+// Valid state transitions
+export const IMAGE_TRANSITIONS: Record<ImageStatus, ImageStatus[]> = {
+  pending: ['compressed', 'failed'],
+  compressed: ['uploading', 'failed'],
+  uploading: ['uploaded', 'failed'],
+  uploaded: ['processing', 'failed'],
+  processing: ['processed', 'failed'],
+  processed: ['confirmed'],
+  confirmed: [],
+  failed: ['pending'], // Allow retry
+};
