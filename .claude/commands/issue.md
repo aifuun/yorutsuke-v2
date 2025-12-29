@@ -70,6 +70,8 @@ Complete issue #n:
 
 6. Clear "Current Issue" in TODO.md
 
+7. **Auto-sync**: Run `*sync` to commit and push changes
+
 ### *issue new <title>
 Create new issue:
 ```bash

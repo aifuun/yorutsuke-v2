@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2025-12-29] Phase 0 Core Kernel 完成 (#1 EventBus, #2 SQLite, #3 Network)；Phase 1 Capture 开始 (#4 Drag & Drop WIP)
-- **Next Steps**: 完成 #4 Tauri Drag & Drop → #5 Image Compression → #6 Upload Queue
+- **Last Progress**: [2025-12-29] Phase 0 完成；Phase 1 进行中 (#4 Drag & Drop ✅)
+- **Next Steps**: #5 Image Compression → #6 Upload Queue → #7 Auth
 - **Blockers**: None
 
 ## Architecture Decisions

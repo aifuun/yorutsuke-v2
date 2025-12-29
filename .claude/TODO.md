@@ -2,32 +2,9 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Focus: #3 - Network Status (00_kernel/network)
+## Current Focus
 
-Status: ✅ COMPLETE
-
-### Tasks
-- [x] Create `types.ts` - NetworkState FSM type
-- [x] Create `networkStatus.ts` - Core detection + EventBus
-- [x] Create `useNetworkStatus.ts` - React hook (Pillar L)
-- [x] Create `index.ts` and update kernel exports
-- [x] TypeScript build passes
-
-### Files Created
-
-```
-app/src/00_kernel/network/
-├── types.ts           # NetworkState, NetworkStatusResult
-├── networkStatus.ts   # getNetworkState(), setupNetworkListeners()
-├── useNetworkStatus.ts # useNetworkStatus(), useIsOnline()
-└── index.ts           # Module exports
-```
-
-### Pillars Applied
-- **D**: FSM States - `NetworkState = 'online' | 'offline' | 'unknown'`
-- **G**: Traceability - `@trigger network:changed` annotations
-- **L**: Headless - Hook returns data only, no JSX
-- **R**: Observability - State change logging
+None - ready for `*issue pick <n>`
 
 ## Phase 0: Core Kernel ✅
 
@@ -41,7 +18,7 @@ app/src/00_kernel/network/
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| #4 | Tauri Drag & Drop | 🟡 Ready |
+| #4 | Tauri Drag & Drop | ✅ Complete |
 | #5 | Image Compression | 🟡 Ready |
 | #6 | Upload Queue | 🟡 Ready (deps: #3 ✅) |
 | #7 | Auth (Cognito) | 🟡 Ready |
@@ -51,10 +28,28 @@ app/src/00_kernel/network/
 Small tasks not worth an issue:
 
 - [ ] Setup ESLint rules for Pillar compliance
+- [ ] batch-process Lambda: 添加 `ConditionExpression: 'attribute_not_exists(id)'` 幂等检查 (Pillar Q)
+- [ ] CaptureView: 显示"等待处理"计数 (已上传但未处理的图片数)
+
+### Design Improvements (DESIGN.md)
+
+**P1 - High Priority**:
+- [ ] S03 右键菜单删除: Transactions 页面增加右键菜单支持 (Context Menu)，同时保留 swipe 作为触控板快捷方式
+- [ ] 空状态设计: 定义 Dashboard/Report 的 Empty States 规范（首次使用、当日无数据场景）
+
+**P2 - Medium Priority**:
+- [ ] 断网状态反馈: Upload Queue 增加 `Offline` 状态指示器（"等待连接"图标），扩展现有 Status Indicators
+
+**P3 - Low Priority**:
+- [ ] 系统托盘: 将 Sync 状态移至系统托盘区，保持主界面简洁（Settings 保留在 UI 供用户查看 quota）
+
+**Deferred**:
+- [ ] 批量确认: "Batch Confirm" 功能 - 等 v1 验证用户行为模式后再决定是否添加（风险：可能导致误确认 OCR 错误）
 
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #4 Tauri Drag & Drop verified (2025-12-29)
 - #3 Network Status implemented (2025-12-29)
 - #2 SQLite + Migrations implemented (2025-12-29)
 - #1 EventBus implemented (2025-12-29)
