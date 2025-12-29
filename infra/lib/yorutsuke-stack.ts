@@ -3,6 +3,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as ssm from "aws-cdk-lib/aws-ssm";
 import { Construct } from "constructs";
 
 export class YorutsukeStack extends cdk.Stack {
@@ -144,6 +145,46 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // SSM Parameter for maintenance mode (can be changed without deploy)
+    const maintenanceModeParam = new ssm.StringParameter(
+      this,
+      "MaintenanceModeParam",
+      {
+        parameterName: `/yorutsuke/${env}/maintenance-mode`,
+        stringValue: "false",
+        description: "Set to 'true' to enable maintenance mode",
+      }
+    );
+
+    // Lambda for app configuration
+    const configLambda = new lambda.Function(this, "ConfigLambda", {
+      functionName: `yorutsuke-config-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/config"),
+      environment: {
+        QUOTA_LIMIT: "50",
+        UPLOAD_INTERVAL_MS: "10000",
+        BATCH_TIME: "02:00",
+        MIN_VERSION: "1.0.0",
+        LATEST_VERSION: "1.1.0",
+        MAINTENANCE_MODE_PARAM: maintenanceModeParam.parameterName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    maintenanceModeParam.grantRead(configLambda);
+
+    // Lambda Function URL for config (public, no auth)
+    const configUrl = configLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.GET],
+        allowedHeaders: ["*"],
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -178,6 +219,11 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "QuotaLambdaUrl", {
       value: quotaUrl.url,
       exportName: `${id}-QuotaUrl`,
+    });
+
+    new cdk.CfnOutput(this, "ConfigLambdaUrl", {
+      value: configUrl.url,
+      exportName: `${id}-ConfigUrl`,
     });
   }
 }
