@@ -2,31 +2,25 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Focus: #5 - Image Compression (02_modules/capture)
+## Current Focus: Phase 3 - Polish
 
-Status: 🔄 IN PROGRESS
+Status: ⚪ NOT STARTED (需要创建 issues)
 
-**Tier**: T2 (Logic)
-**Pillars**: A, B, D, G, L, R
-
-### Tasks
-- [ ] Rust: 实现 `compress_image` 命令 (WebP 压缩)
-- [ ] Rust: 实现 `get_image_hash` 命令 (MD5)
-- [ ] TS: 完善 `adapters/imageIpc.ts` (超时、错误处理)
-- [ ] TS: 创建 `headless/useImageProcessor.ts`
-- [ ] TS: 集成到 capture 流程
-- [ ] 验证 TypeScript 编译
+### Next Actions
+- [ ] 创建 #11 i18n issue
+- [ ] 创建 #12 Error Recovery issue
+- [ ] 开始 Phase 3 实现
 
 ## Milestones
 
 | Version | Phase | Content | Status |
 |---------|-------|---------|--------|
 | v0.1.0 | Phase 0 | Core Kernel | ✅ Complete |
-| v0.2.0 | Phase 1 | Capture Pipeline | 🟡 In Progress |
-| v0.3.0 | Phase 2 | User Features | ⚪ Not Started |
-| v1.0.0 | Phase 3 | Polish + Production | ⚪ Not Started |
+| v0.2.0 | Phase 1 | Capture Pipeline | ✅ Complete |
+| v0.3.0 | Phase 2 | User Features | ✅ Complete |
+| v1.0.0 | Phase 3 | Polish + Production | 🟡 In Progress |
 
-## Phase 0: Core Kernel ✅ `v0.1.0`
+## Phase 0: Core Kernel ✅
 
 | Issue | Title | Status |
 |-------|-------|--------|
@@ -34,14 +28,29 @@ Status: 🔄 IN PROGRESS
 | #2 | SQLite + Migrations | ✅ Complete |
 | #3 | Network Status | ✅ Complete |
 
-## Phase 1: Capture Pipeline `v0.2.0`
+## Phase 1: Capture Pipeline ✅
 
 | Issue | Title | Status |
 |-------|-------|--------|
 | #4 | Tauri Drag & Drop | ✅ Complete |
 | #5 | Image Compression | ✅ Complete |
-| #6 | Upload Queue | 🟡 Ready (deps: #3 ✅) |
-| #7 | Auth (Cognito) | 🟡 Ready |
+| #6 | Upload Queue | ✅ Complete |
+| #7 | Auth (Cognito) | ✅ Complete |
+
+## Phase 2: User Features ✅
+
+| Issue | Title | Status |
+|-------|-------|--------|
+| #8 | Report Views | ✅ Complete |
+| #9 | Transaction Management | ✅ Complete |
+| #10 | Settings Module | ✅ Complete |
+
+## Phase 3: Polish
+
+| Issue | Title | Status |
+|-------|-------|--------|
+| #11 | i18n | ⚪ Not Created |
+| #12 | Error Recovery | ⚪ Not Created |
 
 ## Backlog
 
@@ -69,10 +78,13 @@ Small tasks not worth an issue:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #10 Settings Module completed (2025-12-29)
+- #9 Transaction Management completed (2025-12-29)
+- #8 Report Views completed (2025-12-29)
+- #7 Auth Module completed (2025-12-29)
+- #6 Upload Queue completed (2025-12-29)
 - #5 Image Compression completed (2025-12-29)
-- #4 Tauri Drag & Drop verified (2025-12-29)
-- #3 Network Status implemented (2025-12-29)
-- #2 SQLite + Migrations implemented (2025-12-29)
-- #1 EventBus implemented (2025-12-29)
-- Created ROADMAP.md (2025-12-28)
-- Created GitHub Issues #1-#7 (2025-12-28)
+- #4 Tauri Drag & Drop completed (2025-12-29)
+- #3 Network Status completed (2025-12-29)
+- #2 SQLite + Migrations completed (2025-12-29)
+- #1 EventBus completed (2025-12-29)
