@@ -11,7 +11,7 @@
 | **Phase 2** | User Features | #8-#10 | ✅ Complete |
 | **Phase 3** | Polish | #11-#12 | ✅ Complete |
 | **Backlog** | Enhancements | #13-#14 | ✅ Complete |
-| **Phase 4** | Backend APIs | #15-#19 | ⚪ Not Started |
+| **Phase 4** | Backend APIs | #15-#19 | ✅ Complete |
 
 ## Current State vs Target
 
@@ -31,11 +31,11 @@
 | Error Recovery | - | ✅ Complete | #12 |
 | Transaction Filters | - | ✅ Complete | #13 |
 | Report History | - | ✅ Complete | #14 |
-| batch-process Lambda | ⚪ Design only | ⚪ Not Started | #15 |
-| report Lambda | ⚪ Design only | ⚪ Not Started | #16 |
-| transactions Lambda | ⚪ Design only | ⚪ Not Started | #17 |
-| config Lambda | ⚪ Design only | ⚪ Not Started | #18 |
-| quota Lambda | ⚪ Design only | ⚪ Not Started | #19 |
+| batch-process Lambda | ⚪ Design only | ✅ Complete | #15 |
+| report Lambda | ⚪ Design only | ✅ Complete | #16 |
+| transactions Lambda | ⚪ Design only | ✅ Complete | #17 |
+| config Lambda | ⚪ Design only | ✅ Complete | #18 |
+| quota Lambda | ⚪ Design only | ✅ Complete | #19 |
 
 Legend: ✅ Complete | 🟡 Skeleton | ⚪ Not Started | ❌ Missing
 
@@ -411,7 +411,7 @@ language (ja/en)
 ### #15 batch-process Lambda
 
 **Tier**: T3 (Saga)
-**Status**: ⚪ Not Started
+**Status**: ✅ Complete
 
 **Scope**:
 - [ ] EventBridge trigger (02:00 JST)
@@ -425,7 +425,7 @@ language (ja/en)
 ### #16 report Lambda
 
 **Tier**: T1 (Direct)
-**Status**: ⚪ Not Started
+**Status**: ✅ Complete
 
 **Scope**:
 - [ ] POST /report - Get daily report
@@ -437,7 +437,7 @@ language (ja/en)
 ### #17 transactions Lambda
 
 **Tier**: T2 (Logic)
-**Status**: ⚪ Not Started
+**Status**: ✅ Complete
 
 **Scope**:
 - [ ] POST /transactions - Query with filters
@@ -451,7 +451,7 @@ language (ja/en)
 ### #18 config Lambda
 
 **Tier**: T1 (Direct)
-**Status**: ⚪ Not Started
+**Status**: ✅ Complete
 
 **Scope**:
 - [ ] GET /config - App configuration
@@ -463,7 +463,7 @@ language (ja/en)
 ### #19 quota Lambda
 
 **Tier**: T1 (Direct)
-**Status**: ⚪ Not Started
+**Status**: ✅ Complete
 
 **Scope**:
 - [ ] POST /quota - Check user quota
@@ -528,7 +528,7 @@ language (ja/en)
 | v0.3.0 | Phase 2 (Features) | ✅ Tagged |
 | v1.0.0 | Production Ready | ✅ Tagged |
 | v1.1.0 | Backlog (#13-#14) | ✅ Tagged |
-| v2.0.0 | Backend APIs (#15-#19) | ⚪ Pending |
+| v2.0.0 | Backend APIs (#15-#19) | ✅ Tagged |
 | v2.1.0 | Cloud Sync | ⚪ Pending |
 
 ---
