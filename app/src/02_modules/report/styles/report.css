@@ -571,3 +571,47 @@
 .btn-cancel:hover {
   background: #d1d5db;
 }
+
+/* Context Menu */
+.context-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 140px;
+  padding: 0.25rem 0;
+  overflow: hidden;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.context-menu button:hover {
+  background: #f3f4f6;
+}
+
+.context-menu button.delete {
+  color: #dc2626;
+}
+
+.context-menu button.delete:hover {
+  background: #fef2f2;
+}

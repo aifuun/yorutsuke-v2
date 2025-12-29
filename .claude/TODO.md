@@ -49,32 +49,48 @@ All phases and issues completed. Next focus: Backlog items.
 | #11 | i18n | ✅ Complete |
 | #12 | Error Recovery | ✅ Complete |
 
+## Phase 4: Backend APIs 🚧
+
+| Issue | Title | Status |
+|-------|-------|--------|
+| #15 | batch-process Lambda (Nova Lite OCR) | ⏳ Pending |
+| #16 | report Lambda (报告 API) | ⏳ Pending |
+| #17 | transactions Lambda (CRUD API) | ⏳ Pending |
+| #18 | config Lambda (配置 API) | ⏳ Pending |
+| #19 | quota Lambda (配额检查 API) | ⏳ Pending |
+
 ## Backlog
 
 Small tasks not worth an issue:
 
-- [ ] Setup ESLint rules for Pillar compliance
-- [ ] batch-process Lambda: 添加 `ConditionExpression: 'attribute_not_exists(id)'` 幂等检查 (Pillar Q)
-- [ ] CaptureView: 显示"等待处理"计数 (已上传但未处理的图片数)
+- [x] Setup ESLint rules for Pillar compliance
+- [x] CaptureView: 显示"等待处理"计数 (awaitingProcessCount)
 
 ### Design Improvements (DESIGN.md)
 
 **P1 - High Priority**:
-- [ ] S03 右键菜单删除: Transactions 页面增加右键菜单支持 (Context Menu)，同时保留 swipe 作为触控板快捷方式
+- [x] S03 右键菜单删除: Context Menu 已实现
 - [x] 空状态设计: EmptyState 组件 (first-use, no-data-today, no-results)
 
 **P2 - Medium Priority**:
-- [ ] 断网状态反馈: Upload Queue 增加 `Offline` 状态指示器（"等待连接"图标），扩展现有 Status Indicators
+- [x] 断网状态反馈: Offline Indicator 已实现
 
 **P3 - Low Priority**:
-- [ ] 系统托盘: 将 Sync 状态移至系统托盘区，保持主界面简洁（Settings 保留在 UI 供用户查看 quota）
+- [ ] 系统托盘: 需要 Tauri tray plugin，复杂度高，暂缓
 
 **Deferred**:
 - [ ] 批量确认: "Batch Confirm" 功能 - 等 v1 验证用户行为模式后再决定是否添加（风险：可能导致误确认 OCR 错误）
+- [ ] Cloud Sync: 依赖后端 API
 
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- Backend Lambda issues created #15-#19 (2025-12-29)
+- Backlog tasks completed (2025-12-29)
+  - ESLint rules for Pillar compliance
+  - CaptureView awaiting process count
+  - Context Menu for transactions (P1)
+  - Offline Indicator (P2)
 - Empty States design completed (2025-12-29)
 - #14 Report History completed (2025-12-29)
 - #13 Transaction Filters completed (2025-12-29)

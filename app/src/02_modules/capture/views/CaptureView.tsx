@@ -1,6 +1,7 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
 import { useCaptureLogic } from '../headless/useCaptureLogic';
 import { useDragDrop } from '../headless/useDragDrop';
+import { useNetworkStatus } from '../../../00_kernel/network';
 import type { UserId } from '../../../00_kernel/types';
 import type { DroppedItem } from '../types';
 
@@ -9,10 +10,12 @@ interface CaptureViewProps {
 }
 
 export function CaptureView({ userId }: CaptureViewProps) {
+  const { isOnline } = useNetworkStatus();
   const {
     state,
     pendingCount,
     uploadedCount,
+    awaitingProcessCount,
     remainingQuota,
     addImage,
   } = useCaptureLogic(userId);
@@ -59,9 +62,20 @@ export function CaptureView({ userId }: CaptureViewProps) {
 
   return (
     <div className="capture-container">
+      {/* Offline indicator */}
+      {!isOnline && (
+        <div className="offline-indicator">
+          <span className="offline-icon">📡</span>
+          <span>Waiting for connection...</span>
+        </div>
+      )}
+
       <div className="capture-stats">
         <span>Pending: {pendingCount}</span>
         <span>Uploaded: {uploadedCount}</span>
+        {awaitingProcessCount > 0 && (
+          <span className="awaiting-process">Awaiting AI: {awaitingProcessCount}</span>
+        )}
         <span>Remaining: {remainingQuota}</span>
       </div>
 

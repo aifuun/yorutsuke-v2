@@ -83,3 +83,76 @@ h1 {
 .error-fallback .btn-retry:hover {
   background: #2563eb;
 }
+
+/* Offline Indicator */
+.offline-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.offline-icon {
+  font-size: 1rem;
+}
+
+/* Capture Container */
+.capture-container {
+  padding: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.capture-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.capture-stats .awaiting-process {
+  color: #f59e0b;
+}
+
+.drop-zone {
+  padding: 3rem 2rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  text-align: center;
+  color: #6b7280;
+  background: #f9fafb;
+  transition: all 0.2s;
+}
+
+.drop-zone--dragging {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.queue-list {
+  margin-top: 1rem;
+}
+
+.queue-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+}
+
+.queue-item.status-pending { color: #6b7280; }
+.queue-item.status-uploading { color: #3b82f6; }
+.queue-item.status-uploaded { color: #10b981; }
+.queue-item.status-failed { color: #dc2626; }

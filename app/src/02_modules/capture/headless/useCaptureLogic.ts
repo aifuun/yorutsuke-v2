@@ -142,6 +142,15 @@ export function useCaptureLogic(userId: UserId | null) {
     dispatch({ type: 'REMOVE', id });
   }, []);
 
+  // Computed counts
+  const pendingCount = state.queue.filter(img => img.status === 'pending').length;
+  const uploadedCount = state.queue.filter(img => img.status === 'uploaded').length;
+  // Awaiting processing: uploaded but not yet processed by AI batch
+  // TODO: Query from backend when batch-process Lambda is implemented
+  const awaitingProcessCount = state.queue.filter(img =>
+    img.status === 'uploaded' && !img.processedAt
+  ).length;
+
   return {
     state,
     addImage,
@@ -149,8 +158,9 @@ export function useCaptureLogic(userId: UserId | null) {
     uploadImage,
     removeImage,
     // Computed
-    pendingCount: state.queue.filter(img => img.status === 'pending').length,
-    uploadedCount: state.queue.filter(img => img.status === 'uploaded').length,
-    remainingQuota: DAILY_UPLOAD_LIMIT - state.queue.filter(img => img.status === 'uploaded').length,
+    pendingCount,
+    uploadedCount,
+    awaitingProcessCount,
+    remainingQuota: DAILY_UPLOAD_LIMIT - uploadedCount,
   };
 }

@@ -51,6 +51,16 @@ export function TransactionItem({
     category: category,
   });
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const closeContextMenu = () => setContextMenu(null);
+
   const handleSave = () => {
     if (onEdit) {
       onEdit(id, {
@@ -76,15 +86,56 @@ export function TransactionItem({
     if (onConfirm) onConfirm(id);
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    closeContextMenu();
     if (onDelete && confirm(t('transaction.deleteConfirm'))) {
       onDelete(id);
     }
   };
 
+  const handleContextEdit = () => {
+    closeContextMenu();
+    setIsEditing(true);
+  };
+
+  const handleContextConfirm = () => {
+    closeContextMenu();
+    if (onConfirm) onConfirm(id);
+  };
+
   return (
-    <div className={`transaction-item ${isExpanded ? 'expanded' : ''}`}>
+    <div
+      className={`transaction-item ${isExpanded ? 'expanded' : ''}`}
+      onContextMenu={handleContextMenu}
+    >
+      {/* Context Menu */}
+      {contextMenu && (
+        <>
+          <div className="context-menu-overlay" onClick={closeContextMenu} />
+          <div
+            className="context-menu"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            {onEdit && (
+              <button type="button" onClick={handleContextEdit}>
+                {t('common.edit')}
+              </button>
+            )}
+            {onConfirm && !confirmedAt && (
+              <button type="button" onClick={handleContextConfirm}>
+                {t('common.confirm')}
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" className="delete" onClick={() => handleDelete()}>
+                {t('common.delete')}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
       <div className="tx-main" onClick={onToggle}>
         <div className="tx-left">
           <span className={`status-icon ${confirmedAt ? 'confirmed' : ''}`}>
