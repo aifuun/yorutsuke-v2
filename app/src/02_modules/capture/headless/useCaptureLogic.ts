@@ -94,10 +94,11 @@ export function useCaptureLogic(userId: UserId | null) {
     dispatch({ type: 'ADD_IMAGE', image });
   }, []);
 
-  const processImage = useCallback(async (id: ImageId, inputPath: string, outputPath: string) => {
+  const processImage = useCallback(async (id: ImageId, inputPath: string) => {
     dispatch({ type: 'START_PROCESS', id });
     try {
-      const result = await compressImage(inputPath, outputPath);
+      // compressImage now takes (inputPath, imageId) and returns result with outputPath
+      const result = await compressImage(inputPath, id);
       dispatch({
         type: 'PROCESS_SUCCESS',
         id,

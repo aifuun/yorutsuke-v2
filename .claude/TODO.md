@@ -2,11 +2,31 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Focus
+## Current Focus: #5 - Image Compression (02_modules/capture)
 
-None - ready for `*issue pick <n>`
+Status: 🔄 IN PROGRESS
 
-## Phase 0: Core Kernel ✅
+**Tier**: T2 (Logic)
+**Pillars**: A, B, D, G, L, R
+
+### Tasks
+- [ ] Rust: 实现 `compress_image` 命令 (WebP 压缩)
+- [ ] Rust: 实现 `get_image_hash` 命令 (MD5)
+- [ ] TS: 完善 `adapters/imageIpc.ts` (超时、错误处理)
+- [ ] TS: 创建 `headless/useImageProcessor.ts`
+- [ ] TS: 集成到 capture 流程
+- [ ] 验证 TypeScript 编译
+
+## Milestones
+
+| Version | Phase | Content | Status |
+|---------|-------|---------|--------|
+| v0.1.0 | Phase 0 | Core Kernel | ✅ Complete |
+| v0.2.0 | Phase 1 | Capture Pipeline | 🟡 In Progress |
+| v0.3.0 | Phase 2 | User Features | ⚪ Not Started |
+| v1.0.0 | Phase 3 | Polish + Production | ⚪ Not Started |
+
+## Phase 0: Core Kernel ✅ `v0.1.0`
 
 | Issue | Title | Status |
 |-------|-------|--------|
@@ -14,12 +34,12 @@ None - ready for `*issue pick <n>`
 | #2 | SQLite + Migrations | ✅ Complete |
 | #3 | Network Status | ✅ Complete |
 
-## Phase 1: Capture Pipeline
+## Phase 1: Capture Pipeline `v0.2.0`
 
 | Issue | Title | Status |
 |-------|-------|--------|
 | #4 | Tauri Drag & Drop | ✅ Complete |
-| #5 | Image Compression | 🟡 Ready |
+| #5 | Image Compression | ✅ Complete |
 | #6 | Upload Queue | 🟡 Ready (deps: #3 ✅) |
 | #7 | Auth (Cognito) | 🟡 Ready |
 
@@ -49,6 +69,7 @@ Small tasks not worth an issue:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #5 Image Compression completed (2025-12-29)
 - #4 Tauri Drag & Drop verified (2025-12-29)
 - #3 Network Status implemented (2025-12-29)
 - #2 SQLite + Migrations implemented (2025-12-29)

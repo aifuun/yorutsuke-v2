@@ -43,6 +43,22 @@ One way > Multiple options
 - **Target Users**: Budget-conscious second-hand computer users (Mercari/Yahoo Auctions sellers)
 - **Migration**: 本项目是迁移项目，原项目参考 `../yorutsuke`，参考功能和使用方法，架构完全改变
 
+### Refer to Yorutsuke
+
+参考原项目时的原则：
+
+1. **先看原项目了解"做什么"** - 功能需求、边界条件、已踩过的坑
+2. **再按新架构决定"怎么做"** - 遵循 Pillars、分层规范
+3. **不直接复制，而是重写** - 适配 AI_DEV_PROT v15 架构
+
+| 参考内容 | 价值 | 说明 |
+|----------|------|------|
+| Rust 逻辑 | ✅ 高 | 压缩参数、IPC 实现已调优 |
+| 业务规则 | ✅ 高 | MD5 去重、quota 限制已验证 |
+| 错误处理 | ✅ 高 | 异常场景已踩过坑 |
+| 代码结构 | ⚠️ 低 | 架构完全不同，勿复制 |
+| React hooks | ⚠️ 低 | 需适配 Pillar L headless |
+
 ## Core Flow
 
 ```
