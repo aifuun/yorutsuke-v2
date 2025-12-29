@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2025-12-29] Phase 2 started (#8 Report Views done)
-- **Next Steps**: #9 Transaction Management
+- **Last Progress**: [2025-12-29] Phase 2 complete, v0.3.0 tagged
+- **Next Steps**: Phase 3 (#11 i18n, #12 Error Recovery)
 - **Blockers**: None
 
 ## Architecture Decisions
