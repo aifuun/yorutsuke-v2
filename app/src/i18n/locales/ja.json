@@ -1,0 +1,73 @@
+{
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "confirm": "確認",
+    "edit": "編集",
+    "retry": "再試行"
+  },
+  "report": {
+    "title": "朝のレポート",
+    "date": "日付",
+    "summary": "サマリー",
+    "transactions": "取引",
+    "transactionCount": "{{count}}件",
+    "empty": "取引がありません",
+    "emptyHint": "レシートをドロップして追跡を開始",
+    "income": "収入",
+    "expense": "支出",
+    "netProfit": "純利益",
+    "categoryBreakdown": "カテゴリ内訳"
+  },
+  "transaction": {
+    "edit": "編集",
+    "confirm": "確認",
+    "delete": "削除",
+    "deleteConfirm": "この取引を削除しますか？",
+    "amount": "金額",
+    "merchant": "店舗",
+    "category": "カテゴリ",
+    "date": "日付",
+    "description": "説明",
+    "status": "ステータス",
+    "confirmed": "確認済み",
+    "pending": "確認待ち",
+    "ocrText": "OCRテキスト",
+    "categories": {
+      "purchase": "仕入",
+      "sale": "売上",
+      "shipping": "送料",
+      "packaging": "梱包",
+      "fee": "手数料",
+      "other": "その他"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "account": "アカウント",
+    "email": "メール",
+    "tier": "プラン",
+    "preferences": "設定",
+    "theme": "テーマ",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "language": "言語",
+    "notifications": "通知",
+    "developer": "開発者",
+    "debugMode": "デバッグモード",
+    "about": "このアプリについて",
+    "version": "バージョン",
+    "logout": "ログアウト",
+    "logoutConfirm": "ログアウトしますか？"
+  },
+  "auth": {
+    "login": "ログイン",
+    "register": "登録",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "forgotPassword": "パスワードを忘れた"
+  }
+}

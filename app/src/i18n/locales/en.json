@@ -1,0 +1,73 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "edit": "Edit",
+    "retry": "Retry"
+  },
+  "report": {
+    "title": "Morning Report",
+    "date": "Date",
+    "summary": "Summary",
+    "transactions": "Transactions",
+    "transactionCount": "{{count}} items",
+    "empty": "No transactions yet",
+    "emptyHint": "Drop receipts to start tracking",
+    "income": "Income",
+    "expense": "Expense",
+    "netProfit": "Net Profit",
+    "categoryBreakdown": "Category Breakdown"
+  },
+  "transaction": {
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this transaction?",
+    "amount": "Amount",
+    "merchant": "Merchant",
+    "category": "Category",
+    "date": "Date",
+    "description": "Description",
+    "status": "Status",
+    "confirmed": "Confirmed",
+    "pending": "Pending confirmation",
+    "ocrText": "OCR Text",
+    "categories": {
+      "purchase": "Purchase",
+      "sale": "Sale",
+      "shipping": "Shipping",
+      "packaging": "Packaging",
+      "fee": "Fee",
+      "other": "Other"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "email": "Email",
+    "tier": "Tier",
+    "preferences": "Preferences",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Language",
+    "notifications": "Notifications",
+    "developer": "Developer",
+    "debugMode": "Debug Mode",
+    "about": "About",
+    "version": "Version",
+    "logout": "Logout",
+    "logoutConfirm": "Are you sure you want to logout?"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password"
+  }
+}

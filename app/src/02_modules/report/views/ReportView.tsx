@@ -5,6 +5,7 @@ import type { Transaction } from '../../../01_domains/transaction';
 import { createDailySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
 import { seedMockTransactions } from '../../transaction/adapters/seedData';
+import { useTranslation } from '../../../i18n';
 import { SummaryCards } from './SummaryCards';
 import { CategoryBreakdown } from './CategoryBreakdown';
 import { TransactionList } from './TransactionList';
@@ -16,6 +17,7 @@ interface ReportViewProps {
 }
 
 export function ReportView({ userId, date }: ReportViewProps) {
+  const { t } = useTranslation();
   const targetDate = date || new Date().toISOString().split('T')[0];
   const { state, transactions, save, confirm, remove, load } = useTransactionLogic(userId);
   const seededRef = useRef(false);
@@ -54,16 +56,16 @@ export function ReportView({ userId, date }: ReportViewProps) {
 
   // Handle all states (Pillar D: FSM)
   if (state.status === 'idle' || state.status === 'loading') {
-    return <div className="report-loading">Loading report...</div>;
+    return <div className="report-loading">{t('common.loading')}</div>;
   }
   if (state.status === 'error') {
-    return <div className="report-error">Error: {state.error}</div>;
+    return <div className="report-error">{t('common.error')}: {state.error}</div>;
   }
 
   return (
     <div className="morning-report">
       <header className="report-header">
-        <h2>Morning Report</h2>
+        <h2>{t('report.title')}</h2>
         <span className="report-date">{targetDate}</span>
       </header>
 
@@ -77,7 +79,7 @@ export function ReportView({ userId, date }: ReportViewProps) {
       />
 
       <footer className="report-footer">
-        <span>{transactions.length} transactions</span>
+        <span>{t('report.transactionCount', { count: transactions.length })}</span>
       </footer>
     </div>
   );

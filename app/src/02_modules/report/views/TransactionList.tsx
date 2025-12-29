@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { Transaction } from '../../../01_domains/transaction';
 import type { TransactionId } from '../../../00_kernel/types';
+import { useTranslation } from '../../../i18n';
 import { TransactionItem } from './TransactionItem';
 
 interface TransactionListProps {
@@ -18,6 +19,7 @@ export function TransactionList({
   onConfirm,
   onDelete,
 }: TransactionListProps) {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<TransactionId | null>(null);
 
   const toggleExpand = (id: TransactionId) => {
@@ -28,8 +30,8 @@ export function TransactionList({
     return (
       <div className="transactions-empty">
         <span className="empty-icon">📋</span>
-        <p>No transactions yet</p>
-        <span className="empty-hint">Drop receipts to start tracking</span>
+        <p>{t('report.empty')}</p>
+        <span className="empty-hint">{t('report.emptyHint')}</span>
       </div>
     );
   }
@@ -37,8 +39,8 @@ export function TransactionList({
   return (
     <div className="transactions-section">
       <div className="section-header">
-        <h3>Transactions</h3>
-        <span className="section-count">{transactions.length} items</span>
+        <h3>{t('report.transactions')}</h3>
+        <span className="section-count">{t('report.transactionCount', { count: transactions.length })}</span>
       </div>
       <div className="transactions-list">
         {transactions.map(tx => (

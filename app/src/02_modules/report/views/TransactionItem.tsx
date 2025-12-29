@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Transaction, TransactionCategory } from '../../../01_domains/transaction';
 import type { TransactionId } from '../../../00_kernel/types';
 import { isHighConfidence } from '../../../01_domains/transaction';
+import { useTranslation } from '../../../i18n';
 
 const CATEGORIES: TransactionCategory[] = [
   'purchase', 'sale', 'shipping', 'packaging', 'fee', 'other',
@@ -39,6 +40,7 @@ export function TransactionItem({
   onConfirm,
   onDelete,
 }: TransactionItemProps) {
+  const { t } = useTranslation();
   const { id, type, category, amount, merchant, confidence, confirmedAt, description, date, rawText } = transaction;
 
   // Edit mode state
@@ -76,7 +78,7 @@ export function TransactionItem({
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onDelete && confirm('Delete this transaction?')) {
+    if (onDelete && confirm(t('transaction.deleteConfirm'))) {
       onDelete(id);
     }
   };
@@ -90,7 +92,7 @@ export function TransactionItem({
           </span>
           <div className="tx-info">
             <span className="tx-merchant">{merchant || 'Unknown'}</span>
-            <span className="tx-category">{category}</span>
+            <span className="tx-category">{t(`transaction.categories.${category}`)}</span>
           </div>
         </div>
         <div className="tx-right">
@@ -110,7 +112,7 @@ export function TransactionItem({
             // Edit mode
             <div className="tx-edit-form">
               <div className="edit-row">
-                <label>Amount</label>
+                <label>{t('transaction.amount')}</label>
                 <input
                   type="number"
                   value={editForm.amount}
@@ -119,7 +121,7 @@ export function TransactionItem({
                 />
               </div>
               <div className="edit-row">
-                <label>Merchant</label>
+                <label>{t('transaction.merchant')}</label>
                 <input
                   type="text"
                   value={editForm.merchant}
@@ -128,42 +130,42 @@ export function TransactionItem({
                 />
               </div>
               <div className="edit-row">
-                <label>Category</label>
+                <label>{t('transaction.category')}</label>
                 <select
                   value={editForm.category}
                   onChange={(e) => setEditForm({ ...editForm, category: e.target.value as TransactionCategory })}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>{t(`transaction.categories.${cat}`)}</option>
                   ))}
                 </select>
               </div>
               <div className="edit-actions">
-                <button className="btn-save" onClick={handleSave}>Save</button>
-                <button className="btn-cancel" onClick={handleCancel}>Cancel</button>
+                <button className="btn-save" onClick={handleSave}>{t('common.save')}</button>
+                <button className="btn-cancel" onClick={handleCancel}>{t('common.cancel')}</button>
               </div>
             </div>
           ) : (
             // View mode
             <>
               <div className="detail-row">
-                <span className="detail-label">Description</span>
+                <span className="detail-label">{t('transaction.description')}</span>
                 <span className="detail-value">{description || '-'}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Date</span>
+                <span className="detail-label">{t('transaction.date')}</span>
                 <span className="detail-value">{date}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Status</span>
+                <span className="detail-label">{t('transaction.status')}</span>
                 <span className="detail-value">
-                  {confirmedAt ? 'Confirmed' : 'Pending confirmation'}
+                  {confirmedAt ? t('transaction.confirmed') : t('transaction.pending')}
                 </span>
               </div>
               {rawText && (
                 <div className="detail-row">
-                  <span className="detail-label">OCR Text</span>
+                  <span className="detail-label">{t('transaction.ocrText')}</span>
                   <span className="detail-value ocr-text">{rawText}</span>
                 </div>
               )}
@@ -175,17 +177,17 @@ export function TransactionItem({
                     className="btn-edit"
                     onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                   >
-                    Edit
+                    {t('common.edit')}
                   </button>
                 )}
                 {onConfirm && !confirmedAt && (
                   <button className="btn-confirm" onClick={handleConfirm}>
-                    Confirm
+                    {t('common.confirm')}
                   </button>
                 )}
                 {onDelete && (
                   <button className="btn-delete" onClick={handleDelete}>
-                    Delete
+                    {t('common.delete')}
                   </button>
                 )}
               </div>

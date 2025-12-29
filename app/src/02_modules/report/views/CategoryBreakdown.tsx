@@ -1,5 +1,6 @@
 // Category breakdown chart component
 import type { TransactionCategory } from '../../../01_domains/transaction';
+import { useTranslation } from '../../../i18n';
 
 interface CategoryBreakdownProps {
   byCategory: Record<TransactionCategory, number>;
@@ -15,6 +16,7 @@ const CATEGORY_COLORS: Record<TransactionCategory, string> = {
 };
 
 export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
+  const { t } = useTranslation();
   const total = Object.values(byCategory).reduce((sum, v) => sum + v, 0);
 
   if (total === 0) return null;
@@ -25,7 +27,7 @@ export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
 
   return (
     <div className="category-breakdown">
-      <h3>By Category</h3>
+      <h3>{t('report.categoryBreakdown')}</h3>
       <div className="category-bars">
         {entries.map(([category, amount]) => {
           const percentage = (amount / total) * 100;
@@ -36,7 +38,9 @@ export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {
                   className="category-dot"
                   style={{ backgroundColor: CATEGORY_COLORS[category as TransactionCategory] }}
                 />
-                <span className="category-label">{category}</span>
+                <span className="category-label">
+                  {t(`transaction.categories.${category}`)}
+                </span>
               </div>
               <div className="bar-container">
                 <div
