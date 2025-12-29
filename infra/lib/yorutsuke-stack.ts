@@ -213,6 +213,30 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // Lambda for report generation
+    const reportLambda = new lambda.Function(this, "ReportLambda", {
+      functionName: `yorutsuke-report-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/report"),
+      environment: {
+        TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    transactionsTable.grantReadData(reportLambda);
+
+    // Lambda Function URL for report
+    const reportUrl = reportLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -257,6 +281,11 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "TransactionsLambdaUrl", {
       value: transactionsUrl.url,
       exportName: `${id}-TransactionsUrl`,
+    });
+
+    new cdk.CfnOutput(this, "ReportLambdaUrl", {
+      value: reportUrl.url,
+      exportName: `${id}-ReportUrl`,
     });
   }
 }
