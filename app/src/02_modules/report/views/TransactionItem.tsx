@@ -1,11 +1,21 @@
-// Single transaction display component
-import type { Transaction } from '../../../01_domains/transaction';
+// Single transaction display component with edit capability
+import { useState } from 'react';
+import type { Transaction, TransactionCategory } from '../../../01_domains/transaction';
+import type { TransactionId } from '../../../00_kernel/types';
 import { isHighConfidence } from '../../../01_domains/transaction';
+
+const CATEGORIES: TransactionCategory[] = [
+  'purchase', 'sale', 'shipping', 'packaging', 'fee', 'other',
+];
 
 interface TransactionItemProps {
   transaction: Transaction;
   isExpanded: boolean;
   onToggle: () => void;
+  // Action callbacks
+  onEdit?: (id: TransactionId, changes: Partial<Transaction>) => void;
+  onConfirm?: (id: TransactionId) => void;
+  onDelete?: (id: TransactionId) => void;
 }
 
 // Format amount with currency
@@ -21,8 +31,55 @@ const getStatusIcon = (tx: Transaction): string => {
   return '?';
 };
 
-export function TransactionItem({ transaction, isExpanded, onToggle }: TransactionItemProps) {
-  const { type, category, amount, merchant, confidence, confirmedAt, description, date, rawText } = transaction;
+export function TransactionItem({
+  transaction,
+  isExpanded,
+  onToggle,
+  onEdit,
+  onConfirm,
+  onDelete,
+}: TransactionItemProps) {
+  const { id, type, category, amount, merchant, confidence, confirmedAt, description, date, rawText } = transaction;
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    amount: amount.toString(),
+    merchant: merchant || '',
+    category: category,
+  });
+
+  const handleSave = () => {
+    if (onEdit) {
+      onEdit(id, {
+        amount: parseInt(editForm.amount, 10) || amount,
+        merchant: editForm.merchant || null,
+        category: editForm.category,
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditForm({
+      amount: amount.toString(),
+      merchant: merchant || '',
+      category: category,
+    });
+    setIsEditing(false);
+  };
+
+  const handleConfirm = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onConfirm) onConfirm(id);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete && confirm('Delete this transaction?')) {
+      onDelete(id);
+    }
+  };
 
   return (
     <div className={`transaction-item ${isExpanded ? 'expanded' : ''}`}>
@@ -49,25 +106,90 @@ export function TransactionItem({ transaction, isExpanded, onToggle }: Transacti
 
       {isExpanded && (
         <div className="tx-details">
-          <div className="detail-row">
-            <span className="detail-label">Description</span>
-            <span className="detail-value">{description || '-'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Date</span>
-            <span className="detail-value">{date}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Status</span>
-            <span className="detail-value">
-              {confirmedAt ? 'Confirmed' : 'Pending confirmation'}
-            </span>
-          </div>
-          {rawText && (
-            <div className="detail-row">
-              <span className="detail-label">OCR Text</span>
-              <span className="detail-value ocr-text">{rawText}</span>
+          {isEditing ? (
+            // Edit mode
+            <div className="tx-edit-form">
+              <div className="edit-row">
+                <label>Amount</label>
+                <input
+                  type="number"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              <div className="edit-row">
+                <label>Merchant</label>
+                <input
+                  type="text"
+                  value={editForm.merchant}
+                  onChange={(e) => setEditForm({ ...editForm, merchant: e.target.value })}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+              <div className="edit-row">
+                <label>Category</label>
+                <select
+                  value={editForm.category}
+                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value as TransactionCategory })}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="edit-actions">
+                <button className="btn-save" onClick={handleSave}>Save</button>
+                <button className="btn-cancel" onClick={handleCancel}>Cancel</button>
+              </div>
             </div>
+          ) : (
+            // View mode
+            <>
+              <div className="detail-row">
+                <span className="detail-label">Description</span>
+                <span className="detail-value">{description || '-'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Date</span>
+                <span className="detail-value">{date}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Status</span>
+                <span className="detail-value">
+                  {confirmedAt ? 'Confirmed' : 'Pending confirmation'}
+                </span>
+              </div>
+              {rawText && (
+                <div className="detail-row">
+                  <span className="detail-label">OCR Text</span>
+                  <span className="detail-value ocr-text">{rawText}</span>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="tx-actions">
+                {onEdit && (
+                  <button
+                    className="btn-edit"
+                    onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                  >
+                    Edit
+                  </button>
+                )}
+                {onConfirm && !confirmedAt && (
+                  <button className="btn-confirm" onClick={handleConfirm}>
+                    Confirm
+                  </button>
+                )}
+                {onDelete && (
+                  <button className="btn-delete" onClick={handleDelete}>
+                    Delete
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}

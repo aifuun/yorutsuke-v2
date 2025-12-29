@@ -321,3 +321,112 @@
 .report-error {
   color: #dc2626;
 }
+
+/* Edit Form */
+.tx-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.edit-row label {
+  width: 80px;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.edit-row input,
+.edit-row select {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.edit-row input:focus,
+.edit-row select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Action Buttons */
+.tx-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-edit,
+.btn-confirm,
+.btn-delete,
+.btn-save,
+.btn-cancel {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-edit {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-edit:hover {
+  background: #d1d5db;
+}
+
+.btn-confirm {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.btn-confirm:hover {
+  background: #a7f3d0;
+}
+
+.btn-delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-delete:hover {
+  background: #fecaca;
+}
+
+.btn-save {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn-save:hover {
+  background: #2563eb;
+}
+
+.btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-cancel:hover {
+  background: #d1d5db;
+}

@@ -6,9 +6,18 @@ import { TransactionItem } from './TransactionItem';
 
 interface TransactionListProps {
   transactions: Transaction[];
+  // Action callbacks
+  onEdit?: (id: TransactionId, changes: Partial<Transaction>) => void;
+  onConfirm?: (id: TransactionId) => void;
+  onDelete?: (id: TransactionId) => void;
 }
 
-export function TransactionList({ transactions }: TransactionListProps) {
+export function TransactionList({
+  transactions,
+  onEdit,
+  onConfirm,
+  onDelete,
+}: TransactionListProps) {
   const [expandedId, setExpandedId] = useState<TransactionId | null>(null);
 
   const toggleExpand = (id: TransactionId) => {
@@ -38,6 +47,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
             transaction={tx}
             isExpanded={expandedId === tx.id}
             onToggle={() => toggleExpand(tx.id)}
+            onEdit={onEdit}
+            onConfirm={onConfirm}
+            onDelete={onDelete}
           />
         ))}
       </div>
