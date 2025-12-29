@@ -69,5 +69,12 @@
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot Password"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "unknown": "An unexpected error occurred",
+    "network": "Network error",
+    "offline": "You are offline",
+    "circuitOpen": "Service temporarily unavailable"
   }
 }

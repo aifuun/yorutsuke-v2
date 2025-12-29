@@ -69,5 +69,12 @@
     "email": "メールアドレス",
     "password": "パスワード",
     "forgotPassword": "パスワードを忘れた"
+  },
+  "error": {
+    "title": "エラーが発生しました",
+    "unknown": "予期しないエラーが発生しました",
+    "network": "ネットワークエラー",
+    "offline": "オフラインです",
+    "circuitOpen": "サービスが一時的に利用できません"
   }
 }
