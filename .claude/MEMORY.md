@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2025-12-29] Phase 1 in progress (#4 done, #5 done, #6 done, #7 done)
-- **Next Steps**: #8 Presign Lambda (infra)
+- **Last Progress**: [2025-12-29] Phase 1 complete (#4-#7 done, Presign Lambda infra done)
+- **Next Steps**: #8 Report Views (Phase 2)
 - **Blockers**: None
 
 ## Architecture Decisions

@@ -1,72 +1,54 @@
 // Pillar L: T1 View - simple fetch and render
 import { useState, useEffect } from 'react';
 import type { UserId } from '../../../00_kernel/types';
-import type { DailySummary } from '../../../01_domains/transaction';
+import type { ReportState } from '../types';
 import { fetchMorningReport } from '../adapters/reportApi';
+import { SummaryCards } from './SummaryCards';
+import { CategoryBreakdown } from './CategoryBreakdown';
+import { TransactionList } from './TransactionList';
+import '../styles/report.css';
 
 interface ReportViewProps {
   userId: UserId;
   date?: string;
 }
 
-type State =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; summary: DailySummary }
-  | { status: 'error'; error: string };
-
 export function ReportView({ userId, date }: ReportViewProps) {
   const targetDate = date || new Date().toISOString().split('T')[0];
-  const [state, setState] = useState<State>({ status: 'idle' });
+  const [state, setState] = useState<ReportState>({ status: 'idle' });
 
   useEffect(() => {
     setState({ status: 'loading' });
     fetchMorningReport(userId, targetDate)
-      .then((report) => setState({ status: 'success', summary: report.summary }))
+      .then((data) => setState({ status: 'success', data }))
       .catch((e) => setState({ status: 'error', error: String(e) }));
   }, [userId, targetDate]);
 
-  // Handle all states
+  // Handle all states (Pillar D: FSM)
   if (state.status === 'idle') return null;
-  if (state.status === 'loading') return <div>Loading report...</div>;
-  if (state.status === 'error') return <div>Error: {state.error}</div>;
+  if (state.status === 'loading') {
+    return <div className="report-loading">Loading report...</div>;
+  }
+  if (state.status === 'error') {
+    return <div className="report-error">Error: {state.error}</div>;
+  }
 
-  const { summary } = state;
+  const { data } = state;
 
   return (
-    <div className="report-container">
-      <h2>Morning Report - {summary.date}</h2>
+    <div className="morning-report">
+      <header className="report-header">
+        <h2>Morning Report</h2>
+        <span className="report-date">{data.date}</span>
+      </header>
 
-      <div className="report-summary">
-        <div className="summary-item income">
-          <span>Income</span>
-          <span>¥{summary.totalIncome.toLocaleString()}</span>
-        </div>
-        <div className="summary-item expense">
-          <span>Expense</span>
-          <span>¥{summary.totalExpense.toLocaleString()}</span>
-        </div>
-        <div className="summary-item net">
-          <span>Net Profit</span>
-          <span className={summary.netProfit >= 0 ? 'positive' : 'negative'}>
-            ¥{summary.netProfit.toLocaleString()}
-          </span>
-        </div>
-      </div>
+      <SummaryCards summary={data.summary} />
+      <CategoryBreakdown byCategory={data.summary.byCategory} />
+      <TransactionList transactions={data.transactions} />
 
-      <div className="category-breakdown">
-        <h3>By Category</h3>
-        {Object.entries(summary.byCategory).map(([category, amount]) => (
-          <div key={category} className="category-item">
-            <span>{category}</span>
-            <span>¥{amount.toLocaleString()}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="report-meta">
-        <span>Transactions: {summary.transactionCount}</span>
-      </div>
+      <footer className="report-footer">
+        <span>Generated: {new Date(data.generatedAt).toLocaleTimeString()}</span>
+      </footer>
     </div>
   );
 }
