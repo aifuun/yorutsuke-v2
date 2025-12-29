@@ -49,11 +49,11 @@ All phases and issues completed. Next focus: Backlog items.
 | #11 | i18n | ✅ Complete |
 | #12 | Error Recovery | ✅ Complete |
 
-## Phase 4: Backend APIs 🚧
+## Phase 4: Backend APIs ✅
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| #15 | batch-process Lambda (Nova Lite OCR) | ⏳ Pending |
+| #15 | batch-process Lambda (Nova Lite OCR) | ✅ Complete |
 | #16 | report Lambda (报告 API) | ✅ Complete |
 | #17 | transactions Lambda (CRUD API) | ✅ Complete |
 | #18 | config Lambda (配置 API) | ✅ Complete |
@@ -85,6 +85,7 @@ Small tasks not worth an issue:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #15 batch-process Lambda completed (2025-12-29)
 - #16 report Lambda completed (2025-12-29)
 - #17 transactions Lambda completed (2025-12-29)
 - #18 config Lambda completed (2025-12-29)

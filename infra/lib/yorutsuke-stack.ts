@@ -4,6 +4,9 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
+import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 
 export class YorutsukeStack extends cdk.Stack {
@@ -236,6 +239,45 @@ export class YorutsukeStack extends cdk.Stack {
         allowedHeaders: ["*"],
       },
     });
+
+    // Lambda for batch processing (OCR)
+    const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
+      functionName: `yorutsuke-batch-process-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/batch-process"),
+      environment: {
+        BUCKET_NAME: imageBucket.bucketName,
+        TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
+        MAX_IMAGES_PER_RUN: "100",
+      },
+      timeout: cdk.Duration.minutes(5),
+      memorySize: 512,
+    });
+
+    // Grant permissions
+    imageBucket.grantReadWrite(batchProcessLambda);
+    transactionsTable.grantWriteData(batchProcessLambda);
+
+    // Grant Bedrock access
+    batchProcessLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: ["arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0"],
+      })
+    );
+
+    // EventBridge Rule: Run at 02:00 JST (17:00 UTC previous day)
+    const batchRule = new events.Rule(this, "BatchProcessRule", {
+      ruleName: `yorutsuke-batch-process-${env}`,
+      schedule: events.Schedule.cron({
+        minute: "0",
+        hour: "17", // 02:00 JST = 17:00 UTC (previous day)
+      }),
+      enabled: env === "prod", // Only enable in production
+    });
+
+    batchRule.addTarget(new targets.LambdaFunction(batchProcessLambda));
 
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
