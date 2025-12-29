@@ -393,6 +393,58 @@ language (ja/en)
 
 ---
 
+## Backlog (Post v1.0)
+
+> Features deferred until core functionality is stable.
+
+### Cloud Sync
+
+**Tier**: T3 (Saga)
+**Depends on**: Batch processing returns AI results to client
+
+**Scope**:
+- [ ] Report Sync API (Lambda endpoint for fetching AI-processed reports)
+- [ ] `headless/useReport.ts` - Report fetching with local cache
+- [ ] Offline/Online sync logic (queue local changes, sync when online)
+- [ ] Conflict resolution (local vs cloud)
+
+**Why deferred**:
+- Current local-first SQLite approach works for MVP
+- Backend sync API not yet implemented
+- Requires careful offline-first architecture design
+
+---
+
+### Transaction Filters
+
+**Tier**: T1 (Direct)
+
+**Scope**:
+- [ ] Filter UI (date range, category, type)
+- [ ] Filter state in useTransactionLogic
+- [ ] Persist filter preferences
+
+**Why deferred**:
+- Core CRUD works without filters
+- Can be added incrementally
+
+---
+
+### Report History
+
+**Tier**: T1 (Direct)
+
+**Scope**:
+- [ ] `views/ReportHistoryView.tsx` - Calendar/list of past reports
+- [ ] Date picker navigation
+- [ ] Monthly/weekly summary aggregation
+
+**Why deferred**:
+- Single day report works for MVP
+- Requires more UI design decisions
+
+---
+
 ## Version Milestones
 
 | Version | Content | Target |
@@ -401,6 +453,7 @@ language (ja/en)
 | v0.2.0 | Phase 1 (Capture) | - |
 | v0.3.0 | Phase 2 (Features) | - |
 | v1.0.0 | Production Ready | - |
+| v1.1.0 | Cloud Sync + Filters | - |
 
 ---
 
