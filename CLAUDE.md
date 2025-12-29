@@ -41,6 +41,7 @@ One way > Multiple options
 - **Architecture**: AI_DEV_PROT v15
 - **Current Version**: 0.1.0
 - **Target Users**: Budget-conscious second-hand computer users (Mercari/Yahoo Auctions sellers)
+- **Migration**: 本项目是迁移项目，原项目参考 `../yorutsuke`，参考功能和使用方法，架构完全改变
 
 ## Core Flow
 

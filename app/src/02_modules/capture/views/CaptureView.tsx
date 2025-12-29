@@ -1,20 +1,58 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
 import { useCaptureLogic } from '../headless/useCaptureLogic';
+import { useDragDrop } from '../headless/useDragDrop';
 import type { UserId } from '../../../00_kernel/types';
+import type { DroppedItem } from '../types';
 
 interface CaptureViewProps {
   userId: UserId | null;
 }
 
 export function CaptureView({ userId }: CaptureViewProps) {
-  const { state, pendingCount, uploadedCount, remainingQuota } = useCaptureLogic(userId);
+  const {
+    state,
+    pendingCount,
+    uploadedCount,
+    remainingQuota,
+    addImage,
+  } = useCaptureLogic(userId);
 
-  // Handle all states
+  // Drag & drop handling
+  // Note: useDragDrop emits image:pending events automatically
+  // The addImage here is for adding to the local queue display
+  const { isDragging, dragHandlers } = useDragDrop({
+    onDrop: (items: DroppedItem[]) => {
+      // Add dropped items to capture queue
+      for (const item of items) {
+        addImage({
+          id: item.id,
+          userId: userId!,
+          localPath: item.localPath,
+          status: 'pending',
+          s3Key: null,
+          thumbnailPath: item.preview,
+          originalSize: 0, // Will be updated after compression
+          compressedSize: null,
+          createdAt: new Date().toISOString(),
+          uploadedAt: null,
+          processedAt: null,
+        });
+      }
+    },
+    onReject: (rejectedPaths) => {
+      // Could show toast notification here
+      console.warn('Rejected files:', rejectedPaths);
+    },
+  });
+
+  // Handle error state
   if (state.status === 'error') {
     return (
       <div className="capture-error">
         <p>Error: {state.error}</p>
-        <button onClick={() => window.location.reload()}>Retry</button>
+        <button type="button" onClick={() => window.location.reload()}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -28,14 +66,14 @@ export function CaptureView({ userId }: CaptureViewProps) {
       </div>
 
       <div
-        className="drop-zone"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          // TODO: Handle file drop
-        }}
+        className={`drop-zone ${isDragging ? 'drop-zone--dragging' : ''}`}
+        {...dragHandlers}
       >
-        <p>Drop receipts here</p>
+        {isDragging ? (
+          <p>Drop to upload</p>
+        ) : (
+          <p>Drop receipts here</p>
+        )}
         {state.status === 'processing' && <p>Processing...</p>}
         {state.status === 'uploading' && <p>Uploading...</p>}
       </div>

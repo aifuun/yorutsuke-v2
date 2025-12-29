@@ -1,0 +1,211 @@
+// Database Migrations
+// Idempotent schema updates with version tracking
+
+import type Database from '@tauri-apps/plugin-sql';
+import { logger } from '../telemetry';
+
+// Current schema version - increment when adding migrations
+const CURRENT_VERSION = 1;
+
+/**
+ * Run all migrations on database
+ * Safe to call multiple times (idempotent)
+ */
+export async function runMigrations(db: Database): Promise<void> {
+  logger.info('[Migrations] Starting migrations');
+
+  // Create core tables first
+  await createCoreTables(db);
+
+  // Get current version
+  const version = await getVersion(db);
+  logger.info('[Migrations] Current schema version', { version, target: CURRENT_VERSION });
+
+  // Run migrations in order
+  if (version < 1) {
+    await migration_v1(db);
+    await setVersion(db, 1);
+  }
+
+  // Future migrations:
+  // if (version < 2) {
+  //   await migration_v2(db);
+  //   await setVersion(db, 2);
+  // }
+
+  logger.info('[Migrations] Migrations complete', { version: CURRENT_VERSION });
+}
+
+/**
+ * Create core tables (idempotent with IF NOT EXISTS)
+ */
+async function createCoreTables(db: Database): Promise<void> {
+  // Settings table (needed for version tracking)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+
+  // Images table
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS images (
+      id TEXT PRIMARY KEY,
+      original_path TEXT NOT NULL,
+      compressed_path TEXT,
+      original_size INTEGER,
+      compressed_size INTEGER,
+      width INTEGER,
+      height INTEGER,
+      md5 TEXT,
+      status TEXT DEFAULT 'pending',
+      s3_key TEXT,
+      ref_count INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  // Transaction cache table
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS transactions_cache (
+      id TEXT PRIMARY KEY,
+      image_id TEXT,
+      amount INTEGER,
+      merchant TEXT,
+      category TEXT,
+      receipt_datetime TEXT,
+      ai_confidence REAL,
+      ai_result TEXT,
+      status TEXT,
+      image_location TEXT DEFAULT 'both',
+      image_deleted_at TEXT,
+      s3_key TEXT,
+      synced_at TEXT DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (image_id) REFERENCES images(id)
+    )
+  `);
+
+  // Morning report cache table
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS morning_report_cache (
+      report_date TEXT PRIMARY KEY,
+      data TEXT,
+      synced_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  // Analytics events table
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS analytics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      event_data TEXT,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  logger.debug('[Migrations] Core tables created');
+}
+
+/**
+ * Migration v1: Add indexes for performance
+ */
+async function migration_v1(db: Database): Promise<void> {
+  logger.info('[Migrations] Running migration v1: Add indexes');
+
+  // Images indexes
+  await safeCreateIndex(db, 'idx_images_status', 'images', 'status');
+  await safeCreateIndex(db, 'idx_images_md5', 'images', 'md5');
+  await safeCreateIndex(db, 'idx_images_ref_count', 'images', 'ref_count');
+  await safeCreateIndex(db, 'idx_images_s3_key', 'images', 's3_key');
+
+  // Transaction cache indexes
+  await safeCreateIndex(db, 'idx_transactions_cache_image_id', 'transactions_cache', 'image_id');
+  await safeCreateIndex(db, 'idx_transactions_cache_synced_at', 'transactions_cache', 'synced_at');
+
+  // Initialize default settings
+  await db.execute(`
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_delete_days', NULL)
+  `);
+  await db.execute(`
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'ja')
+  `);
+  await db.execute(`
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark')
+  `);
+
+  logger.info('[Migrations] Migration v1 complete');
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Get schema version from settings table
+ */
+async function getVersion(db: Database): Promise<number> {
+  try {
+    const rows = await db.select<Array<{ value: string | null }>>(
+      'SELECT value FROM settings WHERE key = ?',
+      ['schema_version']
+    );
+    return rows[0]?.value ? parseInt(rows[0].value, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Set schema version in settings table
+ */
+async function setVersion(db: Database, version: number): Promise<void> {
+  await db.execute(
+    'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+    ['schema_version', String(version)]
+  );
+}
+
+/**
+ * Safely create an index (idempotent)
+ */
+async function safeCreateIndex(
+  db: Database,
+  indexName: string,
+  tableName: string,
+  columnName: string
+): Promise<void> {
+  try {
+    await db.execute(
+      `CREATE INDEX IF NOT EXISTS ${indexName} ON ${tableName}(${columnName})`
+    );
+  } catch (error) {
+    // Index might already exist with different definition
+    logger.warn('[Migrations] Could not create index', {
+      index: indexName,
+      error: String(error),
+    });
+  }
+}
+
+/**
+ * Safely add a column (idempotent via error catch)
+ * Use for future migrations
+ */
+export async function safeAddColumn(
+  db: Database,
+  tableName: string,
+  columnName: string,
+  columnDef: string
+): Promise<void> {
+  try {
+    await db.execute(
+      `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`
+    );
+    logger.debug('[Migrations] Added column', { table: tableName, column: columnName });
+  } catch {
+    // Column already exists, ignore
+    logger.debug('[Migrations] Column already exists', { table: tableName, column: columnName });
+  }
+}

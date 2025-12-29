@@ -1,0 +1,172 @@
+// Event Bus Type Definitions
+// Pillar G: Traceability - Type-safe event system for AI-traceable communication
+
+import type { ImageId } from '../types';
+
+// Error types for upload failures
+export type UploadErrorType = 'network' | 'quota' | 'server' | 'unknown';
+
+// Image input source
+export type ImageSource = 'drop' | 'paste' | 'select';
+
+// Image processing stage
+export type ImageStage = 'compress' | 'save' | 'upload';
+
+/**
+ * @module EventBus
+ * @triggers All app events
+ * @listens None (this is the event source)
+ *
+ * Event naming convention:
+ * - domain:action (e.g., 'image:pending', 'upload:complete')
+ * - Past tense for completed actions, present for in-progress
+ */
+export interface AppEvents {
+  // =========================================================================
+  // Image Lifecycle Events
+  // =========================================================================
+
+  /**
+   * @trigger image:pending
+   * @payload New image dropped/pasted, awaiting processing
+   */
+  'image:pending': {
+    id: ImageId;
+    name: string;
+    source: ImageSource;
+    preview?: string;      // Available for drag-drop
+    file?: File;           // For paste/select
+    localPath?: string;    // For drag-drop
+  };
+
+  /**
+   * @trigger image:compressing
+   * @payload Image compression started
+   */
+  'image:compressing': {
+    id: ImageId;
+  };
+
+  /**
+   * @trigger image:progress
+   * @payload Processing progress update
+   */
+  'image:progress': {
+    id: ImageId;
+    progress: number;      // 0-100
+    stage: ImageStage;
+  };
+
+  /**
+   * @trigger image:compressed
+   * @payload Image compression completed
+   */
+  'image:compressed': {
+    id: ImageId;
+    compressedPath: string;
+    preview: string;
+    originalSize: number;
+    compressedSize: number;
+    md5: string;
+  };
+
+  /**
+   * @trigger image:duplicate
+   * @payload Duplicate image detected
+   */
+  'image:duplicate': {
+    id: ImageId;
+    duplicateWith: string;
+    reason: 'queue' | 'database';
+  };
+
+  /**
+   * @trigger image:queued
+   * @payload Image added to upload queue
+   */
+  'image:queued': {
+    id: ImageId;
+  };
+
+  /**
+   * @trigger image:failed
+   * @payload Image processing failed
+   */
+  'image:failed': {
+    id: ImageId;
+    error: string;
+    stage: ImageStage;
+    recoverable: boolean;  // true = keep for retry, false = remove
+  };
+
+  /**
+   * @trigger image:deleted
+   * @payload Image deleted
+   */
+  'image:deleted': {
+    id: ImageId;
+    s3Key?: string;
+    mode: 'local' | 'cloud' | 'permanent' | 'wipe';
+  };
+
+  // =========================================================================
+  // Upload Events
+  // =========================================================================
+
+  /**
+   * @trigger upload:complete
+   * @payload Single image upload completed
+   */
+  'upload:complete': {
+    id: ImageId;
+    s3Key: string;
+  };
+
+  /**
+   * @trigger upload:failed
+   * @payload Upload failed
+   */
+  'upload:failed': {
+    id: ImageId;
+    error: string;
+    errorType: UploadErrorType;
+    willRetry: boolean;
+    retryCount: number;
+  };
+
+  /**
+   * @trigger upload:batch-complete
+   * @payload Batch upload session completed
+   */
+  'upload:batch-complete': {
+    count: number;
+    successCount: number;
+    failCount: number;
+  };
+
+  // =========================================================================
+  // Network Events
+  // =========================================================================
+
+  /**
+   * @trigger network:changed
+   * @payload Network status changed
+   */
+  'network:changed': {
+    online: boolean;
+  };
+
+  // =========================================================================
+  // Data Sync Events
+  // =========================================================================
+
+  /**
+   * @trigger data:refresh
+   * @payload Request data refresh from source
+   */
+  'data:refresh': {
+    source: string;
+  };
+}
+
+export type AppEventKey = keyof AppEvents;
