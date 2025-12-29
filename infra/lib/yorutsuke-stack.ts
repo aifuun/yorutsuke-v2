@@ -53,6 +53,19 @@ export class YorutsukeStack extends cdk.Stack {
       sortKey: { name: "date", type: dynamodb.AttributeType.STRING },
     });
 
+    // DynamoDB Table for daily upload quotas
+    const quotasTable = new dynamodb.Table(this, "QuotasTable", {
+      tableName: `yorutsuke-quotas-${env}`,
+      partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "date", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "ttl",
+      removalPolicy:
+        env === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+    });
+
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, "UserPool", {
       userPoolName: `yorutsuke-users-${env}`,
@@ -87,14 +100,42 @@ export class YorutsukeStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda/presign"),
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
+        QUOTAS_TABLE_NAME: quotasTable.tableName,
+        QUOTA_LIMIT: "50",
       },
       timeout: cdk.Duration.seconds(10),
     });
 
     imageBucket.grantPut(presignLambda);
+    quotasTable.grantReadWriteData(presignLambda);
 
-    // Lambda Function URL
+    // Lambda Function URL for presign
     const presignUrl = presignLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],
+      },
+    });
+
+    // Lambda for quota check
+    const quotaLambda = new lambda.Function(this, "QuotaLambda", {
+      functionName: `yorutsuke-quota-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/quota"),
+      environment: {
+        QUOTAS_TABLE_NAME: quotasTable.tableName,
+        QUOTA_LIMIT: "50",
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    quotasTable.grantReadData(quotaLambda);
+
+    // Lambda Function URL for quota
+    const quotaUrl = quotaLambda.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedOrigins: ["*"],
@@ -127,6 +168,16 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "PresignLambdaUrl", {
       value: presignUrl.url,
       exportName: `${id}-PresignUrl`,
+    });
+
+    new cdk.CfnOutput(this, "QuotasTableName", {
+      value: quotasTable.tableName,
+      exportName: `${id}-QuotasTable`,
+    });
+
+    new cdk.CfnOutput(this, "QuotaLambdaUrl", {
+      value: quotaUrl.url,
+      exportName: `${id}-QuotaUrl`,
     });
   }
 }
