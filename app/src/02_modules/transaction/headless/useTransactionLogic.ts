@@ -1,9 +1,12 @@
 // Pillar L: Headless - logic without UI
 // Pillar D: FSM - no boolean flags
-import { useReducer, useCallback, useEffect } from 'react';
+import { useReducer, useCallback, useEffect, useState, useMemo } from 'react';
 import type { TransactionId, UserId } from '../../../00_kernel/types';
-import type { Transaction } from '../../../01_domains/transaction';
+import type { Transaction, TransactionFilters } from '../../../01_domains/transaction';
+import { filterTransactions } from '../../../01_domains/transaction';
 import { fetchTransactions, saveTransaction, deleteTransaction, confirmTransaction } from '../adapters/transactionDb';
+
+const DEFAULT_FILTERS: TransactionFilters = {};
 
 // FSM State
 type State =
@@ -71,6 +74,7 @@ function reducer(state: State, action: Action): State {
 
 export function useTransactionLogic(userId: UserId | null) {
   const [state, dispatch] = useReducer(reducer, { status: 'idle' });
+  const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS);
 
   const load = useCallback(async (startDate?: string, endDate?: string) => {
     if (!userId) return;
@@ -118,18 +122,38 @@ export function useTransactionLogic(userId: UserId | null) {
     }
   }, [userId, load]);
 
+  // Computed: all transactions
+  const transactions = state.status === 'success' || state.status === 'saving' || state.status === 'error'
+    ? state.transactions
+    : [];
+
+  // Computed: filtered transactions (using pure domain function)
+  const filteredTransactions = useMemo(
+    () => filterTransactions(transactions, filters),
+    [transactions, filters]
+  );
+
+  const unconfirmedCount = (state.status === 'success' || state.status === 'error')
+    ? state.transactions.filter(t => !t.confirmedAt).length
+    : 0;
+
+  const clearFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+  }, []);
+
   return {
     state,
     load,
     save,
     remove,
     confirm,
+    // Filter management
+    filters,
+    setFilters,
+    clearFilters,
     // Computed
-    transactions: state.status === 'success' || state.status === 'saving' || state.status === 'error'
-      ? state.transactions
-      : [],
-    unconfirmedCount: (state.status === 'success' || state.status === 'error')
-      ? state.transactions.filter(t => !t.confirmedAt).length
-      : 0,
+    transactions,
+    filteredTransactions,
+    unconfirmedCount,
   };
 }

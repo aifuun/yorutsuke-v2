@@ -1,6 +1,32 @@
-import type { Transaction, TransactionCategory, DailySummary } from './types';
+import type { Transaction, TransactionCategory, DailySummary, TransactionFilters } from './types';
 
 // Pure business rules - no side effects
+
+/**
+ * Filter transactions based on criteria
+ */
+export function filterTransactions(
+  transactions: Transaction[],
+  filters: TransactionFilters
+): Transaction[] {
+  return transactions.filter(t => {
+    // Date range filter
+    if (filters.dateStart && t.date < filters.dateStart) return false;
+    if (filters.dateEnd && t.date > filters.dateEnd) return false;
+
+    // Category filter
+    if (filters.category && filters.category !== 'all' && t.category !== filters.category) {
+      return false;
+    }
+
+    // Type filter
+    if (filters.type && filters.type !== 'all' && t.type !== filters.type) {
+      return false;
+    }
+
+    return true;
+  });
+}
 
 export function calculateNetProfit(income: number, expense: number): number {
   return income - expense;

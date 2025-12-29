@@ -6,25 +6,30 @@
 
 | Phase | Focus | Issues | Status |
 |-------|-------|--------|--------|
-| **Phase 0** | Core Kernel | #1-#3 | 🔵 Not Started |
-| **Phase 1** | Capture Pipeline | #4-#7 | ⚪ Blocked |
-| **Phase 2** | User Features | #8-#10 | ⚪ Blocked |
-| **Phase 3** | Polish | #11-#12 | ⚪ Blocked |
+| **Phase 0** | Core Kernel | #1-#3 | ✅ Complete |
+| **Phase 1** | Capture Pipeline | #4-#7 | ✅ Complete |
+| **Phase 2** | User Features | #8-#10 | ✅ Complete |
+| **Phase 3** | Polish | #11-#12 | ✅ Complete |
+| **Backlog** | Enhancements | #13-#14 | ✅ Complete |
 
 ## Current State vs Target
 
-| Component | yorutsuke | v2 Status | Priority | Phase |
-|-----------|-----------|-----------|----------|-------|
-| EventBus | ✅ useAppEvent | ❌ Missing | P0 | 0 |
-| SQLite Migrations | ✅ db.ts | ❌ Missing | P0 | 0 |
-| Network Status | ✅ useNetworkStatus | ❌ Missing | P0 | 0 |
-| Drag & Drop | ✅ useTauriDragDrop | ❌ Missing | P0 | 1 |
-| Image Compression | ✅ useImageProcessor | 🟡 Skeleton | P0 | 1 |
-| Upload Queue | ✅ useUploadQueue | 🟡 Skeleton | P0 | 1 |
-| Auth (Cognito) | ✅ useAuth | ❌ Missing | P1 | 1 |
-| Morning Report | ✅ MorningReport | 🟡 Skeleton | P1 | 2 |
-| Transactions | ✅ Transactions | 🟡 Skeleton | P1 | 2 |
-| Settings | ✅ Settings.tsx | ❌ Missing | P2 | 2 |
+| Component | yorutsuke | v2 Status | Issue |
+|-----------|-----------|-----------|-------|
+| EventBus | ✅ useAppEvent | ✅ Complete | #1 |
+| SQLite Migrations | ✅ db.ts | ✅ Complete | #2 |
+| Network Status | ✅ useNetworkStatus | ✅ Complete | #3 |
+| Drag & Drop | ✅ useTauriDragDrop | ✅ Complete | #4 |
+| Image Compression | ✅ useImageProcessor | ✅ Complete | #5 |
+| Upload Queue | ✅ useUploadQueue | ✅ Complete | #6 |
+| Auth (Cognito) | ✅ useAuth | ✅ Complete | #7 |
+| Morning Report | ✅ MorningReport | ✅ Complete | #8 |
+| Transactions | ✅ Transactions | ✅ Complete | #9 |
+| Settings | ✅ Settings.tsx | ✅ Complete | #10 |
+| i18n | ✅ i18next | ✅ Complete | #11 |
+| Error Recovery | - | ✅ Complete | #12 |
+| Transaction Filters | - | ✅ Complete | #13 |
+| Report History | - | ✅ Complete | #14 |
 
 Legend: ✅ Complete | 🟡 Skeleton | ❌ Missing
 
@@ -400,6 +405,7 @@ language (ja/en)
 ### Cloud Sync
 
 **Tier**: T3 (Saga)
+**Status**: ⚪ Not Started
 **Depends on**: Batch processing returns AI results to client
 
 **Scope**:
@@ -415,45 +421,40 @@ language (ja/en)
 
 ---
 
-### Transaction Filters
+### ~~Transaction Filters~~ ✅ Complete (#13)
 
 **Tier**: T1 (Direct)
 
-**Scope**:
-- [ ] Filter UI (date range, category, type)
-- [ ] Filter state in useTransactionLogic
-- [ ] Persist filter preferences
-
-**Why deferred**:
-- Core CRUD works without filters
-- Can be added incrementally
+**Completed**:
+- [x] Filter UI (date range, category, type) - `FilterBar.tsx`
+- [x] Filter state in useTransactionLogic
+- [x] Pure `filterTransactions()` function in domain layer
+- [x] i18n translations (ja/en)
 
 ---
 
-### Report History
+### ~~Report History~~ ✅ Complete (#14)
 
 **Tier**: T1 (Direct)
 
-**Scope**:
-- [ ] `views/ReportHistoryView.tsx` - Calendar/list of past reports
-- [ ] Date picker navigation
-- [ ] Monthly/weekly summary aggregation
-
-**Why deferred**:
-- Single day report works for MVP
-- Requires more UI design decisions
+**Completed**:
+- [x] `views/ReportHistoryView.tsx` - Calendar + summaries
+- [x] `views/CalendarView.tsx` - Date picker navigation
+- [x] Monthly summary aggregation
+- [x] i18n translations (ja/en)
 
 ---
 
 ## Version Milestones
 
-| Version | Content | Target |
+| Version | Content | Status |
 |---------|---------|--------|
-| v0.1.0 | Phase 0 (Kernel) | - |
-| v0.2.0 | Phase 1 (Capture) | - |
-| v0.3.0 | Phase 2 (Features) | - |
-| v1.0.0 | Production Ready | - |
-| v1.1.0 | Cloud Sync + Filters | - |
+| v0.1.0 | Phase 0 (Kernel) | ✅ Tagged |
+| v0.2.0 | Phase 1 (Capture) | ✅ Tagged |
+| v0.3.0 | Phase 2 (Features) | ✅ Tagged |
+| v1.0.0 | Production Ready | ✅ Tagged |
+| v1.1.0 | Backlog (#13-#14) | ✅ Complete |
+| v1.2.0 | Cloud Sync | ⚪ Pending |
 
 ---
 

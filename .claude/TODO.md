@@ -61,7 +61,7 @@ Small tasks not worth an issue:
 
 **P1 - High Priority**:
 - [ ] S03 右键菜单删除: Transactions 页面增加右键菜单支持 (Context Menu)，同时保留 swipe 作为触控板快捷方式
-- [ ] 空状态设计: 定义 Dashboard/Report 的 Empty States 规范（首次使用、当日无数据场景）
+- [x] 空状态设计: EmptyState 组件 (first-use, no-data-today, no-results)
 
 **P2 - Medium Priority**:
 - [ ] 断网状态反馈: Upload Queue 增加 `Offline` 状态指示器（"等待连接"图标），扩展现有 Status Indicators
@@ -75,6 +75,9 @@ Small tasks not worth an issue:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- Empty States design completed (2025-12-29)
+- #14 Report History completed (2025-12-29)
+- #13 Transaction Filters completed (2025-12-29)
 - v1.0.0 Production Ready tagged (2025-12-29)
 - #12 Error Recovery completed (2025-12-29)
 - #11 i18n completed (2025-12-29)

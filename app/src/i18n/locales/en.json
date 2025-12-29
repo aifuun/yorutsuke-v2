@@ -76,5 +76,49 @@
     "network": "Network error",
     "offline": "You are offline",
     "circuitOpen": "Service temporarily unavailable"
+  },
+  "filter": {
+    "dateRange": "Date Range",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "category": "Category",
+    "type": "Type",
+    "clear": "Clear",
+    "filtered": "of {{total}} total"
+  },
+  "category": {
+    "all": "All",
+    "purchase": "Purchase",
+    "sale": "Sale",
+    "shipping": "Shipping",
+    "packaging": "Packaging",
+    "fee": "Fee",
+    "other": "Other"
+  },
+  "type": {
+    "all": "All",
+    "income": "Income",
+    "expense": "Expense"
+  },
+  "history": {
+    "title": "History",
+    "monthlySummary": "Monthly Summary",
+    "transactionCount": "Transactions",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
+  "empty": {
+    "first-use": {
+      "title": "Welcome!",
+      "message": "Drop receipts to start tracking your income and expenses"
+    },
+    "no-data-today": {
+      "title": "No data for today",
+      "message": "Drop receipts to add transactions"
+    },
+    "no-results": {
+      "title": "No matching transactions",
+      "message": "Try adjusting your filter criteria"
+    }
   }
 }

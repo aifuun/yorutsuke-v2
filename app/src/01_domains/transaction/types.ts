@@ -41,3 +41,11 @@ export interface DailySummary {
   transactionCount: number;
   byCategory: Record<TransactionCategory, number>;
 }
+
+// Transaction filters
+export interface TransactionFilters {
+  dateStart?: string;    // YYYY-MM-DD
+  dateEnd?: string;      // YYYY-MM-DD
+  category?: TransactionCategory | 'all';
+  type?: TransactionType | 'all';
+}

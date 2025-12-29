@@ -9,6 +9,8 @@ import { useTranslation } from '../../../i18n';
 import { SummaryCards } from './SummaryCards';
 import { CategoryBreakdown } from './CategoryBreakdown';
 import { TransactionList } from './TransactionList';
+import { FilterBar } from './FilterBar';
+import { EmptyState } from './EmptyState';
 import '../styles/report.css';
 
 interface ReportViewProps {
@@ -19,7 +21,18 @@ interface ReportViewProps {
 export function ReportView({ userId, date }: ReportViewProps) {
   const { t } = useTranslation();
   const targetDate = date || new Date().toISOString().split('T')[0];
-  const { state, transactions, save, confirm, remove, load } = useTransactionLogic(userId);
+  const {
+    state,
+    transactions,
+    filteredTransactions,
+    filters,
+    setFilters,
+    clearFilters,
+    save,
+    confirm,
+    remove,
+    load,
+  } = useTransactionLogic(userId);
   const seededRef = useRef(false);
 
   // Seed mock data for development (only once)
@@ -32,11 +45,24 @@ export function ReportView({ userId, date }: ReportViewProps) {
     }
   }, [userId, load]);
 
-  // Compute summary from transactions
+  // Compute summary from filtered transactions
   const summary = useMemo(
-    () => createDailySummary(targetDate, transactions),
-    [targetDate, transactions]
+    () => createDailySummary(targetDate, filteredTransactions),
+    [targetDate, filteredTransactions]
   );
+
+  // Determine empty state variant
+  const hasFiltersApplied = filters.dateStart || filters.dateEnd ||
+    (filters.category && filters.category !== 'all') ||
+    (filters.type && filters.type !== 'all');
+
+  const emptyVariant = transactions.length === 0
+    ? 'first-use'
+    : hasFiltersApplied && filteredTransactions.length === 0
+    ? 'no-results'
+    : filteredTransactions.length === 0
+    ? 'no-data-today'
+    : null;
 
   // Action handlers
   const handleEdit = async (id: TransactionId, changes: Partial<Transaction>) => {
@@ -69,17 +95,43 @@ export function ReportView({ userId, date }: ReportViewProps) {
         <span className="report-date">{targetDate}</span>
       </header>
 
-      <SummaryCards summary={summary} />
-      <CategoryBreakdown byCategory={summary.byCategory} />
-      <TransactionList
-        transactions={transactions}
-        onEdit={handleEdit}
-        onConfirm={handleConfirm}
-        onDelete={handleDelete}
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        onClear={clearFilters}
       />
 
+      {emptyVariant === 'first-use' ? (
+        <EmptyState variant="first-use" />
+      ) : (
+        <>
+          <SummaryCards summary={summary} />
+          <CategoryBreakdown byCategory={summary.byCategory} />
+          {emptyVariant === 'no-results' ? (
+            <EmptyState
+              variant="no-results"
+              action={{ label: t('filter.clear'), onClick: clearFilters }}
+            />
+          ) : emptyVariant === 'no-data-today' ? (
+            <EmptyState variant="no-data-today" />
+          ) : (
+            <TransactionList
+              transactions={filteredTransactions}
+              onEdit={handleEdit}
+              onConfirm={handleConfirm}
+              onDelete={handleDelete}
+            />
+          )}
+        </>
+      )}
+
       <footer className="report-footer">
-        <span>{t('report.transactionCount', { count: transactions.length })}</span>
+        <span>{t('report.transactionCount', { count: filteredTransactions.length })}</span>
+        {filteredTransactions.length !== transactions.length && (
+          <span className="filter-indicator">
+            {' '}({t('filter.filtered', { total: transactions.length })})
+          </span>
+        )}
       </footer>
     </div>
   );

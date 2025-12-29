@@ -76,5 +76,49 @@
     "network": "ネットワークエラー",
     "offline": "オフラインです",
     "circuitOpen": "サービスが一時的に利用できません"
+  },
+  "filter": {
+    "dateRange": "期間",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "category": "カテゴリ",
+    "type": "種類",
+    "clear": "クリア",
+    "filtered": "全{{total}}件中"
+  },
+  "category": {
+    "all": "すべて",
+    "purchase": "仕入",
+    "sale": "売上",
+    "shipping": "送料",
+    "packaging": "梱包",
+    "fee": "手数料",
+    "other": "その他"
+  },
+  "type": {
+    "all": "すべて",
+    "income": "収入",
+    "expense": "支出"
+  },
+  "history": {
+    "title": "履歴",
+    "monthlySummary": "月間サマリー",
+    "transactionCount": "取引件数",
+    "prevMonth": "前月",
+    "nextMonth": "翌月"
+  },
+  "empty": {
+    "first-use": {
+      "title": "ようこそ！",
+      "message": "レシートをドロップして、収支の記録を始めましょう"
+    },
+    "no-data-today": {
+      "title": "今日のデータがありません",
+      "message": "レシートをドロップして取引を追加してください"
+    },
+    "no-results": {
+      "title": "該当する取引がありません",
+      "message": "フィルター条件を変更してみてください"
+    }
   }
 }
