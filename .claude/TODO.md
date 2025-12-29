@@ -55,7 +55,7 @@ All phases and issues completed. Next focus: Backlog items.
 |-------|-------|--------|
 | #15 | batch-process Lambda (Nova Lite OCR) | ⏳ Pending |
 | #16 | report Lambda (报告 API) | ⏳ Pending |
-| #17 | transactions Lambda (CRUD API) | ⏳ Pending |
+| #17 | transactions Lambda (CRUD API) | ✅ Complete |
 | #18 | config Lambda (配置 API) | ✅ Complete |
 | #19 | quota Lambda (配额检查 API) | ✅ Complete |
 
@@ -85,6 +85,7 @@ Small tasks not worth an issue:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #17 transactions Lambda completed (2025-12-29)
 - #18 config Lambda completed (2025-12-29)
 - #19 quota Lambda completed (2025-12-29)
 - Backend Lambda issues created #15-#19 (2025-12-29)

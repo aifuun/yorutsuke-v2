@@ -185,6 +185,34 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // Lambda for transactions CRUD
+    const transactionsLambda = new lambda.Function(this, "TransactionsLambda", {
+      functionName: `yorutsuke-transactions-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/transactions"),
+      environment: {
+        TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    transactionsTable.grantReadWriteData(transactionsLambda);
+
+    // Lambda Function URL for transactions
+    const transactionsUrl = transactionsLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [
+          lambda.HttpMethod.POST,
+          lambda.HttpMethod.PUT,
+          lambda.HttpMethod.DELETE,
+        ],
+        allowedHeaders: ["*"],
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -224,6 +252,11 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ConfigLambdaUrl", {
       value: configUrl.url,
       exportName: `${id}-ConfigUrl`,
+    });
+
+    new cdk.CfnOutput(this, "TransactionsLambdaUrl", {
+      value: transactionsUrl.url,
+      exportName: `${id}-TransactionsUrl`,
     });
   }
 }
