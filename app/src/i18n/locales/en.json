@@ -1,4 +1,8 @@
 {
+  "app": {
+    "name": "Yorutsuke",
+    "tagline": "AI Accounting Assistant"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",

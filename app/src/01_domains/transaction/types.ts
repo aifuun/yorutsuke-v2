@@ -2,12 +2,12 @@ import type { TransactionId, ImageId, UserId } from '../../00_kernel/types';
 
 // Transaction categories
 export type TransactionCategory =
-  | 'purchase'    // 仕入れ - Buying items
-  | 'sale'        // 売上 - Selling items
-  | 'shipping'    // 送料 - Shipping costs
-  | 'packaging'   // 梱包材 - Packaging materials
-  | 'fee'         // 手数料 - Platform fees
-  | 'other';      // その他
+  | 'purchase'    // Buying items for resale
+  | 'sale'        // Selling items
+  | 'shipping'    // Shipping costs
+  | 'packaging'   // Packaging materials
+  | 'fee'         // Platform fees (Mercari, Yahoo, etc.)
+  | 'other';      // Other expenses
 
 // Transaction type
 export type TransactionType = 'income' | 'expense';
