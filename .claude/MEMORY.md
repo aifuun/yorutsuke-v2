@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2025-12-29] Phase 1 进行中 (#4 ✅, #5 ✅, #6 ✅)
-- **Next Steps**: #7 Auth
+- **Last Progress**: [2025-12-29] Phase 1 in progress (#4 done, #5 done, #6 done, #7 done)
+- **Next Steps**: #8 Presign Lambda (infra)
 - **Blockers**: None
 
 ## Architecture Decisions
@@ -23,13 +23,42 @@ Record important decisions with context.
 
 Problems encountered and their solutions.
 
-### [2025-12-29] 拖入图片延迟显示问题
-- **Problem**: 原项目拖入多个图片后有几秒延迟才出现在列表中
-- **Root Cause**: `useImageQueue` 的 `loadHistory()` 异步加载完成时 `setItems(historyItems)` 会覆盖已添加的新图片
-- **Solution**: View 层实现时采用以下方案之一：
-  1. 分离 `historyItems` 和 `pendingItems` 状态，显示时合并
-  2. 使用 `useReducer` 保证 LOAD_HISTORY 和 ADD_PENDING 操作原子性
-- **Prevention**: 避免异步初始化覆盖实时状态，历史数据加载应该是追加而非覆盖
+### [2025-12-29] Image Drop Delay Issue
+- **Problem**: In original project, dropped images took several seconds to appear in queue list
+- **Root Cause**: `useImageQueue`'s async `loadHistory()` called `setItems(historyItems)` which overwrote newly added images
+- **Solution**: When implementing View layer, use one of:
+  1. Separate `historyItems` and `pendingItems` state, merge for display
+  2. Use `useReducer` to ensure LOAD_HISTORY and ADD_PENDING are atomic
+- **Prevention**: Avoid async initialization overwriting real-time state; history loading should append, not replace
+
+### [2025-12-29] #5 Image Compression Strategy
+- **Decision**: Grayscale + WebP 75% + max 1024px
+- **Why Grayscale**: Reduces file size ~60% while maintaining OCR quality (receipts are mostly text)
+- **MD5 Timing**: Calculate hash AFTER compression (on WebP bytes), not on original file
+  - Same original image compressed twice = same hash (deterministic)
+  - Deduplication works even if user re-drops the same image
+- **Output Path**: Use temp dir (`std::env::temp_dir().join("yorutsuke-v2")`) for compressed files
+
+### [2025-12-29] #6 Upload Queue FSM Design
+- **State Machine**: `idle | processing | paused` (not boolean flags)
+- **Error Classification**: Critical for retry logic
+  - `network/server` → auto-retry with exponential backoff (1s, 2s, 4s)
+  - `quota/unknown` → no retry, pause queue
+- **Double Processing Prevention**: Use `processingRef: Set<string>` to track in-flight tasks
+  - Problem: useEffect can trigger multiple times before state updates
+  - Solution: Track processing tasks in a ref, not in state
+- **Retry Cleanup**: Only remove from processingRef AFTER backoff delay, not immediately
+
+### [2025-12-29] #7 Auth Flow Learnings
+- **Three-Step Flow**: register → verify (email code) → login
+  - After register: stay logged out (wait for verification)
+  - After verify: stay logged out (user must login explicitly)
+  - This avoids auto-login with unverified accounts
+- **Device Binding**: Generate deviceId once, store in SQLite, send with every login
+  - Enables: "Logged in from new device" notifications
+  - Enables: Device-specific session revocation
+- **Token Refresh Failure**: Auto-logout user (don't leave in broken authenticated state)
+- **Initial State**: Start with `status: 'loading'` to check stored tokens on mount
 
 ## References
 

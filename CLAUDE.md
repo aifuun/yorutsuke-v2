@@ -220,7 +220,7 @@ cd app && npm test             # Run tests
 ## Memory & Context
 
 - **Session tasks**: `.claude/TODO.md`
-- **Long-term memory**: `.claude/MEMORY.md`
+- **Long-term memory**: `.claude/MEMORY.md` (write in English only)
 - **Workflow guide**: `.claude/WORKFLOW.md`
 
 ## Architecture Layers
