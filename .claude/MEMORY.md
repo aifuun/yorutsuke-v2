@@ -4,20 +4,27 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2025-12-29] v1.0.0 Production Ready - all phases complete
-- **Next Steps**: Backlog items (Cloud Sync, Transaction Filters, Report History)
+- **Last Progress**: [2025-01-01] App Shell implemented, Control Strategy documented
+- **Next Steps**: Fix P1 issues (withTransaction, remove processingRef)
 - **Blockers**: None
 
 ## Architecture Decisions
 
 Record important decisions with context.
 
-<!--
-### [YYYY-MM-DD] Decision Title (ID)
-- **Decision**: What was decided
-- **Reason**: Why this approach was chosen
-- **Alternatives**: What was considered but rejected
--->
+### [2025-01-01] Control Strategy Review
+- **Analysis**: Reviewed runtime control flow for race conditions
+- **Issues Found**:
+  1. `processingRef` + FSM state dual tracking → potential race
+  2. No explicit SQLite transactions → data integrity risk
+  3. Stale closure in quota check → over-quota possible
+  4. `emitSync` naming misleading → doesn't wait for handlers
+- **Decisions**:
+  - P1: Add `withTransaction()` wrapper for SQLite atomicity
+  - P1: Remove `processingRef`, use FSM `currentId` as single source
+  - P2: Single quota checkpoint (remove redundant checks)
+  - P3: Add Intent-ID for idempotency (Pillar Q)
+- **Documentation**: Updated `docs/ARCHITECTURE.md` with Control Strategy section
 
 ## Solved Issues
 

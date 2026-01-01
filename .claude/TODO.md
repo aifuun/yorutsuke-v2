@@ -78,6 +78,20 @@ Small tasks not worth an issue:
 **P3 - Low Priority**:
 - [ ] 系统托盘: 需要 Tauri tray plugin，复杂度高，暂缓
 
+### Control Strategy Improvements (ARCHITECTURE.md)
+
+**P1 - Data Integrity**:
+- [ ] Add `withTransaction()` wrapper to db.ts
+- [ ] Remove `processingRef`, use FSM `currentId` instead
+
+**P2 - Reliability**:
+- [ ] Single quota checkpoint (remove redundant checks)
+- [ ] Rename `emitSync` to `broadcast` (clarify semantics)
+
+**P3 - Robustness**:
+- [ ] Add Intent-ID for idempotency (Pillar Q)
+- [ ] Add request-response pattern to EventBus
+
 **Deferred**:
 - [ ] 批量确认: "Batch Confirm" 功能 - 等 v1 验证用户行为模式后再决定是否添加（风险：可能导致误确认 OCR 错误）
 - [ ] Cloud Sync: 依赖后端 API
