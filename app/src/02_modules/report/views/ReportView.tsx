@@ -14,7 +14,7 @@ import { EmptyState } from './EmptyState';
 import '../styles/report.css';
 
 interface ReportViewProps {
-  userId: UserId;
+  userId: UserId | null;
   date?: string;
 }
 

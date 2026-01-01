@@ -3,6 +3,13 @@
     "name": "夜付け",
     "tagline": "AI 記帳アシスタント"
   },
+  "nav": {
+    "report": "レポート",
+    "capture": "撮影",
+    "transactions": "取引",
+    "history": "履歴",
+    "settings": "設定"
+  },
   "common": {
     "loading": "読み込み中...",
     "error": "エラー",

@@ -10,7 +10,7 @@ import { EmptyState } from './EmptyState';
 import '../styles/history.css';
 
 interface ReportHistoryViewProps {
-  userId: UserId;
+  userId: UserId | null;
   onDateSelect?: (date: string) => void;
 }
 

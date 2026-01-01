@@ -3,6 +3,13 @@
     "name": "Yorutsuke",
     "tagline": "AI Accounting Assistant"
   },
+  "nav": {
+    "report": "Report",
+    "capture": "Capture",
+    "transactions": "Transactions",
+    "history": "History",
+    "settings": "Settings"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",
