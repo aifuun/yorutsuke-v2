@@ -1,5 +1,5 @@
 // Pillar L: Headless - logic without UI
-// Pillar D: FSM - no boolean flags
+// Pillar D: FSM - no boolean flags, single source of truth
 // Pillar G: @trigger upload:complete, upload:failed
 import { useReducer, useCallback, useEffect, useRef } from 'react';
 import type { ImageId, UserId } from '../../../00_kernel/types';
@@ -14,8 +14,8 @@ import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
 const MAX_RETRY_COUNT = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff
 
-// FSM Task State (Pillar D)
-type TaskStatus = 'idle' | 'uploading' | 'success' | 'failed';
+// FSM Task State (Pillar D) - 'retrying' = waiting for retry delay
+type TaskStatus = 'idle' | 'uploading' | 'success' | 'failed' | 'retrying';
 
 export interface UploadTask {
   id: ImageId;
@@ -37,6 +37,7 @@ type Action =
   | { type: 'START_UPLOAD'; id: ImageId }
   | { type: 'UPLOAD_SUCCESS'; id: ImageId; s3Key: string }
   | { type: 'UPLOAD_FAILURE'; id: ImageId; error: string; errorType: UploadErrorType }
+  | { type: 'SCHEDULE_RETRY'; id: ImageId }  // After retry delay, set task back to idle
   | { type: 'RETRY'; id: ImageId }
   | { type: 'PAUSE'; reason: 'offline' | 'quota' }
   | { type: 'RESUME' }
@@ -74,17 +75,24 @@ function reducer(state: QueueState, action: Action): QueueState {
       const newRetryCount = (task?.retryCount ?? 0) + 1;
       const willRetry = shouldRetry(action.errorType, newRetryCount);
 
-      // Always return to idle after failure (will be picked up by next process cycle)
+      // Set to 'retrying' if will retry (blocked until SCHEDULE_RETRY), 'failed' otherwise
       return {
         status: 'idle',
         tasks: updateTask(state.tasks, action.id, {
-          status: willRetry ? 'idle' : 'failed',
+          status: willRetry ? 'retrying' : 'failed',
           retryCount: newRetryCount,
           error: action.error,
           errorType: action.errorType,
         }),
       };
     }
+
+    case 'SCHEDULE_RETRY':
+      // After retry delay, set task back to idle for processing
+      return {
+        ...state,
+        tasks: updateTask(state.tasks, action.id, { status: 'idle' }),
+      };
 
     case 'RETRY':
       return {
@@ -192,7 +200,7 @@ export function useUploadQueue(userId: UserId | null) {
   const [state, dispatch] = useReducer(reducer, { status: 'idle', tasks: [] });
   const { isOnline, justReconnected } = useNetworkStatus();
   const lastUploadTimeRef = useRef<number | null>(null);
-  const processingRef = useRef<Set<string>>(new Set());
+  // Note: processingRef removed - FSM state is single source of truth (Pillar D)
 
   // Resume uploads when back online
   useEffect(() => {
@@ -210,13 +218,12 @@ export function useUploadQueue(userId: UserId | null) {
     }
   }, [isOnline, state.status]);
 
-  // Process queue when idle and online
+  // Process queue when idle and online (FSM is single source of truth)
   useEffect(() => {
     if (!isOnline || state.status !== 'idle' || !userId) return;
 
-    const idleTasks = state.tasks.filter(
-      t => t.status === 'idle' && !processingRef.current.has(String(t.id))
-    );
+    // Only process tasks with 'idle' status (not 'retrying', 'uploading', etc.)
+    const idleTasks = state.tasks.filter(t => t.status === 'idle');
 
     if (idleTasks.length === 0) return;
 
@@ -228,9 +235,8 @@ export function useUploadQueue(userId: UserId | null) {
   const processTask = async (task: UploadTask) => {
     if (!userId) return;
 
-    const taskId = String(task.id);
-    if (processingRef.current.has(taskId)) return;
-    processingRef.current.add(taskId);
+    // FSM state guards against duplicate processing - no need for processingRef
+    if (state.status === 'processing') return;
 
     // Check quota
     const uploadedToday = state.tasks.filter(t => t.status === 'success').length;
@@ -239,7 +245,6 @@ export function useUploadQueue(userId: UserId | null) {
     if (!quotaCheck.allowed) {
       logger.warn('[UploadQueue] Quota check failed', { reason: quotaCheck.reason });
       dispatch({ type: 'PAUSE', reason: 'quota' });
-      processingRef.current.delete(taskId);
       return;
     }
 
@@ -284,16 +289,13 @@ export function useUploadQueue(userId: UserId | null) {
 
       logger.warn('[UploadQueue] Upload failed', { id: task.id, error, errorType, willRetry });
 
-      // Schedule retry with exponential backoff
+      // Schedule retry with exponential backoff via FSM
       if (willRetry) {
         const delay = RETRY_DELAYS[task.retryCount] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
         setTimeout(() => {
-          processingRef.current.delete(taskId);
+          dispatch({ type: 'SCHEDULE_RETRY', id: task.id });
         }, delay);
-        return;
       }
-    } finally {
-      processingRef.current.delete(taskId);
     }
   };
 
@@ -318,8 +320,10 @@ export function useUploadQueue(userId: UserId | null) {
     dispatch({ type: 'REMOVE', id });
   }, []);
 
-  // Computed values
-  const pendingCount = state.tasks.filter(t => t.status === 'idle' || t.status === 'uploading').length;
+  // Computed values (include 'retrying' in pending as it's waiting to retry)
+  const pendingCount = state.tasks.filter(
+    t => t.status === 'idle' || t.status === 'uploading' || t.status === 'retrying'
+  ).length;
   const failedCount = state.tasks.filter(t => t.status === 'failed').length;
   const successCount = state.tasks.filter(t => t.status === 'success').length;
 

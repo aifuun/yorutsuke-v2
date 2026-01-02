@@ -74,6 +74,36 @@ export async function closeDb(): Promise<void> {
 }
 
 /**
+ * Execute multiple operations in a transaction
+ * Automatically rolls back on error (Pillar F: Concurrency)
+ *
+ * @example
+ * await withTransaction(async (db) => {
+ *   await db.execute('UPDATE images SET status = ? WHERE id = ?', ['uploaded', id1]);
+ *   await db.execute('UPDATE images SET status = ? WHERE id = ?', ['uploaded', id2]);
+ * });
+ */
+export async function withTransaction<T>(
+  fn: (db: Database) => Promise<T>
+): Promise<T> {
+  const database = await getDb();
+
+  await database.execute('BEGIN TRANSACTION');
+  logger.debug('[Storage] Transaction started');
+
+  try {
+    const result = await fn(database);
+    await database.execute('COMMIT');
+    logger.debug('[Storage] Transaction committed');
+    return result;
+  } catch (error) {
+    await database.execute('ROLLBACK');
+    logger.warn('[Storage] Transaction rolled back', { error: String(error) });
+    throw error;
+  }
+}
+
+/**
  * Execute a query and return affected rows count
  * Use for INSERT, UPDATE, DELETE
  *

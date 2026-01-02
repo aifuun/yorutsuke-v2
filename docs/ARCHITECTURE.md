@@ -319,13 +319,22 @@ try {
 
 #### 3. Quota Enforcement
 
-Single checkpoint pattern:
+Multi-layer defense with single authoritative checkpoint:
 
-| Layer | Check | Purpose |
-|-------|-------|---------|
-| Frontend | Before upload start | UX feedback |
-| Lambda (presign) | Before URL generation | Hard enforcement |
-| Lambda (batch) | Before OCR processing | Cost control |
+| Layer | Location | Type | Data Source | Purpose |
+|-------|----------|------|-------------|---------|
+| Frontend | `useCaptureLogic.ts` | Soft/UX | Local queue | Fast feedback |
+| Frontend | `useUploadQueue.ts` | Soft/UX | Local queue | Prevent wasted API calls |
+| **Lambda** | `presign/index.mjs` | **HARD** | DynamoDB | Authoritative enforcement |
+| Lambda | `quota/index.mjs` | Info | DynamoDB | Query API for frontend sync |
+
+**Design Rationale**:
+- Frontend checks may be stale (wrong day, cached count) - acceptable for UX hints
+- Lambda presign is the single authoritative checkpoint (increments quota atomically)
+- Quota Lambda allows frontend to refresh local understanding on demand
+
+**Stale Closure Note**: Frontend quota check in `useUploadQueue` reads `state.tasks` which
+may be stale in async context. This is acceptable because Lambda is authoritative.
 
 ### Event Bus
 
@@ -351,28 +360,28 @@ const unsubscribe = on('upload:complete', (data) => {
 
 ### Known Issues & Improvements
 
-#### Current Issues
+#### Resolved Issues
 
-| Issue | Location | Risk | Status |
-|-------|----------|------|--------|
-| processingRef + state dual tracking | `useUploadQueue.ts:195` | Medium | TODO |
-| No explicit DB transactions | `transactionDb.ts` | Medium | TODO |
-| Stale closure in quota check | `useUploadQueue.ts:236` | Low | TODO |
-| emitSync doesn't wait for handlers | `eventBus.ts:78` | Low | TODO |
+| Issue | Location | Resolution | Date |
+|-------|----------|------------|------|
+| processingRef + state dual tracking | `useUploadQueue.ts` | Added 'retrying' FSM state, removed processingRef | 2026-01-02 |
+| No explicit DB transactions | `db.ts` | Added `withTransaction()` wrapper | 2026-01-02 |
+| Stale closure in quota check | `useUploadQueue.ts` | Documented as acceptable (Lambda is authoritative) | 2026-01-02 |
+| emitSync misleading name | `eventBus.ts` | Renamed to `broadcast` | 2026-01-02 |
 
 #### Improvement Roadmap
 
-**P1 - Data Integrity**:
-1. Add `withTransaction()` wrapper to db.ts
-2. Remove `processingRef`, use FSM `currentId` instead
+**P1 - Data Integrity**: ✅ Complete
+- [x] Add `withTransaction()` wrapper to db.ts (#24)
+- [x] Remove `processingRef`, use FSM `currentId` instead (#25)
 
-**P2 - Reliability**:
-3. Single quota check point (remove redundant checks)
-4. Rename `emitSync` to `broadcast` (clarify semantics)
+**P2 - Reliability**: ✅ Complete
+- [x] Document quota checkpoint strategy (#27)
+- [x] Rename `emitSync` to `broadcast` (#26)
 
-**P3 - Robustness**:
-5. Add Intent-ID for idempotency (Pillar Q)
-6. Add request-response pattern to EventBus
+**P3 - Robustness**: Pending (optional)
+- [ ] Add Intent-ID for idempotency (Pillar Q) (#28)
+- [ ] Add request-response pattern to EventBus (#29)
 
 ## References
 

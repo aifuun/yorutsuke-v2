@@ -62,19 +62,22 @@ export function on<K extends AppEventKey>(
 }
 
 /**
- * Emit an event and wait for all synchronous handlers to complete
- * Use for events that need immediate response
+ * Broadcast an event to all listeners
+ * Returns after microtask queue processes (does NOT wait for async handlers)
+ *
+ * Note: This is fire-and-forget. If you need response from handlers,
+ * consider the request-response pattern (see #29).
  *
  * @example
- * await emitSync('data:refresh', { source: 'upload' });
+ * await broadcast('data:refresh', { source: 'upload' });
  */
-export function emitSync<K extends AppEventKey>(
+export function broadcast<K extends AppEventKey>(
   eventName: K,
   data: AppEvents[K]
 ): Promise<void> {
   return new Promise((resolve) => {
     emit(eventName, data);
-    // Use microtask to ensure handlers complete
+    // Use microtask to ensure synchronous handlers complete
     queueMicrotask(resolve);
   });
 }

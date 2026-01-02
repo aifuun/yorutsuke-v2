@@ -1,6 +1,6 @@
 /**
  * @module Storage
- * @exposes [getDb, initDb, closeDb, execute, select, getSetting, setSetting]
+ * @exposes [getDb, initDb, closeDb, withTransaction, execute, select, getSetting, setSetting]
  * @depends [@tauri-apps/plugin-sql]
  *
  * SQLite database connection and schema management.
@@ -11,6 +11,7 @@ export {
   getDb,
   initDb,
   closeDb,
+  withTransaction,
   execute,
   select,
   getSetting,

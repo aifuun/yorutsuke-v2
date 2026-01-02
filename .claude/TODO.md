@@ -2,11 +2,17 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Focus: v1.0.0 Complete
+## Current Focus: Control Strategy Alignment
 
-Status: ✅ PRODUCTION READY
+Status: 🔧 IN PROGRESS
 
-All phases and issues completed. Next focus: Backlog items.
+v1.0.0 production ready. Now aligning implementation with Control Strategy design.
+
+**Priority Order**:
+1. P1 Issues (#24, #25) - Data Integrity
+2. P2 Issues (#26, #27) - Reliability
+3. Documentation (#20-#23)
+4. P3 Issues (#28, #29) - Robustness (optional)
 
 ## Milestones
 
@@ -80,17 +86,26 @@ Small tasks not worth an issue:
 
 ### Control Strategy Improvements (ARCHITECTURE.md)
 
+Now tracked as GitHub Issues:
+
 **P1 - Data Integrity**:
-- [ ] Add `withTransaction()` wrapper to db.ts
-- [ ] Remove `processingRef`, use FSM `currentId` instead
+- [x] #24 Add `withTransaction()` wrapper to db.ts ✅
+- [x] #25 Remove `processingRef`, use FSM `currentId` instead ✅
 
 **P2 - Reliability**:
-- [ ] Single quota checkpoint (remove redundant checks)
-- [ ] Rename `emitSync` to `broadcast` (clarify semantics)
+- [x] #27 Single quota checkpoint (documented as multi-layer defense) ✅
+- [x] #26 Rename `emitSync` to `broadcast` (clarify semantics) ✅
 
 **P3 - Robustness**:
-- [ ] Add Intent-ID for idempotency (Pillar Q)
-- [ ] Add request-response pattern to EventBus
+- [ ] #28 Add Intent-ID for idempotency (Pillar Q)
+- [ ] #29 Add request-response pattern to EventBus
+
+### Documentation Fixes
+
+- [ ] #20 DESIGN.md - App Shell sidebar design
+- [ ] #21 CHANGELOG.md - Version history
+- [ ] #22 REQUIREMENTS.md - Acceptance criteria
+- [ ] #23 Update document dates
 
 **Deferred**:
 - [ ] 批量确认: "Batch Confirm" 功能 - 等 v1 验证用户行为模式后再决定是否添加（风险：可能导致误确认 OCR 错误）
