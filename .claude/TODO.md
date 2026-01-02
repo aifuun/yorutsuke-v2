@@ -96,9 +96,9 @@ Now tracked as GitHub Issues:
 - [x] #27 Single quota checkpoint (documented as multi-layer defense) ✅
 - [x] #26 Rename `emitSync` to `broadcast` (clarify semantics) ✅
 
-**P3 - Robustness**:
+**P3 - Robustness**: ✅ Complete
 - [x] #28 Add Intent-ID for idempotency (Pillar Q) ✅
-- [ ] #29 Add request-response pattern to EventBus
+- [x] #29 ~~EventBus request-response~~ (关闭: 过度设计)
 
 ### Documentation Fixes
 
