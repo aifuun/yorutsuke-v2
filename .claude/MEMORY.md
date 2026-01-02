@@ -4,13 +4,25 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2025-01-01] App Shell implemented, Control Strategy documented
-- **Next Steps**: Fix P1 issues (withTransaction, remove processingRef)
+- **Last Progress**: [2026-01-02] Admin Panel with Cognito auth deployed
+- **Next Steps**: None immediate; admin panel operational
 - **Blockers**: None
 
 ## Architecture Decisions
 
 Record important decisions with context.
+
+### [2026-01-02] Admin Panel Implementation
+- **Decision**: Independent React web app with Cognito auth
+- **Scope**: 4 minimal pages (Dashboard, Control, Costs, Batch)
+- **Auth**: Cognito User Pool with self-signup disabled
+- **API**: API Gateway + Lambda with Cognito Authorizer (replaced IAM auth)
+- **Hosting**: S3 + CloudFront
+- **Why Cognito over IAM**: Browser-friendly JWT tokens, no SigV4 complexity
+- **Resources**:
+  - CloudFront: `d2m8nzedscy01y.cloudfront.net`
+  - User Pool: `ap-northeast-1_INc3k2PPP`
+  - Admin user: `admin@yorutsuke.local`
 
 ### [2025-01-01] Control Strategy Review
 - **Analysis**: Reviewed runtime control flow for race conditions

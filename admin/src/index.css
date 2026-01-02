@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Dark theme colors (same as bak-yoru admin) */
+:root {
+  --app-bg: #0f172a;
+  --app-surface: #1e293b;
+  --app-border: #334155;
+  --app-text: #f1f5f9;
+  --app-text-secondary: #94a3b8;
+  --app-accent: #3b82f6;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* Custom utility classes */
+@layer components {
+  .bg-app-bg { background-color: var(--app-bg); }
+  .bg-app-surface { background-color: var(--app-surface); }
+  .bg-app-border { background-color: var(--app-border); }
+  .bg-app-accent { background-color: var(--app-accent); }
+
+  .text-app-text { color: var(--app-text); }
+  .text-app-text-secondary { color: var(--app-text-secondary); }
+  .text-app-accent { color: var(--app-accent); }
+
+  .border-app-border { border-color: var(--app-border); }
+}
