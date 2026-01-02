@@ -102,10 +102,10 @@ Now tracked as GitHub Issues:
 
 ### Documentation Fixes
 
-- [ ] #20 DESIGN.md - App Shell sidebar design
-- [ ] #21 CHANGELOG.md - Version history
-- [ ] #22 REQUIREMENTS.md - Acceptance criteria
-- [ ] #23 Update document dates
+- [x] #20 DESIGN.md - App Shell sidebar design ✅
+- [x] #21 CHANGELOG.md - Version history ✅
+- [x] #22 REQUIREMENTS.md - Acceptance criteria ✅
+- [x] #23 Update document dates ✅
 
 **Deferred**:
 - [ ] 批量确认: "Batch Confirm" 功能 - 等 v1 验证用户行为模式后再决定是否添加（风险：可能导致误确认 OCR 错误）
@@ -114,6 +114,10 @@ Now tracked as GitHub Issues:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #20 DESIGN.md sidebar design (2026-01-02)
+- #21 CHANGELOG.md version history (2026-01-02)
+- #22 REQUIREMENTS.md acceptance criteria (2026-01-02)
+- #23 Document dates updated (2026-01-02)
 - #15 batch-process Lambda completed (2025-12-29)
 - #16 report Lambda completed (2025-12-29)
 - #17 transactions Lambda completed (2025-12-29)

@@ -6,7 +6,7 @@
 
 **Architecture**: Local-First + Cloud-Sync
 **Pattern**: AI_DEV_PROT v15 (Tauri + React + AWS CDK)
-**Last Updated**: 2025-12-28
+**Last Updated**: 2026-01-02
 
 ## System Context
 

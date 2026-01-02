@@ -5,8 +5,8 @@
 ## Overview
 
 **Product**: Yorutsuke (夜付け) - AI Accounting Assistant
-**Version**: 0.1.0
-**Last Updated**: 2025-12-28
+**Version**: 2.1.0
+**Last Updated**: 2026-01-02
 
 ## Problem Statement
 
@@ -27,10 +27,10 @@
 **So that** I can quickly record expenses without manual entry
 
 **Acceptance Criteria**:
-- [ ] Drag & drop images into app window
-- [ ] Images compressed to WebP (< 100KB)
-- [ ] Visual feedback on drop
-- [ ] Queue shows pending uploads
+- [x] Drag & drop images into app window (#4)
+- [x] Images compressed to WebP (< 100KB) (#5)
+- [x] Visual feedback on drop (#4)
+- [x] Queue shows pending uploads (#6)
 
 ---
 
@@ -40,9 +40,9 @@
 **So that** I don't wait for processing during work hours
 
 **Acceptance Criteria**:
-- [ ] Batch processing at 02:00 JST
-- [ ] AI extracts: amount, merchant, category, date
-- [ ] Results available in morning report
+- [x] Batch processing at 02:00 JST (#15 batch-process Lambda)
+- [x] AI extracts: amount, merchant, category, date (Nova Lite OCR)
+- [x] Results available in morning report (#8, #16)
 
 ---
 
@@ -52,10 +52,10 @@
 **So that** I can track my business performance
 
 **Acceptance Criteria**:
-- [ ] Shows yesterday's income/expense
-- [ ] Net profit calculation
-- [ ] Category breakdown
-- [ ] Unconfirmed transactions highlighted
+- [x] Shows yesterday's income/expense (#8)
+- [x] Net profit calculation (#8)
+- [x] Category breakdown (#8)
+- [x] Unconfirmed transactions highlighted (#8)
 
 ---
 
@@ -65,10 +65,10 @@
 **So that** I can ensure accuracy
 
 **Acceptance Criteria**:
-- [ ] View all transactions
-- [ ] Edit amount, category, description
-- [ ] Confirm/reject transactions
-- [ ] Delete incorrect entries
+- [x] View all transactions (#9)
+- [x] Edit amount, category, description (#9)
+- [x] Confirm/reject transactions (#9)
+- [x] Delete incorrect entries (Context Menu, #9)
 
 ---
 
@@ -78,31 +78,51 @@
 **So that** I can record receipts anywhere
 
 **Acceptance Criteria**:
-- [ ] All data stored locally (SQLite)
-- [ ] Works without network connection
-- [ ] Syncs when online
+- [x] All data stored locally (SQLite) (#2)
+- [x] Works without network connection (#3 Network Status)
+- [ ] Syncs when online (Cloud Sync - deferred)
 
 ## Functional Requirements
 
 ### FR-001: Image Compression
 **Priority**: Must
 **Description**: Compress images to WebP format before upload to minimize bandwidth and storage costs.
+**Status**: ✅ Implemented (#5 Image Compression)
 
 ### FR-002: Quota Management
 **Priority**: Must
 **Description**: Limit uploads to 50 images/day per user to control cloud costs.
+**Status**: ✅ Implemented (Multi-layer: Frontend UX + Lambda authoritative)
 
 ### FR-003: Cost Control
 **Priority**: Must
 **Description**: Hard stop at ¥1,000/day total AWS spend. Emergency stop switch in admin panel.
+**Status**: ✅ Implemented (Lambda batch-process #15)
 
 ### FR-004: Multi-language Support
 **Priority**: Should
-**Description**: Support Japanese, Chinese, and English interfaces.
+**Description**: Support Japanese and English interfaces. (Chinese deferred)
+**Status**: ✅ Implemented (#11 i18n)
 
 ### FR-005: Authentication
 **Priority**: Must
 **Description**: User registration and login via AWS Cognito.
+**Status**: ✅ Implemented (#7 Auth Module)
+
+### FR-006: Report History
+**Priority**: Should
+**Description**: Calendar view of past reports with monthly summaries.
+**Status**: ✅ Implemented (#14 Report History)
+
+### FR-007: Transaction Filters
+**Priority**: Should
+**Description**: Filter transactions by date, type, category.
+**Status**: ✅ Implemented (#13 Transaction Filters)
+
+### FR-008: Error Recovery
+**Priority**: Must
+**Description**: Circuit breaker pattern, ErrorBoundary, graceful degradation.
+**Status**: ✅ Implemented (#12 Error Recovery)
 
 ## Non-Functional Requirements
 
