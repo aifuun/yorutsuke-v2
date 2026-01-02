@@ -7,7 +7,7 @@ const app = new cdk.App();
 
 const env = app.node.tryGetContext("env") || "dev";
 
-new YorutsukeStack(app, `YorutsukeStack-${env}`, {
+new YorutsukeStack(app, `Yorutsuke2Stack-${env}`, {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: "ap-northeast-1",
