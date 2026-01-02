@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "env:sync": "../scripts/sync-env.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
