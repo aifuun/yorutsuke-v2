@@ -379,8 +379,8 @@ const unsubscribe = on('upload:complete', (data) => {
 - [x] Document quota checkpoint strategy (#27)
 - [x] Rename `emitSync` to `broadcast` (#26)
 
-**P3 - Robustness**: Pending (optional)
-- [ ] Add Intent-ID for idempotency (Pillar Q) (#28)
+**P3 - Robustness**: In Progress
+- [x] Add Intent-ID for idempotency (Pillar Q) (#28) - 2026-01-02
 - [ ] Add request-response pattern to EventBus (#29)
 
 ## References

@@ -1,4 +1,4 @@
-import type { ImageId, UserId } from '../../00_kernel/types';
+import type { ImageId, UserId, IntentId } from '../../00_kernel/types';
 
 // Receipt image status FSM (Pillar D)
 export type ImageStatus =
@@ -14,6 +14,7 @@ export type ImageStatus =
 export interface ReceiptImage {
   id: ImageId;
   userId: UserId;
+  intentId: IntentId;  // Pillar Q: Idempotency key for this upload action
   status: ImageStatus;
   localPath: string;
   s3Key: string | null;

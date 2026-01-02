@@ -1,8 +1,9 @@
 // Pillar L: Headless - logic without UI
 // Pillar D: FSM - no boolean flags, single source of truth
 // Pillar G: @trigger upload:complete, upload:failed
+// Pillar Q: Intent-ID for idempotency
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import type { ImageId, UserId } from '../../../00_kernel/types';
+import type { ImageId, UserId, IntentId } from '../../../00_kernel/types';
 import type { UploadErrorType } from '../../../00_kernel/eventBus/types';
 import { emit } from '../../../00_kernel/eventBus';
 import { useNetworkStatus } from '../../../00_kernel/network';
@@ -19,6 +20,7 @@ type TaskStatus = 'idle' | 'uploading' | 'success' | 'failed' | 'retrying';
 
 export interface UploadTask {
   id: ImageId;
+  intentId: IntentId;  // Pillar Q: Idempotency key
   filePath: string;
   status: TaskStatus;
   retryCount: number;
@@ -251,8 +253,8 @@ export function useUploadQueue(userId: UserId | null) {
     dispatch({ type: 'START_UPLOAD', id: task.id });
 
     try {
-      // Get presigned URL
-      const { url, key } = await getPresignedUrl(userId, `${task.id}.webp`);
+      // Get presigned URL (Pillar Q: pass intentId for idempotency)
+      const { url, key } = await getPresignedUrl(userId, `${task.id}.webp`, task.intentId);
 
       // Read file and upload
       const response = await fetch(`file://${task.filePath}`);
@@ -300,11 +302,11 @@ export function useUploadQueue(userId: UserId | null) {
   };
 
   // Actions
-  const enqueue = useCallback((id: ImageId, filePath: string) => {
-    logger.debug('[UploadQueue] Enqueue', { id });
+  const enqueue = useCallback((id: ImageId, filePath: string, intentId: IntentId) => {
+    logger.debug('[UploadQueue] Enqueue', { id, intentId });
     dispatch({
       type: 'ENQUEUE',
-      task: { id, filePath, status: 'idle', retryCount: 0 },
+      task: { id, intentId, filePath, status: 'idle', retryCount: 0 },
     });
   }, []);
 

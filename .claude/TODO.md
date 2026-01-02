@@ -97,7 +97,7 @@ Now tracked as GitHub Issues:
 - [x] #26 Rename `emitSync` to `broadcast` (clarify semantics) ✅
 
 **P3 - Robustness**:
-- [ ] #28 Add Intent-ID for idempotency (Pillar Q)
+- [x] #28 Add Intent-ID for idempotency (Pillar Q) ✅
 - [ ] #29 Add request-response pattern to EventBus
 
 ### Documentation Fixes
@@ -114,6 +114,7 @@ Now tracked as GitHub Issues:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #28 Intent-ID for idempotency (Pillar Q) (2026-01-02)
 - #20 DESIGN.md sidebar design (2026-01-02)
 - #21 CHANGELOG.md version history (2026-01-02)
 - #22 REQUIREMENTS.md acceptance criteria (2026-01-02)

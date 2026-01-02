@@ -1,5 +1,6 @@
 // Pillar B: Airlock - validate all API responses
-import type { UserId } from '../../../00_kernel/types';
+// Pillar Q: Intent-ID for idempotency
+import type { UserId, IntentId } from '../../../00_kernel/types';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
 
@@ -31,12 +32,13 @@ function withTimeout<T>(
 export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
+  intentId: IntentId,  // Pillar Q: Idempotency key
   contentType: string = 'image/webp',
 ): Promise<PresignResponse> {
   const fetchPromise = fetch(PRESIGN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, fileName, contentType }),
+    body: JSON.stringify({ userId, fileName, intentId, contentType }),
   });
 
   const response = await withTimeout(

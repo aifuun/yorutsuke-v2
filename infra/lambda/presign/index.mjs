@@ -1,11 +1,12 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
+const INTENTS_TABLE_NAME = process.env.INTENTS_TABLE_NAME;  // Pillar Q: Idempotency
 const QUOTA_LIMIT = parseInt(process.env.QUOTA_LIMIT || "50");
 
 /**
@@ -81,6 +82,48 @@ async function incrementQuota(userId, date) {
   return parseInt(result.Attributes?.count?.N || "1");
 }
 
+/**
+ * Pillar Q: Check if intent was already processed
+ * @param {string} intentId
+ * @returns {Promise<{url: string, key: string} | null>} Cached result or null
+ */
+async function checkIntent(intentId) {
+  if (!INTENTS_TABLE_NAME || !intentId) return null;
+
+  const result = await ddb.send(
+    new GetItemCommand({
+      TableName: INTENTS_TABLE_NAME,
+      Key: { intentId: { S: intentId } },
+    })
+  );
+
+  if (result.Item?.result?.S) {
+    return JSON.parse(result.Item.result.S);
+  }
+  return null;
+}
+
+/**
+ * Pillar Q: Store intent result for idempotency
+ * @param {string} intentId
+ * @param {{url: string, key: string}} result
+ * @returns {Promise<void>}
+ */
+async function storeIntent(intentId, result) {
+  if (!INTENTS_TABLE_NAME || !intentId) return;
+
+  await ddb.send(
+    new PutItemCommand({
+      TableName: INTENTS_TABLE_NAME,
+      Item: {
+        intentId: { S: intentId },
+        result: { S: JSON.stringify(result) },
+        ttl: { N: String(getTTL()) },  // 7 days TTL
+      },
+    })
+  );
+}
+
 export async function handler(event) {
   try {
     // Handle CORS preflight
@@ -97,13 +140,27 @@ export async function handler(event) {
     }
 
     const body = JSON.parse(event.body || "{}");
-    const { userId, fileName, contentType } = body;
+    const { userId, fileName, intentId, contentType } = body;
 
     if (!userId || !fileName) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ error: "MISSING_PARAMS", message: "Missing userId or fileName" }),
+      };
+    }
+
+    // Pillar Q: Check idempotency - return cached result if already processed
+    const cachedResult = await checkIntent(intentId);
+    if (cachedResult) {
+      console.log(`Intent ${intentId} already processed, returning cached result`);
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify(cachedResult),
       };
     }
 
@@ -141,13 +198,18 @@ export async function handler(event) {
       await incrementQuota(userId, jstDate);
     }
 
+    const result = { url: signedUrl, key };
+
+    // Pillar Q: Store intent result for idempotency
+    await storeIntent(intentId, result);
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ url: signedUrl, key }),
+      body: JSON.stringify(result),
     };
   } catch (error) {
     console.error("Presign error:", error);

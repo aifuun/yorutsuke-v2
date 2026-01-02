@@ -1,8 +1,10 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
+// Pillar Q: Intent-ID for idempotency
 import { useCaptureLogic } from '../headless/useCaptureLogic';
 import { useDragDrop } from '../headless/useDragDrop';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import type { UserId } from '../../../00_kernel/types';
+import { createIntentId } from '../../../00_kernel/types';
 import type { DroppedItem } from '../types';
 
 interface CaptureViewProps {
@@ -30,6 +32,7 @@ export function CaptureView({ userId }: CaptureViewProps) {
         addImage({
           id: item.id,
           userId: userId!,
+          intentId: createIntentId(),  // Pillar Q: Generate unique intent per drop action
           localPath: item.localPath,
           status: 'pending',
           s3Key: null,

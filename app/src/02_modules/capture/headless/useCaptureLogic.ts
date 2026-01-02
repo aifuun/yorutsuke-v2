@@ -1,5 +1,6 @@
 // Pillar L: Headless - logic without UI
 // Pillar D: FSM - no boolean flags
+// Pillar Q: Intent-ID for idempotency
 import { useReducer, useCallback } from 'react';
 import type { ImageId, UserId } from '../../../00_kernel/types';
 import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
@@ -116,6 +117,13 @@ export function useCaptureLogic(userId: UserId | null) {
       return;
     }
 
+    // Find the image to get its intentId (Pillar Q)
+    const image = state.queue.find(img => img.id === id);
+    if (!image) {
+      dispatch({ type: 'FAILURE', id, error: 'Image not found in queue' });
+      return;
+    }
+
     // Check quota
     const uploadedToday = state.queue.filter(
       img => img.status === 'uploaded' || img.status === 'processing'
@@ -128,7 +136,8 @@ export function useCaptureLogic(userId: UserId | null) {
 
     dispatch({ type: 'START_UPLOAD', id });
     try {
-      const { url, key } = await getPresignedUrl(userId, `${id}.webp`);
+      // Pass intentId for idempotency (Pillar Q)
+      const { url, key } = await getPresignedUrl(userId, `${id}.webp`, image.intentId);
       const response = await fetch(filePath);
       const blob = await response.blob();
       await uploadToS3(url, blob);
