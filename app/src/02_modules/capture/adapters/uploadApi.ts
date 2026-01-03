@@ -2,6 +2,7 @@
 // Pillar Q: Intent-ID for idempotency
 import { z } from 'zod';
 import type { UserId, IntentId } from '../../../00_kernel/types';
+import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
 
@@ -33,12 +34,29 @@ function withTimeout<T>(
   ]);
 }
 
+// Mock presign response for UI development
+let mockKeyCounter = 0;
+function createMockPresign(userId: UserId, fileName: string): PresignResponse {
+  mockKeyCounter++;
+  return {
+    url: `https://mock-s3.local/uploads/${userId}/${Date.now()}-${fileName}?mock=true`,
+    key: `uploads/${userId}/${Date.now()}-${mockKeyCounter}-${fileName}`,
+  };
+}
+
 export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
   intentId: IntentId,  // Pillar Q: Idempotency key
   contentType: string = 'image/webp',
 ): Promise<PresignResponse> {
+  // Mock mode for UI development
+  if (USE_MOCK) {
+    await mockDelay(100);
+    console.log('[Mock] Presign URL generated for:', fileName);
+    return createMockPresign(userId, fileName);
+  }
+
   const fetchPromise = fetch(PRESIGN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,6 +96,13 @@ export async function uploadToS3(
   file: Blob,
   contentType: string = 'image/webp',
 ): Promise<void> {
+  // Mock mode for UI development
+  if (USE_MOCK || presignedUrl.includes('mock-s3.local')) {
+    await mockDelay(500); // Simulate upload time
+    console.log('[Mock] S3 upload completed, size:', file.size, 'bytes');
+    return;
+  }
+
   const fetchPromise = fetch(presignedUrl, {
     method: 'PUT',
     headers: { 'Content-Type': contentType },

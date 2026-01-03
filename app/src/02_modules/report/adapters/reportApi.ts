@@ -3,12 +3,10 @@ import { z } from 'zod';
 import type { UserId } from '../../../00_kernel/types';
 import { TransactionId, ImageId, UserId as UserIdConstructor } from '../../../00_kernel/types';
 import type { Transaction, DailySummary } from '../../../01_domains/transaction';
-import { USE_MOCK_DATA, createMockReportData, createMockReportHistory } from './mockData';
+import { createMockReportData, createMockReportHistory } from './mockData';
+import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
 
 const CONFIG_URL = import.meta.env.VITE_LAMBDA_CONFIG_URL;
-
-// Simulate network delay for mock data
-const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // Zod schemas for report response validation
 const TransactionCategorySchema = z.enum([
@@ -83,9 +81,9 @@ export async function fetchMorningReport(
   userId: UserId,
   date: string,
 ): Promise<MorningReportResponse> {
-  // Use mock data when no backend configured
-  if (USE_MOCK_DATA) {
-    await delay(300);
+  // Mock mode for UI development
+  if (USE_MOCK) {
+    await mockDelay(300);
     return createMockReportData(date);
   }
 
@@ -114,9 +112,9 @@ export async function fetchReportHistory(
   userId: UserId,
   limit: number = 7,
 ): Promise<MorningReportResponse[]> {
-  // Use mock data when no backend configured
-  if (USE_MOCK_DATA) {
-    await delay(300);
+  // Mock mode for UI development
+  if (USE_MOCK) {
+    await mockDelay(300);
     return createMockReportHistory(limit);
   }
 

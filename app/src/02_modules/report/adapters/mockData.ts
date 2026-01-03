@@ -1,11 +1,9 @@
 // Mock data factory for development (Pillar C)
+// Note: USE_MOCK is now centralized in 00_kernel/config/mock.ts
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import { TransactionId, ImageId, UserId } from '../../../00_kernel/types';
 import { createDailySummary } from '../../../01_domains/transaction';
 import type { ReportData } from '../types';
-
-// Check if running without backend
-export const USE_MOCK_DATA = !import.meta.env.VITE_LAMBDA_CONFIG_URL;
 
 // Simple ID generator
 let idCounter = 0;

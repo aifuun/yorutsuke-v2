@@ -1,6 +1,7 @@
 // Pillar B: Airlock - validate all API responses with Zod
 import { z } from 'zod';
 import type { UserId } from '../../../00_kernel/types';
+import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
 
 const QUOTA_URL = import.meta.env.VITE_LAMBDA_QUOTA_URL;
 const QUOTA_TIMEOUT_MS = 5_000; // 5 seconds
@@ -43,10 +44,31 @@ function withTimeout<T>(
   ]);
 }
 
+// Mock quota data for UI development
+function createMockQuota(): QuotaResponse {
+  return {
+    used: Math.floor(Math.random() * 10),
+    limit: 30,
+    remaining: 30 - Math.floor(Math.random() * 10),
+    resetsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    tier: 'guest',
+    guest: {
+      dataExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+      daysUntilExpiration: 60,
+    },
+  };
+}
+
 /**
  * Fetch current quota status for user
  */
 export async function fetchQuota(userId: UserId): Promise<QuotaResponse> {
+  // Mock mode for UI development
+  if (USE_MOCK) {
+    await mockDelay();
+    return createMockQuota();
+  }
+
   if (!QUOTA_URL) {
     throw new Error('VITE_LAMBDA_QUOTA_URL not configured');
   }
