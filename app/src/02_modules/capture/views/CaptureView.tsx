@@ -18,7 +18,7 @@ function getStatusDisplay(status: string): { label: string; icon: string } {
     pending: { label: 'Waiting to compress', icon: '⏳' },
     compressed: { label: 'Ready to upload', icon: '📦' },
     uploading: { label: 'Uploading to cloud...', icon: '⬆️' },
-    uploaded: { label: 'Waiting for AI (tonight)', icon: '☁️' },
+    uploaded: { label: 'In cloud, AI will process soon', icon: '☁️' },
     processing: { label: 'AI reading receipt...', icon: '🤖' },
     processed: { label: 'Please confirm', icon: '✅' },
     confirmed: { label: 'Saved', icon: '💾' },
