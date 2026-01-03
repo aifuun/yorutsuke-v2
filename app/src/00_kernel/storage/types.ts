@@ -21,6 +21,7 @@ export type ImageLocation = 'local' | 'cloud' | 'both';
  */
 export interface ImageRow {
   id: string;              // ImageId (branded at boundary)
+  user_id: string | null;  // UserId for multi-user isolation
   trace_id: string | null; // TraceId for observability (Pillar N)
   intent_id: string | null; // IntentId for idempotency (Pillar Q)
   original_path: string;
@@ -34,6 +35,7 @@ export interface ImageRow {
   s3_key: string | null;
   ref_count: number;
   created_at: string;
+  uploaded_at: string | null; // For quota calculation
 }
 
 /**

@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 /**
  * Run all migrations on database
@@ -30,6 +30,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 2) {
     await migration_v2(db);
     await setVersion(db, 2);
+  }
+
+  if (version < 3) {
+    await migration_v3(db);
+    await setVersion(db, 3);
   }
 
   logger.info('[Migrations] Migrations complete', { version: CURRENT_VERSION });
@@ -181,6 +186,23 @@ async function migration_v2(db: Database): Promise<void> {
   await safeCreateIndex(db, 'idx_images_intent_id', 'images', 'intent_id');
 
   logger.info('[Migrations] Migration v2 complete');
+}
+
+/**
+ * Migration v3: Add user_id to images table
+ * Fixes #48: Multi-user data isolation
+ */
+async function migration_v3(db: Database): Promise<void> {
+  logger.info('[Migrations] Running migration v3: Add user_id to images');
+
+  // Add user_id column for multi-user support
+  await safeAddColumn(db, 'images', 'user_id', 'TEXT');
+  await safeCreateIndex(db, 'idx_images_user_id', 'images', 'user_id');
+
+  // Add uploaded_at column for quota calculation
+  await safeAddColumn(db, 'images', 'uploaded_at', 'TEXT');
+
+  logger.info('[Migrations] Migration v3 complete');
 }
 
 // ============================================================================

@@ -178,14 +178,14 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
 
     async function restoreQueue() {
       const restoreTraceId = createTraceId();
-      logger.info('[CaptureLogic] Restoring queue from database', { traceId: restoreTraceId });
+      logger.info('[CaptureLogic] Restoring queue from database', { traceId: restoreTraceId, userId });
 
       try {
-        // Reset any interrupted uploads in DB
-        await resetInterruptedUploads(restoreTraceId);
+        // Reset any interrupted uploads in DB (filtered by userId for multi-user isolation)
+        await resetInterruptedUploads(userId!, restoreTraceId);
 
-        // Load unfinished images
-        const unfinished = await loadUnfinishedImages();
+        // Load unfinished images (filtered by userId for multi-user isolation)
+        const unfinished = await loadUnfinishedImages(userId!);
 
         if (unfinished.length === 0) {
           logger.info('[CaptureLogic] No unfinished images to restore');
@@ -220,7 +220,7 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
     dispatch({ type: 'ADD_IMAGE', image });
   }, []);
 
-  const processImage = useCallback(async (id: ImageId, inputPath: string, traceId: TraceId, intentId: IntentId) => {
+  const processImage = useCallback(async (id: ImageId, imageUserId: UserId, inputPath: string, traceId: TraceId, intentId: IntentId) => {
     dispatch({ type: 'START_PROCESS', id });
     try {
       logger.debug('[CaptureLogic] Starting compression', { id, traceId, intentId });
@@ -249,8 +249,8 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
         return;
       }
 
-      // Save to database (Pillar N: traceId, Pillar Q: intentId)
-      await saveImage(id, traceId, intentId, {
+      // Save to database (Pillar N: traceId, Pillar Q: intentId, #48: userId)
+      await saveImage(id, imageUserId, traceId, intentId, {
         originalPath: result.originalPath,
         compressedPath: result.outputPath,
         originalSize: result.originalSize,
@@ -318,7 +318,7 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
     // Async IIFE to avoid making useEffect async
     (async () => {
       try {
-        await processImage(image.id, image.localPath, image.traceId, image.intentId);
+        await processImage(image.id, image.userId, image.localPath, image.traceId, image.intentId);
       } finally {
         processingRef.current.delete(image.id);
       }
