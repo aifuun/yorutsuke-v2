@@ -2,6 +2,7 @@
 // Pillar Q: Intent-ID for idempotency
 import { useCaptureLogic } from '../headless/useCaptureLogic';
 import { useDragDrop } from '../headless/useDragDrop';
+import { useQuota } from '../headless/useQuota';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import type { UserId } from '../../../00_kernel/types';
 import { createIntentId } from '../../../00_kernel/types';
@@ -13,6 +14,7 @@ interface CaptureViewProps {
 
 export function CaptureView({ userId }: CaptureViewProps) {
   const { isOnline } = useNetworkStatus();
+  const { quota } = useQuota(userId);
   const {
     state,
     pendingCount,
@@ -20,7 +22,7 @@ export function CaptureView({ userId }: CaptureViewProps) {
     awaitingProcessCount,
     remainingQuota,
     addImage,
-  } = useCaptureLogic(userId);
+  } = useCaptureLogic(userId, quota.limit);
 
   // Drag & drop handling
   // Note: useDragDrop emits image:pending events automatically

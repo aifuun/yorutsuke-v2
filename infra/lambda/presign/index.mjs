@@ -7,7 +7,36 @@ const ddb = new DynamoDBClient({});
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
 const INTENTS_TABLE_NAME = process.env.INTENTS_TABLE_NAME;  // Pillar Q: Idempotency
-const QUOTA_LIMIT = parseInt(process.env.QUOTA_LIMIT || "50");
+
+// Tier-based quota limits
+const TIER_LIMITS = {
+  guest: 30,
+  free: 50,
+  basic: 100,
+  pro: 300,
+};
+
+/**
+ * Determine user tier from userId
+ * - device-* or ephemeral-* → guest
+ * - TODO: Look up from users table for account users
+ */
+function getUserTier(userId) {
+  if (userId.startsWith("device-") || userId.startsWith("ephemeral-")) {
+    return "guest";
+  }
+  // TODO: Look up tier from users table
+  // For now, treat all account users as "free"
+  return "free";
+}
+
+/**
+ * Get quota limit for user tier
+ */
+function getQuotaLimit(userId) {
+  const tier = getUserTier(userId);
+  return TIER_LIMITS[tier] || TIER_LIMITS.guest;
+}
 
 /**
  * Get current date in JST (UTC+9)
@@ -169,15 +198,17 @@ export async function handler(event) {
     // Check quota before generating presigned URL
     if (QUOTAS_TABLE_NAME) {
       const currentUsage = await getQuotaUsage(userId, jstDate);
-      if (currentUsage >= QUOTA_LIMIT) {
+      const quotaLimit = getQuotaLimit(userId);
+      if (currentUsage >= quotaLimit) {
         return {
           statusCode: 403,
           headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
           body: JSON.stringify({
             error: "QUOTA_EXCEEDED",
-            message: `Daily upload limit (${QUOTA_LIMIT}) exceeded`,
+            message: `Daily upload limit (${quotaLimit}) exceeded`,
             used: currentUsage,
-            limit: QUOTA_LIMIT,
+            limit: quotaLimit,
+            tier: getUserTier(userId),
           }),
         };
       }

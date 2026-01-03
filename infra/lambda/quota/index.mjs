@@ -2,7 +2,36 @@ import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
 
 const ddb = new DynamoDBClient({});
 const TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
-const QUOTA_LIMIT = parseInt(process.env.QUOTA_LIMIT || "50");
+
+// Tier-based quota limits
+const TIER_LIMITS = {
+  guest: 30,
+  free: 50,
+  basic: 100,
+  pro: 300,
+};
+
+/**
+ * Determine user tier from userId
+ * - device-* or ephemeral-* → guest
+ * - TODO: Look up from users table for account users
+ */
+function getUserTier(userId) {
+  if (userId.startsWith("device-") || userId.startsWith("ephemeral-")) {
+    return "guest";
+  }
+  // TODO: Look up tier from users table
+  // For now, treat all account users as "free"
+  return "free";
+}
+
+/**
+ * Get quota limit for user tier
+ */
+function getQuotaLimit(userId) {
+  const tier = getUserTier(userId);
+  return TIER_LIMITS[tier] || TIER_LIMITS.guest;
+}
 
 /**
  * Get current date in JST (UTC+9)
@@ -73,7 +102,9 @@ export async function handler(event) {
     );
 
     const used = result.Item?.count?.N ? parseInt(result.Item.count.N) : 0;
-    const remaining = Math.max(0, QUOTA_LIMIT - used);
+    const tier = getUserTier(userId);
+    const limit = getQuotaLimit(userId);
+    const remaining = Math.max(0, limit - used);
     const resetsAt = getNextMidnightJST();
 
     return {
@@ -84,9 +115,10 @@ export async function handler(event) {
       },
       body: JSON.stringify({
         used,
-        limit: QUOTA_LIMIT,
+        limit,
         remaining,
         resetsAt,
+        tier,
       }),
     };
   } catch (error) {

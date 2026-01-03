@@ -197,8 +197,11 @@ function classifyError(error: string): UploadErrorType {
  *
  * Pillar L: Returns data + actions only, no JSX
  * Pillar D: Uses FSM states instead of boolean flags
+ *
+ * @param userId - Current user ID
+ * @param dailyLimit - Daily upload limit (from useQuota)
  */
-export function useUploadQueue(userId: UserId | null) {
+export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
   const [state, dispatch] = useReducer(reducer, { status: 'idle', tasks: [] });
   const { isOnline, justReconnected } = useNetworkStatus();
   const lastUploadTimeRef = useRef<number | null>(null);
@@ -242,7 +245,7 @@ export function useUploadQueue(userId: UserId | null) {
 
     // Check quota
     const uploadedToday = state.tasks.filter(t => t.status === 'success').length;
-    const quotaCheck = canUpload(uploadedToday, lastUploadTimeRef.current);
+    const quotaCheck = canUpload(uploadedToday, dailyLimit, lastUploadTimeRef.current);
 
     if (!quotaCheck.allowed) {
       logger.warn('[UploadQueue] Quota check failed', { reason: quotaCheck.reason });

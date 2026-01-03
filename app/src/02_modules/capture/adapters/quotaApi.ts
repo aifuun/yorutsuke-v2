@@ -5,6 +5,11 @@ const QUOTA_URL = import.meta.env.VITE_LAMBDA_QUOTA_URL;
 const QUOTA_TIMEOUT_MS = 5_000; // 5 seconds
 
 /**
+ * User tier for quota limits
+ */
+export type UserTier = 'guest' | 'free' | 'basic' | 'pro';
+
+/**
  * Quota status from Lambda
  */
 export interface QuotaResponse {
@@ -12,6 +17,7 @@ export interface QuotaResponse {
   limit: number;
   remaining: number;
   resetsAt: string; // ISO 8601 timestamp
+  tier: UserTier;
 }
 
 /**

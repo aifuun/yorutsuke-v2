@@ -2,12 +2,12 @@
 // Pillar D: FSM - no boolean flags
 import { useReducer, useCallback, useEffect } from 'react';
 import type { UserId } from '../../../00_kernel/types';
-import { fetchQuota, type QuotaResponse } from '../adapters/quotaApi';
+import { fetchQuota, type QuotaResponse, type UserTier } from '../adapters/quotaApi';
 
 // Default values for offline/guest mode
 const DEFAULTS = {
   limit: 30,        // Guest tier default
-  intervalMs: 2000, // Rate limit
+  tier: 'guest' as UserTier,
 };
 
 /**
@@ -19,6 +19,7 @@ export interface QuotaStatus {
   remaining: number;
   isLimitReached: boolean;
   resetsAt: string | null;
+  tier: UserTier;
 }
 
 // FSM State
@@ -86,6 +87,7 @@ export function useQuota(userId: UserId | null) {
         remaining: state.quota.remaining,
         isLimitReached: state.quota.remaining <= 0,
         resetsAt: state.quota.resetsAt,
+        tier: state.quota.tier,
       };
     }
     if (state.status === 'error' && state.cachedQuota) {
@@ -95,6 +97,7 @@ export function useQuota(userId: UserId | null) {
         remaining: state.cachedQuota.remaining,
         isLimitReached: state.cachedQuota.remaining <= 0,
         resetsAt: state.cachedQuota.resetsAt,
+        tier: state.cachedQuota.tier,
       };
     }
     // Default for loading/idle/error-without-cache
@@ -104,6 +107,7 @@ export function useQuota(userId: UserId | null) {
       remaining: DEFAULTS.limit,
       isLimitReached: false,
       resetsAt: null,
+      tier: DEFAULTS.tier,
     };
   })();
 

@@ -4,7 +4,7 @@
 import { useReducer, useCallback } from 'react';
 import type { ImageId, UserId } from '../../../00_kernel/types';
 import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
-import { canUpload, DAILY_UPLOAD_LIMIT } from '../../../01_domains/receipt';
+import { canUpload } from '../../../01_domains/receipt';
 import { compressImage } from '../adapters/imageIpc';
 import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
 
@@ -88,7 +88,13 @@ function updateImageStatus(queue: ReceiptImage[], id: ImageId, status: ImageStat
   return queue.map(img => (img.id === id ? { ...img, status } : img));
 }
 
-export function useCaptureLogic(userId: UserId | null) {
+/**
+ * Capture Logic Hook
+ *
+ * @param userId - Current user ID
+ * @param dailyLimit - Daily upload limit (from useQuota)
+ */
+export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) {
   const [state, dispatch] = useReducer(reducer, { status: 'idle', queue: [] });
 
   const addImage = useCallback((image: ReceiptImage) => {
@@ -128,7 +134,7 @@ export function useCaptureLogic(userId: UserId | null) {
     const uploadedToday = state.queue.filter(
       img => img.status === 'uploaded' || img.status === 'processing'
     ).length;
-    const check = canUpload(uploadedToday, null);
+    const check = canUpload(uploadedToday, dailyLimit, null);
     if (!check.allowed) {
       dispatch({ type: 'FAILURE', id, error: check.reason! });
       return;
@@ -170,6 +176,6 @@ export function useCaptureLogic(userId: UserId | null) {
     pendingCount,
     uploadedCount,
     awaitingProcessCount,
-    remainingQuota: DAILY_UPLOAD_LIMIT - uploadedCount,
+    remainingQuota: dailyLimit - uploadedCount,
   };
 }

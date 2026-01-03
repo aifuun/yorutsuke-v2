@@ -29,16 +29,16 @@ export function shouldCompress(originalSizeBytes: number): boolean {
   return originalSizeBytes > 100 * 1024; // Compress if > 100KB
 }
 
-// Quota rules
-export const DAILY_UPLOAD_LIMIT = 50;
-export const MIN_UPLOAD_INTERVAL_MS = 10_000; // 10 seconds
+// Quota rules - limit is now dynamic based on user tier
+export const MIN_UPLOAD_INTERVAL_MS = 2_000; // 2 seconds (per QUOTA.md)
 
 export function canUpload(
   uploadedToday: number,
+  dailyLimit: number,
   lastUploadTime: number | null,
 ): { allowed: boolean; reason?: string } {
-  if (uploadedToday >= DAILY_UPLOAD_LIMIT) {
-    return { allowed: false, reason: `Daily limit reached (${DAILY_UPLOAD_LIMIT})` };
+  if (uploadedToday >= dailyLimit) {
+    return { allowed: false, reason: `Daily limit reached (${dailyLimit})` };
   }
 
   if (lastUploadTime && Date.now() - lastUploadTime < MIN_UPLOAD_INTERVAL_MS) {

@@ -112,20 +112,22 @@ Paid User      2-3%   (100-300 images/day)
 ```typescript
 // useQuota hook returns:
 interface QuotaStatus {
-  todayCount: number;
-  limit: number;
-  remaining: number;
+  used: number;           // Today's upload count
+  limit: number;          // Daily limit based on tier
+  remaining: number;      // limit - used
   isLimitReached: boolean;
+  resetsAt: string | null; // Next midnight JST (ISO 8601)
   tier: 'guest' | 'free' | 'basic' | 'pro';
 }
 
 // Default values (offline/guest)
 const DEFAULTS = {
-  dailyLimit: 30,
-  intervalMs: 2000,
+  limit: 30,
   tier: 'guest',
-  maxDevices: 1,
 };
+
+// Rate limiting (in rules.ts)
+const MIN_UPLOAD_INTERVAL_MS = 2000; // 2 seconds
 ```
 
 ## Related Documentation
