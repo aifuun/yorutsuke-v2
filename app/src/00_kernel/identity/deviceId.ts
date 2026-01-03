@@ -3,7 +3,8 @@
 
 import { getSetting, setSetting } from '../storage/db';
 import { logger } from '../telemetry';
-import type { UserId } from '../types';
+import type { UserId as UserIdType } from '../types';
+import { UserId } from '../types';
 
 const DEVICE_ID_KEY = 'device_id';
 
@@ -17,7 +18,7 @@ const DEVICE_ID_KEY = 'device_id';
  *
  * @returns Device ID as a branded UserId type
  */
-export async function getDeviceId(): Promise<UserId> {
+export async function getDeviceId(): Promise<UserIdType> {
   try {
     // Try to get existing device ID
     let deviceId = await getSetting(DEVICE_ID_KEY);
@@ -31,26 +32,26 @@ export async function getDeviceId(): Promise<UserId> {
       logger.debug('[Identity] Loaded existing Device ID', { deviceId });
     }
 
-    return deviceId as UserId;
+    return UserId(deviceId);
   } catch (error) {
     // Fallback: generate ephemeral ID (won't persist across restarts)
     logger.warn('[Identity] Failed to persist Device ID, using ephemeral', {
       error: String(error),
     });
-    return `ephemeral-${crypto.randomUUID()}` as UserId;
+    return UserId(`ephemeral-${crypto.randomUUID()}`);
   }
 }
 
 /**
  * Check if a user ID is a device ID (guest) or account ID
  */
-export function isDeviceId(userId: UserId): boolean {
+export function isDeviceId(userId: UserIdType): boolean {
   return userId.startsWith('device-') || userId.startsWith('ephemeral-');
 }
 
 /**
  * Check if a user ID is ephemeral (non-persistent)
  */
-export function isEphemeralId(userId: UserId): boolean {
+export function isEphemeralId(userId: UserIdType): boolean {
   return userId.startsWith('ephemeral-');
 }

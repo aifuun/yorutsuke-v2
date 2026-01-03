@@ -1,7 +1,8 @@
 // Storage Type Definitions
 // Row types for SQLite tables
 
-import type { ImageId, TransactionId } from '../types';
+import type { ImageId as ImageIdType, TransactionId as TransactionIdType } from '../types';
+import { ImageId, TransactionId } from '../types';
 
 // Image status FSM states
 export type ImageStatus =
@@ -84,15 +85,13 @@ export interface AnalyticsRow {
 /**
  * Convert raw row to domain ImageId
  */
-export function toImageId(row: ImageRow): ImageId {
-  // Import dynamically to avoid circular dependency
-  // Actual branding happens at adapter layer
-  return row.id as unknown as ImageId;
+export function toImageId(row: ImageRow): ImageIdType {
+  return ImageId(row.id);
 }
 
 /**
  * Convert raw row to domain TransactionId
  */
-export function toTransactionId(row: TransactionCacheRow): TransactionId {
-  return row.id as unknown as TransactionId;
+export function toTransactionId(row: TransactionCacheRow): TransactionIdType {
+  return TransactionId(row.id);
 }

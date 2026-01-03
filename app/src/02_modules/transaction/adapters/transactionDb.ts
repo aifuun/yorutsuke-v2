@@ -1,7 +1,7 @@
 // Pillar B: Airlock - validate all database responses
 import Database from '@tauri-apps/plugin-sql';
-import type { TransactionId, UserId } from '../../../00_kernel/types';
-import { TransactionId as createTransactionId } from '../../../00_kernel/types';
+import type { TransactionId as TransactionIdType, UserId as UserIdType } from '../../../00_kernel/types';
+import { TransactionId, UserId, ImageId } from '../../../00_kernel/types';
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 
 let db: Database | null = null;
@@ -33,9 +33,9 @@ interface DbTransaction {
 
 function mapDbToTransaction(row: DbTransaction): Transaction {
   return {
-    id: createTransactionId(row.id),
-    userId: row.user_id as UserId,
-    imageId: row.image_id as any,
+    id: TransactionId(row.id),
+    userId: UserId(row.user_id),
+    imageId: row.image_id ? ImageId(row.image_id) : null,
     type: row.type as TransactionType,
     category: row.category as TransactionCategory,
     amount: row.amount,
@@ -52,7 +52,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
 }
 
 export async function fetchTransactions(
-  userId: UserId,
+  userId: UserIdType,
   startDate?: string,
   endDate?: string,
 ): Promise<Transaction[]> {
@@ -103,12 +103,12 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
   );
 }
 
-export async function deleteTransaction(id: TransactionId): Promise<void> {
+export async function deleteTransaction(id: TransactionIdType): Promise<void> {
   const database = await getDb();
   await database.execute('DELETE FROM transactions WHERE id = ?', [id]);
 }
 
-export async function confirmTransaction(id: TransactionId): Promise<void> {
+export async function confirmTransaction(id: TransactionIdType): Promise<void> {
   const database = await getDb();
   await database.execute(
     'UPDATE transactions SET confirmed_at = ?, updated_at = ? WHERE id = ?',
