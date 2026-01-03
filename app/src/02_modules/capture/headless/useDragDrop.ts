@@ -50,8 +50,15 @@ export function useDragDrop(options: DragDropOptions): DragDropResult {
   const allowedExtensionsRef = useRef(allowedExtensions);
   allowedExtensionsRef.current = allowedExtensions;
 
+  // Track if listeners are already setup (React.StrictMode protection)
+  const isSetupRef = useRef(false);
+
   // Setup Tauri listeners on mount
   useEffect(() => {
+    // Prevent duplicate setup in StrictMode
+    if (isSetupRef.current) return;
+    isSetupRef.current = true;
+
     let cleanup: (() => void) | null = null;
 
     const setup = async () => {
@@ -103,6 +110,7 @@ export function useDragDrop(options: DragDropOptions): DragDropResult {
 
     return () => {
       cleanup?.();
+      isSetupRef.current = false;
     };
   }, []); // Empty deps - only setup once on mount
 
