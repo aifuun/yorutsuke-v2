@@ -22,12 +22,14 @@ import type { ImageRow } from '../../../00_kernel/storage';
 // FSM State
 // Note: 'error' state removed - errors are stored per-image, not globally
 // This allows processing to continue even when some images fail
-type State =
+// Exported for testing
+export type CaptureState =
   | { status: 'idle'; queue: ReceiptImage[] }
   | { status: 'processing'; queue: ReceiptImage[]; currentId: ImageId }
   | { status: 'uploading'; queue: ReceiptImage[]; currentId: ImageId };
 
-type Action =
+// Exported for testing
+export type CaptureAction =
   | { type: 'ADD_IMAGE'; image: ReceiptImage }
   | { type: 'RESTORE_QUEUE'; images: ReceiptImage[] }  // Bulk restore from DB on startup
   | { type: 'START_PROCESS'; id: ImageId }
@@ -38,7 +40,8 @@ type Action =
   | { type: 'FAILURE'; id: ImageId; error: string }
   | { type: 'REMOVE'; id: ImageId };
 
-function reducer(state: State, action: Action): State {
+// Exported for testing
+export function captureReducer(state: CaptureState, action: CaptureAction): CaptureState {
   switch (action.type) {
     case 'ADD_IMAGE':
       return {
@@ -162,7 +165,7 @@ function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
  * @param dailyLimit - Daily upload limit (from useQuota)
  */
 export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) {
-  const [state, dispatch] = useReducer(reducer, { status: 'idle', queue: [] });
+  const [state, dispatch] = useReducer(captureReducer, { status: 'idle', queue: [] });
   const processingRef = useRef<Set<string>>(new Set()); // Track images being processed
   const restoredRef = useRef(false); // Prevent double restoration in StrictMode
 

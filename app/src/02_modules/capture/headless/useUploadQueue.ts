@@ -31,12 +31,14 @@ export interface UploadTask {
 }
 
 // FSM Queue State (Pillar D)
-type QueueState =
+// Exported for testing
+export type UploadQueueState =
   | { status: 'idle'; tasks: UploadTask[] }
   | { status: 'processing'; tasks: UploadTask[]; currentId: ImageId }
   | { status: 'paused'; tasks: UploadTask[]; reason: 'offline' | 'quota' };
 
-type Action =
+// Exported for testing
+export type UploadQueueAction =
   | { type: 'ENQUEUE'; task: UploadTask }
   | { type: 'START_UPLOAD'; id: ImageId }
   | { type: 'UPLOAD_SUCCESS'; id: ImageId; s3Key: string }
@@ -48,7 +50,8 @@ type Action =
   | { type: 'REMOVE'; id: ImageId }
   | { type: 'RESET_FAILED' };
 
-function reducer(state: QueueState, action: Action): QueueState {
+// Exported for testing
+export function uploadQueueReducer(state: UploadQueueState, action: UploadQueueAction): UploadQueueState {
   switch (action.type) {
     case 'ENQUEUE': {
       // Avoid duplicates
@@ -167,7 +170,8 @@ function updateTask(
   return tasks.map(t => (t.id === id ? { ...t, ...update } : t));
 }
 
-function shouldRetry(errorType: UploadErrorType, retryCount: number): boolean {
+// Exported for testing
+export function shouldRetry(errorType: UploadErrorType, retryCount: number): boolean {
   // Don't retry quota or unknown errors
   if (errorType === 'quota' || errorType === 'unknown') return false;
   // Retry network and server errors up to MAX_RETRY_COUNT
@@ -176,8 +180,9 @@ function shouldRetry(errorType: UploadErrorType, retryCount: number): boolean {
 
 /**
  * Classify error for retry logic and UI display
+ * Exported for testing
  */
-function classifyError(error: string): UploadErrorType {
+export function classifyError(error: string): UploadErrorType {
   const errorLower = error.toLowerCase();
 
   // Network errors - auto-retry
@@ -221,7 +226,7 @@ function classifyError(error: string): UploadErrorType {
  * @param dailyLimit - Daily upload limit (from useQuota)
  */
 export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
-  const [state, dispatch] = useReducer(reducer, { status: 'idle', tasks: [] });
+  const [state, dispatch] = useReducer(uploadQueueReducer, { status: 'idle', tasks: [] });
   const { isOnline, justReconnected } = useNetworkStatus();
   const lastUploadTimeRef = useRef<number | null>(null);
   // Note: processingRef removed - FSM state is single source of truth (Pillar D)
