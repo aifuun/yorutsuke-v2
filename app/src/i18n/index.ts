@@ -16,8 +16,8 @@ i18n
       ja: { translation: ja },
       en: { translation: en },
     },
-    lng: 'ja', // Default language
-    fallbackLng: 'en',
+    lng: 'en', // Default language
+    fallbackLng: 'ja',
     interpolation: {
       escapeValue: false, // React already escapes
     },

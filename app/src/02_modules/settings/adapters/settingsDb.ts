@@ -24,8 +24,8 @@ export interface AppSettings {
 const DEFAULTS: AppSettings = {
   userName: null,
   notificationEnabled: true,
-  theme: 'light',
-  language: 'ja',
+  theme: 'dark',
+  language: 'en',
   debugEnabled: false,
 };
 

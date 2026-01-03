@@ -156,7 +156,7 @@ async function migration_v1(db: Database): Promise<void> {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_delete_days', NULL)
   `);
   await db.execute(`
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'ja')
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('language', 'en')
   `);
   await db.execute(`
     INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark')
