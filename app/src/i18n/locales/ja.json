@@ -131,5 +131,12 @@
       "title": "該当する取引がありません",
       "message": "フィルター条件を変更してみてください"
     }
+  },
+  "quota": {
+    "label": "配額",
+    "today": "今日",
+    "limitReached": "上限に達しました",
+    "resetsIn": "{{time}}後にリセット",
+    "clickToRefresh": "クリックして更新"
   }
 }

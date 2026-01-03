@@ -1,7 +1,7 @@
 // Public API for capture module
 export { useCaptureLogic, useDragDrop, useQuota } from './headless';
 export type { QuotaStatus } from './headless/useQuota';
-export { CaptureView } from './views';
+export { CaptureView, QuotaIndicator } from './views';
 export type {
   DroppedItem,
   DragState,

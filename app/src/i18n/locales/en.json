@@ -131,5 +131,12 @@
       "title": "No matching transactions",
       "message": "Try adjusting your filter criteria"
     }
+  },
+  "quota": {
+    "label": "Quota",
+    "today": "today",
+    "limitReached": "Limit reached",
+    "resetsIn": "Resets in {{time}}",
+    "clickToRefresh": "Click to refresh"
   }
 }

@@ -14,7 +14,7 @@ function AppContent() {
   return (
     <div className="app-shell">
       <div className="app-body">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} />
+        <Sidebar activeView={activeView} onViewChange={setActiveView} userId={userId} />
 
         <main className="main-content">
           <div className={`view-panel ${activeView === 'report' ? 'active' : ''}`}>

@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { BarChart3, ImagePlus, FileText, History, Settings } from 'lucide-react';
+import { useQuota, QuotaIndicator } from '../02_modules/capture';
+import type { UserId } from '../00_kernel/types';
 import './Sidebar.css';
 
 export type ViewType = 'report' | 'capture' | 'transactions' | 'history' | 'settings';
@@ -7,6 +9,7 @@ export type ViewType = 'report' | 'capture' | 'transactions' | 'history' | 'sett
 interface SidebarProps {
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
+  userId: UserId | null;
 }
 
 const NAV_ITEMS: Array<{ view: ViewType; icon: typeof BarChart3; labelKey: string }> = [
@@ -17,8 +20,9 @@ const NAV_ITEMS: Array<{ view: ViewType; icon: typeof BarChart3; labelKey: strin
   { view: 'settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 
-export function Sidebar({ activeView, onViewChange }: SidebarProps) {
+export function Sidebar({ activeView, onViewChange, userId }: SidebarProps) {
   const { t } = useTranslation();
+  const { quota, isLoading, refresh } = useQuota(userId);
 
   return (
     <aside className="sidebar">
@@ -44,6 +48,11 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
       </nav>
 
       <div className="sidebar-footer">
+        <QuotaIndicator
+          quota={quota}
+          isLoading={isLoading}
+          onRefresh={refresh}
+        />
         <div className="app-version">
           {t('app.tagline')}
         </div>
