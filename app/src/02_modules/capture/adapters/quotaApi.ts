@@ -10,6 +10,14 @@ const QUOTA_TIMEOUT_MS = 5_000; // 5 seconds
 export type UserTier = 'guest' | 'free' | 'basic' | 'pro';
 
 /**
+ * Guest expiration info (only present for guest users)
+ */
+export interface GuestExpirationInfo {
+  dataExpiresAt: string;     // ISO 8601 timestamp
+  daysUntilExpiration: number;
+}
+
+/**
  * Quota status from Lambda
  */
 export interface QuotaResponse {
@@ -18,6 +26,7 @@ export interface QuotaResponse {
   remaining: number;
   resetsAt: string; // ISO 8601 timestamp
   tier: UserTier;
+  guest?: GuestExpirationInfo; // Only present for guest users
 }
 
 /**

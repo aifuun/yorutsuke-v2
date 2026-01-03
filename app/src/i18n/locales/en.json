@@ -137,6 +137,7 @@
     "today": "today",
     "limitReached": "Limit reached",
     "resetsIn": "Resets in {{time}}",
-    "clickToRefresh": "Click to refresh"
+    "clickToRefresh": "Click to refresh",
+    "guestExpiration": "Data expires in {{days}} days. Register to keep forever!"
   }
 }

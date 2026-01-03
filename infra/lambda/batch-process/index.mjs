@@ -12,6 +12,24 @@ const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
 const MAX_IMAGES_PER_RUN = parseInt(process.env.MAX_IMAGES_PER_RUN || "100");
 
+// Guest data expires after 60 days of inactivity
+const GUEST_TTL_DAYS = 60;
+
+/**
+ * Check if userId is a guest (device-* or ephemeral-*)
+ */
+function isGuestUser(userId) {
+  return userId.startsWith("device-") || userId.startsWith("ephemeral-");
+}
+
+/**
+ * Calculate TTL timestamp for guest users
+ * @returns {number} Unix timestamp (seconds) 60 days from now
+ */
+function getGuestTTL() {
+  return Math.floor(Date.now() / 1000) + GUEST_TTL_DAYS * 24 * 60 * 60;
+}
+
 /**
  * OCR prompt for receipt analysis
  */
@@ -157,7 +175,7 @@ function parseOcrResult(ocrText, userId, imageKey) {
     const transactionId = randomUUID();
     const now = new Date().toISOString();
 
-    return {
+    const transaction = {
       userId,
       transactionId,
       amount: parsed.amount,
@@ -173,6 +191,14 @@ function parseOcrResult(ocrText, userId, imageKey) {
       createdAt: now,
       updatedAt: now,
     };
+
+    // Guest users: set TTL for 60-day expiration
+    if (isGuestUser(userId)) {
+      transaction.ttl = getGuestTTL();
+      transaction.isGuest = true;
+    }
+
+    return transaction;
   } catch (error) {
     console.error("Failed to parse OCR result:", ocrText, error);
     return null;

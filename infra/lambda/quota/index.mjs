@@ -1,4 +1,4 @@
-import { DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
 
 const ddb = new DynamoDBClient({});
 const TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
@@ -11,18 +11,69 @@ const TIER_LIMITS = {
   pro: 300,
 };
 
+// Guest data expires after 60 days of inactivity
+const GUEST_TTL_DAYS = 60;
+
+/**
+ * Check if userId is a guest (device-* or ephemeral-*)
+ */
+function isGuestUser(userId) {
+  return userId.startsWith("device-") || userId.startsWith("ephemeral-");
+}
+
 /**
  * Determine user tier from userId
  * - device-* or ephemeral-* → guest
  * - TODO: Look up from users table for account users
  */
 function getUserTier(userId) {
-  if (userId.startsWith("device-") || userId.startsWith("ephemeral-")) {
+  if (isGuestUser(userId)) {
     return "guest";
   }
   // TODO: Look up tier from users table
   // For now, treat all account users as "free"
   return "free";
+}
+
+/**
+ * Update last active timestamp for guest users
+ * This is used to calculate data expiration
+ */
+async function updateLastActive(userId, date) {
+  if (!isGuestUser(userId)) return null;
+
+  const now = Date.now();
+  const expiresAt = now + GUEST_TTL_DAYS * 24 * 60 * 60 * 1000;
+
+  try {
+    await ddb.send(
+      new UpdateItemCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          userId: { S: userId },
+          date: { S: date },
+        },
+        UpdateExpression: "SET lastActiveAt = :now",
+        ExpressionAttributeValues: {
+          ":now": { N: String(now) },
+        },
+      })
+    );
+
+    return {
+      lastActiveAt: new Date(now).toISOString(),
+      dataExpiresAt: new Date(expiresAt).toISOString(),
+      daysUntilExpiration: GUEST_TTL_DAYS,
+    };
+  } catch (error) {
+    console.warn("Failed to update lastActiveAt:", error);
+    // Return default values even if update fails
+    return {
+      lastActiveAt: new Date(now).toISOString(),
+      dataExpiresAt: new Date(expiresAt).toISOString(),
+      daysUntilExpiration: GUEST_TTL_DAYS,
+    };
+  }
 }
 
 /**
@@ -107,19 +158,33 @@ export async function handler(event) {
     const remaining = Math.max(0, limit - used);
     const resetsAt = getNextMidnightJST();
 
+    // Build response
+    const response = {
+      used,
+      limit,
+      remaining,
+      resetsAt,
+      tier,
+    };
+
+    // For guest users, include expiration info
+    if (isGuestUser(userId)) {
+      const expirationInfo = await updateLastActive(userId, jstDate);
+      if (expirationInfo) {
+        response.guest = {
+          dataExpiresAt: expirationInfo.dataExpiresAt,
+          daysUntilExpiration: expirationInfo.daysUntilExpiration,
+        };
+      }
+    }
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({
-        used,
-        limit,
-        remaining,
-        resetsAt,
-        tier,
-      }),
+      body: JSON.stringify(response),
     };
   } catch (error) {
     console.error("Quota check error:", error);

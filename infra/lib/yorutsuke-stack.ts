@@ -42,11 +42,13 @@ export class YorutsukeStack extends cdk.Stack {
     });
 
     // DynamoDB Table for transactions
+    // TTL enabled for guest user data expiration (60 days)
     const transactionsTable = new dynamodb.Table(this, "TransactionsTable", {
       tableName: `yorutsuke-transactions-${env}`,
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "transactionId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "ttl",  // Guest data expires after 60 days
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN

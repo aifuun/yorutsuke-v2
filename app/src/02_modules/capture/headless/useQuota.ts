@@ -2,13 +2,16 @@
 // Pillar D: FSM - no boolean flags
 import { useReducer, useCallback, useEffect } from 'react';
 import type { UserId } from '../../../00_kernel/types';
-import { fetchQuota, type QuotaResponse, type UserTier } from '../adapters/quotaApi';
+import { fetchQuota, type QuotaResponse, type UserTier, type GuestExpirationInfo } from '../adapters/quotaApi';
 
 // Default values for offline/guest mode
 const DEFAULTS = {
   limit: 30,        // Guest tier default
   tier: 'guest' as UserTier,
 };
+
+// Warning threshold for guest data expiration
+const EXPIRATION_WARNING_DAYS = 14;
 
 /**
  * Quota status with computed fields
@@ -20,6 +23,10 @@ export interface QuotaStatus {
   isLimitReached: boolean;
   resetsAt: string | null;
   tier: UserTier;
+  // Guest-specific fields
+  isGuest: boolean;
+  guestExpiration: GuestExpirationInfo | null;
+  showExpirationWarning: boolean;
 }
 
 // FSM State
@@ -78,9 +85,30 @@ export function useQuota(userId: UserId | null) {
     }
   }, [userId, refresh]);
 
+  // Helper to compute guest fields
+  const computeGuestFields = (quota: QuotaResponse | undefined) => {
+    if (!quota) {
+      return {
+        isGuest: true, // Default to guest
+        guestExpiration: null,
+        showExpirationWarning: false,
+      };
+    }
+
+    const isGuest = quota.tier === 'guest';
+    const guestExpiration = quota.guest || null;
+    const showExpirationWarning =
+      isGuest &&
+      guestExpiration !== null &&
+      guestExpiration.daysUntilExpiration <= EXPIRATION_WARNING_DAYS;
+
+    return { isGuest, guestExpiration, showExpirationWarning };
+  };
+
   // Compute quota status with defaults
   const quotaStatus: QuotaStatus = (() => {
     if (state.status === 'success') {
+      const guestFields = computeGuestFields(state.quota);
       return {
         used: state.quota.used,
         limit: state.quota.limit,
@@ -88,9 +116,11 @@ export function useQuota(userId: UserId | null) {
         isLimitReached: state.quota.remaining <= 0,
         resetsAt: state.quota.resetsAt,
         tier: state.quota.tier,
+        ...guestFields,
       };
     }
     if (state.status === 'error' && state.cachedQuota) {
+      const guestFields = computeGuestFields(state.cachedQuota);
       return {
         used: state.cachedQuota.used,
         limit: state.cachedQuota.limit,
@@ -98,6 +128,7 @@ export function useQuota(userId: UserId | null) {
         isLimitReached: state.cachedQuota.remaining <= 0,
         resetsAt: state.cachedQuota.resetsAt,
         tier: state.cachedQuota.tier,
+        ...guestFields,
       };
     }
     // Default for loading/idle/error-without-cache
@@ -108,6 +139,9 @@ export function useQuota(userId: UserId | null) {
       isLimitReached: false,
       resetsAt: null,
       tier: DEFAULTS.tier,
+      isGuest: true,
+      guestExpiration: null,
+      showExpirationWarning: false,
     };
   })();
 

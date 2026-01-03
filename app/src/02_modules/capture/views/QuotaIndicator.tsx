@@ -88,6 +88,15 @@ export function QuotaIndicator({ quota, isLoading, onRefresh }: QuotaIndicatorPr
         </div>
       ) : null}
 
+      {/* Guest expiration warning */}
+      {quota.showExpirationWarning && quota.guestExpiration && (
+        <div className="quota-indicator__expiration-warning">
+          {t('quota.guestExpiration', {
+            days: quota.guestExpiration.daysUntilExpiration,
+          })}
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="quota-indicator__bar">
         <div

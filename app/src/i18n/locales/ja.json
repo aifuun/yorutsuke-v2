@@ -137,6 +137,7 @@
     "today": "今日",
     "limitReached": "上限に達しました",
     "resetsIn": "{{time}}後にリセット",
-    "clickToRefresh": "クリックして更新"
+    "clickToRefresh": "クリックして更新",
+    "guestExpiration": "{{days}}日後にデータが削除されます。登録して永久保存！"
   }
 }
