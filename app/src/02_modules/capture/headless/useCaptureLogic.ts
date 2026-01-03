@@ -6,7 +6,7 @@ import { useReducer, useCallback, useEffect, useRef } from 'react';
 import type { ImageId, UserId, TraceId, IntentId } from '../../../00_kernel/types';
 import { ImageId as createImageId, createTraceId, createIntentId } from '../../../00_kernel/types';
 import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
-import { compressImage } from '../adapters/imageIpc';
+import { compressImage, deleteLocalImage } from '../adapters/imageIpc';
 import {
   findImageByMd5,
   saveImage,
@@ -222,11 +222,14 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
 
   const processImage = useCallback(async (id: ImageId, imageUserId: UserId, inputPath: string, traceId: TraceId, intentId: IntentId) => {
     dispatch({ type: 'START_PROCESS', id });
+    let compressedPath: string | null = null; // Track for cleanup on failure
+
     try {
       logger.debug('[CaptureLogic] Starting compression', { id, traceId, intentId });
 
       // Compress image (MD5 is calculated on WebP output)
       const result = await compressImage(inputPath, id);
+      compressedPath = result.outputPath; // Track for potential cleanup
       logger.info('[CaptureLogic] Compression complete', { id, traceId, md5: result.md5 });
 
       // Emit image:compressing event
@@ -236,6 +239,14 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
       const existingId = await findImageByMd5(result.md5, traceId);
       if (existingId) {
         logger.info('[CaptureLogic] Duplicate detected in database', { id, traceId, duplicateWith: existingId });
+
+        // Clean up compressed file since it's a duplicate - fixes #49
+        try {
+          await deleteLocalImage(compressedPath);
+          logger.debug('[CaptureLogic] Cleaned up duplicate file', { id, path: compressedPath });
+        } catch {
+          // Ignore cleanup errors
+        }
 
         // @trigger image:duplicate - TraceId continues to track why image was skipped
         emit('image:duplicate', {
@@ -284,6 +295,17 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
       logger.info('[CaptureLogic] Image processed successfully', { id, traceId, intentId });
     } catch (e) {
       logger.error('[CaptureLogic] Processing failed', { id, traceId, intentId, error: String(e) });
+
+      // Clean up orphaned compressed file if it was created - fixes #49
+      if (compressedPath) {
+        try {
+          await deleteLocalImage(compressedPath);
+          logger.debug('[CaptureLogic] Cleaned up orphaned file', { id, path: compressedPath });
+        } catch {
+          // Ignore cleanup errors - file may not exist or already deleted
+        }
+      }
+
       dispatch({ type: 'FAILURE', id, error: String(e) });
     }
   }, []);
