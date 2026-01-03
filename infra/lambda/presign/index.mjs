@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { logger, EVENTS, initContext } from "../shared/logger.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
@@ -181,12 +182,15 @@ async function isEmergencyStop() {
     emergencyStopCache = { value: isStop, expiry: now + CACHE_TTL_MS };
     return isStop;
   } catch (error) {
-    console.warn("Failed to check emergency stop:", error);
+    logger.warn(EVENTS.PRESIGN_FAILED, { step: "emergency_stop_check", error: error.message });
     return false; // Fail open - don't block uploads on SSM errors
   }
 }
 
 export async function handler(event) {
+  // Initialize logging context
+  const ctx = initContext(event);
+
   try {
     // Handle CORS preflight
     if (event.requestContext?.http?.method === "OPTIONS") {
@@ -195,7 +199,7 @@ export async function handler(event) {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Trace-Id",
         },
         body: "",
       };
@@ -203,7 +207,7 @@ export async function handler(event) {
 
     // Circuit breaker: Check emergency stop
     if (await isEmergencyStop()) {
-      console.warn("Emergency stop is enabled - rejecting upload");
+      logger.warn(EVENTS.EMERGENCY_STOP, { action: "upload_rejected" });
       return {
         statusCode: 503,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
@@ -217,6 +221,8 @@ export async function handler(event) {
     const body = JSON.parse(event.body || "{}");
     const { userId, fileName, intentId, contentType } = body;
 
+    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, intentId });
+
     if (!userId || !fileName) {
       return {
         statusCode: 400,
@@ -228,7 +234,7 @@ export async function handler(event) {
     // Pillar Q: Check idempotency - return cached result if already processed
     const cachedResult = await checkIntent(intentId);
     if (cachedResult) {
-      console.log(`Intent ${intentId} already processed, returning cached result`);
+      logger.info(EVENTS.PRESIGN_CACHED, { intentId });
       return {
         statusCode: 200,
         headers: {
@@ -246,6 +252,7 @@ export async function handler(event) {
       const currentUsage = await getQuotaUsage(userId, jstDate);
       const quotaLimit = getQuotaLimit(userId);
       if (currentUsage >= quotaLimit) {
+        logger.warn(EVENTS.QUOTA_EXCEEDED, { userId, used: currentUsage, limit: quotaLimit });
         return {
           statusCode: 403,
           headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
@@ -280,16 +287,19 @@ export async function handler(event) {
     // Pillar Q: Store intent result for idempotency
     await storeIntent(intentId, result);
 
+    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key, intentId });
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        "X-Trace-Id": ctx.traceId,
       },
       body: JSON.stringify(result),
     };
   } catch (error) {
-    console.error("Presign error:", error);
+    logger.error(EVENTS.PRESIGN_FAILED, { error: error.message, stack: error.stack });
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },

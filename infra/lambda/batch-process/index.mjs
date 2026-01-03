@@ -3,6 +3,7 @@ import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { randomUUID } from "crypto";
+import { logger, EVENTS, setContext } from "../shared/logger.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
@@ -200,7 +201,7 @@ function parseOcrResult(ocrText, userId, imageKey) {
 
     return transaction;
   } catch (error) {
-    console.error("Failed to parse OCR result:", ocrText, error);
+    logger.error(EVENTS.OCR_PARSE_FAILED, { userId, imageKey, error: error.message });
     return null;
   }
 }
@@ -217,10 +218,15 @@ async function writeTransaction(transaction) {
         ConditionExpression: "attribute_not_exists(transactionId)", // Pillar Q: Idempotency
       })
     );
+    logger.info(EVENTS.TRANSACTION_CREATED, {
+      transactionId: transaction.transactionId,
+      userId: transaction.userId,
+      amount: transaction.amount,
+    });
     return true;
   } catch (error) {
     if (error.name === "ConditionalCheckFailedException") {
-      console.log("Transaction already exists:", transaction.transactionId);
+      logger.debug(EVENTS.TRANSACTION_CREATED, { transactionId: transaction.transactionId, note: "already_exists" });
       return true; // Already processed
     }
     throw error;
@@ -256,7 +262,7 @@ async function markImageProcessed(key) {
  */
 async function processImage(image) {
   const { key, userId } = image;
-  console.log(`Processing image: ${key}`);
+  logger.info(EVENTS.IMAGE_PROCESSING_STARTED, { key, userId });
 
   try {
     // 1. Get image from S3
@@ -264,12 +270,12 @@ async function processImage(image) {
 
     // 2. Call Bedrock OCR
     const ocrResult = await callBedrockOCR(imageBase64);
-    console.log(`OCR result for ${key}:`, ocrResult.substring(0, 200));
+    logger.debug(EVENTS.OCR_COMPLETED, { key, resultLength: ocrResult.length });
 
     // 3. Parse OCR result
     const transaction = parseOcrResult(ocrResult, userId, key);
     if (!transaction) {
-      console.error(`Failed to parse OCR for ${key}`);
+      logger.error(EVENTS.IMAGE_PROCESSING_FAILED, { key, reason: "PARSE_FAILED" });
       return { success: false, key, error: "PARSE_FAILED" };
     }
 
@@ -279,16 +285,20 @@ async function processImage(image) {
     // 5. Mark as processed
     await markImageProcessed(key);
 
-    console.log(`Successfully processed: ${key}`);
+    logger.info(EVENTS.IMAGE_PROCESSING_COMPLETED, { key, transactionId: transaction.transactionId });
     return { success: true, key, transactionId: transaction.transactionId };
   } catch (error) {
-    console.error(`Error processing ${key}:`, error);
+    logger.error(EVENTS.IMAGE_PROCESSING_FAILED, { key, error: error.message });
     return { success: false, key, error: error.message };
   }
 }
 
 export async function handler(event) {
-  console.log("Batch process started:", JSON.stringify(event));
+  // Generate trace ID for batch job
+  const traceId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  setContext({ traceId });
+
+  logger.info(EVENTS.BATCH_STARTED, { event: JSON.stringify(event) });
 
   const startTime = Date.now();
   const results = {
@@ -300,7 +310,7 @@ export async function handler(event) {
   try {
     // 1. List unprocessed images
     const images = await listUnprocessedImages();
-    console.log(`Found ${images.length} images to process`);
+    logger.info(EVENTS.BATCH_STARTED, { imageCount: images.length });
 
     if (images.length === 0) {
       return {
@@ -322,13 +332,13 @@ export async function handler(event) {
 
       // Safety: Stop if taking too long (Lambda timeout protection)
       if (Date.now() - startTime > 4 * 60 * 1000) {
-        console.log("Approaching timeout, stopping early");
+        logger.warn(EVENTS.BATCH_COMPLETED, { reason: "timeout_approaching" });
         break;
       }
     }
 
     const duration = (Date.now() - startTime) / 1000;
-    console.log(`Batch process completed in ${duration}s:`, results);
+    logger.info(EVENTS.BATCH_COMPLETED, { duration, processed: results.processed, failed: results.failed });
 
     return {
       statusCode: 200,
@@ -339,7 +349,7 @@ export async function handler(event) {
       }),
     };
   } catch (error) {
-    console.error("Batch process error:", error);
+    logger.error(EVENTS.BATCH_FAILED, { error: error.message, stack: error.stack, results });
     return {
       statusCode: 500,
       body: JSON.stringify({

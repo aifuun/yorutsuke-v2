@@ -1,4 +1,5 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
+import { logger, EVENTS, initContext } from "../shared/logger.mjs";
 
 const ddb = new DynamoDBClient({});
 const TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
@@ -66,7 +67,7 @@ async function updateLastActive(userId, date) {
       daysUntilExpiration: GUEST_TTL_DAYS,
     };
   } catch (error) {
-    console.warn("Failed to update lastActiveAt:", error);
+    logger.warn(EVENTS.QUOTA_CHECK_FAILED, { step: "update_last_active", error: error.message });
     // Return default values even if update fails
     return {
       lastActiveAt: new Date(now).toISOString(),
@@ -111,6 +112,9 @@ function getNextMidnightJST() {
 }
 
 export async function handler(event) {
+  // Initialize logging context
+  const ctx = initContext(event);
+
   try {
     // Handle CORS preflight
     if (event.requestContext?.http?.method === "OPTIONS") {
@@ -119,7 +123,7 @@ export async function handler(event) {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Trace-Id",
         },
         body: "",
       };
@@ -178,16 +182,19 @@ export async function handler(event) {
       }
     }
 
+    logger.info(EVENTS.QUOTA_CHECKED, { userId, used, limit, remaining, tier });
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        "X-Trace-Id": ctx.traceId,
       },
       body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error("Quota check error:", error);
+    logger.error(EVENTS.QUOTA_CHECK_FAILED, { error: error.message, stack: error.stack });
     return {
       statusCode: 500,
       headers: {
