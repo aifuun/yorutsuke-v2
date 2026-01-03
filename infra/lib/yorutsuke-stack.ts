@@ -7,6 +7,9 @@ import * as ssm from "aws-cdk-lib/aws-ssm";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as cw_actions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as sns from "aws-cdk-lib/aws-sns";
 import { Construct } from "constructs";
 
 export class YorutsukeStack extends cdk.Stack {
@@ -293,6 +296,121 @@ export class YorutsukeStack extends cdk.Stack {
 
     batchRule.addTarget(new targets.LambdaFunction(batchProcessLambda));
 
+    // ========================================
+    // Cost Control & Monitoring (Issue #37)
+    // ========================================
+
+    // SNS Topic for alarms
+    const alertsTopic = new sns.Topic(this, "AlertsTopic", {
+      topicName: `yorutsuke-alerts-${env}`,
+      displayName: "Yorutsuke Cost Alerts",
+    });
+
+    // SSM Parameter for emergency stop (circuit breaker)
+    const emergencyStopParam = new ssm.StringParameter(
+      this,
+      "EmergencyStopParam",
+      {
+        parameterName: `/yorutsuke/${env}/emergency-stop`,
+        stringValue: "false",
+        description: "Set to 'true' to stop all uploads (circuit breaker)",
+      }
+    );
+
+    // Grant presign Lambda permission to read emergency stop
+    emergencyStopParam.grantRead(presignLambda);
+    presignLambda.addEnvironment(
+      "EMERGENCY_STOP_PARAM",
+      emergencyStopParam.parameterName
+    );
+
+    // Alarm: S3 uploads > 1500/day
+    const s3UploadAlarm = new cloudwatch.Alarm(this, "S3UploadLimitAlarm", {
+      alarmName: `yorutsuke-s3-upload-limit-${env}`,
+      alarmDescription: "S3 uploads exceeded 1500/day limit",
+      metric: new cloudwatch.Metric({
+        namespace: "AWS/S3",
+        metricName: "PutRequests",
+        dimensionsMap: {
+          BucketName: imageBucket.bucketName,
+          FilterId: "AllRequests",
+        },
+        statistic: "Sum",
+        period: cdk.Duration.hours(24),
+      }),
+      threshold: 1500,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    s3UploadAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
+
+    // Alarm: Presign Lambda errors > 100/5min (circuit breaker trigger)
+    const presignErrorAlarm = new cloudwatch.Alarm(this, "PresignErrorAlarm", {
+      alarmName: `yorutsuke-presign-errors-${env}`,
+      alarmDescription: "Presign Lambda errors exceeded 100/5min - circuit breaker",
+      metric: presignLambda.metricErrors({
+        statistic: "Sum",
+        period: cdk.Duration.minutes(5),
+      }),
+      threshold: 100,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    presignErrorAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
+
+    // Alarm: Batch process Lambda errors (LLM failures)
+    const batchErrorAlarm = new cloudwatch.Alarm(this, "BatchErrorAlarm", {
+      alarmName: `yorutsuke-batch-errors-${env}`,
+      alarmDescription: "Batch process (LLM) errors detected",
+      metric: batchProcessLambda.metricErrors({
+        statistic: "Sum",
+        period: cdk.Duration.hours(1),
+      }),
+      threshold: 10,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    batchErrorAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
+
+    // Alarm: Batch process invocations > 900/day (LLM cost control)
+    const batchInvocationAlarm = new cloudwatch.Alarm(
+      this,
+      "BatchInvocationAlarm",
+      {
+        alarmName: `yorutsuke-batch-invocations-${env}`,
+        alarmDescription: "LLM invocations approaching daily limit (900/day)",
+        metric: batchProcessLambda.metricInvocations({
+          statistic: "Sum",
+          period: cdk.Duration.hours(24),
+        }),
+        threshold: 900,
+        evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }
+    );
+    batchInvocationAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
+
+    // Alarm: All Lambda concurrent executions (global throttle warning)
+    const throttleAlarm = new cloudwatch.Alarm(this, "ThrottleAlarm", {
+      alarmName: `yorutsuke-throttle-warning-${env}`,
+      alarmDescription: "Lambda throttling detected",
+      metric: new cloudwatch.Metric({
+        namespace: "AWS/Lambda",
+        metricName: "Throttles",
+        statistic: "Sum",
+        period: cdk.Duration.minutes(5),
+      }),
+      threshold: 10,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    throttleAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -347,6 +465,16 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ReportLambdaUrl", {
       value: reportUrl.url,
       exportName: `${id}-ReportUrl`,
+    });
+
+    new cdk.CfnOutput(this, "AlertsTopicArn", {
+      value: alertsTopic.topicArn,
+      exportName: `${id}-AlertsTopicArn`,
+    });
+
+    new cdk.CfnOutput(this, "EmergencyStopParamName", {
+      value: emergencyStopParam.parameterName,
+      exportName: `${id}-EmergencyStopParam`,
     });
   }
 }

@@ -1,12 +1,19 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
+const ssm = new SSMClient({});
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
 const INTENTS_TABLE_NAME = process.env.INTENTS_TABLE_NAME;  // Pillar Q: Idempotency
+const EMERGENCY_STOP_PARAM = process.env.EMERGENCY_STOP_PARAM;  // Circuit breaker
+
+// Cache emergency stop status (refresh every 60s)
+let emergencyStopCache = { value: false, expiry: 0 };
+const CACHE_TTL_MS = 60_000;
 
 // Tier-based quota limits
 const TIER_LIMITS = {
@@ -153,6 +160,32 @@ async function storeIntent(intentId, result) {
   );
 }
 
+/**
+ * Check if emergency stop is enabled (circuit breaker)
+ * Uses cached value to minimize SSM calls
+ * @returns {Promise<boolean>}
+ */
+async function isEmergencyStop() {
+  if (!EMERGENCY_STOP_PARAM) return false;
+
+  const now = Date.now();
+  if (now < emergencyStopCache.expiry) {
+    return emergencyStopCache.value;
+  }
+
+  try {
+    const result = await ssm.send(
+      new GetParameterCommand({ Name: EMERGENCY_STOP_PARAM })
+    );
+    const isStop = result.Parameter?.Value === "true";
+    emergencyStopCache = { value: isStop, expiry: now + CACHE_TTL_MS };
+    return isStop;
+  } catch (error) {
+    console.warn("Failed to check emergency stop:", error);
+    return false; // Fail open - don't block uploads on SSM errors
+  }
+}
+
 export async function handler(event) {
   try {
     // Handle CORS preflight
@@ -165,6 +198,19 @@ export async function handler(event) {
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
         body: "",
+      };
+    }
+
+    // Circuit breaker: Check emergency stop
+    if (await isEmergencyStop()) {
+      console.warn("Emergency stop is enabled - rejecting upload");
+      return {
+        statusCode: 503,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({
+          error: "SERVICE_UNAVAILABLE",
+          message: "Upload service temporarily unavailable",
+        }),
       };
     }
 
