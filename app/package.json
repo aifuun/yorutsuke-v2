@@ -10,7 +10,10 @@
     "tauri": "tauri",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "env:sync": "../scripts/sync-env.sh"
+    "env:sync": "../scripts/sync-env.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -27,6 +30,9 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@tauri-apps/cli": "^2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@types/node": "^25.0.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.50.1",
@@ -34,7 +40,9 @@
     "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "jsdom": "^27.4.0",
     "typescript": "^5.6.0",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^4.0.16"
   }
 }
