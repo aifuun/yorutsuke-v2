@@ -69,6 +69,14 @@ function reducer(state: QueueState, action: Action): QueueState {
       };
 
     case 'UPLOAD_SUCCESS':
+      // Preserve 'paused' state if it was set during upload - fixes #47
+      if (state.status === 'paused') {
+        return {
+          status: 'paused',
+          tasks: updateTask(state.tasks, action.id, { status: 'success' }),
+          reason: state.reason,
+        };
+      }
       return {
         status: 'idle',
         tasks: updateTask(state.tasks, action.id, { status: 'success' }),
@@ -79,15 +87,24 @@ function reducer(state: QueueState, action: Action): QueueState {
       const newRetryCount = (task?.retryCount ?? 0) + 1;
       const willRetry = shouldRetry(action.errorType, newRetryCount);
 
-      // Set to 'retrying' if will retry (blocked until SCHEDULE_RETRY), 'failed' otherwise
+      const updatedTasks = updateTask(state.tasks, action.id, {
+        status: willRetry ? 'retrying' : 'failed',
+        retryCount: newRetryCount,
+        error: action.error,
+        errorType: action.errorType,
+      });
+
+      // Preserve 'paused' state if it was set during upload - fixes #47
+      if (state.status === 'paused') {
+        return {
+          status: 'paused',
+          tasks: updatedTasks,
+          reason: state.reason,
+        };
+      }
       return {
         status: 'idle',
-        tasks: updateTask(state.tasks, action.id, {
-          status: willRetry ? 'retrying' : 'failed',
-          retryCount: newRetryCount,
-          error: action.error,
-          errorType: action.errorType,
-        }),
+        tasks: updatedTasks,
       };
     }
 
