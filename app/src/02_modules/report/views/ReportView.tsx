@@ -81,7 +81,22 @@ export function ReportView({ userId, date }: ReportViewProps) {
   };
 
   // Handle all states (Pillar D: FSM)
-  if (state.status === 'idle' || state.status === 'loading') {
+  if (!userId) {
+    // No user - show first-use empty state
+    return (
+      <div className="morning-report">
+        <header className="report-header">
+          <h2>{t('report.title')}</h2>
+        </header>
+        <EmptyState variant="first-use" />
+      </div>
+    );
+  }
+  if (state.status === 'loading') {
+    return <div className="report-loading">{t('common.loading')}</div>;
+  }
+  if (state.status === 'idle') {
+    // Initial state before load starts - treat as loading
     return <div className="report-loading">{t('common.loading')}</div>;
   }
   if (state.status === 'error') {
