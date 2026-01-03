@@ -17,6 +17,57 @@
 | [CHANGELOG](./CHANGELOG.md) | Version history | All |
 | [ROADMAP](./ROADMAP.md) | Future plans | PM, Dev |
 
+## Development Modes
+
+Yorutsuke supports two development modes:
+
+### Mock Mode (UI Development)
+
+Run the app with simulated data, no AWS backend required.
+
+```bash
+cd app
+
+# Option 1: Use mock config
+cp .env.mock .env.local
+npm run tauri dev
+
+# Option 2: Empty .env.local (auto-enables mock)
+echo "" > .env.local
+npm run tauri dev
+```
+
+**Indicators:**
+- Orange banner at top: "MOCK MODE - Data is simulated"
+- Console logs prefixed with `[Mock]`
+
+**What's mocked:**
+| Feature | Mock Behavior |
+|---------|---------------|
+| Quota | Returns random usage (0-10/30) |
+| Upload | Simulates presign + S3 upload success |
+| Report | Returns 8 random transactions |
+
+### Real Mode (Full Stack)
+
+Connect to AWS backend for real data.
+
+```bash
+cd app
+
+# Sync environment from AWS CDK outputs
+npm run env:sync
+
+# Or manually configure .env.local with Lambda URLs
+npm run tauri dev
+```
+
+**Requirements:**
+- AWS credentials configured (`AWS_PROFILE=dev`)
+- CDK stack deployed (`cd infra && npm run deploy`)
+
+---
+
 ## Reading Order
 
 ### For New Developers
