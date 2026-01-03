@@ -28,7 +28,7 @@ function AppContent() {
           </div>
 
           <div className={`view-panel ${activeView === 'capture' ? 'active' : ''}`}>
-            <CaptureView userId={userId} />
+            <CaptureView />
           </div>
 
           <div className={`view-panel ${activeView === 'transactions' ? 'active' : ''}`}>

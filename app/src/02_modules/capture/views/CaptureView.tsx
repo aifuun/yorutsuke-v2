@@ -4,13 +4,9 @@ import { useCaptureLogic } from '../headless/useCaptureLogic';
 import { useDragDrop } from '../headless/useDragDrop';
 import { useQuota } from '../headless/useQuota';
 import { useNetworkStatus } from '../../../00_kernel/network';
-import type { UserId } from '../../../00_kernel/types';
+import { useEffectiveUserId } from '../../auth/headless';
 import { createIntentId } from '../../../00_kernel/types';
 import type { DroppedItem } from '../types';
-
-interface CaptureViewProps {
-  userId: UserId | null;
-}
 
 // Map technical status to user-friendly display
 function getStatusDisplay(status: string): { label: string; icon: string } {
@@ -27,9 +23,10 @@ function getStatusDisplay(status: string): { label: string; icon: string } {
   return statusMap[status] || { label: status, icon: '❓' };
 }
 
-export function CaptureView({ userId }: CaptureViewProps) {
+export function CaptureView() {
   const { isOnline } = useNetworkStatus();
-  const { quota } = useQuota(userId);
+  const { effectiveUserId, isLoading: userLoading } = useEffectiveUserId();
+  const { quota } = useQuota(effectiveUserId);
   const {
     state,
     pendingCount,
@@ -37,18 +34,21 @@ export function CaptureView({ userId }: CaptureViewProps) {
     awaitingProcessCount,
     remainingQuota,
     addImage,
-  } = useCaptureLogic(userId, quota.limit);
+  } = useCaptureLogic(effectiveUserId, quota.limit);
 
   // Drag & drop handling
   // Note: useDragDrop emits image:pending events automatically
   // The addImage here is for adding to the local queue display
   const { isDragging, dragHandlers } = useDragDrop({
     onDrop: (items: DroppedItem[]) => {
+      // Guard: Don't process drops until user ID is loaded
+      if (!effectiveUserId) return;
+
       // Add dropped items to capture queue
       for (const item of items) {
         addImage({
           id: item.id,
-          userId: userId!,
+          userId: effectiveUserId,
           intentId: createIntentId(),  // Pillar Q: Generate unique intent per drop action
           traceId: item.traceId,       // Pillar N: TraceId from drop event
           localPath: item.localPath,
@@ -68,6 +68,15 @@ export function CaptureView({ userId }: CaptureViewProps) {
       console.warn('Rejected files:', rejectedPaths);
     },
   });
+
+  // Show loading while user ID is being resolved
+  if (userLoading) {
+    return (
+      <div className="capture-container">
+        <div className="loading-indicator">Loading...</div>
+      </div>
+    );
+  }
 
   // Note: Global error state removed - errors are shown per-image in queue list
   // Failed images show "Upload failed - tap to retry" status

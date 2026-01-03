@@ -112,3 +112,13 @@ export async function getDeviceId(): Promise<string> {
 
   return deviceId;
 }
+
+/**
+ * Get guest user ID for unauthenticated users
+ * Format: "guest-{deviceId}" - persists across sessions
+ * Used when user hasn't logged in yet
+ */
+export async function getGuestId(): Promise<string> {
+  const deviceId = await getDeviceId();
+  return `guest-${deviceId}`;
+}
