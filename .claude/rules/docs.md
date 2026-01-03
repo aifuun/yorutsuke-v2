@@ -15,10 +15,10 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 
 ## Tauri Desktop App
 
-| Document | Purpose | Template |
-|----------|---------|----------|
-| `DESIGN.md` | UI/UX design system + screens | `docs/templates/DESIGN.md` |
-| `INTERFACES.md` | IPC commands + Cloud API | `docs/templates/INTERFACES.md` |
+| Document | Purpose |
+|----------|---------|
+| `DESIGN.md` | UI/UX design system + screens |
+| `INTERFACES.md` | IPC commands + Cloud API |
 
 ## By Product Type (Reference)
 

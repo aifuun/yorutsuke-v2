@@ -74,24 +74,19 @@ SCHEMA.md          DESIGN.md      # 3. Data model & UI design (parallel)
 | New screen added | DESIGN → INTERFACES |
 | Architecture refactor | ARCHITECTURE → all downstream |
 
-## Templates
+## Document Reference
 
-When creating new documentation, copy from templates:
+When creating new documentation, use existing docs as reference:
 
-| Document | Template |
-|----------|----------|
-| REQUIREMENTS.md | `docs/templates/REQUIREMENTS.md` |
-| ARCHITECTURE.md | `docs/templates/ARCHITECTURE.md` |
-| SCHEMA.md | `docs/templates/SCHEMA.md` |
-| DESIGN.md | `docs/templates/DESIGN.md` |
-| INTERFACES.md | `docs/templates/INTERFACES.md` |
+| Document | Reference |
+|----------|-----------|
+| REQUIREMENTS.md | `docs/REQUIREMENTS.md` |
+| ARCHITECTURE.md | `docs/ARCHITECTURE.md` |
+| SCHEMA.md | `docs/SCHEMA.md` |
+| DESIGN.md | `docs/DESIGN.md` |
+| INTERFACES.md | `docs/INTERFACES.md` |
 
-**Usage**:
-```bash
-cp docs/templates/REQUIREMENTS.md docs/REQUIREMENTS.md
-```
-
-Then fill in the placeholders and remove unused sections.
+See `docs/README.md` for document index and reading order.
 
 ## Doc-Code Linkage
 

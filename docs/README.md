@@ -1,0 +1,76 @@
+# Documentation
+
+> Yorutsuke v2 - Source of Truth
+
+## Quick Navigation
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [REQUIREMENTS](./REQUIREMENTS.md) | What to build | PM, Dev |
+| [ARCHITECTURE](./ARCHITECTURE.md) | How to organize | Dev |
+| [SCHEMA](./SCHEMA.md) | Data model | Dev |
+| [DESIGN](./DESIGN.md) | UI/UX specs | Dev, Design |
+| [INTERFACES](./INTERFACES.md) | IPC & API | Dev |
+| [QUOTA](./QUOTA.md) | Quota system | Dev, Ops |
+| [DEPLOYMENT](./DEPLOYMENT.md) | Build & deploy | Dev, Ops |
+| [OPERATIONS](./OPERATIONS.md) | Emergency & monitoring | Ops |
+| [CHANGELOG](./CHANGELOG.md) | Version history | All |
+| [ROADMAP](./ROADMAP.md) | Future plans | PM, Dev |
+
+## Reading Order
+
+### For New Developers
+
+1. **REQUIREMENTS.md** - Understand the product
+2. **ARCHITECTURE.md** - Understand the system
+3. **SCHEMA.md** - Understand the data
+4. **INTERFACES.md** - Understand the APIs
+
+### For UI/UX Work
+
+1. **DESIGN.md** - Design system & screens
+2. **REQUIREMENTS.md** - User stories
+
+### For Operations
+
+1. **DEPLOYMENT.md** - How to deploy
+2. **OPERATIONS.md** - How to operate
+3. **QUOTA.md** - Cost controls
+
+## Document Categories
+
+```
+Product (What)
+├── REQUIREMENTS.md    User stories, acceptance criteria
+└── ROADMAP.md         Future plans, backlog
+
+Architecture (How)
+├── ARCHITECTURE.md    System design, data flows
+├── SCHEMA.md          Database tables, types
+└── INTERFACES.md      IPC commands, REST APIs
+
+Design (Look & Feel)
+└── DESIGN.md          Colors, typography, screens
+
+Operations (Run & Maintain)
+├── DEPLOYMENT.md      Build, deploy, rollback
+├── OPERATIONS.md      Monitoring, emergency response
+└── QUOTA.md           Quota tiers, cost control
+
+History
+└── CHANGELOG.md       Version history
+```
+
+## Conventions
+
+- **Last Updated**: Each doc has a date header
+- **References**: Cross-links at bottom of each doc
+- **Status**: Use checkboxes for acceptance criteria
+- **Code**: Use fenced code blocks with language tags
+
+## Related Resources
+
+- Project README: `../README.md` (if exists)
+- Protocol: `../.prot/CHEATSHEET.md`
+- Claude Config: `../.claude/CLAUDE.md`
+- Archive: `./archive/` (historical docs)
