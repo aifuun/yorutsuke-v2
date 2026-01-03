@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
+import { USE_MOCK } from './00_kernel/config/mock';
 import { Sidebar, type ViewType } from './components/Sidebar';
 import { ReportView, ReportHistoryView } from './02_modules/report';
 import { CaptureView } from './02_modules/capture';
@@ -13,6 +14,11 @@ function AppContent() {
 
   return (
     <div className="app-shell">
+      {USE_MOCK && (
+        <div className="mock-banner">
+          MOCK MODE - Data is simulated
+        </div>
+      )}
       <div className="app-body">
         <Sidebar activeView={activeView} onViewChange={setActiveView} userId={userId} />
 
