@@ -16,6 +16,7 @@
 | [OPERATIONS](./OPERATIONS.md) | Emergency & monitoring | Ops |
 | [CHANGELOG](./CHANGELOG.md) | Version history | All |
 | [ROADMAP](./ROADMAP.md) | Future plans | PM, Dev |
+| [TEST_SCENARIOS](./TEST_SCENARIOS.md) | Test cases & QA | Dev, QA |
 
 ## Development Modes
 
@@ -107,6 +108,9 @@ Operations (Run & Maintain)
 ├── DEPLOYMENT.md      Build, deploy, rollback
 ├── OPERATIONS.md      Monitoring, emergency response
 └── QUOTA.md           Quota tiers, cost control
+
+Testing (Quality)
+└── TEST_SCENARIOS.md  Test cases, edge cases, QA
 
 History
 └── CHANGELOG.md       Version history
