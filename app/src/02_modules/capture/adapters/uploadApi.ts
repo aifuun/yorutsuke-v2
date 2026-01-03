@@ -1,5 +1,6 @@
-// Pillar B: Airlock - validate all API responses
+// Pillar B: Airlock - validate all API responses with Zod
 // Pillar Q: Intent-ID for idempotency
+import { z } from 'zod';
 import type { UserId, IntentId } from '../../../00_kernel/types';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
@@ -8,10 +9,13 @@ const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
 const PRESIGN_TIMEOUT_MS = 10_000;  // 10 seconds
 const UPLOAD_TIMEOUT_MS = 60_000;   // 60 seconds (for large images)
 
-interface PresignResponse {
-  url: string;
-  key: string;
-}
+// Zod schema for presign response validation
+const PresignResponseSchema = z.object({
+  url: z.string().url(),
+  key: z.string().min(1),
+});
+
+type PresignResponse = z.infer<typeof PresignResponseSchema>;
 
 /**
  * Wrap a promise with timeout protection
@@ -60,12 +64,13 @@ export async function getPresignedUrl(
 
   const data = await response.json();
 
-  // Pillar B: Validate response shape
-  if (typeof data.url !== 'string' || typeof data.key !== 'string') {
-    throw new Error('Invalid presign response');
+  // Pillar B: Validate response with Zod schema
+  const parsed = PresignResponseSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(`Invalid presign response: ${parsed.error.message}`);
   }
 
-  return data as PresignResponse;
+  return parsed.data;
 }
 
 export async function uploadToS3(

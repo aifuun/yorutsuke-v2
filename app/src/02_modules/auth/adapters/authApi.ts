@@ -1,14 +1,37 @@
 // Auth API Adapter
-// Pillar B: Airlock - validate all API responses
+// Pillar B: Airlock - validate all API responses with Zod
 // Pillar I: Adapter layer isolates Cognito API from business logic
 
+import { z } from 'zod';
 import { logger } from '../../../00_kernel/telemetry';
 import type {
   RegisterResponse,
   VerifyResponse,
-  LoginResponse,
-  RefreshResponse,
 } from '../types';
+
+// Zod schemas for auth response validation
+const UserTierSchema = z.enum(['guest', 'free', 'basic', 'pro']);
+
+const LoginResponseSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+  idToken: z.string().min(1),
+  userId: z.string().min(1),
+  email: z.string().email(),
+  tier: UserTierSchema,
+  deviceBound: z.boolean().optional(),
+  dataClaimed: z.number().int().nonnegative().optional(),
+});
+
+const RefreshResponseSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().optional(),
+  idToken: z.string().min(1),
+});
+
+// Export types derived from schemas
+export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+export type RefreshResponse = z.infer<typeof RefreshResponseSchema>;
 
 // API endpoints from environment
 const API_BASE = import.meta.env.VITE_AUTH_API_URL || '';
@@ -126,7 +149,7 @@ export async function login(
 ): Promise<{ ok: true; data: LoginResponse } | { ok: false; error: string }> {
   logger.info('[AuthApi] Login', { email, deviceId: deviceId.substring(0, 8) + '...' });
 
-  const result = await authFetch<LoginResponse>('/login', {
+  const result = await authFetch<unknown>('/login', {
     email,
     password,
     device_id: deviceId,
@@ -136,25 +159,22 @@ export async function login(
     return { ok: false, error: result.error };
   }
 
-  // Pillar B: Validate response shape
-  const data = result.data;
-  if (
-    typeof data.accessToken !== 'string' ||
-    typeof data.refreshToken !== 'string' ||
-    typeof data.idToken !== 'string'
-  ) {
+  // Pillar B: Validate response with Zod schema
+  const parsed = LoginResponseSchema.safeParse(result.data);
+  if (!parsed.success) {
+    logger.warn('[AuthApi] Invalid login response', { error: parsed.error.message });
     return { ok: false, error: 'Invalid login response' };
   }
 
   // Log device binding info
-  if (data.deviceBound !== undefined) {
+  if (parsed.data.deviceBound !== undefined) {
     logger.info('[AuthApi] Device binding', {
-      bound: data.deviceBound,
-      claimed: data.dataClaimed || 0,
+      bound: parsed.data.deviceBound,
+      claimed: parsed.data.dataClaimed || 0,
     });
   }
 
-  return { ok: true, data };
+  return { ok: true, data: parsed.data };
 }
 
 /**
@@ -165,7 +185,7 @@ export async function refreshToken(
 ): Promise<{ ok: true; data: RefreshResponse } | { ok: false; error: string }> {
   logger.debug('[AuthApi] Refresh token');
 
-  const result = await authFetch<RefreshResponse>('/refresh', {
+  const result = await authFetch<unknown>('/refresh', {
     refreshToken: currentRefreshToken,
   });
 
@@ -173,14 +193,12 @@ export async function refreshToken(
     return { ok: false, error: result.error };
   }
 
-  // Pillar B: Validate response shape
-  const data = result.data;
-  if (
-    typeof data.accessToken !== 'string' ||
-    typeof data.idToken !== 'string'
-  ) {
+  // Pillar B: Validate response with Zod schema
+  const parsed = RefreshResponseSchema.safeParse(result.data);
+  if (!parsed.success) {
+    logger.warn('[AuthApi] Invalid refresh response', { error: parsed.error.message });
     return { ok: false, error: 'Invalid refresh response' };
   }
 
-  return { ok: true, data };
+  return { ok: true, data: parsed.data };
 }

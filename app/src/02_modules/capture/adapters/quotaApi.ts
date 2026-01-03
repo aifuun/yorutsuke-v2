@@ -1,33 +1,31 @@
-// Pillar B: Airlock - validate all API responses
+// Pillar B: Airlock - validate all API responses with Zod
+import { z } from 'zod';
 import type { UserId } from '../../../00_kernel/types';
 
 const QUOTA_URL = import.meta.env.VITE_LAMBDA_QUOTA_URL;
 const QUOTA_TIMEOUT_MS = 5_000; // 5 seconds
 
-/**
- * User tier for quota limits
- */
-export type UserTier = 'guest' | 'free' | 'basic' | 'pro';
+// Zod schemas for quota response validation
+const UserTierSchema = z.enum(['guest', 'free', 'basic', 'pro']);
 
-/**
- * Guest expiration info (only present for guest users)
- */
-export interface GuestExpirationInfo {
-  dataExpiresAt: string;     // ISO 8601 timestamp
-  daysUntilExpiration: number;
-}
+const GuestExpirationSchema = z.object({
+  dataExpiresAt: z.string(),
+  daysUntilExpiration: z.number().int().nonnegative(),
+});
 
-/**
- * Quota status from Lambda
- */
-export interface QuotaResponse {
-  used: number;
-  limit: number;
-  remaining: number;
-  resetsAt: string; // ISO 8601 timestamp
-  tier: UserTier;
-  guest?: GuestExpirationInfo; // Only present for guest users
-}
+const QuotaResponseSchema = z.object({
+  used: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  remaining: z.number().int(),
+  resetsAt: z.string(),
+  tier: UserTierSchema,
+  guest: GuestExpirationSchema.optional(),
+});
+
+// Export types derived from schemas
+export type UserTier = z.infer<typeof UserTierSchema>;
+export type GuestExpirationInfo = z.infer<typeof GuestExpirationSchema>;
+export type QuotaResponse = z.infer<typeof QuotaResponseSchema>;
 
 /**
  * Wrap a promise with timeout protection
@@ -71,15 +69,11 @@ export async function fetchQuota(userId: UserId): Promise<QuotaResponse> {
 
   const data = await response.json();
 
-  // Pillar B: Validate response shape
-  if (
-    typeof data.used !== 'number' ||
-    typeof data.limit !== 'number' ||
-    typeof data.remaining !== 'number' ||
-    typeof data.resetsAt !== 'string'
-  ) {
-    throw new Error('Invalid quota response');
+  // Pillar B: Validate response with Zod schema
+  const parsed = QuotaResponseSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(`Invalid quota response: ${parsed.error.message}`);
   }
 
-  return data as QuotaResponse;
+  return parsed.data;
 }
