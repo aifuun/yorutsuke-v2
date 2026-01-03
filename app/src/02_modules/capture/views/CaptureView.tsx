@@ -69,17 +69,8 @@ export function CaptureView({ userId }: CaptureViewProps) {
     },
   });
 
-  // Handle error state
-  if (state.status === 'error') {
-    return (
-      <div className="capture-error">
-        <p>Error: {state.error}</p>
-        <button type="button" onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  // Note: Global error state removed - errors are shown per-image in queue list
+  // Failed images show "Upload failed - tap to retry" status
 
   return (
     <div className="capture-container">

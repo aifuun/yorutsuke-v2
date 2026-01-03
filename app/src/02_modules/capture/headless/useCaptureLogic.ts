@@ -20,11 +20,12 @@ import { useUploadQueue } from './useUploadQueue';
 import type { ImageRow } from '../../../00_kernel/storage';
 
 // FSM State
+// Note: 'error' state removed - errors are stored per-image, not globally
+// This allows processing to continue even when some images fail
 type State =
   | { status: 'idle'; queue: ReceiptImage[] }
   | { status: 'processing'; queue: ReceiptImage[]; currentId: ImageId }
-  | { status: 'uploading'; queue: ReceiptImage[]; currentId: ImageId }
-  | { status: 'error'; queue: ReceiptImage[]; error: string };
+  | { status: 'uploading'; queue: ReceiptImage[]; currentId: ImageId };
 
 type Action =
   | { type: 'ADD_IMAGE'; image: ReceiptImage }
@@ -97,10 +98,15 @@ function reducer(state: State, action: Action): State {
       };
 
     case 'FAILURE':
+      // Return to 'idle' so other pending images can continue processing
+      // Error is stored on individual image, not globally
       return {
-        status: 'error',
-        queue: updateImageStatus(state.queue, action.id, 'failed'),
-        error: action.error,
+        status: 'idle',
+        queue: state.queue.map(img =>
+          img.id === action.id
+            ? { ...img, status: 'failed' as ImageStatus, error: action.error }
+            : img
+        ),
       };
 
     case 'REMOVE':
@@ -374,9 +380,23 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
     }
   }, [uploadQueue.state.tasks, state.queue]);
 
+  // Retry a failed image (reset to pending for reprocessing)
+  const retryImage = useCallback((id: ImageId) => {
+    dispatch({
+      type: 'ADD_IMAGE',
+      image: {
+        ...state.queue.find(img => img.id === id)!,
+        status: 'pending',
+        error: undefined,
+      },
+    });
+    dispatch({ type: 'REMOVE', id });
+  }, [state.queue]);
+
   // Computed counts
   const pendingCount = state.queue.filter(img => img.status === 'pending').length;
   const uploadedCount = state.queue.filter(img => img.status === 'uploaded').length;
+  const failedCount = state.queue.filter(img => img.status === 'failed').length;
   // Awaiting processing: uploaded but not yet processed by AI batch
   // TODO: Query from backend when batch-process Lambda is implemented
   const awaitingProcessCount = state.queue.filter(img =>
@@ -388,12 +408,14 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
     addImage,
     processImage,
     removeImage,
+    retryImage,
     // Upload queue pass-through
     retryUpload: uploadQueue.retry,
     retryAllFailed: uploadQueue.retryAllFailed,
     // Computed
     pendingCount,
     uploadedCount,
+    failedCount,
     awaitingProcessCount,
     remainingQuota: dailyLimit - uploadedCount,
     // Upload status

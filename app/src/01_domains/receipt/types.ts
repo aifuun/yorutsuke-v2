@@ -25,6 +25,7 @@ export interface ReceiptImage {
   createdAt: string;
   uploadedAt: string | null;
   processedAt: string | null;
+  error?: string;      // Error message when status is 'failed'
 }
 
 // Valid state transitions
