@@ -5,6 +5,7 @@
 import { useReducer, useCallback, useEffect } from 'react';
 import type { AppSettings } from '../adapters/settingsDb';
 import { loadSettings, saveSetting } from '../adapters/settingsDb';
+import { changeLanguage } from '../../../i18n';
 
 // FSM State
 type State =
@@ -65,6 +66,10 @@ export function useSettings(): UseSettingsResult {
     dispatch({ type: 'LOAD' });
     try {
       const settings = await loadSettings();
+      // Sync i18n language with stored setting
+      if (settings.language) {
+        changeLanguage(settings.language);
+      }
       dispatch({ type: 'LOAD_SUCCESS', settings });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
