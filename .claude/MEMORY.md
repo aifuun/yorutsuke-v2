@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-03] Mock layer + UI improvements
-- **Next Steps**: Test capture flow end-to-end with real API
+- **Last Progress**: [2026-01-03] 修复 capture pipeline 核心 bug (#45-49)
+- **Next Steps**: Manual testing with real Tauri app, then unit/integration tests
 - **Blockers**: None
 
 ## Architecture Decisions
@@ -76,6 +76,20 @@ Record important decisions with context.
 ## Solved Issues
 
 Problems encountered and their solutions.
+
+### [2026-01-03] Capture Pipeline Core Bugs (#45-49)
+- **#45 FAILURE blocks processing**: FSM entered 'error' state and never returned to 'idle'
+  - Fix: Changed FAILURE reducer to return 'idle', store error per-image
+- **#46 Quota not persisted**: In-memory count reset on app restart
+  - Fix: Use `countTodayUploads(userId)` from SQLite instead of in-memory state
+- **#47 Race condition**: UPLOAD_SUCCESS/FAILURE overwrote PAUSED state
+  - Fix: Check `state.status === 'paused'` before returning to 'idle'
+- **#48 Missing user_id**: Images had no user association for multi-user isolation
+  - Fix: Added migration v3, userId filtering in all DB operations
+- **#49 Orphaned files**: Compressed files remained when DB write failed
+  - Fix: Track `compressedPath` and delete in catch block
+- **Guest User Support**: Added `useEffectiveUserId` hook for guest-{deviceId} pattern
+- **New Issue**: #56 for guest data migration on login (deferred)
 
 ### [2026-01-03] Missing transactions Table
 - **Problem**: `no such table: transactions` error on first launch
