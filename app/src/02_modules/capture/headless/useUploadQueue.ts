@@ -10,6 +10,7 @@ import { useNetworkStatus } from '../../../00_kernel/network';
 import { logger } from '../../../00_kernel/telemetry';
 import { canUpload } from '../../../01_domains/receipt';
 import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
+import { countTodayUploads } from '../adapters/imageDb';
 
 // Constants
 const MAX_RETRY_COUNT = 3;
@@ -244,8 +245,8 @@ export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
     // FSM state guards against duplicate processing - no need for processingRef
     if (state.status === 'processing') return;
 
-    // Check quota
-    const uploadedToday = state.tasks.filter(t => t.status === 'success').length;
+    // Check quota from database (persisted across restarts) - fixes #46
+    const uploadedToday = await countTodayUploads(userId);
     const quotaCheck = canUpload(uploadedToday, dailyLimit, lastUploadTimeRef.current);
 
     if (!quotaCheck.allowed) {
