@@ -4,13 +4,25 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-02] Admin Panel with Cognito auth deployed
-- **Next Steps**: None immediate; admin panel operational
+- **Last Progress**: [2026-01-03] Mock layer + UI improvements
+- **Next Steps**: Test capture flow end-to-end with real API
 - **Blockers**: None
 
 ## Architecture Decisions
 
 Record important decisions with context.
+
+### [2026-01-03] Mock Layer for UI Development
+- **Decision**: Centralized mock configuration in `00_kernel/config/mock.ts`
+- **Trigger**: `VITE_USE_MOCK=true` OR no Lambda URLs configured
+- **Coverage**: quotaApi, uploadApi, reportApi
+- **UI Indicator**: Orange banner at top when in mock mode
+- **Docs**: Added to `docs/README.md` Development Modes section
+
+### [2026-01-03] Default Language Change
+- **Decision**: Changed default language from Japanese to English
+- **Files**: i18n/index.ts, migrations.ts, settingsDb.ts
+- **Sync**: useSettings now syncs i18n language on load
 
 ### [2026-01-02] Admin Panel Implementation
 - **Decision**: Independent React web app with Cognito auth
@@ -41,6 +53,16 @@ Record important decisions with context.
 ## Solved Issues
 
 Problems encountered and their solutions.
+
+### [2026-01-03] Missing transactions Table
+- **Problem**: `no such table: transactions` error on first launch
+- **Root Cause**: migrations.ts had `transactions_cache` but transactionDb.ts queried `transactions`
+- **Solution**: Added `transactions` table to migrations, use shared `getDb()` in transactionDb
+
+### [2026-01-03] Language Setting Not Syncing
+- **Problem**: Settings showed 'ja' but UI displayed in English
+- **Root Cause**: i18n initialized before settings loaded from SQLite
+- **Solution**: Call `changeLanguage()` in useSettings after loading settings
 
 ### [2025-12-29] Image Drop Delay Issue
 - **Problem**: In original project, dropped images took several seconds to appear in queue list
