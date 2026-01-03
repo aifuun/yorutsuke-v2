@@ -143,12 +143,8 @@ pub fn run() {
             get_image_hash,
             delete_file
         ])
-        .setup(|app| {
-            #[cfg(debug_assertions)]
-            {
-                let window = app.get_webview_window("main").unwrap();
-                window.open_devtools();
-            }
+        .setup(|_app| {
+            // DevTools can be opened manually with Cmd+Option+I (macOS) or F12 (Windows/Linux)
             Ok(())
         })
         .run(tauri::generate_context!())
