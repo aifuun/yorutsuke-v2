@@ -2,15 +2,11 @@
 // Frontend React Context for trace propagation
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createTraceId, type TraceId } from '../types';
 
-// Branded types for IDs
-export type TraceId = string & { readonly __brand: 'TraceId' };
-
-// Create TraceId from string
-export const TraceId = (id: string): TraceId => id as TraceId;
-
-// Generate new TraceId
-export const createTraceId = (): TraceId => crypto.randomUUID() as TraceId;
+// Re-export for backwards compatibility
+export type { TraceId };
+export { createTraceId };
 
 /**
  * Frontend trace context

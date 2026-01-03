@@ -19,6 +19,29 @@ Record important decisions with context.
 - **UI Indicator**: Orange banner at top when in mock mode
 - **Docs**: Added to `docs/README.md` Development Modes section
 
+### [2026-01-03] TraceId Lifecycle Implementation (Pillar N)
+- **Decision**: Add traceId for per-receipt lifecycle tracking
+- **Scope**: Tracks single receipt from drop → compress → duplicate check → upload → confirm
+- **Generation**: Created at drop time in `tauriDragDrop.ts` with `trace-` prefix
+- **Flow**:
+  1. Drop → traceId assigned, `image:pending` emitted
+  2. Compress → `image:compressing` emitted with traceId
+  3. Duplicate Check → MD5 calculated, check database
+  4. If duplicate → `image:duplicate` emitted
+  5. If unique → `image:compressed` emitted, proceed to upload
+  6. Upload → `upload:complete` or `upload:failed` with traceId
+- **Key Distinction**:
+  - `traceId`: Tracks single receipt lifecycle (Pillar N: Observability)
+  - `intentId`: Idempotency for retries (Pillar Q: Idempotency)
+- **Files Changed**:
+  - `00_kernel/types/branded.ts`: Added TraceId type
+  - `00_kernel/eventBus/types.ts`: Added traceId to all image/upload events
+  - `01_domains/receipt/types.ts`: Added traceId to ReceiptImage
+  - `02_modules/capture/types.ts`: Added traceId to DroppedItem
+  - `02_modules/capture/adapters/tauriDragDrop.ts`: Generate traceId on drop
+  - `02_modules/capture/adapters/imageDb.ts`: New adapter for SQLite operations
+  - `02_modules/capture/headless/useCaptureLogic.ts`: Duplicate detection after compression
+
 ### [2026-01-03] Default Language Change
 - **Decision**: Changed default language from Japanese to English
 - **Files**: i18n/index.ts, migrations.ts, settingsDb.ts

@@ -66,7 +66,7 @@ export function useDragDrop(options: DragDropOptions): DragDropResult {
         {
           /**
            * @trigger image:pending
-           * @emits { id, name, source, preview, localPath }
+           * @emits { id, traceId, name, source, preview, localPath }
            */
           onDrop: (items: DroppedItem[], rejectedPaths: string[]) => {
             setDragState('idle');
@@ -78,9 +78,10 @@ export function useDragDrop(options: DragDropOptions): DragDropResult {
 
             // Emit image:pending for each item
             for (const item of items) {
-              logger.debug('[useDragDrop] Emitting image:pending', { id: item.id });
+              logger.debug('[useDragDrop] Emitting image:pending', { id: item.id, traceId: item.traceId });
               emit('image:pending', {
                 id: item.id,
+                traceId: item.traceId,
                 name: item.name,
                 source: 'drop',
                 preview: item.preview,

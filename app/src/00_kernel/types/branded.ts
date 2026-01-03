@@ -14,6 +14,10 @@ export type ReportId = Brand<string, 'ReportId'>;
 // Same intentId = same user action (even if retried)
 export type IntentId = Brand<string, 'IntentId'>;
 
+// Pillar N: Trace-ID for observability
+// Tracks single receipt lifecycle from drop to confirm
+export type TraceId = Brand<string, 'TraceId'>;
+
 // Constructors - only use at system boundaries
 export const UserId = (id: string): UserId => id as UserId;
 export const ImageId = (id: string): ImageId => id as ImageId;
@@ -22,7 +26,11 @@ export const ReportId = (id: string): ReportId => id as ReportId;
 
 // IntentId generator - creates new intent for each user action
 export const IntentId = (id: string): IntentId => id as IntentId;
-export const createIntentId = (): IntentId => crypto.randomUUID() as IntentId;
+export const createIntentId = (): IntentId => `intent-${crypto.randomUUID()}` as IntentId;
+
+// TraceId constructor - creates new trace for each receipt lifecycle
+export const TraceId = (id: string): TraceId => id as TraceId;
+export const createTraceId = (): TraceId => `trace-${crypto.randomUUID()}` as TraceId;
 
 // Type guards
 export const isUserId = (id: unknown): id is UserId =>

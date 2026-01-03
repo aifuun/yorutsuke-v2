@@ -21,6 +21,8 @@ export type ImageLocation = 'local' | 'cloud' | 'both';
  */
 export interface ImageRow {
   id: string;              // ImageId (branded at boundary)
+  trace_id: string | null; // TraceId for observability (Pillar N)
+  intent_id: string | null; // IntentId for idempotency (Pillar Q)
   original_path: string;
   compressed_path: string | null;
   original_size: number | null;

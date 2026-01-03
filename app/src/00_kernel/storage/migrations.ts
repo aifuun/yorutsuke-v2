@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 /**
  * Run all migrations on database
@@ -27,11 +27,10 @@ export async function runMigrations(db: Database): Promise<void> {
     await setVersion(db, 1);
   }
 
-  // Future migrations:
-  // if (version < 2) {
-  //   await migration_v2(db);
-  //   await setVersion(db, 2);
-  // }
+  if (version < 2) {
+    await migration_v2(db);
+    await setVersion(db, 2);
+  }
 
   logger.info('[Migrations] Migrations complete', { version: CURRENT_VERSION });
 }
@@ -163,6 +162,25 @@ async function migration_v1(db: Database): Promise<void> {
   `);
 
   logger.info('[Migrations] Migration v1 complete');
+}
+
+/**
+ * Migration v2: Add trace_id and intent_id to images table
+ * Pillar N: TraceId for observability
+ * Pillar Q: IntentId for idempotency
+ */
+async function migration_v2(db: Database): Promise<void> {
+  logger.info('[Migrations] Running migration v2: Add trace_id and intent_id to images');
+
+  // Add trace_id column (Pillar N)
+  await safeAddColumn(db, 'images', 'trace_id', 'TEXT');
+  await safeCreateIndex(db, 'idx_images_trace_id', 'images', 'trace_id');
+
+  // Add intent_id column (Pillar Q)
+  await safeAddColumn(db, 'images', 'intent_id', 'TEXT');
+  await safeCreateIndex(db, 'idx_images_intent_id', 'images', 'intent_id');
+
+  logger.info('[Migrations] Migration v2 complete');
 }
 
 // ============================================================================

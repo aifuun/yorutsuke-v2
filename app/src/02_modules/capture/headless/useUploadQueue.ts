@@ -3,7 +3,7 @@
 // Pillar G: @trigger upload:complete, upload:failed
 // Pillar Q: Intent-ID for idempotency
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import type { ImageId, UserId, IntentId } from '../../../00_kernel/types';
+import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/types';
 import type { UploadErrorType } from '../../../00_kernel/eventBus/types';
 import { emit } from '../../../00_kernel/eventBus';
 import { useNetworkStatus } from '../../../00_kernel/network';
@@ -21,6 +21,7 @@ type TaskStatus = 'idle' | 'uploading' | 'success' | 'failed' | 'retrying';
 export interface UploadTask {
   id: ImageId;
   intentId: IntentId;  // Pillar Q: Idempotency key
+  traceId: TraceId;    // Pillar N: Lifecycle tracking
   filePath: string;
   status: TaskStatus;
   retryCount: number;
@@ -273,9 +274,9 @@ export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
       dispatch({ type: 'UPLOAD_SUCCESS', id: task.id, s3Key: key });
 
       // @trigger upload:complete
-      emit('upload:complete', { id: task.id, s3Key: key });
+      emit('upload:complete', { id: task.id, traceId: task.traceId, s3Key: key });
 
-      logger.info('[UploadQueue] Upload success', { id: task.id, s3Key: key });
+      logger.info('[UploadQueue] Upload success', { id: task.id, traceId: task.traceId, s3Key: key });
     } catch (e) {
       const error = String(e);
       const errorType = classifyError(error);
@@ -286,13 +287,14 @@ export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
       // @trigger upload:failed
       emit('upload:failed', {
         id: task.id,
+        traceId: task.traceId,
         error,
         errorType,
         willRetry,
         retryCount: task.retryCount + 1,
       });
 
-      logger.warn('[UploadQueue] Upload failed', { id: task.id, error, errorType, willRetry });
+      logger.warn('[UploadQueue] Upload failed', { id: task.id, traceId: task.traceId, error, errorType, willRetry });
 
       // Schedule retry with exponential backoff via FSM
       if (willRetry) {
@@ -305,11 +307,11 @@ export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
   };
 
   // Actions
-  const enqueue = useCallback((id: ImageId, filePath: string, intentId: IntentId) => {
-    logger.debug('[UploadQueue] Enqueue', { id, intentId });
+  const enqueue = useCallback((id: ImageId, filePath: string, intentId: IntentId, traceId: TraceId) => {
+    logger.debug('[UploadQueue] Enqueue', { id, intentId, traceId });
     dispatch({
       type: 'ENQUEUE',
-      task: { id, intentId, filePath, status: 'idle', retryCount: 0 },
+      task: { id, intentId, traceId, filePath, status: 'idle', retryCount: 0 },
     });
   }, []);
 

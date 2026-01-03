@@ -1,7 +1,7 @@
 // Event Bus Type Definitions
 // Pillar G: Traceability - Type-safe event system for AI-traceable communication
 
-import type { ImageId } from '../types';
+import type { ImageId, TraceId } from '../types';
 
 // Error types for upload failures
 export type UploadErrorType = 'network' | 'quota' | 'server' | 'unknown';
@@ -29,9 +29,11 @@ export interface AppEvents {
   /**
    * @trigger image:pending
    * @payload New image dropped/pasted, awaiting processing
+   * Pillar N: traceId tracks entire lifecycle from drop to confirm
    */
   'image:pending': {
     id: ImageId;
+    traceId: TraceId;      // Pillar N: Lifecycle tracking
     name: string;
     source: ImageSource;
     preview?: string;      // Available for drag-drop
@@ -45,6 +47,7 @@ export interface AppEvents {
    */
   'image:compressing': {
     id: ImageId;
+    traceId: TraceId;
   };
 
   /**
@@ -53,6 +56,7 @@ export interface AppEvents {
    */
   'image:progress': {
     id: ImageId;
+    traceId: TraceId;
     progress: number;      // 0-100
     stage: ImageStage;
   };
@@ -63,6 +67,7 @@ export interface AppEvents {
    */
   'image:compressed': {
     id: ImageId;
+    traceId: TraceId;
     compressedPath: string;
     preview: string;
     originalSize: number;
@@ -72,11 +77,12 @@ export interface AppEvents {
 
   /**
    * @trigger image:duplicate
-   * @payload Duplicate image detected
+   * @payload Duplicate image detected (traceId continues to track skipped image)
    */
   'image:duplicate': {
     id: ImageId;
-    duplicateWith: string;
+    traceId: TraceId;
+    duplicateWith: string;     // ID of the existing image
     reason: 'queue' | 'database';
   };
 
@@ -86,6 +92,7 @@ export interface AppEvents {
    */
   'image:queued': {
     id: ImageId;
+    traceId: TraceId;
   };
 
   /**
@@ -94,6 +101,7 @@ export interface AppEvents {
    */
   'image:failed': {
     id: ImageId;
+    traceId: TraceId;
     error: string;
     stage: ImageStage;
     recoverable: boolean;  // true = keep for retry, false = remove
@@ -105,6 +113,7 @@ export interface AppEvents {
    */
   'image:deleted': {
     id: ImageId;
+    traceId: TraceId;
     s3Key?: string;
     mode: 'local' | 'cloud' | 'permanent' | 'wipe';
   };
@@ -119,6 +128,7 @@ export interface AppEvents {
    */
   'upload:complete': {
     id: ImageId;
+    traceId: TraceId;
     s3Key: string;
   };
 
@@ -128,6 +138,7 @@ export interface AppEvents {
    */
   'upload:failed': {
     id: ImageId;
+    traceId: TraceId;
     error: string;
     errorType: UploadErrorType;
     willRetry: boolean;

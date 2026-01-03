@@ -1,7 +1,7 @@
 // Capture Module Types
 // Pillar A: Nominal Typing, Pillar D: FSM States
 
-import type { ImageId } from '../../00_kernel/types';
+import type { ImageId, TraceId } from '../../00_kernel/types';
 
 // Allowed image extensions
 export const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
@@ -9,9 +9,11 @@ export type AllowedExtension = typeof ALLOWED_EXTENSIONS[number];
 
 /**
  * Dropped item from Tauri drag-drop event
+ * Pillar N: TraceId assigned at drop time for lifecycle tracking
  */
 export interface DroppedItem {
   id: ImageId;
+  traceId: TraceId;    // Pillar N: Tracks entire lifecycle from drop to confirm
   name: string;
   preview: string;     // convertFileSrc URL for display
   localPath: string;   // Original file path for processing

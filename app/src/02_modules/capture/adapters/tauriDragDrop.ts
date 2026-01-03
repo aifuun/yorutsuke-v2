@@ -4,7 +4,7 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { logger } from '../../../00_kernel/telemetry';
-import { ImageId } from '../../../00_kernel/types';
+import { ImageId, createTraceId } from '../../../00_kernel/types';
 import { ALLOWED_EXTENSIONS } from '../types';
 import type { DroppedItem } from '../types';
 
@@ -48,14 +48,21 @@ function filterByExtension(
 
 /**
  * Convert file paths to DroppedItem objects
+ * Pillar N: TraceId assigned here at drop time
  */
 function pathsToDroppedItems(paths: string[]): DroppedItem[] {
-  return paths.map((path) => ({
-    id: ImageId(crypto.randomUUID()),
-    name: path.split('/').pop() || path.split('\\').pop() || path,
-    preview: convertFileSrc(path),
-    localPath: path,
-  }));
+  return paths.map((path) => {
+    const traceId = createTraceId();
+    const id = ImageId(crypto.randomUUID());
+    logger.debug('[TauriDragDrop] Creating DroppedItem', { id, traceId, path });
+    return {
+      id,
+      traceId,
+      name: path.split('/').pop() || path.split('\\').pop() || path,
+      preview: convertFileSrc(path),
+      localPath: path,
+    };
+  });
 }
 
 /**

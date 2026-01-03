@@ -50,6 +50,7 @@ export function CaptureView({ userId }: CaptureViewProps) {
           id: item.id,
           userId: userId!,
           intentId: createIntentId(),  // Pillar Q: Generate unique intent per drop action
+          traceId: item.traceId,       // Pillar N: TraceId from drop event
           localPath: item.localPath,
           status: 'pending',
           s3Key: null,

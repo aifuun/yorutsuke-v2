@@ -383,6 +383,76 @@ const unsubscribe = on('upload:complete', (data) => {
 - [x] Add Intent-ID for idempotency (Pillar Q) (#28) - 2026-01-02
 - [x] ~~Add request-response pattern to EventBus~~ (#29) - Closed: over-engineering
 
+## ID Management Strategy
+
+### ID Types Overview
+
+| ID Type | Purpose | Format | Created | Scope |
+|---------|---------|--------|---------|-------|
+| `imageId` | Unique image identifier | `{uuid}` | On drop | Single image |
+| `traceId` | Observability & logging | `trace-{uuid}` | On drop | Receipt lifecycle |
+| `intentId` | Idempotency (retry-safe) | `intent-{uuid}` | On drop | Upload operation |
+| `md5` | Content deduplication | `{32-char-hash}` | After compress | Image content |
+
+### Three Scenarios
+
+| Scenario | What Happens | Which ID? |
+|----------|--------------|-----------|
+| **Content Dedup** | Same image dropped twice | **MD5 hash** |
+| **Network Retry** | Same upload retried | **intentId** |
+| **Log Tracing** | Track operation flow | **traceId** |
+
+### Duplicate Detection Flow
+
+```
+First drop (receipt.jpg):
+  imageId-1, traceId-1, intentId-1
+  → Compress → MD5: abc123
+  → DB check: not found
+  → Save to DB → Upload ✓
+
+Second drop (same receipt.jpg):
+  imageId-2, traceId-2, intentId-2  ← All new IDs
+  → Compress → MD5: abc123
+  → DB check: found! (imageId-1)
+  → emit image:duplicate {
+      id: imageId-2,
+      traceId: traceId-2,      ← Still logs this attempt
+      duplicateWith: imageId-1  ← Points to existing
+    }
+  → Skip upload, remove from queue
+```
+
+### Key Design Decisions
+
+**1. MD5 for Deduplication (not imageId)**
+- Content-based: same image = same hash regardless of when dropped
+- Calculated AFTER compression (WebP bytes) for consistency
+- Stored in SQLite with index for fast lookup
+
+**2. traceId Continues on Duplicate**
+- Even skipped images get logged with their traceId
+- Enables debugging: "why was this image skipped?"
+- Format: `trace-{uuid}` for easy grep in logs
+
+**3. intentId for Backend Idempotency**
+- Passed to Lambda presign for server-side dedup
+- Same intentId on retry = same operation (no double upload)
+- Format: `intent-{uuid}` to distinguish from traceId
+
+**4. All IDs Generated at Drop Time**
+- Single point of ID creation (tauriDragDrop.ts + CaptureView.tsx)
+- No ID generation during async operations
+- Prevents race conditions
+
+### Pillar Alignment
+
+| ID | Pillar | Purpose |
+|----|--------|---------|
+| `traceId` | N (Context) | Log correlation, distributed tracing |
+| `intentId` | Q (Idempotency) | Prevent duplicate operations on retry |
+| `imageId` | A (Nominal) | Type-safe entity identifier |
+
 ## References
 
 - Schema: `./SCHEMA.md`
