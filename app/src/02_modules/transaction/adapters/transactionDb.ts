@@ -1,17 +1,8 @@
 // Pillar B: Airlock - validate all database responses
-import Database from '@tauri-apps/plugin-sql';
 import type { TransactionId as TransactionIdType, UserId as UserIdType } from '../../../00_kernel/types';
 import { TransactionId, UserId, ImageId } from '../../../00_kernel/types';
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
-
-let db: Database | null = null;
-
-async function getDb(): Promise<Database> {
-  if (!db) {
-    db = await Database.load('sqlite:yorutsuke.db');
-  }
-  return db;
-}
+import { getDb } from '../../../00_kernel/storage/db';
 
 interface DbTransaction {
   id: string;

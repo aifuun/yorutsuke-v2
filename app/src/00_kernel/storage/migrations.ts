@@ -86,6 +86,28 @@ async function createCoreTables(db: Database): Promise<void> {
     )
   `);
 
+  // Transactions table (synced from cloud)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      image_id TEXT,
+      type TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      currency TEXT DEFAULT 'JPY',
+      description TEXT,
+      merchant TEXT,
+      date TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+      confirmed_at TEXT,
+      confidence REAL,
+      raw_text TEXT,
+      FOREIGN KEY (image_id) REFERENCES images(id)
+    )
+  `);
+
   // Morning report cache table
   await db.execute(`
     CREATE TABLE IF NOT EXISTS morning_report_cache (
@@ -123,6 +145,11 @@ async function migration_v1(db: Database): Promise<void> {
   // Transaction cache indexes
   await safeCreateIndex(db, 'idx_transactions_cache_image_id', 'transactions_cache', 'image_id');
   await safeCreateIndex(db, 'idx_transactions_cache_synced_at', 'transactions_cache', 'synced_at');
+
+  // Transactions table indexes
+  await safeCreateIndex(db, 'idx_transactions_user_id', 'transactions', 'user_id');
+  await safeCreateIndex(db, 'idx_transactions_date', 'transactions', 'date');
+  await safeCreateIndex(db, 'idx_transactions_image_id', 'transactions', 'image_id');
 
   // Initialize default settings
   await db.execute(`
