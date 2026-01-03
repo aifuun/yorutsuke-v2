@@ -2,6 +2,8 @@
 
 > Lightweight test scenarios for manual and automated testing.
 > Each scenario has a unique ID for tracking and issue linking.
+>
+> **See also**: [PROGRAM_PATHS.md](./PROGRAM_PATHS.md) for detailed code flow traces.
 
 ## How to Use
 
