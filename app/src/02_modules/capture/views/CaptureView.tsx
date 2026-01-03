@@ -15,14 +15,14 @@ interface CaptureViewProps {
 // Map technical status to user-friendly display
 function getStatusDisplay(status: string): { label: string; icon: string } {
   const statusMap: Record<string, { label: string; icon: string }> = {
-    pending: { label: 'Queued', icon: '⏳' },
+    pending: { label: 'Waiting to compress', icon: '⏳' },
     compressed: { label: 'Ready to upload', icon: '📦' },
-    uploading: { label: 'Uploading...', icon: '⬆️' },
-    uploaded: { label: 'Uploaded', icon: '☁️' },
-    processing: { label: 'AI processing...', icon: '🤖' },
-    processed: { label: 'Ready to confirm', icon: '✅' },
-    confirmed: { label: 'Confirmed', icon: '💾' },
-    failed: { label: 'Failed', icon: '❌' },
+    uploading: { label: 'Uploading to cloud...', icon: '⬆️' },
+    uploaded: { label: 'Waiting for AI (tonight)', icon: '☁️' },
+    processing: { label: 'AI reading receipt...', icon: '🤖' },
+    processed: { label: 'Please confirm', icon: '✅' },
+    confirmed: { label: 'Saved', icon: '💾' },
+    failed: { label: 'Upload failed - tap to retry', icon: '❌' },
   };
   return statusMap[status] || { label: status, icon: '❓' };
 }
