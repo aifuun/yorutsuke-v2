@@ -12,6 +12,21 @@ interface CaptureViewProps {
   userId: UserId | null;
 }
 
+// Map technical status to user-friendly display
+function getStatusDisplay(status: string): { label: string; icon: string } {
+  const statusMap: Record<string, { label: string; icon: string }> = {
+    pending: { label: 'Queued', icon: '⏳' },
+    compressed: { label: 'Ready to upload', icon: '📦' },
+    uploading: { label: 'Uploading...', icon: '⬆️' },
+    uploaded: { label: 'Uploaded', icon: '☁️' },
+    processing: { label: 'AI processing...', icon: '🤖' },
+    processed: { label: 'Ready to confirm', icon: '✅' },
+    confirmed: { label: 'Confirmed', icon: '💾' },
+    failed: { label: 'Failed', icon: '❌' },
+  };
+  return statusMap[status] || { label: status, icon: '❓' };
+}
+
 export function CaptureView({ userId }: CaptureViewProps) {
   const { isOnline } = useNetworkStatus();
   const { quota } = useQuota(userId);
@@ -98,12 +113,15 @@ export function CaptureView({ userId }: CaptureViewProps) {
       </div>
 
       <div className="queue-list">
-        {state.queue.map((image) => (
-          <div key={image.id} className={`queue-item status-${image.status}`}>
-            <span>{image.id}</span>
-            <span>{image.status}</span>
-          </div>
-        ))}
+        {state.queue.map((image) => {
+          const { label, icon } = getStatusDisplay(image.status);
+          return (
+            <div key={image.id} className={`queue-item status-${image.status}`}>
+              <span className="queue-item-id">{image.id.slice(0, 8)}...</span>
+              <span className="queue-item-status">{icon} {label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
