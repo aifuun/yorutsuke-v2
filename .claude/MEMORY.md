@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-04] Guest data claim on registration (#50)
-- **Next Steps**: Continue with remaining open issues (#52, #54-56)
+- **Last Progress**: [2026-01-04] Theme sync fix (#57), closed #50/#51/#52/#54/#56
+- **Next Steps**: Manual testing (#55), then production readiness
 - **Blockers**: None
 
 ## Architecture Decisions
