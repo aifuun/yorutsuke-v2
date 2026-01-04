@@ -9,3 +9,6 @@ export type {
   DragDropResult,
   ALLOWED_EXTENSIONS,
 } from './types';
+
+// Adapters (for cross-module access)
+export { updateImagesUserId } from './adapters/imageDb';

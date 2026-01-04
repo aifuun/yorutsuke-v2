@@ -10,7 +10,7 @@ import { emit } from '../../../00_kernel/eventBus';
 import type { AuthState, AuthStatus, User } from '../types';
 import * as authApi from '../adapters/authApi';
 import * as tokenStorage from '../adapters/tokenStorage';
-import { updateImagesUserId } from '../../capture/adapters/imageDb';
+import { updateImagesUserId } from '../../capture';
 
 // Action types
 type Action =
