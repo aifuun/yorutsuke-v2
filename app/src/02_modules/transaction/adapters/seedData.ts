@@ -3,6 +3,7 @@ import type { Transaction, TransactionCategory, TransactionType } from '../../..
 import { TransactionId, ImageId, UserId } from '../../../00_kernel/types';
 import { fetchTransactions, saveTransaction, clearAllTransactions } from './transactionDb';
 import { dlog } from '../../debug/headless/debugLog';
+import { logger } from '../../../00_kernel/telemetry';
 
 // =========================================================================
 // Seeded Random Generator (for reproducible mock data)
@@ -247,10 +248,12 @@ export async function seedMockTransactions(
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
   const TAG = 'Seed';
+  logger.info('SEED_STARTED', { userId, scenario, force });
   dlog.info(TAG, 'Starting', { userId, scenario, force });
 
   try {
     const existing = await fetchTransactions(userId);
+    logger.info('SEED_EXISTING', { count: existing.length });
     dlog.info(TAG, `Found ${existing.length} existing transactions`);
 
     if (existing.length > 0 && !force) {
@@ -307,9 +310,11 @@ export async function seedMockTransactions(
       }
     }
 
+    logger.info('SEED_COMPLETED', { count: totalCount });
     dlog.info(TAG, `Complete! Created ${totalCount} transactions`);
     return { seeded: true, count: totalCount };
   } catch (e) {
+    logger.error('SEED_FAILED', { error: String(e) });
     dlog.error(TAG, 'Failed to seed', e);
     return { seeded: false, count: 0 };
   }
