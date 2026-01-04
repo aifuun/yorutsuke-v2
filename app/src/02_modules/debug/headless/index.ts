@@ -1,0 +1,1 @@
+export { useSecretCode } from './useSecretCode';

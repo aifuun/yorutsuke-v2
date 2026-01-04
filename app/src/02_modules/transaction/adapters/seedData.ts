@@ -245,13 +245,17 @@ export async function seedMockTransactions(
   scenario: SeedScenario = 'default',
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
+  console.log('[seedMockTransactions] Called with:', { userId, scenario, force });
   try {
     const existing = await fetchTransactions(userId);
+    console.log('[seedMockTransactions] Existing transactions:', existing.length);
     if (existing.length > 0 && !force) {
+      console.log('[seedMockTransactions] Skipping - data exists');
       return { seeded: false, count: 0 }; // Already has data
     }
 
     const config = SCENARIO_CONFIG[scenario];
+    console.log('[seedMockTransactions] Config:', config);
     if (config.daySpan === 0) {
       return { seeded: true, count: 0 }; // Empty scenario
     }
@@ -271,6 +275,8 @@ export async function seedMockTransactions(
         random
       );
 
+      console.log(`[seedMockTransactions] Day ${daysAgo}: creating ${txCount} transactions`);
+
       for (let i = 0; i < txCount; i++) {
         // Determine type based on income ratio
         const forceType: TransactionType | undefined =
@@ -284,11 +290,13 @@ export async function seedMockTransactions(
           confirmRatio: config.confirmRatio,
         });
 
+        console.log(`[seedMockTransactions] Saving tx ${totalCount + 1}:`, tx.id);
         await saveTransaction(tx);
         totalCount++;
       }
     }
 
+    console.log('[seedMockTransactions] Done, total:', totalCount);
     return { seeded: true, count: totalCount };
   } catch (e) {
     console.error('[seedData] Failed to seed:', e);

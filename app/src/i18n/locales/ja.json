@@ -7,7 +7,8 @@
     "dashboard": "ダッシュボード",
     "ledger": "台帳",
     "capture": "撮影",
-    "settings": "設定"
+    "settings": "設定",
+    "debug": "デバッグ"
   },
   "common": {
     "loading": "読み込み中...",
@@ -197,6 +198,26 @@
     "resetsIn": "{{time}}後にリセット",
     "clickToRefresh": "クリックして更新",
     "guestExpiration": "{{days}}日後にデータが削除されます。登録して永久保存！"
+  },
+  "debug": {
+    "title": "デバッグツール",
+    "systemInfo": "システム情報",
+    "mockData": "モックデータ",
+    "mockDataHint": "テスト用の取引データを生成します",
+    "scenario": "シナリオ",
+    "seed": "生成",
+    "seedForce": "強制上書き",
+    "seedForceHint": "既存データを削除して新規生成",
+    "seedSuccess": "{{count}}件の取引を生成しました",
+    "seedSkipped": "既存データあり。上書きするには「強制」を使用",
+    "seedError": "生成に失敗しました",
+    "featureFlags": "機能フラグ",
+    "verboseLogging": "詳細ログ",
+    "verboseLoggingHint": "デバッグ用の詳細なコンソールログを有効にする",
+    "dangerZone": "危険ゾーン",
+    "dangerZoneHint": "これらの操作は元に戻せません",
+    "clearLocalStorage": "ローカルストレージをクリア",
+    "clearCacheConfirm": "すべてのローカルデータをクリアしてアプリを再読み込みしますか？"
   },
   "capture": {
     "todayQuota": "今日の配額",

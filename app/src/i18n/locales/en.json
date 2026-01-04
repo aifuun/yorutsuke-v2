@@ -7,7 +7,8 @@
     "dashboard": "Dashboard",
     "ledger": "Ledger",
     "capture": "Capture",
-    "settings": "Settings"
+    "settings": "Settings",
+    "debug": "Debug"
   },
   "common": {
     "loading": "Loading...",
@@ -197,6 +198,26 @@
     "resetsIn": "Resets in {{time}}",
     "clickToRefresh": "Click to refresh",
     "guestExpiration": "Data expires in {{days}} days. Register to keep forever!"
+  },
+  "debug": {
+    "title": "Debug Tools",
+    "systemInfo": "System Information",
+    "mockData": "Mock Data",
+    "mockDataHint": "Generate test transactions for development and testing",
+    "scenario": "Scenario",
+    "seed": "Seed",
+    "seedForce": "Force",
+    "seedForceHint": "Delete existing data and seed fresh",
+    "seedSuccess": "Seeded {{count}} transactions",
+    "seedSkipped": "Data exists. Use Force to overwrite",
+    "seedError": "Failed to seed data",
+    "featureFlags": "Feature Flags",
+    "verboseLogging": "Verbose Logging",
+    "verboseLoggingHint": "Enable detailed console logging for debugging",
+    "dangerZone": "Danger Zone",
+    "dangerZoneHint": "These actions cannot be undone",
+    "clearLocalStorage": "Clear Local Storage",
+    "clearCacheConfirm": "This will clear all local data and reload the app. Continue?"
   },
   "capture": {
     "todayQuota": "Today's Quota",

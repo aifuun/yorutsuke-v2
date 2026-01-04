@@ -1,30 +1,35 @@
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Camera, BookOpen, Settings } from 'lucide-react';
+import { LayoutDashboard, Camera, BookOpen, Settings, Wrench } from 'lucide-react';
 import type { UserId } from '../00_kernel/types';
 import './Sidebar.css';
 
-export type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings';
+export type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'debug';
 
 interface SidebarProps {
   activeView: ViewType;
   onViewChange: (view: ViewType) => void;
   userId: UserId | null;
+  isDebugUnlocked?: boolean;
 }
 
-const NAV_ITEMS: Array<{ view: ViewType; icon: typeof LayoutDashboard; labelKey: string }> = [
+const NAV_ITEMS: Array<{ view: ViewType; icon: typeof LayoutDashboard; labelKey: string; debugOnly?: boolean }> = [
   { view: 'dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
   { view: 'ledger', icon: BookOpen, labelKey: 'nav.ledger' },
   { view: 'capture', icon: Camera, labelKey: 'nav.capture' },
   { view: 'settings', icon: Settings, labelKey: 'nav.settings' },
+  { view: 'debug', icon: Wrench, labelKey: 'nav.debug', debugOnly: true },
 ];
 
-export function Sidebar({ activeView, onViewChange, userId }: SidebarProps) {
+export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = false }: SidebarProps) {
   const { t } = useTranslation();
 
   // Generate user initials from userId
   const userInitials = userId
     ? userId.toString().slice(0, 2).toUpperCase()
     : 'GU';
+
+  // Filter nav items based on debug unlock status
+  const visibleNavItems = NAV_ITEMS.filter(item => !item.debugOnly || isDebugUnlocked);
 
   return (
     <aside className="sidebar">
@@ -33,7 +38,7 @@ export function Sidebar({ activeView, onViewChange, userId }: SidebarProps) {
       </div>
 
       <nav className="nav-group">
-        {NAV_ITEMS.map(({ view, labelKey }) => (
+        {visibleNavItems.map(({ view, labelKey }) => (
           <div
             key={view}
             className={`nav-item ${activeView === view ? 'active' : ''}`}
