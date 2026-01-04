@@ -6,24 +6,28 @@ import { useQuota } from '../headless/useQuota';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { createIntentId } from '../../../00_kernel/types';
+import { useTranslation } from '../../../i18n';
 import type { DroppedItem } from '../types';
+import './capture.css';
 
-// Map technical status to user-friendly display
-function getStatusDisplay(status: string): { label: string; icon: string } {
-  const statusMap: Record<string, { label: string; icon: string }> = {
-    pending: { label: 'Waiting to compress', icon: '⏳' },
-    compressed: { label: 'Ready to upload', icon: '📦' },
-    uploading: { label: 'Uploading to cloud...', icon: '⬆️' },
-    uploaded: { label: 'In cloud, AI will process soon', icon: '☁️' },
-    processing: { label: 'AI reading receipt...', icon: '🤖' },
-    processed: { label: 'Please confirm', icon: '✅' },
-    confirmed: { label: 'Saved', icon: '💾' },
-    failed: { label: 'Upload failed - tap to retry', icon: '❌' },
-  };
-  return statusMap[status] || { label: status, icon: '❓' };
-}
+// Status badge configuration
+const STATUS_CONFIG: Record<string, { label: string; icon: string; variant: string }> = {
+  pending: { label: 'capture.status.pending', icon: '⏳', variant: 'pending' },
+  compressing: { label: 'capture.status.compressing', icon: '🔄', variant: 'processing' },
+  compressed: { label: 'capture.status.compressed', icon: '📦', variant: 'processing' },
+  uploading: { label: 'capture.status.uploading', icon: '☁️', variant: 'processing' },
+  uploaded: { label: 'capture.status.uploaded', icon: '✅', variant: 'success' },
+  processing: { label: 'capture.status.processing', icon: '🤖', variant: 'processing' },
+  processed: { label: 'capture.status.processed', icon: '✅', variant: 'success' },
+  confirmed: { label: 'capture.status.confirmed', icon: '💾', variant: 'success' },
+  failed: { label: 'capture.status.failed', icon: '❌', variant: 'error' },
+};
 
 export function CaptureView() {
+  const { t } = useTranslation();
+  const today = new Date().toISOString().split('T')[0];
+  const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+
   const { isOnline } = useNetworkStatus();
   const { effectiveUserId, isLoading: userLoading } = useEffectiveUserId();
   const { quota } = useQuota(effectiveUserId);
@@ -31,31 +35,26 @@ export function CaptureView() {
     state,
     pendingCount,
     uploadedCount,
-    awaitingProcessCount,
     remainingQuota,
     addImage,
   } = useCaptureLogic(effectiveUserId, quota.limit);
 
   // Drag & drop handling
-  // Note: useDragDrop emits image:pending events automatically
-  // The addImage here is for adding to the local queue display
   const { isDragging, dragHandlers } = useDragDrop({
     onDrop: (items: DroppedItem[]) => {
-      // Guard: Don't process drops until user ID is loaded
       if (!effectiveUserId) return;
 
-      // Add dropped items to capture queue
       for (const item of items) {
         addImage({
           id: item.id,
           userId: effectiveUserId,
-          intentId: createIntentId(),  // Pillar Q: Generate unique intent per drop action
-          traceId: item.traceId,       // Pillar N: TraceId from drop event
+          intentId: createIntentId(),
+          traceId: item.traceId,
           localPath: item.localPath,
           status: 'pending',
           s3Key: null,
           thumbnailPath: item.preview,
-          originalSize: 0, // Will be updated after compression
+          originalSize: 0,
           compressedSize: null,
           createdAt: new Date().toISOString(),
           uploadedAt: null,
@@ -64,7 +63,6 @@ export function CaptureView() {
       }
     },
     onReject: (rejectedPaths) => {
-      // Could show toast notification here
       console.warn('Rejected files:', rejectedPaths);
     },
   });
@@ -72,58 +70,149 @@ export function CaptureView() {
   // Show loading while user ID is being resolved
   if (userLoading) {
     return (
-      <div className="capture-container">
-        <div className="loading-indicator">Loading...</div>
+      <div className="capture">
+        <CaptureHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
+        <div className="capture-content">
+          <div className="capture-loading">{t('common.loading')}</div>
+        </div>
       </div>
     );
   }
 
-  // Note: Global error state removed - errors are shown per-image in queue list
-  // Failed images show "Upload failed - tap to retry" status
+  // Calculate quota percentage
+  const quotaUsed = quota.limit - remainingQuota;
+  const quotaPercent = quota.limit > 0 ? (quotaUsed / quota.limit) * 100 : 0;
+  const quotaVariant = quotaPercent >= 100 ? 'error' : quotaPercent >= 80 ? 'warning' : 'success';
 
   return (
-    <div className="capture-container">
-      {/* Offline indicator */}
-      {!isOnline && (
-        <div className="offline-indicator">
-          <span className="offline-icon">📡</span>
-          <span>Waiting for connection...</span>
-        </div>
-      )}
+    <div className="capture">
+      <CaptureHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
 
-      <div className="capture-stats">
-        <span>Pending: {pendingCount}</span>
-        <span>Uploaded: {uploadedCount}</span>
-        {awaitingProcessCount > 0 && (
-          <span className="awaiting-process">Awaiting AI: {awaitingProcessCount}</span>
-        )}
-        <span>Remaining: {remainingQuota}</span>
-      </div>
-
-      <div
-        className={`drop-zone ${isDragging ? 'drop-zone--dragging' : ''}`}
-        {...dragHandlers}
-      >
-        {isDragging ? (
-          <p>Drop to upload</p>
-        ) : (
-          <p>Drop receipts here</p>
-        )}
-        {state.status === 'processing' && <p>Processing...</p>}
-        {state.status === 'uploading' && <p>Uploading...</p>}
-      </div>
-
-      <div className="queue-list">
-        {state.queue.map((image) => {
-          const { label, icon } = getStatusDisplay(image.status);
-          return (
-            <div key={image.id} className={`queue-item status-${image.status}`}>
-              <span className="queue-item-id">{image.id.slice(0, 8)}...</span>
-              <span className="queue-item-status">{icon} {label}</span>
+      <div className="capture-content">
+        <div className="capture-container">
+          {/* Offline Banner */}
+          {!isOnline && (
+            <div className="info-banner info-banner--warning">
+              <span className="banner-icon">⚠️</span>
+              <div className="banner-content">
+                <p className="banner-title">{t('capture.offline')}</p>
+                <p className="banner-text">{t('capture.offlineHint')}</p>
+              </div>
             </div>
-          );
-        })}
+          )}
+
+          {/* Quota Indicator */}
+          <div className="premium-card quota-card">
+            <div className="quota-header">
+              <div className="quota-label">
+                <span className="quota-icon">🎯</span>
+                <span className="section-header">{t('capture.todayQuota')}</span>
+              </div>
+              <span className="quota-value mono">{quotaUsed} / {quota.limit}</span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className={`progress-bar__fill progress-bar__fill--${quotaVariant}`}
+                style={{ width: `${Math.min(quotaPercent, 100)}%` }}
+              />
+            </div>
+            <p className="quota-remaining">
+              {remainingQuota > 0
+                ? t('capture.remaining', { count: remainingQuota })
+                : t('capture.quotaFull')}
+            </p>
+          </div>
+
+          {/* Drop Zone */}
+          <div className="premium-card drop-card">
+            <div
+              className={`drop-zone ${isDragging ? 'drop-zone--dragging' : ''}`}
+              {...dragHandlers}
+            >
+              <div className="drop-icon">📄</div>
+              <p className="drop-title">
+                {isDragging ? t('capture.dropRelease') : t('capture.dropHere')}
+              </p>
+              <p className="drop-hint">{t('capture.supportedFormats')}</p>
+            </div>
+          </div>
+
+          {/* Processing Queue */}
+          {state.queue.length > 0 && (
+            <div className="premium-card queue-card">
+              <h2 className="section-header">{t('capture.processingQueue')}</h2>
+              <div className="queue-list">
+                {state.queue.map((image) => {
+                  const config = STATUS_CONFIG[image.status] || STATUS_CONFIG.pending;
+                  return (
+                    <div key={image.id} className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''}`}>
+                      <div className="queue-thumbnail">
+                        <span className="queue-thumb-icon">🧾</span>
+                      </div>
+                      <div className="queue-content">
+                        <div className="queue-row">
+                          <span className="queue-filename">{image.id.slice(0, 16)}...</span>
+                          <span className={`status-badge status-badge--${config.variant}`}>
+                            {config.icon} {t(config.label)}
+                          </span>
+                        </div>
+                        {(image.status === 'compressing' || image.status === 'uploading') && (
+                          <div className="progress-bar">
+                            <div className="progress-bar__fill progress-bar__fill--info progress-bar__fill--animated" />
+                          </div>
+                        )}
+                        {image.status === 'failed' && (
+                          <p className="queue-error">{t('capture.tapToRetry')}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Queue Actions */}
+              <div className="queue-actions">
+                {state.queue.some(img => img.status === 'failed') && (
+                  <button className="queue-action queue-action--retry">
+                    {t('capture.retryAll')}
+                  </button>
+                )}
+                {state.queue.some(img => img.status === 'uploaded' || img.status === 'confirmed') && (
+                  <button className="queue-action queue-action--clear">
+                    {t('capture.clearCompleted')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Stats Summary */}
+          <div className="capture-summary">
+            <span className="summary-item">
+              <span className="summary-label">{t('capture.pending')}:</span>
+              <span className="summary-value mono">{pendingCount}</span>
+            </span>
+            <span className="summary-item">
+              <span className="summary-label">{t('capture.uploaded')}:</span>
+              <span className="summary-value mono">{uploadedCount}</span>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+// Header component
+function CaptureHeader({ date, dayOfWeek, title }: { date: string; dayOfWeek: string; title: string }) {
+  return (
+    <header className="capture-header">
+      <h1 className="capture-title">{title}</h1>
+      <div className="capture-date">
+        <span className="mono">{date}</span>
+        <span className="date-separator">•</span>
+        <span>{dayOfWeek}</span>
+      </div>
+    </header>
   );
 }

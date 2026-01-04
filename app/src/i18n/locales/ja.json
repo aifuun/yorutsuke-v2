@@ -153,5 +153,32 @@
     "resetsIn": "{{time}}後にリセット",
     "clickToRefresh": "クリックして更新",
     "guestExpiration": "{{days}}日後にデータが削除されます。登録して永久保存！"
+  },
+  "capture": {
+    "todayQuota": "今日の配額",
+    "remaining": "残り{{count}}枚アップロード可能",
+    "quotaFull": "今日の配額に達しました",
+    "dropHere": "レシートをここにドロップ",
+    "dropRelease": "放してアップロード",
+    "supportedFormats": "JPG, PNG, HEIC対応",
+    "processingQueue": "処理キュー",
+    "pending": "待機中",
+    "uploaded": "アップロード済",
+    "offline": "オフライン",
+    "offlineHint": "キューは一時停止中。接続回復で再開します。",
+    "tapToRetry": "タップしてリトライ",
+    "retryAll": "全ての失敗を再試行",
+    "clearCompleted": "完了項目をクリア",
+    "status": {
+      "pending": "待機中",
+      "compressing": "圧縮中",
+      "compressed": "準備完了",
+      "uploading": "アップロード中",
+      "uploaded": "完了",
+      "processing": "AI処理中",
+      "processed": "処理完了",
+      "confirmed": "保存済",
+      "failed": "失敗"
+    }
   }
 }

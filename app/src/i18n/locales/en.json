@@ -153,5 +153,32 @@
     "resetsIn": "Resets in {{time}}",
     "clickToRefresh": "Click to refresh",
     "guestExpiration": "Data expires in {{days}} days. Register to keep forever!"
+  },
+  "capture": {
+    "todayQuota": "Today's Quota",
+    "remaining": "{{count}} uploads remaining",
+    "quotaFull": "Daily quota reached",
+    "dropHere": "Drop receipts here",
+    "dropRelease": "Release to upload",
+    "supportedFormats": "Supports JPG, PNG, HEIC",
+    "processingQueue": "Processing Queue",
+    "pending": "Pending",
+    "uploaded": "Uploaded",
+    "offline": "Offline",
+    "offlineHint": "Queue paused. Will resume when connected.",
+    "tapToRetry": "Tap to retry",
+    "retryAll": "Retry all failed",
+    "clearCompleted": "Clear completed",
+    "status": {
+      "pending": "Waiting",
+      "compressing": "Compressing",
+      "compressed": "Ready",
+      "uploading": "Uploading",
+      "uploaded": "Done",
+      "processing": "AI Processing",
+      "processed": "Processed",
+      "confirmed": "Saved",
+      "failed": "Failed"
+    }
   }
 }
