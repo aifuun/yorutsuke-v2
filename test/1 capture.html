@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yorutsuke V2 - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 隐藏滚动条但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* 侧边栏微交互 */
+        .nav-item { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+        .nav-item.active { background-color: #1E293B; color: #F8FAFC; }
+        .nav-item.active::before {
+            content: ""; position: absolute; left: 0; top: 25%; height: 50%; width: 3px;
+            background-color: #3B82F6; border-radius: 0 4px 4px 0;
+        }
+
+        /* 玻璃拟态效果 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* 捕获区动效 */
+        .drop-zone-glow:hover {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+            border-color: #3B82F6;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-[#0F172A] text-slate-400 flex flex-col shadow-2xl z-20">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">Y</div>
+            <span class="text-white font-bold text-xl tracking-tight">Yorutsuke <span class="text-blue-500">v2</span></span>
+        </div>
+
+        <nav class="flex-1 px-4 py-4 space-y-1">
+            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">主控制台</div>
+            <a href="#" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                小票捕获
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:text-slate-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                账单流水
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:text-slate-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path></svg>
+                财务统计
+            </a>
+
+            <div class="pt-8 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">配置</div>
+            <a href="#" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:text-slate-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                系统设置
+            </a>
+        </nav>
+
+        <div class="p-4 mt-auto border-t border-slate-800">
+            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer">
+                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-lg">U</div>
+                <div class="flex-1 overflow-hidden">
+                    <div class="text-sm font-semibold text-slate-200 truncate">Premium User</div>
+                    <div class="text-[10px] text-slate-500 truncate">pro-account@yorutsuke.io</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col relative overflow-hidden">
+        
+        <header class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between z-10">
+            <div class="flex items-center gap-4 text-sm font-medium">
+                <span class="text-slate-400 font-normal">工作区 /</span> <span>小票捕获中心</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs font-semibold text-slate-500">云端同步已开启</span>
+                </div>
+                <button class="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 no-scrollbar">
+            <div class="max-w-6xl mx-auto grid grid-cols-12 gap-8">
+                
+                <div class="col-span-12 lg:col-span-8 space-y-8">
+                    <div class="drop-zone-glow relative bg-white border-2 border-dashed border-slate-200 rounded-[2.5rem] p-16 flex flex-col items-center justify-center transition-all cursor-pointer group">
+                        <div class="w-24 h-24 bg-blue-50 rounded-3xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">拖拽或点击上传</h2>
+                        <p class="text-slate-400 text-center max-w-sm leading-relaxed">
+                            支持多文件批量上传，AI 将根据图像质量自动优化识别流。<br>
+                            <span class="text-blue-500 font-semibold underline decoration-blue-200 underline-offset-4 cursor-pointer">浏览本地文件</span>
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-900 rounded-3xl p-6 shadow-2xl overflow-hidden relative">
+                        <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500/20 flex items-center justify-center"><div class="w-1 h-1 rounded-full bg-red-500"></div></div>
+                                <span class="mono text-[10px] text-slate-500 uppercase tracking-widest">Live Trace Engine</span>
+                            </div>
+                            <span class="mono text-[10px] text-blue-500">ID: TX-992-BETA</span>
+                        </div>
+                        <div class="mono text-xs space-y-1.5">
+                            <p class="text-slate-500 underline decoration-slate-800 leading-6 tracking-tight"><span class="text-slate-600">[14:20:01]</span> System.Initialize: <span class="text-emerald-400">Success</span></p>
+                            <p class="text-slate-500 leading-6 tracking-tight"><span class="text-slate-600">[14:20:05]</span> Service.Deduplication: <span class="text-blue-400 text-[10px] border border-blue-400/30 px-1 py-0.5 rounded leading-none ml-2">Standby</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-12 lg:col-span-4 space-y-6">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="font-bold text-slate-800">当前任务队列</h3>
+                        <span class="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded-lg">2 正在处理</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all cursor-default">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                                    <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h4 class="font-bold text-sm truncate pr-2 text-slate-800">7-11_Receipt_02.png</h4>
+                                        <span class="mono text-[9px] text-slate-400">trace-b921</span>
+                                    </div>
+                                    <p class="text-xs text-slate-400 mb-3 uppercase tracking-tighter">AI OCR Processing...</p>
+                                    <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 w-3/4 animate-pulse"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm border-l-4 border-l-emerald-500">
+                            <div class="flex items-start gap-4 text-slate-400">
+                                <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-emerald-500">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-sm truncate pr-2 text-slate-400 line-through">Amazon_Invoice.pdf</h4>
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded uppercase">Success</span>
+                                        <span class="text-xs font-bold text-slate-600">¥12,480</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="h-12 border-t border-slate-200 bg-white/50 backdrop-blur-sm px-8 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div class="flex gap-6">
+                <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> DB: SQLite Connected</span>
+                <span class="flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div> API: AWS v2.1-stable</span>
+            </div>
+            <div>
+                Yorutsuke-V2 Build 2026.01.04
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

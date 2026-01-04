@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Yorutsuke V2 - Capture Console</title>
+    <style>
+        :root {
+            /* 20年经验沉淀的色板：深邃、稳重、专业 */
+            --bg-color: #f8fafc;
+            --primary: #2563eb;
+            --primary-glow: rgba(37, 99, 235, 0.1);
+            --accent: #10b981;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --border-color: #e2e8f0;
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 核心容器：保持视觉重心平衡 */
+        .capture-container {
+            width: 90%;
+            max-width: 800px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid white;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+            padding: 40px;
+        }
+
+        .header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-sub);
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        /* 拖拽区：利用微动效引导用户 */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 60px 20px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--primary);
+            background: var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone svg {
+            width: 48px;
+            height: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        /* 队列列表：这是最体现“老手”功力的地方 - 极致的间距控制 */
+        .upload-queue {
+            margin-top: 32px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            animation: slideIn 0.4s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .item-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: #eee;
+            margin-right: 16px;
+            object-fit: cover;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .item-meta {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* 状态标识：用颜色说话 */
+        .status-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-processing { background: #dbeafe; color: #1e40af; }
+        .status-success { background: #d1fae5; color: #065f46; }
+
+        /* 进度条：不能只是条，要有“流动感” */
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+            width: 100px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 65%; /* Dynamic */
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div class="capture-container">
+    <div class="header">
+        <h1>捕获中心</h1>
+        <p>让 AI 为您自动分类并识别所有小票</p>
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+        <div style="font-weight: 600; font-size: 16px;">拖拽小票图片到这里</div>
+        <div style="color: var(--text-sub); font-size: 13px; margin-top: 8px;">支持 JPG, PNG, WebP (最大 10MB)</div>
+    </div>
+
+    <div class="upload-queue">
+        <div class="item">
+            <div class="item-thumb" style="background: #f1f5f9; display: flex; align-items: center; justify-content: center;">📄</div>
+            <div class="item-info">
+                <div class="item-name">receipt_20240101.jpg</div>
+                <div class="item-meta">TraceId: trace-550e84... · 1.2MB</div>
+            </div>
+            <div style="text-align: right;">
+                <span class="status-badge status-processing">AI 识别中...</span>
+                <div class="progress-bar"><div class="progress-fill"></div></div>
+            </div>
+        </div>
+
+        <div class="item">
+            <div class="item-thumb" style="background: #f1f5f9; display: flex; align-items: center; justify-content: center;">✅</div>
+            <div class="item-info">
+                <div class="item-name">Amazon_Invoice.pdf</div>
+                <div class="item-meta">已入账至：仕入れ · ¥12,480</div>
+            </div>
+            <div>
+                <span class="status-badge status-success">已完成</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

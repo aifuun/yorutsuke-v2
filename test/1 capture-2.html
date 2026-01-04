@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yorutsuke V2 - Hardcore Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #94A3B8; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* 极致细线边框 */
+        .thin-border { border: 1px solid rgba(226, 232, 240, 0.08); }
+        .active-border { border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        /* 侧边栏微交互 */
+        .nav-item { transition: all 0.2s; position: relative; }
+        .nav-item:hover { color: #F8FAFC; background: rgba(255,255,255,0.03); }
+        .nav-item.active { color: #3B82F6; background: rgba(59, 130, 246, 0.05); }
+        .nav-item.active::after {
+            content: ""; position: absolute; right: 0; top: 25%; height: 50%; width: 2px;
+            background-color: #3B82F6;
+        }
+
+        /* 实时流光效果 */
+        @keyframes trace-glow {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        .trace-dot { animation: trace-glow 1.5s infinite; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-20 lg:w-64 bg-[#020617] flex flex-col border-r border-slate-900 z-20">
+        <div class="p-8 flex items-center gap-3">
+            <div class="w-6 h-6 bg-blue-600 flex items-center justify-center text-white font-black text-xs">Y</div>
+            <span class="hidden lg:inline text-white font-extrabold tracking-tighter text-lg uppercase">Yorutsuke</span>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <a href="#" class="nav-item active flex items-center gap-4 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7" stroke-width="2"/></svg>
+                <span class="hidden lg:inline">Capture</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-4 px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-widest">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" stroke-width="2"/></svg>
+                <span class="hidden lg:inline">Ledger</span>
+            </a>
+        </nav>
+
+        <div class="p-4 mt-auto border-t border-slate-900 bg-black/20">
+            <div class="flex items-center justify-between mb-4">
+                <span class="mono text-[9px] font-bold text-slate-500 uppercase">Engine Status</span>
+                <div class="trace-dot w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3B82F6]"></div>
+            </div>
+            <div class="mono text-[9px] space-y-2 opacity-50 overflow-hidden h-24">
+                <p class="text-blue-400">> Sync.Cloud: OK</p>
+                <p class="text-slate-600">> DB.Conn: SQLite_v3</p>
+                <p class="text-slate-600">> OCR.Warmup: Complete</p>
+                <p class="animate-pulse">> Listening...</p>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col bg-[#F8FAFC] text-slate-900">
+        
+        <header class="h-14 border-b border-slate-200 bg-white px-8 flex items-center justify-between">
+            <div class="mono text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">
+                Workspace / <span class="text-slate-900">Capture_Console_v2.1</span>
+            </div>
+            <div class="flex items-center gap-8">
+                <div class="mono text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1">API: STABLE</div>
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold">U</div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 no-scrollbar">
+            <div class="max-w-6xl mx-auto space-y-12">
+                
+                <section class="grid grid-cols-12 gap-10">
+                    <div class="col-span-12 lg:col-span-7">
+                        <div class="group relative bg-white thin-border rounded-[2rem] p-20 flex flex-col items-center justify-center transition-all hover:active-border cursor-pointer">
+                            <div class="w-16 h-16 bg-blue-600 text-white flex items-center justify-center mb-8 shadow-2xl shadow-blue-200">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2.5"/></svg>
+                            </div>
+                            <h2 class="text-xl font-extrabold uppercase tracking-tighter mb-2">Drop Assets Here</h2>
+                            <p class="mono text-[10px] text-slate-400 uppercase tracking-widest">Multi-batch OCR Processing Enabled</p>
+                        </div>
+                    </div>
+
+                    <div class="col-span-12 lg:col-span-5 space-y-4">
+                        <h3 class="mono text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6">Active_Queue</h3>
+                        
+                        <div class="bg-white thin-border p-5 flex items-center gap-5 transition-all hover:shadow-xl hover:shadow-slate-100">
+                            <div class="w-10 h-10 bg-slate-900 flex items-center justify-center text-blue-500">
+                                <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2"/></svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-baseline mb-2">
+                                    <span class="mono text-[11px] font-bold truncate uppercase tracking-tighter text-slate-800 tracking-widest">TX_8819_Img.png</span>
+                                    <span class="mono text-[9px] text-blue-600 font-bold">82%</span>
+                                </div>
+                                <div class="h-[2px] w-full bg-slate-100">
+                                    <div class="h-full bg-blue-600 w-4/5"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white thin-border p-5 flex items-center gap-5 opacity-60">
+                            <div class="w-10 h-10 bg-emerald-500 text-white flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-width="3"/></svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <span class="mono text-[11px] font-bold text-slate-800 block mb-1">AMZN_INV_9901.pdf</span>
+                                <span class="mono text-[9px] uppercase font-bold text-emerald-600">Archived: ¥12,480</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="flex items-center justify-between mb-8 border-b border-slate-200 pb-4">
+                        <h3 class="mono text-[10px] font-black uppercase tracking-[0.2em]">Recent_Transactions</h3>
+                        <a href="#" class="mono text-[10px] text-blue-600 font-bold hover:underline">VIEW ALL -></a>
+                    </div>
+                    <div class="bg-white thin-border overflow-hidden">
+                        <table class="w-full text-left mono text-[11px]">
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-8 py-4 font-bold tracking-tighter">JAN 04 / 14:20</td>
+                                    <td class="px-8 py-4 uppercase font-bold">7-Eleven Fuchu</td>
+                                    <td class="px-8 py-4 text-blue-600 font-bold">SHI-IRE</td>
+                                    <td class="px-8 py-4 text-right font-black">- ¥1,240</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-8 py-4 font-bold tracking-tighter">JAN 03 / 09:15</td>
+                                    <td class="px-8 py-4 uppercase font-bold text-slate-400">Amazon Business</td>
+                                    <td class="px-8 py-4 text-slate-400 font-bold">STOCK</td>
+                                    <td class="px-8 py-4 text-right font-black text-slate-400">- ¥42,800</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <footer class="h-8 bg-white border-t border-slate-200 px-8 flex items-center justify-between">
+            <div class="mono text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                Nodes: Tokyo-A / Latency: 24ms
+            </div>
+            <div class="mono text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                © 2026 Yorutsuke Internal Build
+            </div>
+        </footer>
+    </main>
+
+</body>
+</html>
