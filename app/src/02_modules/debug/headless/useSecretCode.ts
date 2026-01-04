@@ -10,7 +10,8 @@ const CODE_TIMEOUT = 2000; // Reset after 2 seconds of inactivity
  * User must press 5-4-1-7-8-#-#-# in sequence to unlock
  */
 export function useSecretCode() {
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  // Default to true for development - change to false for production
+  const [isUnlocked, setIsUnlocked] = useState(true);
   const inputRef = useRef('');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
