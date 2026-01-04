@@ -1,7 +1,7 @@
 // Pillar L: View - Debug tools for development
 // Follows same patterns as SettingsView for consistency
 import { useState, useEffect, useSyncExternalStore } from 'react';
-import { useAuth } from '../../auth';
+import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
 import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
@@ -19,6 +19,7 @@ function useLogs(): LogEntry[] {
 export function DebugView() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
   const { state, update } = useSettings();
   const logs = useLogs();
 
@@ -28,7 +29,7 @@ export function DebugView() {
   const [seedResult, setSeedResult] = useState<string | null>(null);
 
   // Handle loading state
-  if (state.status === 'loading' || state.status === 'idle') {
+  if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
     return (
       <div className="debug">
         <DebugHeader title={t('debug.title')} />
@@ -54,9 +55,9 @@ export function DebugView() {
 
   const handleSeedData = async (force: boolean) => {
     const TAG = 'DebugUI';
-    dlog.info(TAG, 'Seed button clicked', { userId: user?.id, scenario: seedScenario });
+    dlog.info(TAG, 'Seed button clicked', { userId: effectiveUserId, scenario: seedScenario });
 
-    if (!user?.id) {
+    if (!effectiveUserId) {
       dlog.error(TAG, 'No user ID available');
       setSeedResult('No user ID available');
       return;
@@ -66,7 +67,7 @@ export function DebugView() {
     setSeedResult(null);
 
     try {
-      const result = await seedMockTransactions(user.id, seedScenario, force);
+      const result = await seedMockTransactions(effectiveUserId, seedScenario, force);
       dlog.info(TAG, 'Seed result', result);
 
       if (result.seeded) {
@@ -185,7 +186,7 @@ export function DebugView() {
                   type="button"
                   className="btn-action btn-action--primary"
                   onClick={() => handleSeedData(true)}
-                  disabled={seedStatus === 'seeding' || !user?.id}
+                  disabled={seedStatus === 'seeding' || !effectiveUserId}
                 >
                   {seedStatus === 'seeding' ? t('common.loading') : t('debug.seed')}
                 </button>
