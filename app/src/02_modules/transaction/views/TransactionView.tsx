@@ -16,7 +16,7 @@ const MONTHS_JA = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月
 
 export function TransactionView({ userId }: TransactionViewProps) {
   const { t, i18n } = useTranslation();
-  const { state, transactions, filteredTransactions, confirm, remove } = useTransactionLogic(userId);
+  const { state, filteredTransactions, confirm, remove } = useTransactionLogic(userId);
 
   // Year/month selection state
   const currentYear = new Date().getFullYear();

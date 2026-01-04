@@ -23,7 +23,7 @@ function createTestImage(id: string, status: ReceiptImage['status'] = 'pending')
 }
 
 // Initial state helper
-const initialState: CaptureState = { status: 'idle', queue: [] };
+const initialState: CaptureState = { status: 'idle', queue: [], skippedCount: 0 };
 
 describe('captureReducer', () => {
   describe('ADD_IMAGE', () => {
@@ -42,6 +42,7 @@ describe('captureReducer', () => {
       const state: CaptureState = {
         status: 'idle',
         queue: [createTestImage('img-1')],
+        skippedCount: 0,
       };
       const action: CaptureAction = { type: 'ADD_IMAGE', image: createTestImage('img-2') };
 
@@ -56,6 +57,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = { type: 'ADD_IMAGE', image: createTestImage('img-2') };
 
@@ -79,6 +81,7 @@ describe('captureReducer', () => {
       const state: CaptureState = {
         status: 'idle',
         queue: [createTestImage('img-1')],
+        skippedCount: 0,
       };
       const images = [createTestImage('img-1'), createTestImage('img-2')];
       const action: CaptureAction = { type: 'RESTORE_QUEUE', images };
@@ -95,6 +98,7 @@ describe('captureReducer', () => {
       const state: CaptureState = {
         status: 'idle',
         queue: [createTestImage('img-1')],
+        skippedCount: 0,
       };
       const action: CaptureAction = { type: 'START_PROCESS', id: ImageId('img-1') };
 
@@ -111,6 +115,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = {
         type: 'PROCESS_SUCCESS',
@@ -132,6 +137,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1'), createTestImage('img-2')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = {
         type: 'PROCESS_SUCCESS',
@@ -154,6 +160,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1'), createTestImage('img-2')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = {
         type: 'DUPLICATE_DETECTED',
@@ -174,6 +181,7 @@ describe('captureReducer', () => {
       const state: CaptureState = {
         status: 'idle',
         queue: [createTestImage('img-1', 'compressed')],
+        skippedCount: 0,
       };
       const action: CaptureAction = { type: 'START_UPLOAD', id: ImageId('img-1') };
 
@@ -191,6 +199,7 @@ describe('captureReducer', () => {
         status: 'uploading',
         queue: [createTestImage('img-1', 'uploading')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = {
         type: 'UPLOAD_SUCCESS',
@@ -213,6 +222,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = {
         type: 'FAILURE',
@@ -233,6 +243,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1'), createTestImage('img-2')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = {
         type: 'FAILURE',
@@ -253,6 +264,7 @@ describe('captureReducer', () => {
       const state: CaptureState = {
         status: 'idle',
         queue: [createTestImage('img-1'), createTestImage('img-2')],
+        skippedCount: 0,
       };
       const action: CaptureAction = { type: 'REMOVE', id: ImageId('img-1') };
 
@@ -267,6 +279,7 @@ describe('captureReducer', () => {
         status: 'processing',
         queue: [createTestImage('img-1'), createTestImage('img-2')],
         currentId: ImageId('img-1'),
+        skippedCount: 0,
       };
       const action: CaptureAction = { type: 'REMOVE', id: ImageId('img-2') };
 
@@ -281,6 +294,7 @@ describe('captureReducer', () => {
       const state: CaptureState = {
         status: 'idle',
         queue: [createTestImage('img-1')],
+        skippedCount: 0,
       };
       // @ts-expect-error - testing unknown action
       const action: CaptureAction = { type: 'UNKNOWN_ACTION' };

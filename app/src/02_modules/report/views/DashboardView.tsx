@@ -34,7 +34,7 @@ export function DashboardView({ userId }: DashboardViewProps) {
 
   // Count pending (unconfirmed) transactions
   const pendingCount = useMemo(
-    () => transactions.filter(tx => !tx.confirmed).length,
+    () => transactions.filter(tx => !tx.confirmedAt).length,
     [transactions]
   );
 
@@ -46,9 +46,9 @@ export function DashboardView({ userId }: DashboardViewProps) {
       .slice(0, 4)
       .map(tx => ({
         id: tx.id,
-        icon: tx.confirmed ? '✅' : '🧾',
-        iconBg: tx.confirmed ? 'bg-blue-100' : 'bg-emerald-100',
-        title: tx.confirmed ? t('dashboard.activity.confirmed') : t('dashboard.activity.uploaded'),
+        icon: tx.confirmedAt ? '✅' : '🧾',
+        iconBg: tx.confirmedAt ? 'bg-blue-100' : 'bg-emerald-100',
+        title: tx.confirmedAt ? t('dashboard.activity.confirmed') : t('dashboard.activity.uploaded'),
         subtitle: `${tx.merchant || tx.category} - ¥${Math.abs(tx.amount).toLocaleString()}`,
         time: formatRelativeTime(tx.createdAt),
       }));

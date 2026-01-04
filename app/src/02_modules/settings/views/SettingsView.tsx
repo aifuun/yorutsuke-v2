@@ -1,7 +1,9 @@
 // Pillar L: View - renders data from headless hook
+import { useState } from 'react';
 import { useSettings } from '../headless';
 import { useAuth } from '../../auth';
 import { useTranslation, changeLanguage } from '../../../i18n';
+import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import '../styles/settings.css';
 
 // App version from package.json
@@ -11,6 +13,11 @@ export function SettingsView() {
   const { t } = useTranslation();
   const { state, update } = useSettings();
   const { user, logout } = useAuth();
+
+  // Dev tools state
+  const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
+  const [seedStatus, setSeedStatus] = useState<'idle' | 'seeding' | 'done'>('idle');
+  const [seedResult, setSeedResult] = useState<string | null>(null);
 
   // Handle all states (Pillar D: FSM)
   if (state.status === 'loading' || state.status === 'idle') {
@@ -46,6 +53,23 @@ export function SettingsView() {
     if (confirm(t('settings.logoutConfirm'))) {
       await logout();
     }
+  };
+
+  const handleSeedData = async (force: boolean) => {
+    if (!user?.id) return;
+    setSeedStatus('seeding');
+    setSeedResult(null);
+    try {
+      const result = await seedMockTransactions(user.id, seedScenario, force);
+      if (result.seeded) {
+        setSeedResult(t('settings.seedSuccess', { count: result.count }));
+      } else {
+        setSeedResult(t('settings.seedSkipped'));
+      }
+    } catch (e) {
+      setSeedResult(t('settings.seedError'));
+    }
+    setSeedStatus('done');
   };
 
   return (
@@ -266,6 +290,52 @@ export function SettingsView() {
                   <span className="debug-panel__label">Mock Mode</span>
                   <span className="debug-panel__value">false</span>
                 </div>
+              </div>
+            )}
+
+            {/* Seed Mock Data (Dev Tool) */}
+            {currentSettings.debugEnabled && (
+              <div className="setting-row">
+                <div className="setting-info">
+                  <p className="setting-label">{t('settings.seedData')}</p>
+                  <p className="setting-hint">{t('settings.seedDataHint')}</p>
+                </div>
+                <div className="seed-controls">
+                  <select
+                    className="setting-select"
+                    value={seedScenario}
+                    onChange={(e) => setSeedScenario(e.target.value as SeedScenario)}
+                    disabled={seedStatus === 'seeding'}
+                  >
+                    {getSeedScenarios().map((scenario) => (
+                      <option key={scenario} value={scenario}>
+                        {scenario}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-action btn-action--primary"
+                    onClick={() => handleSeedData(false)}
+                    disabled={seedStatus === 'seeding' || !user?.id}
+                  >
+                    {seedStatus === 'seeding' ? t('common.loading') : t('settings.seed')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-action btn-action--danger"
+                    onClick={() => handleSeedData(true)}
+                    disabled={seedStatus === 'seeding' || !user?.id}
+                    title={t('settings.seedForceHint')}
+                  >
+                    {t('settings.seedForce')}
+                  </button>
+                </div>
+              </div>
+            )}
+            {seedResult && currentSettings.debugEnabled && (
+              <div className="seed-result">
+                <span className="debug-panel__value">{seedResult}</span>
               </div>
             )}
           </div>

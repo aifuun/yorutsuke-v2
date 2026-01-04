@@ -156,7 +156,7 @@ export function CaptureView() {
                             {config.icon} {t(config.label)}
                           </span>
                         </div>
-                        {(image.status === 'compressing' || image.status === 'uploading') && (
+                        {(image.status === 'pending' || image.status === 'uploading') && (
                           <div className="progress-bar">
                             <div className="progress-bar__fill progress-bar__fill--info progress-bar__fill--animated" />
                           </div>

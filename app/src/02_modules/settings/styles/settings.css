@@ -297,6 +297,25 @@
   color: #60A5FA;
 }
 
+/* Seed Controls (Dev Tool) */
+.seed-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.seed-controls .setting-select {
+  min-width: 100px;
+}
+
+.seed-result {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .settings-header {
