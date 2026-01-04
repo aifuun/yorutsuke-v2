@@ -7,6 +7,17 @@ import type { AppSettings } from '../adapters/settingsDb';
 import { loadSettings, saveSetting } from '../adapters/settingsDb';
 import { changeLanguage } from '../../../i18n';
 
+/**
+ * Apply theme to DOM by setting data-theme attribute on root element
+ */
+function applyTheme(theme: 'light' | 'dark'): void {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
 // FSM State
 type State =
   | { status: 'idle' }
@@ -70,6 +81,10 @@ export function useSettings(): UseSettingsResult {
       if (settings.language) {
         changeLanguage(settings.language);
       }
+      // Sync theme with stored setting
+      if (settings.theme) {
+        applyTheme(settings.theme);
+      }
       dispatch({ type: 'LOAD_SUCCESS', settings });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
@@ -82,6 +97,12 @@ export function useSettings(): UseSettingsResult {
   ) => {
     // Optimistic update
     dispatch({ type: 'UPDATE', key, value });
+
+    // Apply theme immediately when changed
+    if (key === 'theme') {
+      applyTheme(value as 'light' | 'dark');
+    }
+
     try {
       await saveSetting(key, value);
     } catch (e) {
