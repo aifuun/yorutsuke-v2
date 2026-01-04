@@ -13,7 +13,13 @@ const MAX_LOGS = 100;
 const logs: LogEntry[] = [];
 const listeners: Set<() => void> = new Set();
 
+// Cached snapshot for useSyncExternalStore
+// Must return same reference unless data changed
+let snapshot: LogEntry[] = [];
+
 function notify() {
+  // Update snapshot only when data changes
+  snapshot = [...logs];
   listeners.forEach((fn) => fn());
 }
 
@@ -67,10 +73,10 @@ export const dlog = {
 };
 
 /**
- * Get all logs
+ * Get all logs (returns cached snapshot for useSyncExternalStore)
  */
 export function getLogs(): LogEntry[] {
-  return [...logs];
+  return snapshot;
 }
 
 /**
@@ -78,7 +84,8 @@ export function getLogs(): LogEntry[] {
  */
 export function clearLogs() {
   logs.length = 0;
-  notify();
+  snapshot = [];
+  listeners.forEach((fn) => fn());
 }
 
 /**
