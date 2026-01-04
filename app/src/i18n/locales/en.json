@@ -148,6 +148,16 @@
     "income": "Income",
     "expense": "Expense"
   },
+  "ledger": {
+    "yearly": "Yearly",
+    "interval": "Interval",
+    "fullYear": "Full Year",
+    "annualInflow": "Annual Inflow",
+    "annualOutflow": "Annual Outflow",
+    "latestEntries": "Latest Registry Entries",
+    "totalItems": "Total: {{count}} Items",
+    "newEntry": "New Entry"
+  },
   "history": {
     "title": "History",
     "monthlySummary": "Monthly Summary",

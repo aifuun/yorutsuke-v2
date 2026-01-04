@@ -148,6 +148,16 @@
     "income": "収入",
     "expense": "支出"
   },
+  "ledger": {
+    "yearly": "年度",
+    "interval": "期間",
+    "fullYear": "年間",
+    "annualInflow": "年間収入",
+    "annualOutflow": "年間支出",
+    "latestEntries": "最新の取引",
+    "totalItems": "全{{count}}件",
+    "newEntry": "新規登録"
+  },
   "history": {
     "title": "履歴",
     "monthlySummary": "月間サマリー",
