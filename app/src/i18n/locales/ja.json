@@ -116,7 +116,10 @@
     "email": "メールアドレス",
     "password": "パスワード",
     "forgotPassword": "パスワードを忘れた",
-    "guest": "ゲスト"
+    "guest": "ゲスト",
+    "guestMode": "ゲストモード",
+    "guestWarning": "データは60日後に期限切れになります。アカウントを作成してデータを永久保存しましょう。",
+    "registerNow": "登録"
   },
   "error": {
     "title": "エラーが発生しました",
@@ -202,6 +205,8 @@
     "tapToRetry": "タップしてリトライ",
     "retryAll": "全ての失敗を再試行",
     "clearCompleted": "完了項目をクリア",
+    "duplicateDetected": "重複検出",
+    "duplicateSkipped": "この画像は{{date}}に既にアップロードされています。自動的にスキップしました。",
     "status": {
       "pending": "待機中",
       "compressing": "圧縮中",

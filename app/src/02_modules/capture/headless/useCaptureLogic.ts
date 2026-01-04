@@ -25,9 +25,9 @@ import type { ImageRow } from '../../../00_kernel/storage';
 // This allows processing to continue even when some images fail
 // Exported for testing
 export type CaptureState =
-  | { status: 'idle'; queue: ReceiptImage[] }
-  | { status: 'processing'; queue: ReceiptImage[]; currentId: ImageId }
-  | { status: 'uploading'; queue: ReceiptImage[]; currentId: ImageId };
+  | { status: 'idle'; queue: ReceiptImage[]; skippedCount: number }
+  | { status: 'processing'; queue: ReceiptImage[]; currentId: ImageId; skippedCount: number }
+  | { status: 'uploading'; queue: ReceiptImage[]; currentId: ImageId; skippedCount: number };
 
 // Exported for testing
 export type CaptureAction =
@@ -66,6 +66,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
         status: 'processing',
         queue: updateImageStatus(state.queue, action.id, 'pending'),
         currentId: action.id,
+        skippedCount: state.skippedCount,
       };
 
     case 'PROCESS_SUCCESS':
@@ -76,6 +77,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
             ? { ...img, status: 'compressed' as ImageStatus, compressedSize: action.compressedSize }
             : img
         ),
+        skippedCount: state.skippedCount,
       };
 
     case 'DUPLICATE_DETECTED':
@@ -83,6 +85,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
       return {
         status: 'idle',
         queue: state.queue.filter(img => img.id !== action.id),
+        skippedCount: state.skippedCount + 1,
       };
 
     case 'START_UPLOAD':
@@ -90,6 +93,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
         status: 'uploading',
         queue: updateImageStatus(state.queue, action.id, 'uploading'),
         currentId: action.id,
+        skippedCount: state.skippedCount,
       };
 
     case 'UPLOAD_SUCCESS':
@@ -100,6 +104,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
             ? { ...img, status: 'uploaded' as ImageStatus, s3Key: action.s3Key, uploadedAt: new Date().toISOString() }
             : img
         ),
+        skippedCount: state.skippedCount,
       };
 
     case 'FAILURE':
@@ -112,6 +117,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
             ? { ...img, status: 'failed' as ImageStatus, error: action.error }
             : img
         ),
+        skippedCount: state.skippedCount,
       };
 
     case 'REMOVE':
@@ -126,6 +132,7 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
       return {
         status: 'idle',
         queue: [],
+        skippedCount: 0,
       };
 
     default:
@@ -175,7 +182,7 @@ function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
  * @param dailyLimit - Daily upload limit (from useQuota)
  */
 export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) {
-  const [state, dispatch] = useReducer(captureReducer, { status: 'idle', queue: [] });
+  const [state, dispatch] = useReducer(captureReducer, { status: 'idle', queue: [], skippedCount: 0 });
   const processingRef = useRef<Set<string>>(new Set()); // Track images being processed
   const restoredRef = useRef(false); // Prevent double restoration in StrictMode
 

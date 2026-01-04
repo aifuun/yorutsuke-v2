@@ -116,7 +116,10 @@
     "email": "Email",
     "password": "Password",
     "forgotPassword": "Forgot Password",
-    "guest": "Guest"
+    "guest": "Guest",
+    "guestMode": "Guest Mode",
+    "guestWarning": "Data expires in 60 days. Create an account to keep your data forever.",
+    "registerNow": "Register"
   },
   "error": {
     "title": "Something went wrong",
@@ -202,6 +205,8 @@
     "tapToRetry": "Tap to retry",
     "retryAll": "Retry all failed",
     "clearCompleted": "Clear completed",
+    "duplicateDetected": "Duplicate Detected",
+    "duplicateSkipped": "This image was uploaded on {{date}}. Automatically skipped.",
     "status": {
       "pending": "Waiting",
       "compressing": "Compressing",

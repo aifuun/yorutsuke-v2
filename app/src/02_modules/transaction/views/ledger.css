@@ -398,6 +398,15 @@
   color: #F43F5E;
 }
 
+.account-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #CBD5E1;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
 .transaction-actions {
   display: flex;
   gap: 8px;

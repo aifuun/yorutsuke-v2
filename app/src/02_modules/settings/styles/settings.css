@@ -189,6 +189,63 @@
   color: #2563EB;
 }
 
+/* Guest Warning Banner */
+.guest-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: 20px;
+}
+
+.guest-warning__icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.guest-warning__content {
+  flex: 1;
+}
+
+.guest-warning__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #92400E;
+  margin: 0 0 8px 0;
+}
+
+.guest-warning__text {
+  font-size: 14px;
+  color: #B45309;
+  margin: 0 0 16px 0;
+}
+
+.guest-warning__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-action--warning {
+  background: #D97706;
+  color: #FFFFFF;
+}
+
+.btn-action--warning:hover {
+  background: #B45309;
+}
+
+.btn-action--ghost {
+  background: #FFFFFF;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.btn-action--ghost:hover {
+  background: #FEF3C7;
+}
+
 /* Debug Section */
 .debug-header {
   display: flex;

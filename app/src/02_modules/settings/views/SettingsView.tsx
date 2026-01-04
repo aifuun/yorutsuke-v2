@@ -155,6 +155,21 @@ export function SettingsView() {
             </div>
           </div>
 
+          {/* Guest Mode Warning */}
+          {!user?.email && (
+            <div className="guest-warning">
+              <div className="guest-warning__icon">👤</div>
+              <div className="guest-warning__content">
+                <p className="guest-warning__title">{t('auth.guestMode')}</p>
+                <p className="guest-warning__text">{t('auth.guestWarning')}</p>
+                <div className="guest-warning__actions">
+                  <button className="btn-action btn-action--warning">{t('auth.registerNow')}</button>
+                  <button className="btn-action btn-action--ghost">{t('auth.login')}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Data Section */}
           <div className="premium-card settings-card">
             <h2 className="section-header">{t('settings.data')}</h2>

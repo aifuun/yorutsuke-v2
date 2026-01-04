@@ -197,6 +197,20 @@ export function CaptureView() {
               <span className="summary-value mono">{uploadedCount}</span>
             </span>
           </div>
+
+          {/* Duplicate Detection Banner (shown when duplicates are skipped) */}
+          {/* TODO: Connect to duplicate detection logic in useCaptureLogic */}
+          {state.skippedCount > 0 && (
+            <div className="info-banner info-banner--info">
+              <span className="banner-icon">ℹ️</span>
+              <div className="banner-content">
+                <p className="banner-title">{t('capture.duplicateDetected')}</p>
+                <p className="banner-text">
+                  {t('capture.duplicateSkipped', { date: new Date().toISOString().split('T')[0] })}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

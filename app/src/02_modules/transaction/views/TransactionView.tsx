@@ -233,6 +233,7 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
         <div className={`transaction-amount ${isIncome ? 'amount--income' : 'amount--expense'}`}>
           {isIncome ? '+' : '-'} ¥{transaction.amount.toLocaleString()}
         </div>
+        <div className="account-label">{transaction.category.toUpperCase()}</div>
         <div className="transaction-actions">
           {!isConfirmed && (
             <button
