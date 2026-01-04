@@ -2,7 +2,7 @@
 // Pillar G: Traceability - @trigger annotations for event flow
 
 import { emit } from '../eventBus';
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 import type { NetworkState } from './types';
 
 /**
@@ -29,7 +29,7 @@ export function isNetworkOnline(): boolean {
  * Emit network changed event via EventBus
  */
 export function emitNetworkChanged(online: boolean): void {
-  logger.info('[Network] Status changed', { online });
+  logger.info(EVENTS.NETWORK_STATUS_CHANGED, { online });
   emit('network:changed', { online });
 }
 
@@ -55,7 +55,7 @@ export function setupNetworkListeners(
     const prevState = currentState;
     currentState = 'online';
 
-    logger.debug('[Network] Browser online event');
+    logger.debug('browser_online_event');
     emitNetworkChanged(true);
 
     onStateChange?.(currentState, prevState);
@@ -68,7 +68,7 @@ export function setupNetworkListeners(
     const prevState = currentState;
     currentState = 'offline';
 
-    logger.debug('[Network] Browser offline event');
+    logger.debug('browser_offline_event');
     emitNetworkChanged(false);
 
     onStateChange?.(currentState, prevState);
@@ -77,11 +77,11 @@ export function setupNetworkListeners(
   window.addEventListener('online', handleOnline);
   window.addEventListener('offline', handleOffline);
 
-  logger.debug('[Network] Listeners registered', { initialState: currentState });
+  logger.debug('network_listeners_registered', { initialState: currentState });
 
   return () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
-    logger.debug('[Network] Listeners removed');
+    logger.debug('network_listeners_removed');
   };
 }

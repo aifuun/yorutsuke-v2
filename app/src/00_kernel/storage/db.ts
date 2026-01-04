@@ -2,7 +2,7 @@
 // Singleton pattern for SQLite connection
 
 import Database from '@tauri-apps/plugin-sql';
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 import { runMigrations } from './migrations';
 
 const DB_NAME = 'sqlite:yorutsuke.db';
@@ -41,16 +41,17 @@ export async function initDb(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      logger.info('[Storage] Initializing database', { name: DB_NAME });
+      logger.info(EVENTS.DB_INITIALIZED, { name: DB_NAME, phase: 'start' });
 
       db = await Database.load(DB_NAME);
 
       // Run all migrations
       await runMigrations(db);
 
-      logger.info('[Storage] Database initialized successfully');
+      logger.info(EVENTS.DB_INITIALIZED, { name: DB_NAME, phase: 'complete' });
     } catch (error) {
-      logger.error('[Storage] Failed to initialize database', {
+      logger.error(EVENTS.APP_ERROR, {
+        component: 'database',
         error: String(error),
       });
       throw error;
@@ -69,7 +70,7 @@ export async function closeDb(): Promise<void> {
     await db.close();
     db = null;
     initPromise = null;
-    logger.info('[Storage] Database connection closed');
+    logger.info('db_connection_closed');
   }
 }
 
@@ -89,16 +90,16 @@ export async function withTransaction<T>(
   const database = await getDb();
 
   await database.execute('BEGIN TRANSACTION');
-  logger.debug('[Storage] Transaction started');
+  logger.debug('db_transaction_started');
 
   try {
     const result = await fn(database);
     await database.execute('COMMIT');
-    logger.debug('[Storage] Transaction committed');
+    logger.debug('db_transaction_committed');
     return result;
   } catch (error) {
     await database.execute('ROLLBACK');
-    logger.warn('[Storage] Transaction rolled back', { error: String(error) });
+    logger.warn('db_transaction_rollback', { error: String(error) });
     throw error;
   }
 }

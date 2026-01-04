@@ -2,12 +2,12 @@
 // Secret code detection hook for revealing debug menu
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const SECRET_CODE = '54178';
+const SECRET_CODE = '54178###';
 const CODE_TIMEOUT = 2000; // Reset after 2 seconds of inactivity
 
 /**
  * Hook to detect secret key sequence for revealing debug menu
- * User must press 5-4-1-7-8 in sequence to unlock
+ * User must press 5-4-1-7-8-#-#-# in sequence to unlock
  */
 export function useSecretCode() {
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -19,8 +19,9 @@ export function useSecretCode() {
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Only listen to number keys
-    if (!/^[0-9]$/.test(event.key)) {
+    // Only listen to number keys and #
+    const key = event.key === '#' ? '#' : event.key;
+    if (!/^[0-9#]$/.test(key)) {
       return;
     }
 
@@ -30,7 +31,7 @@ export function useSecretCode() {
     }
 
     // Add key to input
-    inputRef.current += event.key;
+    inputRef.current += key;
 
     // Check if code matches
     if (inputRef.current === SECRET_CODE) {

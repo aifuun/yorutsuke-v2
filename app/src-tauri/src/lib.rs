@@ -1,7 +1,8 @@
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::Path;
+use chrono::{Local, Duration};
 use image::GenericImageView;
-use tauri::Manager;
 
 /// Get the app's data directory for storing compressed images
 fn get_data_dir() -> std::path::PathBuf {
@@ -125,6 +126,114 @@ fn delete_file(path: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to delete file: {}", e))
 }
 
+// ============================================================================
+// Logging System (Pillar R: Observability)
+// ============================================================================
+
+/// Get the logs directory (~/.yorutsuke/logs/)
+fn get_logs_dir() -> std::path::PathBuf {
+    let home = dirs::home_dir().unwrap_or_else(|| std::env::temp_dir());
+    let logs_dir = home.join(".yorutsuke").join("logs");
+    fs::create_dir_all(&logs_dir).ok();
+    logs_dir
+}
+
+/// Log entry from frontend
+#[derive(serde::Deserialize)]
+pub struct LogEntry {
+    pub timestamp: String,
+    pub level: String,
+    pub event: String,
+    #[serde(rename = "traceId")]
+    pub trace_id: String,
+    #[serde(rename = "userId")]
+    pub user_id: Option<String>,
+    #[serde(flatten)]
+    pub extra: std::collections::HashMap<String, serde_json::Value>,
+}
+
+/// Write a log entry to the daily log file
+/// File format: ~/.yorutsuke/logs/YYYY-MM-DD.jsonl
+#[tauri::command]
+fn log_write(entry: LogEntry) -> Result<(), String> {
+    let logs_dir = get_logs_dir();
+    let today = Local::now().format("%Y-%m-%d").to_string();
+    let log_file = logs_dir.join(format!("{}.jsonl", today));
+
+    // Reconstruct the full JSON entry
+    let mut json_obj = serde_json::json!({
+        "timestamp": entry.timestamp,
+        "level": entry.level,
+        "event": entry.event,
+        "traceId": entry.trace_id,
+    });
+
+    if let Some(user_id) = &entry.user_id {
+        json_obj["userId"] = serde_json::json!(user_id);
+    }
+
+    // Merge extra fields
+    if let serde_json::Value::Object(ref mut map) = json_obj {
+        for (key, value) in entry.extra {
+            map.insert(key, value);
+        }
+    }
+
+    let json_line = serde_json::to_string(&json_obj)
+        .map_err(|e| format!("Failed to serialize log entry: {}", e))?;
+
+    // Append to file
+    let mut file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_file)
+        .map_err(|e| format!("Failed to open log file: {}", e))?;
+
+    writeln!(file, "{}", json_line)
+        .map_err(|e| format!("Failed to write log entry: {}", e))?;
+
+    Ok(())
+}
+
+/// Clean up log files older than retention days (default: 7)
+#[tauri::command]
+fn log_cleanup(retention_days: Option<i64>) -> Result<u32, String> {
+    let retention = retention_days.unwrap_or(7);
+    let logs_dir = get_logs_dir();
+    let cutoff = Local::now() - Duration::days(retention);
+    let cutoff_str = cutoff.format("%Y-%m-%d").to_string();
+
+    let mut deleted_count = 0u32;
+
+    let entries = fs::read_dir(&logs_dir)
+        .map_err(|e| format!("Failed to read logs directory: {}", e))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+            // Only process .jsonl files with date format
+            if filename.ends_with(".jsonl") && filename.len() == 15 {
+                let date_part = &filename[..10]; // YYYY-MM-DD
+                if date_part < cutoff_str.as_str() {
+                    if fs::remove_file(&path).is_ok() {
+                        deleted_count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(deleted_count)
+}
+
+/// Get the path to today's log file (for debugging)
+#[tauri::command]
+fn log_get_path() -> String {
+    let logs_dir = get_logs_dir();
+    let today = Local::now().format("%Y-%m-%d").to_string();
+    logs_dir.join(format!("{}.jsonl", today)).to_string_lossy().to_string()
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! Welcome to Yorutsuke.", name)
@@ -141,7 +250,10 @@ pub fn run() {
             greet,
             compress_image,
             get_image_hash,
-            delete_file
+            delete_file,
+            log_write,
+            log_cleanup,
+            log_get_path
         ])
         .setup(|_app| {
             // DevTools can be opened manually with Cmd+Option+I (macOS) or F12 (Windows/Linux)

@@ -1,15 +1,26 @@
 // Pillar L: View - Debug tools for development
-import { useState } from 'react';
+// Follows same patterns as SettingsView for consistency
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useAuth } from '../../auth';
 import { useSettings } from '../../settings/headless';
 import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
+import { dlog, getLogs, clearLogs, subscribeLogs, type LogEntry } from '../headless/debugLog';
 import './debug.css';
+
+// App version from package.json
+const APP_VERSION = '0.1.0';
+
+// Hook to subscribe to debug logs
+function useLogs(): LogEntry[] {
+  return useSyncExternalStore(subscribeLogs, getLogs, getLogs);
+}
 
 export function DebugView() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { state, update } = useSettings();
+  const logs = useLogs();
 
   // Seed data state
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
@@ -42,33 +53,38 @@ export function DebugView() {
   const currentSettings = state.settings;
 
   const handleSeedData = async (force: boolean) => {
-    console.log('[seedData] Starting seed, user:', user);
+    const TAG = 'DebugUI';
+    dlog.info(TAG, 'Seed button clicked', { userId: user?.id, scenario: seedScenario });
+
     if (!user?.id) {
-      console.log('[seedData] No user ID, aborting');
+      dlog.error(TAG, 'No user ID available');
       setSeedResult('No user ID available');
       return;
     }
+
     setSeedStatus('seeding');
     setSeedResult(null);
+
     try {
-      console.log('[seedData] Calling seedMockTransactions with:', user.id, seedScenario, force);
       const result = await seedMockTransactions(user.id, seedScenario, force);
-      console.log('[seedData] Result:', result);
+      dlog.info(TAG, 'Seed result', result);
+
       if (result.seeded) {
         setSeedResult(t('debug.seedSuccess', { count: result.count }));
       } else {
         setSeedResult(t('debug.seedSkipped'));
       }
     } catch (e) {
-      console.error('[seedData] Error:', e);
+      dlog.error(TAG, 'Seed failed', e);
       setSeedResult(t('debug.seedError'));
     }
+
     setSeedStatus('done');
   };
 
   return (
     <div className="debug">
-      <DebugHeader title={t('debug.title')} />
+      <DebugHeader title={t('debug.title')} version={APP_VERSION} />
 
       <div className="debug-content">
         <div className="debug-container">
@@ -78,32 +94,67 @@ export function DebugView() {
             <div className="debug-info-panel">
               <div className="debug-info-row">
                 <span className="debug-info-label">User ID</span>
-                <span className="debug-info-value mono">{user?.id || 'guest'}</span>
+                <span className="debug-info-value">{user?.id || 'guest'}</span>
               </div>
               <div className="debug-info-row">
                 <span className="debug-info-label">Email</span>
-                <span className="debug-info-value mono">{user?.email || 'N/A'}</span>
+                <span className="debug-info-value">{user?.email || 'N/A'}</span>
               </div>
               <div className="debug-info-row">
                 <span className="debug-info-label">Tier</span>
-                <span className="debug-info-value mono">{user?.tier || 'free'}</span>
+                <span className="debug-info-value">{user?.tier || 'free'}</span>
               </div>
               <div className="debug-info-row">
                 <span className="debug-info-label">Theme</span>
-                <span className="debug-info-value mono">{currentSettings.theme}</span>
+                <span className="debug-info-value">{currentSettings.theme}</span>
               </div>
               <div className="debug-info-row">
                 <span className="debug-info-label">Language</span>
-                <span className="debug-info-value mono">{currentSettings.language}</span>
+                <span className="debug-info-value">{currentSettings.language}</span>
               </div>
               <div className="debug-info-row">
                 <span className="debug-info-label">DB Version</span>
-                <span className="debug-info-value mono">3</span>
+                <span className="debug-info-value">3</span>
               </div>
               <div className="debug-info-row">
                 <span className="debug-info-label">App Version</span>
-                <span className="debug-info-value mono">0.1.0</span>
+                <span className="debug-info-value">{APP_VERSION}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Debug Logs */}
+          <div className="premium-card debug-card">
+            <div className="debug-logs-header">
+              <h2 className="section-header">Logs</h2>
+              <button
+                type="button"
+                className="btn-action btn-action--ghost"
+                onClick={clearLogs}
+                disabled={logs.length === 0}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="debug-logs-panel">
+              {logs.length === 0 ? (
+                <div className="debug-logs-empty">No logs yet</div>
+              ) : (
+                logs.slice().reverse().map((log, i) => (
+                  <div key={i} className={`debug-log-entry debug-log-entry--${log.level}`}>
+                    <span className="debug-log-time">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="debug-log-tag">[{log.tag}]</span>
+                    <span className="debug-log-msg">{log.message}</span>
+                    {log.data && (
+                      <span className="debug-log-data">
+                        {typeof log.data === 'object' ? JSON.stringify(log.data) : String(log.data)}
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -132,20 +183,11 @@ export function DebugView() {
               <div className="seed-actions">
                 <button
                   type="button"
-                  className="btn-debug btn-debug--primary"
-                  onClick={() => handleSeedData(false)}
+                  className="btn-action btn-action--primary"
+                  onClick={() => handleSeedData(true)}
                   disabled={seedStatus === 'seeding' || !user?.id}
                 >
                   {seedStatus === 'seeding' ? t('common.loading') : t('debug.seed')}
-                </button>
-                <button
-                  type="button"
-                  className="btn-debug btn-debug--danger"
-                  onClick={() => handleSeedData(true)}
-                  disabled={seedStatus === 'seeding' || !user?.id}
-                  title={t('debug.seedForceHint')}
-                >
-                  {t('debug.seedForce')}
                 </button>
               </div>
 
@@ -161,10 +203,10 @@ export function DebugView() {
           <div className="premium-card debug-card">
             <h2 className="section-header">{t('debug.featureFlags')}</h2>
 
-            <div className="flag-row">
-              <div className="flag-info">
-                <p className="flag-label">{t('debug.verboseLogging')}</p>
-                <p className="flag-hint">{t('debug.verboseLoggingHint')}</p>
+            <div className="debug-setting-row">
+              <div className="debug-setting-info">
+                <p className="debug-setting-label">{t('debug.verboseLogging')}</p>
+                <p className="debug-setting-hint">{t('debug.verboseLoggingHint')}</p>
               </div>
               <button
                 type="button"
@@ -181,19 +223,25 @@ export function DebugView() {
             <h2 className="section-header">{t('debug.dangerZone')}</h2>
             <p className="debug-hint">{t('debug.dangerZoneHint')}</p>
 
-            <div className="danger-actions">
-              <button
-                type="button"
-                className="btn-debug btn-debug--danger"
-                onClick={() => {
-                  if (confirm(t('debug.clearCacheConfirm'))) {
-                    localStorage.clear();
-                    window.location.reload();
-                  }
-                }}
-              >
-                {t('debug.clearLocalStorage')}
-              </button>
+            <div className="danger-section">
+              <div className="danger-row">
+                <div className="danger-info">
+                  <p className="danger-label">{t('debug.clearLocalStorage')}</p>
+                  <p className="danger-hint">{t('settings.clearCacheHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-action btn-action--danger"
+                  onClick={() => {
+                    if (confirm(t('debug.clearCacheConfirm'))) {
+                      localStorage.clear();
+                      window.location.reload();
+                    }
+                  }}
+                >
+                  {t('settings.clear')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -202,12 +250,12 @@ export function DebugView() {
   );
 }
 
-// Header component
-function DebugHeader({ title }: { title: string }) {
+// Header component - matches SettingsHeader pattern
+function DebugHeader({ title, version }: { title: string; version?: string }) {
   return (
     <header className="debug-header">
-      <div className="debug-header-icon">🔧</div>
       <h1 className="debug-title">{title}</h1>
+      {version && <span className="debug-version mono">v{version}</span>}
     </header>
   );
 }

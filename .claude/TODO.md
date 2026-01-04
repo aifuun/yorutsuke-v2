@@ -2,17 +2,18 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Focus: Control Strategy Alignment
+## Current Issue: #78 - Logging System Optimization
 
-Status: 🔧 IN PROGRESS
+**Tier**: T2 (Tauri IPC + File System)
+**Pillars**: R (Observability), N (Context), G (Traceability)
 
-v1.0.0 production ready. Now aligning implementation with Control Strategy design.
-
-**Priority Order**:
-1. P1 Issues (#24, #25) - Data Integrity
-2. P2 Issues (#26, #27) - Reliability
-3. Documentation (#20-#23)
-4. P3 Issues (#28, #29) - Robustness (optional)
+### Steps
+- [x] Create `docs/LOGGING.md` design document
+- [x] Implement Tauri `log_write` command
+- [x] Implement log file rotation (7 days)
+- [x] Integrate `logger.ts` with Tauri IPC
+- [x] Add missing EVENTS constants
+- [x] Fix inconsistent log calls in kernel files
 
 ## Milestones
 

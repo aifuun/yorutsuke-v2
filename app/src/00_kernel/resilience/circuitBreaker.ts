@@ -1,5 +1,5 @@
 // Circuit Breaker - Pillar P: Fail fast on errors
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 
 type CircuitState = 'closed' | 'open' | 'half-open';
 
@@ -57,7 +57,7 @@ export function createCircuitBreaker(options: CircuitBreakerOptions = {}) {
       if (state.lastFailure && Date.now() - state.lastFailure >= resetTimeout) {
         state.state = 'half-open';
         state.successes = 0;
-        logger.info('[CircuitBreaker] Transitioning to half-open');
+        logger.info(EVENTS.CIRCUIT_HALF_OPEN);
         return true;
       }
       return false;
@@ -73,7 +73,7 @@ export function createCircuitBreaker(options: CircuitBreakerOptions = {}) {
       if (state.successes >= successThreshold) {
         state.state = 'closed';
         state.failures = 0;
-        logger.info('[CircuitBreaker] Closed - service recovered');
+        logger.info(EVENTS.CIRCUIT_CLOSED);
       }
     } else {
       state.failures = 0;
@@ -86,10 +86,11 @@ export function createCircuitBreaker(options: CircuitBreakerOptions = {}) {
 
     if (state.state === 'half-open') {
       state.state = 'open';
-      logger.warn('[CircuitBreaker] Reopened - half-open test failed');
+      logger.warn(EVENTS.CIRCUIT_OPENED, { reason: 'half_open_test_failed' });
     } else if (state.failures >= failureThreshold) {
       state.state = 'open';
-      logger.warn('[CircuitBreaker] Opened - threshold reached', {
+      logger.warn(EVENTS.CIRCUIT_OPENED, {
+        reason: 'threshold_reached',
         failures: state.failures,
         threshold: failureThreshold,
       });
@@ -116,7 +117,7 @@ export function createCircuitBreaker(options: CircuitBreakerOptions = {}) {
     state.failures = 0;
     state.successes = 0;
     state.lastFailure = null;
-    logger.info('[CircuitBreaker] Manually reset');
+    logger.info(EVENTS.CIRCUIT_CLOSED, { reason: 'manual_reset' });
   }
 
   function getState(): CircuitState {

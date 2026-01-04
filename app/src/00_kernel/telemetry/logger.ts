@@ -1,6 +1,7 @@
 // Pillar R: Semantic Observability - structured JSON logs
 // All logs are machine-readable with semantic event names
 
+import { invoke } from '@tauri-apps/api/core';
 import type { ContextProvider } from './traceContext';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -33,6 +34,8 @@ export const EVENTS = {
   // Image processing
   IMAGE_COMPRESSED: 'IMAGE_COMPRESSED',
   IMAGE_COMPRESSION_FAILED: 'IMAGE_COMPRESSION_FAILED',
+  IMAGE_SAVED: 'IMAGE_SAVED',
+  IMAGE_DUPLICATE: 'IMAGE_DUPLICATE',
 
   // Quota
   QUOTA_CHECKED: 'QUOTA_CHECKED',
@@ -61,8 +64,22 @@ export const EVENTS = {
   // System
   APP_STARTED: 'APP_STARTED',
   APP_ERROR: 'APP_ERROR',
+
+  // Circuit breaker
   CIRCUIT_OPENED: 'CIRCUIT_OPENED',
   CIRCUIT_CLOSED: 'CIRCUIT_CLOSED',
+  CIRCUIT_HALF_OPEN: 'CIRCUIT_HALF_OPEN',
+
+  // Network
+  NETWORK_STATUS_CHANGED: 'NETWORK_STATUS_CHANGED',
+
+  // Database
+  DB_INITIALIZED: 'DB_INITIALIZED',
+  DB_MIGRATION_APPLIED: 'DB_MIGRATION_APPLIED',
+
+  // EventBus
+  EVENT_EMITTED: 'EVENT_EMITTED',
+  EVENT_SUBSCRIBED: 'EVENT_SUBSCRIBED',
 
   // State transitions
   STATE_TRANSITION: 'STATE_TRANSITION',
@@ -96,9 +113,24 @@ function createLogEntry(
     level,
     event,
     traceId: ctx?.traceId ?? 'no-trace',
-    userId: ctx?.userId,
+    userId: ctx?.userId ?? undefined,
     ...data,
   };
+}
+
+/**
+ * Write log entry to local file via Tauri IPC.
+ * Fire-and-forget: errors are silently ignored to avoid log recursion.
+ */
+function persistLog(entry: LogEntry): void {
+  // Skip persistence in browser-only mode
+  if (typeof window === 'undefined' || !('__TAURI__' in window)) {
+    return;
+  }
+
+  invoke('log_write', { entry }).catch(() => {
+    // Silently ignore - we can't log errors about logging
+  });
 }
 
 /**
@@ -113,20 +145,28 @@ function createLogEntry(
 export const logger = {
   debug: (event: string, data?: Record<string, unknown>) => {
     if (import.meta.env.DEV) {
-      console.debug(JSON.stringify(createLogEntry('debug', event, data)));
+      const entry = createLogEntry('debug', event, data);
+      console.debug(JSON.stringify(entry));
+      persistLog(entry);
     }
   },
 
   info: (event: string, data?: Record<string, unknown>) => {
-    console.info(JSON.stringify(createLogEntry('info', event, data)));
+    const entry = createLogEntry('info', event, data);
+    console.info(JSON.stringify(entry));
+    persistLog(entry);
   },
 
   warn: (event: string, data?: Record<string, unknown>) => {
-    console.warn(JSON.stringify(createLogEntry('warn', event, data)));
+    const entry = createLogEntry('warn', event, data);
+    console.warn(JSON.stringify(entry));
+    persistLog(entry);
   },
 
   error: (event: string, data?: Record<string, unknown>) => {
-    console.error(JSON.stringify(createLogEntry('error', event, data)));
+    const entry = createLogEntry('error', event, data);
+    console.error(JSON.stringify(entry));
+    persistLog(entry);
   },
 };
 
@@ -148,4 +188,40 @@ export function logStateTransition(params: {
     to,
     ...rest,
   });
+}
+
+/**
+ * Initialize logging system.
+ * - Cleans up old log files (> 7 days)
+ * Call once at app startup.
+ */
+export async function initLogger(): Promise<void> {
+  // Skip in browser-only mode
+  if (typeof window === 'undefined' || !('__TAURI__' in window)) {
+    return;
+  }
+
+  try {
+    const deleted = await invoke<number>('log_cleanup', { retentionDays: 7 });
+    if (deleted > 0) {
+      logger.info(EVENTS.APP_STARTED, { logFilesCleanedUp: deleted });
+    }
+  } catch {
+    // Silently ignore cleanup errors
+  }
+}
+
+/**
+ * Get the path to today's log file (for debugging).
+ */
+export async function getLogFilePath(): Promise<string | null> {
+  if (typeof window === 'undefined' || !('__TAURI__' in window)) {
+    return null;
+  }
+
+  try {
+    return await invoke<string>('log_get_path');
+  } catch {
+    return null;
+  }
 }

@@ -1,7 +1,7 @@
 // Event Bus - Type-safe cross-component communication
 // Pillar G: Traceability - AI-traceable event flow
 
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 import type { AppEvents, AppEventKey } from './types';
 
 /**
@@ -18,7 +18,7 @@ export function emit<K extends AppEventKey>(
   data: AppEvents[K]
 ): void {
   if (import.meta.env.DEV) {
-    logger.debug(`[EventBus] emit: ${eventName}`, { event: eventName, data });
+    logger.debug(EVENTS.EVENT_EMITTED, { event: eventName, data });
   }
 
   window.dispatchEvent(
@@ -50,13 +50,13 @@ export function on<K extends AppEventKey>(
   window.addEventListener(eventName, listener);
 
   if (import.meta.env.DEV) {
-    logger.debug(`[EventBus] subscribe: ${eventName}`, { event: eventName });
+    logger.debug(EVENTS.EVENT_SUBSCRIBED, { event: eventName });
   }
 
   return () => {
     window.removeEventListener(eventName, listener);
     if (import.meta.env.DEV) {
-      logger.debug(`[EventBus] unsubscribe: ${eventName}`, { event: eventName });
+      logger.debug('event_unsubscribed', { event: eventName });
     }
   };
 }

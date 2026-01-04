@@ -2,7 +2,7 @@
 // Idempotent schema updates with version tracking
 
 import type Database from '@tauri-apps/plugin-sql';
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
 const CURRENT_VERSION = 3;
@@ -12,14 +12,14 @@ const CURRENT_VERSION = 3;
  * Safe to call multiple times (idempotent)
  */
 export async function runMigrations(db: Database): Promise<void> {
-  logger.info('[Migrations] Starting migrations');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'start' });
 
   // Create core tables first
   await createCoreTables(db);
 
   // Get current version
   const version = await getVersion(db);
-  logger.info('[Migrations] Current schema version', { version, target: CURRENT_VERSION });
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'check', current: version, target: CURRENT_VERSION });
 
   // Run migrations in order
   if (version < 1) {
@@ -37,7 +37,7 @@ export async function runMigrations(db: Database): Promise<void> {
     await setVersion(db, 3);
   }
 
-  logger.info('[Migrations] Migrations complete', { version: CURRENT_VERSION });
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
 }
 
 /**
@@ -131,14 +131,14 @@ async function createCoreTables(db: Database): Promise<void> {
     )
   `);
 
-  logger.debug('[Migrations] Core tables created');
+  logger.debug('db_core_tables_created');
 }
 
 /**
  * Migration v1: Add indexes for performance
  */
 async function migration_v1(db: Database): Promise<void> {
-  logger.info('[Migrations] Running migration v1: Add indexes');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 1, name: 'add_indexes', phase: 'start' });
 
   // Images indexes
   await safeCreateIndex(db, 'idx_images_status', 'images', 'status');
@@ -166,7 +166,7 @@ async function migration_v1(db: Database): Promise<void> {
     INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark')
   `);
 
-  logger.info('[Migrations] Migration v1 complete');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 1, phase: 'complete' });
 }
 
 /**
@@ -175,7 +175,7 @@ async function migration_v1(db: Database): Promise<void> {
  * Pillar Q: IntentId for idempotency
  */
 async function migration_v2(db: Database): Promise<void> {
-  logger.info('[Migrations] Running migration v2: Add trace_id and intent_id to images');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 2, name: 'add_trace_intent_id', phase: 'start' });
 
   // Add trace_id column (Pillar N)
   await safeAddColumn(db, 'images', 'trace_id', 'TEXT');
@@ -185,7 +185,7 @@ async function migration_v2(db: Database): Promise<void> {
   await safeAddColumn(db, 'images', 'intent_id', 'TEXT');
   await safeCreateIndex(db, 'idx_images_intent_id', 'images', 'intent_id');
 
-  logger.info('[Migrations] Migration v2 complete');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 2, phase: 'complete' });
 }
 
 /**
@@ -193,7 +193,7 @@ async function migration_v2(db: Database): Promise<void> {
  * Fixes #48: Multi-user data isolation
  */
 async function migration_v3(db: Database): Promise<void> {
-  logger.info('[Migrations] Running migration v3: Add user_id to images');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 3, name: 'add_user_id', phase: 'start' });
 
   // Add user_id column for multi-user support
   await safeAddColumn(db, 'images', 'user_id', 'TEXT');
@@ -202,7 +202,7 @@ async function migration_v3(db: Database): Promise<void> {
   // Add uploaded_at column for quota calculation
   await safeAddColumn(db, 'images', 'uploaded_at', 'TEXT');
 
-  logger.info('[Migrations] Migration v3 complete');
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 3, phase: 'complete' });
 }
 
 // ============================================================================
@@ -249,10 +249,7 @@ async function safeCreateIndex(
     );
   } catch (error) {
     // Index might already exist with different definition
-    logger.warn('[Migrations] Could not create index', {
-      index: indexName,
-      error: String(error),
-    });
+    logger.warn('db_index_create_failed', { index: indexName, error: String(error) });
   }
 }
 
@@ -270,9 +267,9 @@ export async function safeAddColumn(
     await db.execute(
       `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`
     );
-    logger.debug('[Migrations] Added column', { table: tableName, column: columnName });
+    logger.debug('db_column_added', { table: tableName, column: columnName });
   } catch {
     // Column already exists, ignore
-    logger.debug('[Migrations] Column already exists', { table: tableName, column: columnName });
+    logger.debug('db_column_exists', { table: tableName, column: columnName });
   }
 }

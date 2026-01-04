@@ -2,7 +2,7 @@
 // Generated once on first launch, persisted in SQLite
 
 import { getSetting, setSetting } from '../storage/db';
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 import type { UserId as UserIdType } from '../types';
 import { UserId } from '../types';
 
@@ -27,17 +27,15 @@ export async function getDeviceId(): Promise<UserIdType> {
       // Generate new UUID
       deviceId = `device-${crypto.randomUUID()}`;
       await setSetting(DEVICE_ID_KEY, deviceId);
-      logger.info('[Identity] Generated new Device ID', { deviceId });
+      logger.info(EVENTS.DEVICE_ID_GENERATED, { deviceId });
     } else {
-      logger.debug('[Identity] Loaded existing Device ID', { deviceId });
+      logger.debug(EVENTS.DEVICE_ID_LOADED, { deviceId });
     }
 
     return UserId(deviceId);
   } catch (error) {
     // Fallback: generate ephemeral ID (won't persist across restarts)
-    logger.warn('[Identity] Failed to persist Device ID, using ephemeral', {
-      error: String(error),
-    });
+    logger.warn('device_id_persist_failed', { error: String(error) });
     return UserId(`ephemeral-${crypto.randomUUID()}`);
   }
 }

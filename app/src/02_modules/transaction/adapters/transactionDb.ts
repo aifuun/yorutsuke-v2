@@ -106,3 +106,15 @@ export async function confirmTransaction(id: TransactionIdType): Promise<void> {
     [new Date().toISOString(), new Date().toISOString(), id],
   );
 }
+
+/**
+ * Delete all transactions for a user (for dev tools)
+ */
+export async function clearAllTransactions(userId: UserIdType): Promise<number> {
+  const database = await getDb();
+  const result = await database.execute(
+    'DELETE FROM transactions WHERE user_id = ?',
+    [userId],
+  );
+  return result.rowsAffected ?? 0;
+}

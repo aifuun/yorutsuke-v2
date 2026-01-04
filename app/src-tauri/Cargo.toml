@@ -26,6 +26,10 @@ image = "0.25"
 webp = "0.3"
 md5 = "0.7"
 
+# Logging
+chrono = "0.4"
+dirs = "5"
+
 [profile.release]
 panic = "abort"
 codegen-units = 1

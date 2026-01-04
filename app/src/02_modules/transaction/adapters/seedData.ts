@@ -1,7 +1,8 @@
 // Seed mock data for development (Pillar C)
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import { TransactionId, ImageId, UserId } from '../../../00_kernel/types';
-import { fetchTransactions, saveTransaction } from './transactionDb';
+import { fetchTransactions, saveTransaction, clearAllTransactions } from './transactionDb';
+import { dlog } from '../../debug/headless/debugLog';
 
 // =========================================================================
 // Seeded Random Generator (for reproducible mock data)
@@ -245,19 +246,31 @@ export async function seedMockTransactions(
   scenario: SeedScenario = 'default',
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
-  console.log('[seedMockTransactions] Called with:', { userId, scenario, force });
+  const TAG = 'Seed';
+  dlog.info(TAG, 'Starting', { userId, scenario, force });
+
   try {
     const existing = await fetchTransactions(userId);
-    console.log('[seedMockTransactions] Existing transactions:', existing.length);
+    dlog.info(TAG, `Found ${existing.length} existing transactions`);
+
     if (existing.length > 0 && !force) {
-      console.log('[seedMockTransactions] Skipping - data exists');
-      return { seeded: false, count: 0 }; // Already has data
+      dlog.warn(TAG, 'Skipping - data exists, use force to overwrite');
+      return { seeded: false, count: 0 };
+    }
+
+    // Clear existing data when force=true
+    if (force && existing.length > 0) {
+      dlog.info(TAG, 'Clearing existing transactions...');
+      const cleared = await clearAllTransactions(userId);
+      dlog.info(TAG, `Cleared ${cleared} transactions`);
     }
 
     const config = SCENARIO_CONFIG[scenario];
-    console.log('[seedMockTransactions] Config:', config);
+    dlog.info(TAG, 'Config loaded', config);
+
     if (config.daySpan === 0) {
-      return { seeded: true, count: 0 }; // Empty scenario
+      dlog.info(TAG, 'Empty scenario, no transactions to create');
+      return { seeded: true, count: 0 };
     }
 
     const seed = Date.now();
@@ -275,10 +288,9 @@ export async function seedMockTransactions(
         random
       );
 
-      console.log(`[seedMockTransactions] Day ${daysAgo}: creating ${txCount} transactions`);
+      dlog.info(TAG, `Day -${daysAgo}: creating ${txCount} transactions`);
 
       for (let i = 0; i < txCount; i++) {
-        // Determine type based on income ratio
         const forceType: TransactionType | undefined =
           random() < config.incomeRatio ? 'income' : 'expense';
 
@@ -290,16 +302,15 @@ export async function seedMockTransactions(
           confirmRatio: config.confirmRatio,
         });
 
-        console.log(`[seedMockTransactions] Saving tx ${totalCount + 1}:`, tx.id);
         await saveTransaction(tx);
         totalCount++;
       }
     }
 
-    console.log('[seedMockTransactions] Done, total:', totalCount);
+    dlog.info(TAG, `Complete! Created ${totalCount} transactions`);
     return { seeded: true, count: totalCount };
   } catch (e) {
-    console.error('[seedData] Failed to seed:', e);
+    dlog.error(TAG, 'Failed to seed', e);
     return { seeded: false, count: 0 };
   }
 }
@@ -307,15 +318,13 @@ export async function seedMockTransactions(
 /**
  * Clear all transactions for a user (for dev tools)
  */
-export async function clearTransactions(userId: UserId): Promise<boolean> {
+export async function clearTransactions(userId: UserId): Promise<{ cleared: boolean; count: number }> {
   try {
-    const existing = await fetchTransactions(userId);
-    // Note: Would need deleteTransaction to be exported, or add a clearAll function
-    // For now, just return false as this is a dev utility
-    console.log(`[seedData] Would clear ${existing.length} transactions for ${userId}`);
-    return false;
+    const count = await clearAllTransactions(userId);
+    console.log(`[seedData] Cleared ${count} transactions for ${userId}`);
+    return { cleared: true, count };
   } catch (e) {
     console.error('[seedData] Failed to clear:', e);
-    return false;
+    return { cleared: false, count: 0 };
   }
 }
