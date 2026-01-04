@@ -114,6 +114,7 @@ Now tracked as GitHub Issues:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #51 Auto-refresh quota after tier change (2026-01-04)
 - #28 Intent-ID for idempotency (Pillar Q) (2026-01-02)
 - #20 DESIGN.md sidebar design (2026-01-02)
 - #21 CHANGELOG.md version history (2026-01-02)

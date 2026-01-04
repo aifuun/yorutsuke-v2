@@ -1,14 +1,20 @@
 // Pillar L: Headless - logic without UI
 // Pillar D: FSM - no boolean flags
-import { useReducer, useCallback, useEffect } from 'react';
+// @listen upload:complete - Refresh quota after successful upload
+import { useReducer, useCallback, useEffect, useRef } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import { fetchQuota, type QuotaResponse, type UserTier, type GuestExpirationInfo } from '../adapters/quotaApi';
+import { useAppEvent } from '../../../00_kernel/eventBus';
+import { logger } from '../../../00_kernel/telemetry';
 
 // Default values for offline/guest mode
 const DEFAULTS = {
   limit: 30,        // Guest tier default
   tier: 'guest' as UserTier,
 };
+
+// Refresh intervals
+const PERIODIC_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
 
 // Warning threshold for guest data expiration
 const EXPIRATION_WARNING_DAYS = 14;
@@ -83,6 +89,53 @@ export function useQuota(userId: UserId | null) {
     if (userId) {
       refresh();
     }
+  }, [userId, refresh]);
+
+  // Track if component is mounted to prevent refresh on unmounted component
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // 1. Refresh after upload completes (immediate accuracy)
+  // @listen upload:complete
+  useAppEvent('upload:complete', () => {
+    if (userId && isMountedRef.current) {
+      logger.debug('[Quota] Refreshing after upload complete');
+      refresh();
+    }
+  });
+
+  // 2. Periodic refresh every 5 minutes (catch tier changes)
+  useEffect(() => {
+    if (!userId) return;
+
+    const interval = setInterval(() => {
+      if (isMountedRef.current) {
+        logger.debug('[Quota] Periodic refresh');
+        refresh();
+      }
+    }, PERIODIC_REFRESH_MS);
+
+    return () => clearInterval(interval);
+  }, [userId, refresh]);
+
+  // 3. Refresh on app focus/visibility change (catch changes while away)
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isMountedRef.current) {
+        logger.debug('[Quota] Refreshing on visibility change');
+        refresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userId, refresh]);
 
   // Helper to compute guest fields

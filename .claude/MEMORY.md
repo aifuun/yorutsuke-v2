@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-03] 修复 capture pipeline 核心 bug (#45-49)
-- **Next Steps**: Manual testing with real Tauri app, then unit/integration tests
+- **Last Progress**: [2026-01-04] Auto-refresh quota after tier change (#51)
+- **Next Steps**: Continue with remaining open issues (#50, #52, #54-56)
 - **Blockers**: None
 
 ## Architecture Decisions

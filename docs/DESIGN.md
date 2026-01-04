@@ -283,7 +283,7 @@ The app uses a **sidebar navigation** pattern (not bottom tabs):
 │                                                                │
 │  About                                                         │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Version           2.0.0                                │   │
+│  │  Version           2.1.0                                │   │
 │  │  [Check for updates]                                    │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                │

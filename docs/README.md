@@ -14,6 +14,7 @@
 | [QUOTA](./QUOTA.md) | Quota system | Dev, Ops |
 | [DEPLOYMENT](./DEPLOYMENT.md) | Build & deploy | Dev, Ops |
 | [OPERATIONS](./OPERATIONS.md) | Emergency & monitoring | Ops |
+| [ADMIN_PANEL](./ADMIN_PANEL.md) | Admin console guide | Ops |
 | [CHANGELOG](./CHANGELOG.md) | Version history | All |
 | [ROADMAP](./ROADMAP.md) | Future plans | PM, Dev |
 | [TEST_SCENARIOS](./TEST_SCENARIOS.md) | Test cases & QA | Dev, QA |
@@ -108,6 +109,7 @@ Design (Look & Feel)
 Operations (Run & Maintain)
 ├── DEPLOYMENT.md      Build, deploy, rollback
 ├── OPERATIONS.md      Monitoring, emergency response
+├── ADMIN_PANEL.md     Admin console, controls
 └── QUOTA.md           Quota tiers, cost control
 
 Testing (Quality)

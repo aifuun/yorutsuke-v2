@@ -126,7 +126,7 @@ aws cloudformation describe-stacks \
 cd app
 npm run tauri build
 
-# Output: src-tauri/target/release/bundle/dmg/Yorutsuke_0.1.0_aarch64.dmg
+# Output: src-tauri/target/release/bundle/dmg/Yorutsuke_2.1.0_aarch64.dmg
 ```
 
 ### Windows
@@ -135,7 +135,7 @@ npm run tauri build
 # On Windows machine or cross-compile
 npm run tauri build
 
-# Output: src-tauri/target/release/bundle/msi/Yorutsuke_0.1.0_x64_en-US.msi
+# Output: src-tauri/target/release/bundle/msi/Yorutsuke_2.1.0_x64_en-US.msi
 ```
 
 ### Linux
@@ -143,7 +143,7 @@ npm run tauri build
 ```bash
 npm run tauri build
 
-# Output: src-tauri/target/release/bundle/appimage/yorutsuke_0.1.0_amd64.AppImage
+# Output: src-tauri/target/release/bundle/appimage/yorutsuke_2.1.0_amd64.AppImage
 ```
 
 ---
