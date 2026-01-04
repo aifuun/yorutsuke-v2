@@ -1,4 +1,5 @@
 export * from './ReportView';
+export * from './DashboardView';
 export * from './ReportHistoryView';
 export * from './CalendarView';
 export * from './FilterBar';

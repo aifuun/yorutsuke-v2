@@ -3,7 +3,7 @@ import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
 import { USE_MOCK } from './00_kernel/config/mock';
 import { Sidebar, type ViewType } from './components/Sidebar';
-import { ReportView } from './02_modules/report';
+import { DashboardView } from './02_modules/report';
 import { CaptureView } from './02_modules/capture';
 import { TransactionView } from './02_modules/transaction';
 import { SettingsView } from './02_modules/settings';
@@ -24,7 +24,7 @@ function AppContent() {
 
         <main className="main-content accounting-grid">
           <div className={`view-panel ${activeView === 'dashboard' ? 'active' : ''}`}>
-            <ReportView userId={userId} />
+            <DashboardView userId={userId} />
           </div>
 
           <div className={`view-panel ${activeView === 'capture' ? 'active' : ''}`}>

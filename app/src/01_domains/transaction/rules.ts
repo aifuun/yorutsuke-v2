@@ -81,6 +81,30 @@ export function createDailySummary(
   };
 }
 
+/**
+ * Create monthly summary from all transactions
+ * Uses current month by default
+ */
+export function createMonthlySummary(
+  transactions: Transaction[],
+  yearMonth?: string, // YYYY-MM format
+): { income: number; expense: number; net: number; count: number } {
+  const targetMonth = yearMonth || new Date().toISOString().slice(0, 7);
+
+  const monthTransactions = transactions.filter(t => t.date.startsWith(targetMonth));
+  const { income, expense } = categorizeByType(monthTransactions);
+
+  const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = expense.reduce((sum, t) => sum + t.amount, 0);
+
+  return {
+    income: totalIncome,
+    expense: totalExpense,
+    net: totalIncome - totalExpense,
+    count: monthTransactions.length,
+  };
+}
+
 // Validation rules
 export function isValidAmount(amount: number): boolean {
   return amount > 0 && Number.isFinite(amount);

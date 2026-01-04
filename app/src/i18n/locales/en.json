@@ -32,6 +32,20 @@
     "netProfit": "Net Profit",
     "categoryBreakdown": "Category Breakdown"
   },
+  "dashboard": {
+    "todayBalance": "Today's Balance",
+    "monthlyIncome": "Monthly Income",
+    "monthlyExpense": "Monthly Expense",
+    "pending": "Pending",
+    "quotaRemaining": "Quota Left",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
+    "viewAllInLedger": "View all in Ledger",
+    "activity": {
+      "uploaded": "Receipt uploaded",
+      "confirmed": "Transaction confirmed"
+    }
+  },
   "transaction": {
     "edit": "Edit",
     "confirm": "Confirm",

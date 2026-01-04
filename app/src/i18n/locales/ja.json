@@ -32,6 +32,20 @@
     "netProfit": "純利益",
     "categoryBreakdown": "カテゴリ内訳"
   },
+  "dashboard": {
+    "todayBalance": "今日の収支",
+    "monthlyIncome": "月収入",
+    "monthlyExpense": "月支出",
+    "pending": "待処理",
+    "quotaRemaining": "残り枠",
+    "recentActivity": "最近のアクティビティ",
+    "noActivity": "最近のアクティビティはありません",
+    "viewAllInLedger": "台帳で全て見る",
+    "activity": {
+      "uploaded": "レシート アップロード完了",
+      "confirmed": "取引確認済み"
+    }
+  },
   "transaction": {
     "edit": "編集",
     "confirm": "確認",
