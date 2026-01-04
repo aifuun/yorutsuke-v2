@@ -88,7 +88,7 @@ export function DashboardView({ userId }: DashboardViewProps) {
     );
   }
 
-  const netBalance = todaySummary.income - todaySummary.expense;
+  const netBalance = todaySummary.totalIncome - todaySummary.totalExpense;
   const isPositive = netBalance >= 0;
 
   return (
@@ -110,11 +110,11 @@ export function DashboardView({ userId }: DashboardViewProps) {
             </div>
             <div className="hero-breakdown">
               <div className="hero-income">
-                <span className="hero-value">+¥{todaySummary.income.toLocaleString()}</span>
+                <span className="hero-value">+¥{todaySummary.totalIncome.toLocaleString()}</span>
                 <span className="hero-label">{t('report.income')}</span>
               </div>
               <div className="hero-expense">
-                <span className="hero-value">-¥{todaySummary.expense.toLocaleString()}</span>
+                <span className="hero-value">-¥{todaySummary.totalExpense.toLocaleString()}</span>
                 <span className="hero-label">{t('report.expense')}</span>
               </div>
             </div>

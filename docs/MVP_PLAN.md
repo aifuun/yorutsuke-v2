@@ -2,7 +2,7 @@
 
 > Incremental testing plan for manual verification
 
-**Version**: 1.0.0
+**Version**: 1.1.0
 **Last Updated**: 2026-01-04
 
 ## Overview
@@ -10,8 +10,17 @@
 逐步验证产品功能，从最小可测试单元开始，每个 MVP 阶段都可独立手动测试。
 
 ```
-MVP1 (Local)  →  MVP2 (Upload)  →  MVP3 (Batch)  →  MVP4 (Auth)
-   纯本地           上传云端         夜间处理         完整认证
+MVP1 (Local) → MVP2 (Upload) → MVP3 (Batch) → MVP3.5 (Sync) → MVP4 (Auth)
+   纯本地         上传云端        夜间处理        确认回写        完整认证
+```
+
+### 数据流向
+
+```
+MVP1-2: 本地 ────────────────────────────► 云端 (图片上传)
+MVP3:   本地 ◄──────────────────────────── 云端 (AI 结果拉取)
+MVP3.5: 本地 ────────────────────────────► 云端 (确认回写)
+MVP4:   本地 ◄──────────────────────────► 云端 (完整双向)
 ```
 
 ---
@@ -178,6 +187,156 @@ aws lambda invoke \
 
 ---
 
+## MVP3.5 - 确认回写 (Cloud Sync)
+
+> **目标**: 验证用户确认的交易同步到云端，支持数据恢复
+
+### 背景
+
+```
+当前问题：
+- 图片已上传到 S3 ✓
+- AI 结果存在 DynamoDB ✓
+- 用户确认只存本地 SQLite ✗ ← 设备丢失 = 数据丢失
+
+解决方案：
+- 确认交易时同步到 DynamoDB
+- 新设备登录时可恢复已确认交易
+```
+
+### 功能范围
+
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| 确认回写 | 确认交易时同步到 DynamoDB | [ ] |
+| 编辑回写 | 修改金额/分类后同步 | [ ] |
+| 删除回写 | 删除交易时同步 | [ ] |
+| 离线队列 | 离线时暂存，恢复后同步 | [ ] |
+| 数据恢复 | 新设备登录拉取已确认交易 | [ ] |
+| 冲突处理 | Last-Write-Wins 策略 | [ ] |
+
+### 数据流
+
+```
+确认交易时：
+┌─────────────────┐                  ┌─────────────────┐
+│ 用户点击确认     │                  │ DynamoDB        │
+│       ↓         │                  │                 │
+│ SQLite 更新     │ ──── POST ────► │ transactions/   │
+│ confirmedAt     │   /confirm       │   confirmedAt   │
+│                 │                  │   amount (修改) │
+└─────────────────┘                  └─────────────────┘
+
+新设备恢复时：
+┌─────────────────┐                  ┌─────────────────┐
+│ 登录成功        │                  │ DynamoDB        │
+│       ↓         │  ◄─── GET ────  │                 │
+│ 检测云端数据     │   /confirmed     │ 已确认交易列表   │
+│       ↓         │                  │                 │
+│ 提示恢复？      │                  │                 │
+│       ↓         │                  │                 │
+│ 写入 SQLite     │                  │                 │
+└─────────────────┘                  └─────────────────┘
+```
+
+### API 设计
+
+```typescript
+// POST /transactions/confirm
+{
+  transactionId: string;
+  confirmedAt: string;
+  amount?: number;      // 用户修改后的金额
+  category?: string;    // 用户修改后的分类
+  description?: string; // 用户修改后的描述
+}
+
+// GET /transactions/confirmed?userId=xxx
+{
+  transactions: Transaction[];
+  lastSyncAt: string;
+}
+
+// DELETE /transactions/{id}
+// 标记为已删除，不物理删除
+```
+
+### 测试场景
+
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-800 | 确认交易 | 本地+云端都更新 |
+| SC-801 | 修改后确认 | 修改内容同步到云端 |
+| SC-802 | 删除交易 | 云端标记删除 |
+| SC-803 | 离线确认 | 恢复网络后自动同步 |
+| SC-804 | 新设备登录 | 提示恢复云端数据 |
+| SC-805 | 恢复数据 | 已确认交易写入本地 |
+| SC-806 | 冲突处理 | 较新的记录覆盖旧的 |
+
+### 环境配置
+
+```bash
+# 需要新增 Lambda: transactions-sync
+cd infra
+cdk deploy YorutsukeTransactionSyncStack --profile dev
+
+# 配置 Sync API
+cd app
+echo "VITE_LAMBDA_SYNC_URL=https://xxx.lambda-url.ap-northeast-1.on.aws" >> .env.local
+npm run tauri dev
+```
+
+### 验收标准
+
+- [ ] 确认交易后 DynamoDB 有记录
+- [ ] 修改交易后云端数据更新
+- [ ] 删除交易后云端标记删除
+- [ ] 离线确认，恢复后自动同步
+- [ ] 新设备登录可恢复已确认交易
+- [ ] 本地和云端数据一致
+
+### 依赖
+
+- Lambda: `transactions-sync` (新增)
+- DynamoDB: `yorutsuke-transactions-dev`
+- 需要先完成 MVP3
+
+### 实现要点
+
+```typescript
+// 1. 确认时同步 (异步，不阻塞 UI)
+const confirm = async (id: TransactionId) => {
+  await confirmTransaction(id);  // 本地
+  dispatch({ type: 'CONFIRM_SUCCESS', id });
+
+  // 异步同步到云端
+  syncToCloud(id).catch(queueForRetry);
+};
+
+// 2. 离线队列
+interface SyncQueue {
+  pending: Array<{
+    action: 'confirm' | 'update' | 'delete';
+    transactionId: string;
+    data: Partial<Transaction>;
+    queuedAt: string;
+  }>;
+}
+
+// 3. 恢复流程
+const onLogin = async (userId: UserId) => {
+  const cloudData = await fetchConfirmedTransactions(userId);
+  if (cloudData.length > 0) {
+    const shouldRestore = await askUser('检测到云端数据，是否恢复？');
+    if (shouldRestore) {
+      await mergeToLocal(cloudData);
+    }
+  }
+};
+```
+
+---
+
 ## MVP4 - 完整认证 (Full Auth)
 
 > **目标**: 验证用户系统和配额管理
@@ -242,6 +401,7 @@ npm run tauri dev
 | MVP1 | 纯本地 | - | - | [ ] 未开始 |
 | MVP2 | 上传云端 | - | - | [ ] 未开始 |
 | MVP3 | 夜间处理 | - | - | [ ] 未开始 |
+| MVP3.5 | 确认回写 | - | - | [ ] 未开始 |
 | MVP4 | 完整认证 | - | - | [ ] 未开始 |
 
 ---
@@ -267,6 +427,13 @@ npm run tauri dev
 - [ ] AI 提取结果正确
 - [ ] 晨报显示正常
 - [ ] 交易管理正常
+- [ ] 截图/录屏存档
+
+### MVP3.5 检查表
+- [ ] 所有 SC-800~806 通过
+- [ ] DynamoDB 有确认记录
+- [ ] 离线同步队列正常
+- [ ] 新设备恢复成功
 - [ ] 截图/录屏存档
 
 ### MVP4 检查表
