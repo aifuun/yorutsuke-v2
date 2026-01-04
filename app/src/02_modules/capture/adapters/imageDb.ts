@@ -178,3 +178,39 @@ export async function countTodayUploads(userId: UserId): Promise<number> {
   logger.debug('[ImageDb] Today uploads count', { userId, count });
   return count;
 }
+
+/**
+ * Update user_id for all images belonging to a guest user
+ * Used when guest data is claimed on registration (#50)
+ *
+ * @param oldUserId - Guest user ID (guest-{deviceId})
+ * @param newUserId - New registered user ID
+ * @returns Number of images updated
+ */
+export async function updateImagesUserId(
+  oldUserId: UserId,
+  newUserId: UserId,
+): Promise<number> {
+  logger.info('[ImageDb] Migrating images to new user', { oldUserId, newUserId });
+
+  // Get count before update
+  const countRows = await select<Array<{ count: number }>>(
+    'SELECT COUNT(*) as count FROM images WHERE user_id = ?',
+    [String(oldUserId)],
+  );
+  const count = countRows[0]?.count ?? 0;
+
+  if (count === 0) {
+    logger.info('[ImageDb] No images to migrate', { oldUserId });
+    return 0;
+  }
+
+  // Update all images
+  await execute(
+    'UPDATE images SET user_id = ? WHERE user_id = ?',
+    [String(newUserId), String(oldUserId)],
+  );
+
+  logger.info('[ImageDb] Images migrated successfully', { oldUserId, newUserId, count });
+  return count;
+}

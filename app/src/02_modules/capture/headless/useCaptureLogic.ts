@@ -2,6 +2,7 @@
 // Pillar D: FSM - no boolean flags
 // Pillar Q: Intent-ID for idempotency
 // Pillar N: TraceId for lifecycle tracking
+// @listen auth:dataClaimed - Clear queue when guest data is claimed
 import { useReducer, useCallback, useEffect, useRef } from 'react';
 import type { ImageId, UserId, TraceId, IntentId } from '../../../00_kernel/types';
 import { ImageId as createImageId, createTraceId, createIntentId } from '../../../00_kernel/types';
@@ -14,7 +15,7 @@ import {
   loadUnfinishedImages,
   resetInterruptedUploads,
 } from '../adapters/imageDb';
-import { emit } from '../../../00_kernel/eventBus';
+import { emit, useAppEvent } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { useUploadQueue } from './useUploadQueue';
 import type { ImageRow } from '../../../00_kernel/storage';
@@ -38,7 +39,8 @@ export type CaptureAction =
   | { type: 'START_UPLOAD'; id: ImageId }
   | { type: 'UPLOAD_SUCCESS'; id: ImageId; s3Key: string }
   | { type: 'FAILURE'; id: ImageId; error: string }
-  | { type: 'REMOVE'; id: ImageId };
+  | { type: 'REMOVE'; id: ImageId }
+  | { type: 'CLEAR_QUEUE' };  // Clear queue when guest data is claimed (#50)
 
 // Exported for testing
 export function captureReducer(state: CaptureState, action: CaptureAction): CaptureState {
@@ -116,6 +118,14 @@ export function captureReducer(state: CaptureState, action: CaptureAction): Capt
       return {
         ...state,
         queue: state.queue.filter(img => img.id !== action.id),
+      };
+
+    case 'CLEAR_QUEUE':
+      // Clear all items when guest data is claimed (#50)
+      // Backend has migrated the data, so local queue is now stale
+      return {
+        status: 'idle',
+        queue: [],
       };
 
     default:
@@ -218,6 +228,20 @@ export function useCaptureLogic(userId: UserId | null, dailyLimit: number = 30) 
 
     restoreQueue();
   }, [userId]);
+
+  // =========================================================================
+  // Handle Guest Data Claim: Clear queue when user logs in (#50)
+  // =========================================================================
+  useAppEvent('auth:dataClaimed', ({ count, oldUserId, newUserId }) => {
+    logger.info('[CaptureLogic] Guest data claimed, clearing queue', {
+      count,
+      oldUserId,
+      newUserId,
+    });
+    dispatch({ type: 'CLEAR_QUEUE' });
+    // Reset restoration flag so queue will reload with new userId
+    restoredRef.current = false;
+  });
 
   const addImage = useCallback((image: ReceiptImage) => {
     dispatch({ type: 'ADD_IMAGE', image });

@@ -1,5 +1,7 @@
 # Quota System
 
+> User tiers, rate limiting, and cost controls
+
 Freemium model with tiered quotas to balance user value and cost control.
 
 ## User Tiers

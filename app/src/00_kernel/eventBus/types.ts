@@ -178,6 +178,21 @@ export interface AppEvents {
   'data:refresh': {
     source: string;
   };
+
+  // =========================================================================
+  // Auth Events
+  // =========================================================================
+
+  /**
+   * @trigger auth:dataClaimed
+   * @payload Guest data claimed on registration/login
+   * Used to notify capture module to clear local queue after migration
+   */
+  'auth:dataClaimed': {
+    count: number;
+    oldUserId: string;  // guest-{deviceId}
+    newUserId: string;  // actual userId
+  };
 }
 
 export type AppEventKey = keyof AppEvents;

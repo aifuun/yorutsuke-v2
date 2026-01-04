@@ -1,13 +1,16 @@
 // Auth Headless Hook
 // Pillar L: Headless - No JSX, returns data + functions only
 // Pillar D: FSM States - Uses AuthStatus union type
+// @trigger auth:dataClaimed - When guest data is claimed on login
 
 import { useReducer, useCallback, useEffect } from 'react';
 import { UserId } from '../../../00_kernel/types';
 import { logger } from '../../../00_kernel/telemetry';
+import { emit } from '../../../00_kernel/eventBus';
 import type { AuthState, AuthStatus, User } from '../types';
 import * as authApi from '../adapters/authApi';
 import * as tokenStorage from '../adapters/tokenStorage';
+import { updateImagesUserId } from '../../capture/adapters/imageDb';
 
 // Action types
 type Action =
@@ -192,6 +195,30 @@ export function useAuth(): UseAuthResult {
 
       dispatch({ type: 'LOADED', user });
       logger.info('[useAuth] Login success', { userId: user.id });
+
+      // Handle guest data claim (#50)
+      // When a guest registers and logs in, backend claims their device data
+      if (data.dataClaimed && data.dataClaimed > 0) {
+        const oldUserId = UserId(`guest-${deviceId}`);
+        const newUserId = user.id;
+
+        logger.info('[useAuth] Guest data claimed', {
+          count: data.dataClaimed,
+          oldUserId,
+          newUserId,
+        });
+
+        // Update local SQLite records with new userId
+        await updateImagesUserId(oldUserId, newUserId);
+
+        // Notify capture module to clear stale queue
+        // @trigger auth:dataClaimed
+        emit('auth:dataClaimed', {
+          count: data.dataClaimed,
+          oldUserId: String(oldUserId),
+          newUserId: String(newUserId),
+        });
+      }
 
       return { success: true };
     },
