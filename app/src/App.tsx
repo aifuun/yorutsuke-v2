@@ -3,14 +3,14 @@ import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
 import { USE_MOCK } from './00_kernel/config/mock';
 import { Sidebar, type ViewType } from './components/Sidebar';
-import { ReportView, ReportHistoryView } from './02_modules/report';
+import { ReportView } from './02_modules/report';
 import { CaptureView } from './02_modules/capture';
 import { TransactionView } from './02_modules/transaction';
 import { SettingsView } from './02_modules/settings';
 
 function AppContent() {
   const { userId } = useAppContext();
-  const [activeView, setActiveView] = useState<ViewType>('report');
+  const [activeView, setActiveView] = useState<ViewType>('dashboard');
 
   return (
     <div className="app-shell">
@@ -22,8 +22,8 @@ function AppContent() {
       <div className="app-body">
         <Sidebar activeView={activeView} onViewChange={setActiveView} userId={userId} />
 
-        <main className="main-content">
-          <div className={`view-panel ${activeView === 'report' ? 'active' : ''}`}>
+        <main className="main-content accounting-grid">
+          <div className={`view-panel ${activeView === 'dashboard' ? 'active' : ''}`}>
             <ReportView userId={userId} />
           </div>
 
@@ -31,12 +31,8 @@ function AppContent() {
             <CaptureView />
           </div>
 
-          <div className={`view-panel ${activeView === 'transactions' ? 'active' : ''}`}>
+          <div className={`view-panel ${activeView === 'ledger' ? 'active' : ''}`}>
             <TransactionView userId={userId} />
-          </div>
-
-          <div className={`view-panel ${activeView === 'history' ? 'active' : ''}`}>
-            <ReportHistoryView userId={userId} />
           </div>
 
           <div className={`view-panel ${activeView === 'settings' ? 'active' : ''}`}>

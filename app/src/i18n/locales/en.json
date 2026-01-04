@@ -4,10 +4,9 @@
     "tagline": "AI Accounting Assistant"
   },
   "nav": {
-    "report": "Report",
+    "dashboard": "Dashboard",
+    "ledger": "Ledger",
     "capture": "Capture",
-    "transactions": "Transactions",
-    "history": "History",
     "settings": "Settings"
   },
   "common": {
@@ -79,7 +78,8 @@
     "register": "Register",
     "email": "Email",
     "password": "Password",
-    "forgotPassword": "Forgot Password"
+    "forgotPassword": "Forgot Password",
+    "guest": "Guest"
   },
   "error": {
     "title": "Something went wrong",

@@ -4,10 +4,9 @@
     "tagline": "AI 記帳アシスタント"
   },
   "nav": {
-    "report": "レポート",
+    "dashboard": "ダッシュボード",
+    "ledger": "台帳",
     "capture": "撮影",
-    "transactions": "取引",
-    "history": "履歴",
     "settings": "設定"
   },
   "common": {
@@ -79,7 +78,8 @@
     "register": "登録",
     "email": "メールアドレス",
     "password": "パスワード",
-    "forgotPassword": "パスワードを忘れた"
+    "forgotPassword": "パスワードを忘れた",
+    "guest": "ゲスト"
   },
   "error": {
     "title": "エラーが発生しました",

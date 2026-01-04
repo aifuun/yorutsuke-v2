@@ -100,7 +100,7 @@ yorutsuke-v2/
 │   ├── REQUIREMENTS.md
 │   ├── ARCHITECTURE.md
 │   ├── SCHEMA.md
-│   ├── DESIGN.md
+│   ├── ui_design/          # UI mockups (HTML)
 │   └── INTERFACES.md
 │
 ├── .claude/                # Claude Code config

@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { BarChart3, ImagePlus, FileText, History, Settings } from 'lucide-react';
-import { useQuota, QuotaIndicator } from '../02_modules/capture';
+import { LayoutDashboard, Camera, BookOpen, Settings } from 'lucide-react';
 import type { UserId } from '../00_kernel/types';
 import './Sidebar.css';
 
-export type ViewType = 'report' | 'capture' | 'transactions' | 'history' | 'settings';
+export type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings';
 
 interface SidebarProps {
   activeView: ViewType;
@@ -12,27 +11,29 @@ interface SidebarProps {
   userId: UserId | null;
 }
 
-const NAV_ITEMS: Array<{ view: ViewType; icon: typeof BarChart3; labelKey: string }> = [
-  { view: 'report', icon: BarChart3, labelKey: 'nav.report' },
-  { view: 'capture', icon: ImagePlus, labelKey: 'nav.capture' },
-  { view: 'transactions', icon: FileText, labelKey: 'nav.transactions' },
-  { view: 'history', icon: History, labelKey: 'nav.history' },
+const NAV_ITEMS: Array<{ view: ViewType; icon: typeof LayoutDashboard; labelKey: string }> = [
+  { view: 'dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
+  { view: 'ledger', icon: BookOpen, labelKey: 'nav.ledger' },
+  { view: 'capture', icon: Camera, labelKey: 'nav.capture' },
   { view: 'settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 
 export function Sidebar({ activeView, onViewChange, userId }: SidebarProps) {
   const { t } = useTranslation();
-  const { quota, isLoading, refresh } = useQuota(userId);
+
+  // Generate user initials from userId
+  const userInitials = userId
+    ? userId.toString().slice(0, 2).toUpperCase()
+    : 'GU';
 
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-icon">🌙</span>
         <span>{t('app.name')}</span>
       </div>
 
       <nav className="nav-group">
-        {NAV_ITEMS.map(({ view, icon: Icon, labelKey }) => (
+        {NAV_ITEMS.map(({ view, labelKey }) => (
           <div
             key={view}
             className={`nav-item ${activeView === view ? 'active' : ''}`}
@@ -41,20 +42,17 @@ export function Sidebar({ activeView, onViewChange, userId }: SidebarProps) {
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onViewChange(view)}
           >
-            <Icon size={18} />
             <span>{t(labelKey)}</span>
           </div>
         ))}
       </nav>
 
       <div className="sidebar-footer">
-        <QuotaIndicator
-          quota={quota}
-          isLoading={isLoading}
-          onRefresh={refresh}
-        />
-        <div className="app-version">
-          {t('app.tagline')}
+        <div className="user-card">
+          <div className="user-avatar">{userInitials}</div>
+          <span className="user-name">
+            {userId ? userId.toString().slice(0, 12) : t('auth.guest')}
+          </span>
         </div>
       </div>
     </aside>

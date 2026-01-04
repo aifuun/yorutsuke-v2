@@ -9,7 +9,7 @@
 | [REQUIREMENTS](./REQUIREMENTS.md) | What to build | PM, Dev |
 | [ARCHITECTURE](./ARCHITECTURE.md) | How to organize | Dev |
 | [SCHEMA](./SCHEMA.md) | Data model | Dev |
-| [DESIGN](./DESIGN.md) | UI/UX specs | Dev, Design |
+| [UI Design](./ui_design/) | UI/UX mockups | Dev, Design |
 | [INTERFACES](./INTERFACES.md) | IPC & API | Dev |
 | [QUOTA](./QUOTA.md) | Quota system | Dev, Ops |
 | [DEPLOYMENT](./DEPLOYMENT.md) | Build & deploy | Dev, Ops |
@@ -82,7 +82,7 @@ npm run tauri dev
 
 ### For UI/UX Work
 
-1. **DESIGN.md** - Design system & screens
+1. **ui_design/** - HTML mockups & design docs
 2. **REQUIREMENTS.md** - User stories
 
 ### For Operations
@@ -104,7 +104,7 @@ Architecture (How)
 └── INTERFACES.md      IPC commands, REST APIs
 
 Design (Look & Feel)
-└── DESIGN.md          Colors, typography, screens
+└── ui_design/         HTML mockups, design specs
 
 Operations (Run & Maintain)
 ├── DEPLOYMENT.md      Build, deploy, rollback

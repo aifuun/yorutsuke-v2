@@ -1,37 +1,51 @@
 :root {
-  /* Base - shared values */
-  --font-ui: "Segoe UI", "Microsoft YaHei", "Hiragino Sans", Inter, sans-serif;
+  /* Typography - ui_design spec */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-size-base: 14px;
-  --accent: #4a90d9;
-  --accent-hover: #3b7bc4;
-  --status-green: #10b981;
-  --status-yellow: #f59e0b;
-  --status-red: #dc2626;
-  --status-gray: #64748b;
 
-  /* Dark Theme (default) */
-  --bg-app: #1e1e1e;
-  --bg-panel: #252526;
-  --bg-sidebar: #202020;
-  --bg-hover: #2a2d2e;
-  --bg-input: #313131;
-  --border: #3e3e42;
-  --text-main: #ffffff;
-  --text-muted: #cccccc;
-  --text-disabled: #6e6e6e;
+  /* Accent Colors - Tailwind palette */
+  --accent: #3B82F6;        /* blue-500 */
+  --accent-hover: #2563EB;  /* blue-600 */
+  --success: #10B981;       /* emerald-500 */
+  --warning: #F59E0B;       /* amber-500 */
+  --error: #F43F5E;         /* rose-500 */
+  --info: #3B82F6;          /* blue-500 */
+
+  /* Status colors (legacy compat) */
+  --status-green: var(--success);
+  --status-yellow: var(--warning);
+  --status-red: var(--error);
+  --status-gray: #64748B;   /* slate-500 */
+
+  /* Dark Theme (default) - Premium sidebar */
+  --bg-app: #F1F5F9;        /* slate-100 - accounting grid */
+  --bg-panel: rgba(255, 255, 255, 0.85);
+  --bg-sidebar: #0F172A;    /* slate-900 */
+  --bg-hover: rgba(255, 255, 255, 0.03);
+  --bg-input: #FFFFFF;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --border: #E2E8F0;        /* slate-200 */
+  --border-light: rgba(255, 255, 255, 0.05);
+  --text-main: #1E293B;     /* slate-800 */
+  --text-muted: #64748B;    /* slate-500 */
+  --text-disabled: #94A3B8; /* slate-400 */
+  --text-sidebar: #F1F5F9;  /* slate-100 */
+  --text-sidebar-muted: #64748B; /* slate-500 */
 }
 
-/* Light Theme */
+/* Light Theme - same as default for now */
 :root[data-theme="light"] {
-  --bg-app: #f5f5f5;
-  --bg-panel: #ffffff;
-  --bg-sidebar: #e8e8e8;
-  --bg-hover: #e0e0e0;
-  --bg-input: #ffffff;
-  --border: #d1d5db;
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
-  --text-disabled: #9ca3af;
+  --bg-app: #F1F5F9;
+  --bg-panel: rgba(255, 255, 255, 0.85);
+  --bg-sidebar: #0F172A;
+  --bg-hover: rgba(255, 255, 255, 0.03);
+  --bg-input: #FFFFFF;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --border: #E2E8F0;
+  --text-main: #1E293B;
+  --text-muted: #64748B;
+  --text-disabled: #94A3B8;
 }
 
 * {
@@ -238,3 +252,213 @@ body {
 .queue-item.status-uploading { color: #3b82f6; }
 .queue-item.status-uploaded { color: #10b981; }
 .queue-item.status-failed { color: #dc2626; }
+
+/* =============================================================================
+   Premium Design System Components (ui_design)
+   ============================================================================= */
+
+/* Accounting Grid Background */
+.accounting-grid {
+  background-color: #F1F5F9;
+  background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+/* Premium Card - Glassmorphism */
+.premium-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #E2E8F0;
+  border-radius: 28px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+/* Stat Card - Smaller variant */
+.stat-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+/* Queue Item Card */
+.queue-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.queue-card:hover {
+  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Monospace Text */
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Section Header */
+.section-header {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.status-badge--pending {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+.status-badge--processing {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.status-badge--success {
+  background: #D1FAE5;
+  color: #047857;
+}
+
+.status-badge--error {
+  background: #FFE4E6;
+  color: #BE123C;
+}
+
+.status-badge--warning {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+/* Progress Bar */
+.progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #E2E8F0;
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar__fill--success { background: #10B981; }
+.progress-bar__fill--info { background: #3B82F6; }
+.progress-bar__fill--warning { background: #F59E0B; }
+.progress-bar__fill--error { background: #F43F5E; }
+
+/* Info Banner */
+.info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.info-banner--info {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+}
+
+.info-banner--warning {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+}
+
+.info-banner--error {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+}
+
+.info-banner--success {
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #CBD5E1;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+.toggle-switch--active {
+  background: #3B82F6;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch--active::after {
+  transform: translateX(20px);
+}
+
+/* Activity Item */
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.activity-item:hover {
+  transform: translateX(4px);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Debug Panel */
+.debug-panel {
+  background: #0F172A;
+  border-radius: 16px;
+  padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.debug-panel__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.debug-panel__label {
+  color: #64748B;
+}
+
+.debug-panel__value {
+  color: #E2E8F0;
+}

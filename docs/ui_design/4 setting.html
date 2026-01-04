@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yorutsuke V4.8 - Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #475569; -webkit-font-smoothing: antialiased; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .accounting-grid {
+            background-color: #F1F5F9;
+            background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        .sidebar-premium { background-color: #0F172A; border-right: 1px solid rgba(255,255,255,0.05); }
+
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748B;
+            border-radius: 12px;
+            margin: 0.25rem 1rem;
+            position: relative;
+        }
+        .nav-item:hover { color: #F1F5F9; background: rgba(255, 255, 255, 0.03); }
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+        }
+        .nav-item.active::before {
+            content: ''; position: absolute; left: -1rem; top: 25%; height: 50%; width: 4px;
+            background: #3B82F6; border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .premium-card {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid #E2E8F0;
+            border-radius: 28px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #CBD5E1;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease-in-out;
+        }
+        .toggle.active {
+            background: #3B82F6;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s ease-in-out;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+
+        /* Select Dropdown */
+        .select-wrapper {
+            position: relative;
+        }
+        .select-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 140px;
+            justify-content: space-between;
+        }
+        .select-button:hover {
+            border-color: #94A3B8;
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            background: #0F172A;
+            border-radius: 16px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #94A3B8;
+        }
+        .debug-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+        .debug-label { color: #64748B; }
+        .debug-value { color: #E2E8F0; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar-premium flex flex-col z-20">
+        <div class="p-8 mb-4 text-white font-bold tracking-tight text-lg italic">Yorutsuke</div>
+        <nav class="flex-1 space-y-1">
+            <a href="1 dashboard.html" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Dashboard</a>
+            <a href="0 design.html" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Ledger</a>
+            <a href="3 capture.html" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Capture</a>
+            <a href="4 setting.html" class="nav-item active flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Settings</a>
+        </nav>
+        <div class="p-4 mt-auto">
+            <div class="rounded-2xl p-4 flex items-center gap-3 bg-white/5 border border-white/5">
+                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-slate-400 text-xs">JD</div>
+                <span class="text-xs font-bold text-slate-200">John_Hacker</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden accounting-grid">
+
+        <!-- Header -->
+        <header class="h-16 bg-white/40 backdrop-blur-xl border-b border-slate-300/50 px-10 flex items-center justify-between z-10">
+            <h1 class="text-lg font-bold text-slate-700 tracking-tight">Settings</h1>
+            <div class="text-sm text-slate-500">
+                <span class="mono">v4.8.0</span>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-10">
+            <div class="max-w-2xl mx-auto space-y-6">
+
+                <!-- Appearance Section -->
+                <div class="premium-card p-8">
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">外観</h2>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">テーマ</p>
+                            <p class="text-xs text-slate-400">インターフェースの配色</p>
+                        </div>
+                        <div class="select-wrapper">
+                            <button class="select-button">
+                                <span>Dark</span>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">言語</p>
+                            <p class="text-xs text-slate-400">インターフェースの言語</p>
+                        </div>
+                        <div class="select-wrapper">
+                            <button class="select-button">
+                                <span>日本語</span>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Section -->
+                <div class="premium-card p-8">
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">通知</h2>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">通知を有効化</p>
+                            <p class="text-xs text-slate-400">システム通知を受け取る</p>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">デイリーレポート</p>
+                            <p class="text-xs text-slate-400">毎朝のレポート通知</p>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">配額アラート</p>
+                            <p class="text-xs text-slate-400">配額が残り少なくなった時に通知</p>
+                        </div>
+                        <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                </div>
+
+                <!-- Account Section -->
+                <div class="premium-card p-8">
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">アカウント</h2>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">john@example.com</p>
+                            <p class="text-xs text-slate-400">Free プラン • 30 images/day</p>
+                        </div>
+                        <button class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-white hover:bg-slate-700 transition-colors">
+                            ログアウト
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Guest Mode Warning (uncomment to show) -->
+                <!--
+                <div class="rounded-2xl p-6 bg-amber-50 border border-amber-200">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">👤</span>
+                        <div class="flex-1">
+                            <p class="font-semibold text-amber-800 mb-1">ゲストモード</p>
+                            <p class="text-sm text-amber-700 mb-4">データは60日後に期限切れになります。アカウントを作成してデータを永久保存しましょう。</p>
+                            <div class="flex gap-3">
+                                <button class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                                    登録
+                                </button>
+                                <button class="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-amber-700 border border-amber-300 hover:bg-amber-50 transition-colors">
+                                    ログイン
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <!-- Data Section -->
+                <div class="premium-card p-8">
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">データ</h2>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">キャッシュをクリア</p>
+                            <p class="text-xs text-slate-400">ローカルキャッシュデータを削除</p>
+                        </div>
+                        <button class="px-4 py-2 rounded-lg text-sm font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors">
+                            クリア
+                        </button>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">データをエクスポート</p>
+                            <p class="text-xs text-slate-400">取引記録をCSV形式でダウンロード</p>
+                        </div>
+                        <button class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                            エクスポート
+                        </button>
+                    </div>
+                </div>
+
+                <!-- About Section -->
+                <div class="premium-card p-8">
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">About</h2>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">バージョン</p>
+                        </div>
+                        <span class="text-sm text-slate-500 mono">4.8.0 (build 2025.01.04)</span>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">オープンソースライセンス</p>
+                            <p class="text-xs text-slate-400">サードパーティライブラリのライセンス</p>
+                        </div>
+                        <a href="#" class="text-sm font-semibold text-blue-500 hover:text-blue-600 transition-colors">
+                            表示 →
+                        </a>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm">フィードバック</p>
+                            <p class="text-xs text-slate-400">バグ報告・機能リクエスト</p>
+                        </div>
+                        <a href="https://github.com/yorutsuke/issues" class="text-sm font-semibold text-blue-500 hover:text-blue-600 transition-colors">
+                            GitHub →
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Debug Section (only shown when debug mode is enabled) -->
+                <div class="premium-card p-8">
+                    <div class="flex items-center gap-2 mb-6">
+                        <span class="text-lg">🔧</span>
+                        <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Debug Info</h2>
+                    </div>
+
+                    <div class="debug-panel">
+                        <div class="debug-row">
+                            <span class="debug-label">User ID</span>
+                            <span class="debug-value">usr_abc123xyz</span>
+                        </div>
+                        <div class="debug-row">
+                            <span class="debug-label">Theme</span>
+                            <span class="debug-value">dark</span>
+                        </div>
+                        <div class="debug-row">
+                            <span class="debug-label">Language</span>
+                            <span class="debug-value">ja</span>
+                        </div>
+                        <div class="debug-row">
+                            <span class="debug-label">DB Version</span>
+                            <span class="debug-value">3</span>
+                        </div>
+                        <div class="debug-row">
+                            <span class="debug-label">Mock Mode</span>
+                            <span class="debug-value">false</span>
+                        </div>
+                        <div class="debug-row">
+                            <span class="debug-label">Device ID</span>
+                            <span class="debug-value">dev_f8e2a1b9c4d7</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yorutsuke V4.8 - Capture</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #475569; -webkit-font-smoothing: antialiased; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .accounting-grid {
+            background-color: #F1F5F9;
+            background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        .sidebar-premium { background-color: #0F172A; border-right: 1px solid rgba(255,255,255,0.05); }
+
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748B;
+            border-radius: 12px;
+            margin: 0.25rem 1rem;
+            position: relative;
+        }
+        .nav-item:hover { color: #F1F5F9; background: rgba(255, 255, 255, 0.03); }
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+        }
+        .nav-item.active::before {
+            content: ''; position: absolute; left: -1rem; top: 25%; height: 50%; width: 4px;
+            background: #3B82F6; border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .premium-card {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid #E2E8F0;
+            border-radius: 28px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .drop-zone {
+            border: 2px dashed #CBD5E1;
+            border-radius: 16px;
+            background: rgba(248, 250, 252, 0.5);
+            transition: all 0.3s ease;
+        }
+        .drop-zone:hover {
+            border-color: #94A3B8;
+            background: rgba(248, 250, 252, 0.8);
+        }
+        .drop-zone.dragging {
+            border-style: solid;
+            border-color: #3B82F6;
+            background: rgba(239, 246, 255, 0.8);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+        }
+
+        .queue-item {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .queue-item:hover {
+            transform: translateX(4px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #E2E8F0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .quota-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #E2E8F0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar-premium flex flex-col z-20">
+        <div class="p-8 mb-4 text-white font-bold tracking-tight text-lg italic">Yorutsuke</div>
+        <nav class="flex-1 space-y-1">
+            <a href="1 dashboard.html" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Dashboard</a>
+            <a href="0 design.html" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Ledger</a>
+            <a href="3 capture.html" class="nav-item active flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Capture</a>
+            <a href="4 setting.html" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Settings</a>
+        </nav>
+        <div class="p-4 mt-auto">
+            <div class="rounded-2xl p-4 flex items-center gap-3 bg-white/5 border border-white/5">
+                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-slate-400 text-xs">JD</div>
+                <span class="text-xs font-bold text-slate-200">John_Hacker</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden accounting-grid">
+
+        <!-- Header -->
+        <header class="h-16 bg-white/40 backdrop-blur-xl border-b border-slate-300/50 px-10 flex items-center justify-between z-10">
+            <h1 class="text-lg font-bold text-slate-700 tracking-tight">Capture</h1>
+            <div class="text-sm text-slate-500">
+                <span class="mono">2025-01-04</span>
+                <span class="mx-2">•</span>
+                <span>Saturday</span>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-10">
+            <div class="max-w-4xl mx-auto space-y-6">
+
+                <!-- Quota Indicator -->
+                <div class="premium-card p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🎯</span>
+                            <span class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">今日配額</span>
+                        </div>
+                        <span class="text-sm font-bold text-slate-700 mono">28 / 30</span>
+                    </div>
+                    <div class="quota-bar">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: 93%"></div>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2">残り 2 枚アップロード可能</p>
+                </div>
+
+                <!-- Drop Zone -->
+                <div class="premium-card p-8">
+                    <div class="drop-zone p-12 text-center cursor-pointer" id="dropZone">
+                        <div class="text-5xl mb-4">📄</div>
+                        <p class="text-lg font-semibold text-slate-600 mb-2">拖拽收据到此处</p>
+                        <p class="text-sm text-slate-400">支持 JPG, PNG, HEIC 格式</p>
+                    </div>
+                </div>
+
+                <!-- Processing Queue -->
+                <div class="premium-card p-8">
+                    <h2 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">処理キュー</h2>
+                    <div class="space-y-3">
+
+                        <!-- Uploaded Item -->
+                        <div class="queue-item p-4 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
+                                <span class="text-2xl">🧾</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-slate-700 text-sm truncate">receipt_20250104_003.jpg</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">✅ 完了</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill bg-emerald-500" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <span class="text-xs text-slate-400 mono">2 min ago</span>
+                        </div>
+
+                        <!-- Uploading Item -->
+                        <div class="queue-item p-4 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
+                                <span class="text-2xl">🧾</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-slate-700 text-sm truncate">receipt_20250104_002.jpg</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">☁️ アップロード中</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill bg-blue-500" style="width: 65%"></div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">65% • 1.2 MB / 1.8 MB</p>
+                            </div>
+                        </div>
+
+                        <!-- Compressing Item -->
+                        <div class="queue-item p-4 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
+                                <span class="text-2xl">🧾</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-slate-700 text-sm truncate">receipt_20250104_001.jpg</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">🔄 圧縮中</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill bg-blue-500" style="width: 30%"></div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">30% • WebP変換中...</p>
+                            </div>
+                        </div>
+
+                        <!-- Failed Item -->
+                        <div class="queue-item p-4 flex items-center gap-4 border-rose-200 bg-rose-50/50">
+                            <div class="w-12 h-12 rounded-lg bg-rose-100 flex items-center justify-center overflow-hidden">
+                                <span class="text-2xl">🧾</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-slate-700 text-sm truncate">receipt_20250103_015.jpg</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">❌ 失敗</span>
+                                </div>
+                                <p class="text-xs text-rose-600 mt-1">ネットワークエラー • タップしてリトライ</p>
+                            </div>
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500 text-white hover:bg-rose-600 transition-colors">
+                                再試行
+                            </button>
+                        </div>
+
+                        <!-- Pending Item -->
+                        <div class="queue-item p-4 flex items-center gap-4 opacity-60">
+                            <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
+                                <span class="text-2xl">🧾</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-slate-700 text-sm truncate">receipt_20250103_014.jpg</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600">⏳ 待機中</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill bg-slate-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Queue Actions -->
+                    <div class="mt-6 flex items-center justify-between">
+                        <button class="text-xs font-semibold text-rose-500 hover:text-rose-600 transition-colors">
+                            全ての失敗を再試行
+                        </button>
+                        <button class="text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">
+                            完了項目をクリア
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Info Banners -->
+                <div class="space-y-3">
+                    <!-- Duplicate Detection -->
+                    <div class="rounded-2xl p-4 bg-blue-50 border border-blue-200 flex items-start gap-3">
+                        <span class="text-lg">ℹ️</span>
+                        <div>
+                            <p class="text-sm font-semibold text-blue-800">重複検出</p>
+                            <p class="text-xs text-blue-600">この画像は 2025-01-03 に既にアップロードされています。自動的にスキップしました。</p>
+                        </div>
+                    </div>
+
+                    <!-- Offline Banner (uncomment to show) -->
+                    <!--
+                    <div class="rounded-2xl p-4 bg-amber-50 border border-amber-200 flex items-start gap-3">
+                        <span class="text-lg">⚠️</span>
+                        <div>
+                            <p class="text-sm font-semibold text-amber-800">オフライン</p>
+                            <p class="text-xs text-amber-600">キューは一時停止中です。接続が回復すると自動的に再開します。</p>
+                        </div>
+                    </div>
+                    -->
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Drop zone interaction demo
+        const dropZone = document.getElementById('dropZone');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragging');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragging');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragging');
+            alert('File dropped! (Demo only)');
+        });
+    </script>
+
+</body>
+</html>
