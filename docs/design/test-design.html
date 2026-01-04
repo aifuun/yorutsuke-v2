@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yorutsuke V4.2 - Time Horizon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #475569; -webkit-font-smoothing: antialiased; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 回归细腻点阵 */
+        .accounting-grid {
+            background-color: #F1F5F9; 
+            background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        .sidebar-premium { background-color: #0F172A; border-right: 1px solid rgba(255,255,255,0.05); }
+        
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748B; border-radius: 12px; margin: 0.25rem 1rem; position: relative;
+        }
+        .nav-item:hover { color: #F1F5F9; background: rgba(255, 255, 255, 0.03); }
+        .nav-item.active { background: rgba(59, 130, 246, 0.1); color: #3B82F6; }
+        .nav-item.active::before {
+            content: ''; position: absolute; left: -1rem; top: 25%; height: 50%; width: 4px;
+            background: #3B82F6; border-radius: 0 4px 4px 0; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* 时间选择器样式 */
+        .time-pill {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .time-pill.active {
+            background: #1E293B;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .time-pill:not(.active):hover {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: #CBD5E1;
+        }
+
+        .premium-card { 
+            background: rgba(255, 255, 255, 0.85); 
+            border: 1px solid #E2E8F0; 
+            border-radius: 28px;
+            backdrop-blur: 16px;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 sidebar-premium flex flex-col z-20">
+        <div class="p-8 mb-4 text-white font-bold tracking-tight text-lg">Yorutsuke</div>
+        <nav class="flex-1 space-y-1">
+            <a href="#" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Dashboard</a>
+            <a href="#" class="nav-item active flex items-center gap-4 px-5 py-3.5 text-sm font-semibold tracking-wide">Ledger</a>
+            <a href="#" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Capture</a>
+            <a href="#" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold">Settings</a>
+        </nav>
+        <div class="p-4 mt-auto">
+            <div class="rounded-2xl p-4 flex items-center gap-3 bg-white/5 border border-white/5">
+                <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-slate-400 text-xs">JD</div>
+                <span class="text-xs font-bold text-slate-200">John_Hacker</span>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden accounting-grid">
+        
+        <header class="h-16 bg-white/30 backdrop-blur-xl border-b border-slate-300/50 px-10 flex items-center justify-between z-10">
+            <h1 class="text-lg font-bold text-slate-700 tracking-tight italic">Horizon_Ledger</h1>
+            <button class="h-9 bg-slate-800 text-white px-5 rounded-xl text-[11px] font-bold">NEW_RECORD</button>
+        </header>
+
+        <section class="px-10 py-4 bg-white/20 backdrop-blur-sm border-b border-slate-200/50 flex items-center justify-between z-10">
+            <div class="flex gap-2 no-scrollbar overflow-x-auto">
+                <div class="time-pill px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-400">2025</div>
+                <div class="time-pill px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-400">NOV</div>
+                <div class="time-pill px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-400">DEC</div>
+                <div class="time-pill active px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest">JAN_26</div>
+                <div class="time-pill px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-400">FEB</div>
+                <div class="time-pill px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-slate-400">MAR</div>
+            </div>
+            <div class="flex items-center gap-4 border-l border-slate-300 pl-6 ml-4">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">View:</span>
+                <button class="text-[10px] font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-md">MONTHLY</button>
+                <button class="text-[10px] font-bold text-slate-400 hover:text-slate-600">QUARTERLY</button>
+            </div>
+        </section>
+
+        <div class="flex-1 overflow-y-auto p-10 no-scrollbar">
+            <div class="max-w-5xl mx-auto space-y-8">
+                
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="premium-card p-8 bg-gradient-to-br from-emerald-50/80 to-white border-l-4 border-emerald-400 shadow-sm">
+                        <p class="text-[10px] font-black text-emerald-600/60 uppercase tracking-[0.2em] mb-2">Revenue_Jan</p>
+                        <div class="text-3xl font-bold text-slate-700 mono tracking-tighter">¥450,200.00</div>
+                    </div>
+                    <div class="premium-card p-8 bg-gradient-to-br from-rose-50/80 to-white border-l-4 border-rose-400 shadow-sm">
+                        <p class="text-[10px] font-black text-rose-600/60 uppercase tracking-[0.2em] mb-2">Expenses_Jan</p>
+                        <div class="text-3xl font-bold text-slate-700 mono tracking-tighter">¥44,040.20</div>
+                    </div>
+                </div>
+
+                <div class="premium-card overflow-hidden">
+                    <div class="px-8 py-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Transaction Registry</span>
+                        <div class="flex gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
+                        </div>
+                    </div>
+                    <table class="w-full text-left text-[13px]">
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="hover:bg-slate-50/50 transition-all cursor-pointer group">
+                                <td class="px-8 py-5 w-4">
+                                    <div class="w-2 h-2 rounded-full bg-rose-400"></div>
+                                </td>
+                                <td class="px-4 py-5 font-bold text-slate-600 italic">Google Cloud Platform</td>
+                                <td class="px-8 py-5 text-right font-bold text-slate-600 mono bg-rose-50/30">
+                                    - 12,400.00
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-slate-50/50 transition-all cursor-pointer group">
+                                <td class="px-8 py-5 w-4">
+                                    <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+                                </td>
+                                <td class="px-4 py-5 font-bold text-slate-700">Client Settlement</td>
+                                <td class="px-8 py-5 text-right font-bold text-slate-600 mono bg-emerald-50/30">
+                                    + 450,200.00
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </main>
+</body>
+</html>

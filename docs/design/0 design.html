@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yorutsuke V4.1 - Refined Grid Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0F172A; color: #475569; -webkit-font-smoothing: antialiased; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 回归 V3.9 的细腻点阵：1.5px 颗粒，24px 间距 */
+        .accounting-grid {
+            background-color: #F1F5F9; 
+            background-image: radial-gradient(#CBD5E1 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        .sidebar-premium { background-color: #0F172A; border-right: 1px solid rgba(255,255,255,0.05); }
+        
+        .nav-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748B;
+            border-radius: 12px;
+            margin: 0.25rem 1rem;
+            position: relative;
+        }
+        .nav-item:hover { color: #F1F5F9; background: rgba(255, 255, 255, 0.03); }
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+        }
+        .nav-item.active::before {
+            content: ''; position: absolute; left: -1rem; top: 25%; height: 50%; width: 4px;
+            background: #3B82F6; border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .premium-card { 
+            background: rgba(255, 255, 255, 0.85); 
+            border: 1px solid #E2E8F0; 
+            border-radius: 28px;
+            backdrop-blur: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .deco-area-income { background: linear-gradient(135deg, rgba(209, 250, 229, 0.6) 0%, rgba(255, 255, 255, 0.9) 100%); }
+        .deco-area-expense { background: linear-gradient(135deg, rgba(254, 226, 226, 0.6) 0%, rgba(255, 255, 255, 0.9) 100%); }
+
+        .user-widget {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 sidebar-premium flex flex-col z-20">
+        <div class="p-8 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-bold shadow-xl shadow-blue-500/20">Y</div>
+                <div>
+                    <span class="text-white font-bold tracking-tight text-lg block leading-none">Yorutsuke</span>
+                    <span class="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1 block">Financial V4.1</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 space-y-1">
+            <a href="#" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold tracking-wide">
+                <svg class="w-5 h-5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item active flex items-center gap-4 px-5 py-3.5 text-sm font-semibold tracking-wide">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/></svg>
+                <span>Ledger</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold tracking-wide">
+                <svg class="w-5 h-5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+                <span>Capture</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-4 px-5 py-3.5 text-sm font-semibold tracking-wide">
+                <svg class="w-5 h-5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543.94 1.543 3.46 0 4.4a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543-.94-1.543-3.46 0-4.4a1.724 1.724 0 002.573-1.066z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 mt-auto">
+            <div class="user-widget rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-all group">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center font-bold text-slate-400 group-hover:border-blue-500/50 transition-all">JD</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-slate-200 truncate">John_Hacker</p>
+                    <p class="text-[9px] text-blue-500 font-black tracking-widest uppercase italic">Personal</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden accounting-grid">
+        
+        <header class="h-16 bg-white/30 backdrop-blur-xl border-b border-slate-300/50 px-10 flex items-center justify-between z-10">
+            <h1 class="text-lg font-bold text-slate-700 tracking-tight">Financial Stream</h1>
+            <button class="h-9 bg-slate-800 hover:bg-slate-900 text-white px-5 rounded-xl text-[11px] font-bold shadow-lg transition-all">
+                + NEW_RECORD
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 no-scrollbar">
+            <div class="max-w-5xl mx-auto space-y-8">
+                
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="premium-card p-8 deco-area-income border-l-4 border-l-emerald-400">
+                        <p class="text-[11px] font-black text-emerald-600/60 uppercase tracking-[0.2em] mb-2">Month_Inflow</p>
+                        <div class="text-3xl font-bold text-slate-700 mono tracking-tighter">¥450,200.00</div>
+                    </div>
+                    <div class="premium-card p-8 deco-area-expense border-l-4 border-l-rose-400">
+                        <p class="text-[11px] font-black text-rose-600/60 uppercase tracking-[0.2em] mb-2">Month_Outflow</p>
+                        <div class="text-3xl font-bold text-slate-700 mono tracking-tighter">¥44,040.20</div>
+                    </div>
+                </div>
+
+                <div class="premium-card overflow-hidden">
+                    <table class="w-full text-left text-[13px]">
+                        <tbody class="divide-y divide-slate-200/40">
+                            <tr class="hover:bg-white/60 transition-all cursor-pointer group">
+                                <td class="px-8 py-6 w-4">
+                                    <div class="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.5)]"></div>
+                                </td>
+                                <td class="px-4 py-6 font-bold text-slate-600 italic group-hover:not-italic transition-all">Google Cloud Platform</td>
+                                <td class="px-8 py-6 text-right">
+                                    <span class="bg-rose-100/50 px-4 py-1.5 rounded-xl font-bold text-slate-600 mono text-base">- 12,400.00</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-white/60 transition-all cursor-pointer group">
+                                <td class="px-8 py-6 w-4">
+                                    <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
+                                </td>
+                                <td class="px-4 py-6 font-bold text-slate-700">Client Payout</td>
+                                <td class="px-8 py-6 text-right">
+                                    <span class="bg-emerald-100/50 px-4 py-1.5 rounded-xl font-bold text-slate-600 mono text-base">+ 450,200.00</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
