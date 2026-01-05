@@ -1,7 +1,7 @@
 :root {
   /* Typography - ui_design spec */
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --font-size-base: 14px;
 
   /* Accent Colors - Tailwind palette */
@@ -160,7 +160,7 @@ body {
 }
 
 .error-fallback .error-message {
-  color: #6b7280;
+  color: #64748B;
   margin-bottom: 1.5rem;
   max-width: 400px;
 }
@@ -213,7 +213,7 @@ body {
   gap: 1rem;
   margin-bottom: 1rem;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #64748B;
 }
 
 .capture-stats .awaiting-process {
@@ -222,11 +222,11 @@ body {
 
 .drop-zone {
   padding: 3rem 2rem;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed #CBD5E1;
   border-radius: 12px;
   text-align: center;
-  color: #6b7280;
-  background: #f9fafb;
+  color: #64748B;
+  background: #F8FAFC;
   transition: all 0.2s;
 }
 
@@ -248,7 +248,7 @@ body {
   font-size: 0.875rem;
 }
 
-.queue-item.status-pending { color: #6b7280; }
+.queue-item.status-pending { color: #64748B; }
 .queue-item.status-uploading { color: #3b82f6; }
 .queue-item.status-uploaded { color: #10b981; }
 .queue-item.status-failed { color: #dc2626; }
@@ -296,7 +296,7 @@ body {
 
 /* Monospace Text */
 .mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 /* Section Header */
@@ -444,7 +444,7 @@ body {
   background: #0F172A;
   border-radius: 16px;
   padding: 16px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: #94A3B8;
 }

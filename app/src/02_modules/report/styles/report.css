@@ -23,7 +23,7 @@
 }
 
 .report-date {
-  color: #6b7280;
+  color: #64748B;
   font-size: 0.875rem;
 }
 
@@ -51,7 +51,7 @@
 
 .filter-group label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #64748B;
   font-weight: 500;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .date-separator {
-  color: #9ca3af;
+  color: #94A3B8;
 }
 
 .btn-clear-filters {
@@ -89,14 +89,14 @@
   border-radius: 4px;
   border: 1px solid #d1d5db;
   background: #fff;
-  color: #6b7280;
+  color: #64748B;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-clear-filters:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: #F1F5F9;
+  border-color: #94A3B8;
 }
 
 /* Summary Grid */
@@ -117,7 +117,7 @@
 .summary-card .card-label {
   display: block;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #64748B;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
@@ -146,7 +146,7 @@
   margin: 0 0 1rem 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: #334155;
 }
 
 .category-bars {
@@ -176,7 +176,7 @@
 
 .category-label {
   font-size: 0.875rem;
-  color: #4b5563;
+  color: #475569;
 }
 
 .bar-container {
@@ -196,7 +196,7 @@
   font-size: 0.875rem;
   font-weight: 500;
   text-align: right;
-  color: #374151;
+  color: #334155;
 }
 
 /* Transactions Section */
@@ -219,7 +219,7 @@
 
 .section-count {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #64748B;
 }
 
 .transactions-list {
@@ -267,8 +267,8 @@
   justify-content: center;
   font-size: 0.75rem;
   border-radius: 50%;
-  background: #e5e7eb;
-  color: #6b7280;
+  background: #E2E8F0;
+  color: #64748B;
 }
 
 .status-icon.confirmed {
@@ -289,7 +289,7 @@
 
 .tx-category {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #64748B;
 }
 
 .tx-right {
@@ -308,15 +308,15 @@
 
 .tx-confidence {
   font-size: 0.75rem;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: #64748B;
+  background: #F1F5F9;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
 }
 
 .tx-chevron {
   font-size: 0.625rem;
-  color: #9ca3af;
+  color: #94A3B8;
 }
 
 /* Transaction Details */
@@ -334,11 +334,11 @@
 }
 
 .detail-label {
-  color: #6b7280;
+  color: #64748B;
 }
 
 .detail-value {
-  color: #374151;
+  color: #334155;
   text-align: right;
 }
 
@@ -355,7 +355,7 @@
 .transactions-empty {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: #64748B;
 }
 
 .empty-icon {
@@ -396,13 +396,13 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #374151;
+  color: #334155;
 }
 
 .empty-state__message {
   margin: 0 0 1.5rem 0;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #64748B;
   max-width: 280px;
   line-height: 1.5;
 }
@@ -441,9 +441,9 @@
 /* Footer */
 .report-footer {
   padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #E2E8F0;
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: #94A3B8;
   text-align: right;
 }
 
@@ -456,7 +456,7 @@
 .report-error {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: #64748B;
 }
 
 .report-error {
@@ -479,7 +479,7 @@
 .edit-row label {
   width: 80px;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #64748B;
 }
 
 .edit-row input,
@@ -528,8 +528,8 @@
 }
 
 .btn-edit {
-  background: #e5e7eb;
-  color: #374151;
+  background: #E2E8F0;
+  color: #334155;
 }
 
 .btn-edit:hover {
@@ -564,8 +564,8 @@
 }
 
 .btn-cancel {
-  background: #e5e7eb;
-  color: #374151;
+  background: #E2E8F0;
+  color: #334155;
 }
 
 .btn-cancel:hover {
@@ -599,13 +599,13 @@
   border: none;
   background: transparent;
   font-size: 0.875rem;
-  color: #374151;
+  color: #334155;
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
 .context-menu button:hover {
-  background: #f3f4f6;
+  background: #F1F5F9;
 }
 
 .context-menu button.delete {

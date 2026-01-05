@@ -21,9 +21,8 @@
 
 .ledger-title {
   font-size: 18px;
-  font-weight: 800;
-  color: #1E293B;
-  font-style: italic;
+  font-weight: 700;
+  color: #334155;
   letter-spacing: -0.025em;
 }
 
@@ -386,7 +385,7 @@
 .transaction-amount {
   font-size: 16px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   line-height: 1;
 }
 

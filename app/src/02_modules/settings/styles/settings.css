@@ -293,7 +293,7 @@
 
 .debug-panel__value {
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   color: #60A5FA;
 }
 

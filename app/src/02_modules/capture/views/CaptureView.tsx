@@ -83,46 +83,6 @@ export function CaptureView() {
             </div>
           )}
 
-          {/* Quota Indicator */}
-          <div className="premium-card quota-card">
-            <div className="quota-header">
-              <div className="quota-label">
-                <span className="quota-icon">🎯</span>
-                <span className="section-header">{t('capture.todayQuota')}</span>
-              </div>
-              <span className="quota-value mono">{quotaUsed} / {quota.limit}</span>
-            </div>
-            <div className="progress-bar">
-              <div
-                className={`progress-bar__fill progress-bar__fill--${quotaVariant}`}
-                style={{ width: `${Math.min(quotaPercent, 100)}%` }}
-              />
-            </div>
-            <p className="quota-remaining">
-              {remainingQuota > 0
-                ? t('capture.remaining', { count: remainingQuota })
-                : t('capture.quotaFull')}
-            </p>
-          </div>
-
-          {/* Stats Row */}
-          <div className="stats-row">
-            <div className="premium-card stat-card">
-              <span className="stat-icon">⏳</span>
-              <div className="stat-content">
-                <span className="stat-label">{t('capture.pending')}</span>
-                <span className="stat-value mono">{pendingCount}</span>
-              </div>
-            </div>
-            <div className="premium-card stat-card">
-              <span className="stat-icon">✅</span>
-              <div className="stat-content">
-                <span className="stat-label">{t('capture.uploaded')}</span>
-                <span className="stat-value mono">{uploadedCount}</span>
-              </div>
-            </div>
-          </div>
-
           {/* Drop Zone */}
           <div className="premium-card drop-card">
             <div
@@ -206,6 +166,35 @@ export function CaptureView() {
               </div>
             </div>
           )}
+
+          {/* Combined Stats Card - Bottom */}
+          <div className="premium-card stats-summary-card">
+            <div className="stats-summary-header">
+              <span className="section-header">{t('capture.todayQuota')}</span>
+              <span className={`quota-badge quota-badge--${quotaVariant}`}>
+                {quotaUsed} / {quota.limit}
+              </span>
+            </div>
+            <div className="progress-bar">
+              <div
+                className={`progress-bar__fill progress-bar__fill--${quotaVariant}`}
+                style={{ width: `${Math.min(quotaPercent, 100)}%` }}
+              />
+            </div>
+            <div className="stats-summary-row">
+              <div className="stats-summary-item">
+                <span className="stats-summary-icon">⏳</span>
+                <span className="stats-summary-label">{t('capture.pending')}</span>
+                <span className="stats-summary-value mono">{pendingCount}</span>
+              </div>
+              <div className="stats-summary-divider" />
+              <div className="stats-summary-item">
+                <span className="stats-summary-icon">✅</span>
+                <span className="stats-summary-label">{t('capture.uploaded')}</span>
+                <span className="stats-summary-value mono">{uploadedCount}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

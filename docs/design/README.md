@@ -33,7 +33,9 @@
 | Element | Font | Weight |
 |---------|------|--------|
 | UI Text | Inter | 400-700 |
-| Numbers | JetBrains Mono | 400-700 |
+| Numbers | IBM Plex Mono | 400-700 |
+
+See [TYPOGRAPHY.md](./TYPOGRAPHY.md) for detailed font usage guidelines.
 
 ### Components
 
