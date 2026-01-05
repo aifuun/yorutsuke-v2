@@ -25,7 +25,8 @@ React 展示 (Display)
 ┌─────────────────────────────────────────────────────────────┐
 │  React Components (View)                                    │
 │  - UI 渲染、用户手势响应                                      │
-│  - 订阅 EventBus，但不设置监听器                              │
+│  - 订阅 Zustand Store 获取持续状态                            │
+│  - 订阅 EventBus 接收一次性通知                               │
 └─────────────────────────────────────────────────────────────┘
                               │ 调用
                               ▼
@@ -154,8 +155,25 @@ Logic and State are separate concerns with different homes:
 
 | State Type | Home | Examples | Reason |
 |------------|------|----------|--------|
-| **Global Business State** | Services (Zustand vanilla) | User info, task list, upload progress, network status | Truth center: must persist even if UI unmounts |
-| **Local UI State** | React (useState) | Modal open, input text, selected tab index | Visual only: reset on component unmount is OK |
+| **Global Business State** | Zustand vanilla store | User info, task list, upload progress, network status | Truth center: must persist even if UI unmounts |
+| **Local UI State** | React useState | Modal open, input text, selected tab index | Visual only: reset on component unmount is OK |
+| **One-time Notifications** | EventBus | Show toast, trigger scroll, open modal once | Fire-and-forget: no need to persist |
+
+#### Zustand vs EventBus Decision Tree
+
+```
+需要传递数据到 React?
+    │
+    ├─ 数据需要"记忆"吗？（后来挂载的组件也要拿到）
+    │       │
+    │       ├─ YES → Zustand Store
+    │       │         例：上传进度、任务列表、用户信息
+    │       │
+    │       └─ NO  → EventBus
+    │                 例：显示 Toast、触发动画、一次性弹窗
+    │
+    └─ 不需要传到 React（纯 Service 内部）→ 普通变量/类属性
+```
 
 #### Service → React Communication Pattern
 
@@ -212,7 +230,7 @@ export function ProgressBar() {
    User clicks UploadButton → call uploadService.startUpload(file)
 
 2. Service (Decide):
-   - Check local task queue
+   - Check local task queue (from Zustand store)
    - Get Presigned URL via awsAdapter
    - Call tauriAdapter to start native upload
 
@@ -220,16 +238,29 @@ export function ProgressBar() {
    Rust spawns tokio thread for streaming upload
    → emit("upload_progress") every second
 
-4. Service (Listen):
+4. Service (Listen & Update State):
    Service listens to upload_progress (registered at init)
    → Calculate global progress
-   → EventBus.emit("PROGRESS_CHANGE")
+   → uploadStore.setState({ progress: 50 })  ← Zustand (持续状态)
 
 5. React (Display):
-   useProgress hook receives event
-   → Trigger re-render
+   useStore(uploadStore) automatically re-renders
    → User sees progress bar moving
+
+6. Service (Complete):
+   Upload finished
+   → uploadStore.setState({ status: 'success' })  ← Zustand (持续状态)
+   → eventBus.emit('upload:complete', { id })     ← EventBus (一次性通知)
 ```
+
+**Zustand vs EventBus 使用场景**:
+
+| 场景 | 技术 | 原因 |
+|------|------|------|
+| 上传进度 (0-100%) | Zustand Store | 持续变化，React 需要随时读取当前值 |
+| 上传完成通知 | EventBus | 一次性事件，触发 toast 或跳转 |
+| 任务列表 | Zustand Store | 持续状态，多组件共享 |
+| 显示错误弹窗 | EventBus | 一次性触发，阅后即焚 |
 
 ### Migration Note
 
@@ -248,8 +279,8 @@ export function ProgressBar() {
 │  │                                                                        │  │
 │  │  ┌─────────────────┐                                                   │  │
 │  │  │  React (View)   │  UI Components only                               │  │
-│  │  │  - Render UI    │  Subscribe to EventBus                            │  │
-│  │  │  - User gestures│  Call Service methods                             │  │
+│  │  │  - Render UI    │  Subscribe to Zustand Store (state)               │  │
+│  │  │  - User gestures│  Subscribe to EventBus (notifications)            │  │
 │  │  └────────┬────────┘                                                   │  │
 │  │           │ call                                                       │  │
 │  │           ▼                                                            │  │
@@ -300,13 +331,24 @@ export function ProgressBar() {
 
 | From | To | Allowed? | Mechanism |
 |------|----|----------|-----------|
-| React | Service | ✅ | Direct method call |
+| React | Service | ✅ | Direct method call: `captureService.handleDrop()` |
+| Service | React | ✅ | Zustand store update: `store.setState()` (state) |
+| Service | React | ✅ | EventBus emit: `emit('event')` (notification) |
 | React | Adapter | ❌ | Must go through Service |
 | React | AWS | ❌ | Must go through Service → Adapter |
 | Service | Adapter | ✅ | Direct method call |
 | Service | Tauri events | ✅ | Listen at init (not in useEffect) |
 | Tauri | S3 | ✅ | Presigned URL PUT (streaming) |
 | Tauri | AWS API | ❌ | No Cognito tokens in Rust |
+
+**React 订阅方式**:
+```typescript
+// 订阅持续状态 (Zustand)
+const progress = useStore(uploadStore, s => s.progress);
+
+// 订阅一次性通知 (EventBus)
+useAppEvent('upload:complete', ({ id }) => showToast('Done!'));
+```
 
 ## Layer Structure
 
@@ -316,8 +358,10 @@ export function ProgressBar() {
 app/src/
 ├── 00_kernel/          # Infrastructure (no business logic)
 │   ├── types/          # Branded types (UserId, ImageId, etc.)
-│   ├── eventBus/       # Cross-component communication
-│   ├── services/       # Service initialization (NEW)
+│   ├── eventBus/       # One-time event notifications
+│   ├── storage/        # SQLite database access
+│   ├── network/        # Network status detection
+│   ├── context/        # React Context (Auth provider)
 │   └── telemetry/      # Logging, error tracking
 │
 ├── 01_domains/         # Pure business logic (no I/O, no UI)
@@ -326,14 +370,19 @@ app/src/
 │
 ├── 02_modules/         # Feature modules
 │   ├── capture/        # T2: Image capture & upload queue
+│   │   ├── stores/     # Zustand vanilla stores [TARGET]
 │   │   ├── services/   # captureService.ts (Orchestrator) [TARGET]
 │   │   ├── adapters/   # IPC + S3 API (Bridge)
-│   │   ├── headless/   # React hooks (Subscribe to Service) [CURRENT]
+│   │   ├── headless/   # React hooks [CURRENT → migrate to services/]
 │   │   └── views/      # Pure UI components
 │   ├── report/         # T1: Morning report display
+│   │   ├── stores/     # reportStore.ts [TARGET]
+│   │   ├── services/   # reportService.ts [TARGET]
 │   │   ├── adapters/   # Report API
 │   │   └── views/      # ReportView
 │   └── transaction/    # T2: Transaction management
+│       ├── stores/     # transactionStore.ts [TARGET]
+│       ├── services/   # transactionService.ts [TARGET]
 │       ├── adapters/   # SQLite DB
 │       ├── headless/   # React hooks [CURRENT]
 │       └── views/      # TransactionView
@@ -341,8 +390,12 @@ app/src/
 └── 03_migrations/      # Data version upcasters
 ```
 
-> **Migration Note**: `headless/` currently contains React hooks that orchestrate business logic.
-> After MVP1, refactor to `services/` pattern where hooks only subscribe to Service events.
+> **Migration Note**:
+> - `headless/` currently contains React hooks that orchestrate business logic
+> - After MVP1, migrate to `services/` + `stores/` pattern
+> - `services/`: Pure TS classes for orchestration
+> - `stores/`: Zustand vanilla stores for global state
+> - `headless/`: React hooks that only subscribe to stores
 
 ### Infrastructure Layer (infra/)
 
@@ -360,30 +413,61 @@ infra/
 
 ## Data Flow
 
-### 1. Receipt Capture Flow
+### 1. Receipt Capture Flow (Target Architecture)
 
 ```
-User drops image
+React: User drops image
       │
+      │ call captureService.handleDrop(file)
+      ▼
+┌─────────────────┐
+│ Service:        │  Orchestration
+│ - Generate IDs  │  imageId, traceId, intentId
+│ - Check quota   │  from Zustand store
+│ - Update store  │  captureStore.setState()
+└─────────────────┘
+      │
+      │ call tauriAdapter.compress()
       ▼
 ┌─────────────────┐
 │ Tauri: Compress │  WebP, < 100KB
+│ + Calculate MD5 │
 └─────────────────┘
       │
+      │ return result to Service
       ▼
 ┌─────────────────┐
-│ SQLite: Save    │  status = 'pending'
-│ images table    │
+│ Service:        │
+│ - Check MD5 dup │  via sqliteAdapter
+│ - Save to DB    │  status = 'compressed'
+│ - Update store  │  captureStore.setState()
 └─────────────────┘
       │
+      │ call awsAdapter.getPresignedUrl()
       ▼
 ┌─────────────────┐
 │ Lambda: Presign │  Get S3 upload URL
 └─────────────────┘
       │
+      │ call tauriAdapter.streamUpload()
       ▼
 ┌─────────────────┐
-│ S3: Upload      │  status = 'uploaded'
+│ Tauri → S3      │  Streaming PUT
+│ emit progress   │
+└─────────────────┘
+      │
+      │ Service listens, updates store
+      ▼
+┌─────────────────┐
+│ Service:        │
+│ - Update store  │  status = 'uploaded'
+│ - Emit event    │  'upload:complete'
+└─────────────────┘
+      │
+      │ React subscribes to store
+      ▼
+┌─────────────────┐
+│ React: Display  │  Progress bar, status
 └─────────────────┘
 ```
 
@@ -394,7 +478,8 @@ EventBridge trigger
       │
       ▼
 ┌─────────────────┐
-│ Check limits    │  ¥1,000/day, 50/user
+│ Lambda: Batch   │
+│ - Check limits  │  ¥1,000/day, 50/user
 └─────────────────┘
       │
       ▼
@@ -414,29 +499,44 @@ EventBridge trigger
 └─────────────────┘
 ```
 
-### 3. Morning Report Flow
+> Note: Batch flow runs entirely in AWS, no client Service layer involved.
+
+### 3. Morning Report Flow (Target Architecture)
 
 ```
-App launch
+React: App launch / Navigate to Report
       │
+      │ call reportService.loadReport(date)
       ▼
 ┌─────────────────┐
-│ Check local     │  transactions_cache
+│ Service:        │  Orchestration
+│ - Check cache   │  from Zustand store
 └─────────────────┘
-      │ miss
+      │ cache miss
+      │ call sqliteAdapter.getCache()
       ▼
 ┌─────────────────┐
-│ Fetch from API  │  Lambda → DynamoDB
+│ SQLite: Check   │  transactions_cache
+└─────────────────┘
+      │ DB miss
+      │ call awsAdapter.fetchReport()
+      ▼
+┌─────────────────┐
+│ Lambda → Dynamo │  Fetch transactions
 └─────────────────┘
       │
+      │ return to Service
       ▼
 ┌─────────────────┐
-│ Cache locally   │  SQLite
+│ Service:        │
+│ - Cache in DB   │  via sqliteAdapter
+│ - Update store  │  reportStore.setState()
 └─────────────────┘
       │
+      │ React subscribes to store
       ▼
 ┌─────────────────┐
-│ Render report   │  ReportView
+│ React: Render   │  ReportView
 └─────────────────┘
 ```
 
