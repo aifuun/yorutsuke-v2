@@ -27,7 +27,7 @@
 | SC-11xx | Debug | SC-1100 ~ SC-1141 |
 | SC-12xx | i18n | SC-1200 ~ SC-1212 |
 | SB-1xx | Presign Lambda | SB-100 ~ SB-122 |
-| SB-2xx | Batch Processing | SB-200 ~ SB-233 |
+| SB-2xx | Batch Processing | SB-200 ~ SB-241 |
 | SB-3xx | Cost Control | SB-300 ~ SB-314 |
 | SB-4xx | Data Lifecycle | SB-400 ~ SB-412 |
 | SB-5xx | Data Integrity | SB-500 ~ SB-512 |

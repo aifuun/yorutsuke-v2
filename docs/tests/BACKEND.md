@@ -83,6 +83,13 @@
 | SB-232 | Nova Lite failure | API error | Mark as failed, continue batch | [ ] |
 | SB-233 | DynamoDB write failure | DB unavailable | Retry, then fail gracefully | [ ] |
 
+### 2.5 Partial Failure Recovery
+
+| ID | Scenario | Input | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SB-240 | OCR success, DB failure | Nova Lite OK, DynamoDB fails | Retry uses cached OCR result (no extra cost) | [ ] |
+| SB-241 | Batch boundary race | Upload at 01:59, batch at 02:00 | Included in current batch | [ ] |
+
 ---
 
 ## 3. Cost Control
@@ -117,6 +124,8 @@
 | SB-400 | Image upload | Valid WebP | Stored in S3 bucket | [ ] |
 | SB-401 | 30-day expiration | Image older than 30 days | Auto-deleted by lifecycle rule | [ ] |
 | SB-402 | Metadata preserved | Image with metadata | Metadata in S3 object tags | [ ] |
+| SB-403 | Orphan S3 files | Upload OK, frontend crashed before DB write | 30-day cleanup, no orphan DB records | [ ] |
+| SB-404 | S3-DB consistency | S3 has file, DB missing record | Batch skips gracefully, file expires naturally | [ ] |
 
 ### 4.2 DynamoDB Operations
 
