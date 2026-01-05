@@ -73,6 +73,7 @@
 | SB-221 | Duplicate prevention | Same image reprocessed | No duplicate transaction | [ ] |
 | SB-222 | Category mapping | OCR category text | Mapped to valid category enum | [ ] |
 | SB-223 | Currency handling | JPY amount | Stored as integer (no decimals) | [ ] |
+| SB-223a | Decimal in JPY | OCR returns "1234.56" | Stored as 1234 (floor, no decimals) | [ ] |
 
 ### 2.4 Error Handling
 

@@ -94,6 +94,7 @@
 |----|----------|-------|-----------------|--------|
 | SC-200 | Register flow | Guest → Register → Verify → Login | Account created | [ ] |
 | SC-201 | Data claim on login | Guest with 10 images → Login | "10 images migrated" | [!] #50 |
+| SC-201a | Quota after claim | Guest 10/30 used → Login | Free user starts with 50/50 (quota reset) | [ ] |
 | SC-202 | Queue continuity | Guest queue [A,B] → Login | Queue preserved or synced | [!] #50 |
 | SC-203 | Local DB update | Guest → Login | images.user_id updated | [!] #48 |
 
