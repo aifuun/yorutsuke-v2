@@ -159,6 +159,15 @@ Logic and State are separate concerns with different homes:
 | **Local UI State** | React useState | Modal open, input text, selected tab index | Visual only: reset on component unmount is OK |
 | **One-time Notifications** | EventBus | Show toast, trigger scroll, open modal once | Fire-and-forget: no need to persist |
 
+#### Zustand vs EventBus Comparison
+
+| 维度 | Zustand (Vanilla Store) | EventBus (Emitter) |
+|------|------------------------|-------------------|
+| 性质 | 持久真相 (Persistence) | 瞬时信号 (Transient) |
+| 隐喻 | **存折**：随时查，余额都在 | **敲门声**：响过就没，错过就错过 |
+| React 行为 | 自动同步 UI：状态变 → 组件重绘 | 触发一次性动作：弹 Toast、播音效 |
+| 典型案例 | 任务列表、进度条、用户余额 | 上传完成通知、报错弹窗、滚动到底部 |
+
 #### Zustand vs EventBus Decision Tree
 
 ```
@@ -174,6 +183,95 @@ Logic and State are separate concerns with different homes:
     │
     └─ 不需要传到 React（纯 Service 内部）→ 普通变量/类属性
 ```
+
+#### Writer vs Observer Principle
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Service Layer = 唯一写入者 (Single Writer)                  │
+│  ├── store.setState({ ... })   写入 Zustand                 │
+│  └── eventBus.emit('event')    发送 EventBus                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  React Layer = 观察者 (Observer)                             │
+│  ├── useStore(store)           观察持续状态                  │
+│  └── useAppEvent('event')      响应一次性动作                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**规则**:
+- ✅ Service 是唯一能修改 Zustand 和发送 EventBus 的层
+- ✅ React 只读取 Zustand，只监听 EventBus
+- ❌ React 不能直接调用 `store.setState()`
+- ❌ React 不能发送业务相关的 EventBus 事件
+
+#### Anti-Pattern: 错误信息存入 Zustand
+
+```typescript
+// ❌ BAD: 把报错信息存入 Zustand
+const syncStore = createStore(() => ({
+  status: 'idle',
+  errorMessage: null,  // ← 问题根源
+}));
+
+// React 组件
+function SyncStatus() {
+  const error = useStore(syncStore, s => s.errorMessage);
+
+  // 用户关闭弹窗后，errorMessage 仍然存在
+  // 下次组件挂载时，弹窗会再次弹出！（UI Bug）
+  if (error) return <ErrorModal message={error} />;
+}
+
+// ✅ GOOD: 用 EventBus 发送一次性通知
+class SyncService {
+  async sync() {
+    try {
+      await this.adapter.sync();
+      syncStore.setState({ status: 'success' });
+    } catch (e) {
+      syncStore.setState({ status: 'error' });  // 状态（持久）
+      eventBus.emit('toast:error', e.message);  // 通知（瞬时）
+    }
+  }
+}
+
+// React 组件
+function ToastContainer() {
+  useAppEvent('toast:error', (msg) => {
+    showToast(msg);  // 弹一次就没了，不会重复
+  });
+}
+```
+
+#### Example: Delete File Flow (Zustand + EventBus 配合)
+
+```
+1. React: 用户点击删除按钮
+   → fileService.delete(id)
+
+2. Service: 执行删除
+   → adapter.deleteFile(id)  // 调用 Tauri
+
+3. Tauri: 物理删除文件
+   → 返回成功
+
+4. Service: 更新状态 + 发送通知
+   → fileStore.setState({
+       files: files.filter(f => f.id !== id)  // 移除该项
+     })
+   → eventBus.emit('toast:success', '删除成功')
+
+5. React 响应:
+   ├── FileList: 因 Zustand 变化自动减少一项（无需手动刷新）
+   └── ToastContainer: 监听到事件，弹出提示（一次性）
+```
+
+**为什么这样设计**:
+- 列表状态是"持久真相"：即使 Toast 组件没挂载，列表仍然正确
+- Toast 是"瞬时信号"：弹过就没，不会重复触发
 
 #### Service → React Communication Pattern
 
