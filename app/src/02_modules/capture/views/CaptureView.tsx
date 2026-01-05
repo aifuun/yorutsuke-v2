@@ -1,13 +1,14 @@
-// Pillar L: Views are pure JSX, logic in headless hooks
-// Pillar Q: Intent-ID for idempotency
-import { useCaptureLogic } from '../headless/useCaptureLogic';
-import { useDragDrop } from '../headless/useDragDrop';
+// Pillar L: Views are pure JSX, logic in Service layer
+// MVP0: Migrated from headless hooks to Service pattern
+import { useEffect } from 'react';
+import { useCaptureQueue, useCaptureStats } from '../hooks/useCaptureState';
+import { useDragState } from '../hooks/useDragState';
+import { useCaptureActions } from '../hooks/useCaptureActions';
+import { captureService } from '../services/captureService';
 import { useQuota } from '../headless/useQuota';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
-import { createIntentId } from '../../../00_kernel/types';
 import { useTranslation } from '../../../i18n';
-import type { DroppedItem } from '../types';
 import './capture.css';
 
 // Status badge configuration
@@ -31,41 +32,22 @@ export function CaptureView() {
   const { isOnline } = useNetworkStatus();
   const { effectiveUserId, isLoading: userLoading } = useEffectiveUserId();
   const { quota } = useQuota(effectiveUserId);
-  const {
-    state,
-    pendingCount,
-    uploadedCount,
-    remainingQuota,
-    addImage,
-  } = useCaptureLogic(effectiveUserId, quota.limit);
 
-  // Drag & drop handling
-  const { isDragging, dragHandlers } = useDragDrop({
-    onDrop: (items: DroppedItem[]) => {
-      if (!effectiveUserId) return;
+  // New Service-based hooks (MVP0)
+  const queue = useCaptureQueue();
+  const { pendingCount, uploadedCount, skippedCount } = useCaptureStats();
+  const { isDragging, dragHandlers } = useDragState();
+  const { retryImage, retryAllFailed } = useCaptureActions();
 
-      for (const item of items) {
-        addImage({
-          id: item.id,
-          userId: effectiveUserId,
-          intentId: createIntentId(),
-          traceId: item.traceId,
-          localPath: item.localPath,
-          status: 'pending',
-          s3Key: null,
-          thumbnailPath: item.preview,
-          originalSize: 0,
-          compressedSize: null,
-          createdAt: new Date().toISOString(),
-          uploadedAt: null,
-          processedAt: null,
-        });
-      }
-    },
-    onReject: (rejectedPaths) => {
-      console.warn('Rejected files:', rejectedPaths);
-    },
-  });
+  // Set user ID in captureService when it changes
+  useEffect(() => {
+    if (effectiveUserId) {
+      captureService.setUser(effectiveUserId, quota.limit);
+    }
+  }, [effectiveUserId, quota.limit]);
+
+  // Remaining quota calculation
+  const remainingQuota = quota.limit - uploadedCount;
 
   // Show loading while user ID is being resolved
   if (userLoading) {
@@ -156,14 +138,18 @@ export function CaptureView() {
           </div>
 
           {/* Processing Queue */}
-          {state.queue.length > 0 && (
+          {queue.length > 0 && (
             <div className="premium-card queue-card">
               <h2 className="section-header">{t('capture.processingQueue')}</h2>
               <div className="queue-list">
-                {state.queue.map((image) => {
+                {queue.map((image) => {
                   const config = STATUS_CONFIG[image.status] || STATUS_CONFIG.pending;
                   return (
-                    <div key={image.id} className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''}`}>
+                    <div
+                      key={image.id}
+                      className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''}`}
+                      onClick={() => image.status === 'failed' && retryImage(image.id)}
+                    >
                       <div className="queue-thumbnail">
                         <span className="queue-thumb-icon">🧾</span>
                       </div>
@@ -190,13 +176,17 @@ export function CaptureView() {
 
               {/* Queue Actions */}
               <div className="queue-actions">
-                {state.queue.some(img => img.status === 'failed') && (
-                  <button className="queue-action queue-action--retry">
+                {queue.some(img => img.status === 'failed') && (
+                  <button
+                    type="button"
+                    className="queue-action queue-action--retry"
+                    onClick={retryAllFailed}
+                  >
                     {t('capture.retryAll')}
                   </button>
                 )}
-                {state.queue.some(img => img.status === 'uploaded' || img.status === 'confirmed') && (
-                  <button className="queue-action queue-action--clear">
+                {queue.some(img => img.status === 'uploaded' || img.status === 'confirmed') && (
+                  <button type="button" className="queue-action queue-action--clear">
                     {t('capture.clearCompleted')}
                   </button>
                 )}
@@ -205,8 +195,7 @@ export function CaptureView() {
           )}
 
           {/* Duplicate Detection Banner (shown when duplicates are skipped) */}
-          {/* TODO: Connect to duplicate detection logic in useCaptureLogic */}
-          {state.skippedCount > 0 && (
+          {skippedCount > 0 && (
             <div className="info-banner info-banner--info">
               <span className="banner-icon">ℹ️</span>
               <div className="banner-content">

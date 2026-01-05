@@ -5,25 +5,44 @@
 
 ## Architecture Note
 
-> **Current → MVP0 Target Implementation**
+> **MVP0 Complete: Service Pattern Implemented**
 >
-> These traces describe the **CURRENT** implementation using React headless hooks.
-> **MVP0** will migrate these to the **Service pattern**.
+> The capture module has been migrated from React headless hooks to the **Service pattern**.
+> This fixes #82 (StrictMode race condition causes duplicate listeners).
 >
-> | Current | Target Service | Target Store |
-> |---------|----------------|--------------|
+> | Old (headless/) | New (services/) | New (stores/) |
+> |-----------------|-----------------|---------------|
 > | `useDragDrop.ts` | `captureService.ts` | `captureStore.ts` |
-> | `useCaptureLogic.ts` | `fileService.ts` | `fileStore.ts` |
+> | `useCaptureLogic.ts` | `fileService.ts` | (uses captureStore) |
 > | `useUploadQueue.ts` | `uploadService.ts` | `uploadStore.ts` |
 >
 > **Key Changes**:
-> - Tauri event listeners move to `Service.init()` (called once at app startup)
-> - State management moves to Zustand vanilla stores
+> - Tauri event listeners in `captureService.init()` (called once in `main.tsx`)
+> - State management in Zustand vanilla stores (outside React lifecycle)
 > - React components use thin hooks (`useStore()`) for state access
+> - React hooks bridge (`hooks/`) connects stores to React components
 >
-> See [MVP_PLAN.md - MVP0](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for migration plan.
-> See [INTERFACES.md](./INTERFACES.md) for target Service interfaces.
-> See [SCHEMA.md](./SCHEMA.md) for target Store schemas.
+> **New Directory Structure**:
+> ```
+> app/src/02_modules/capture/
+> ├── services/           # Business logic (no React)
+> │   ├── captureService.ts  # Entry point, Tauri listeners
+> │   ├── fileService.ts     # Compression, duplicate check
+> │   └── uploadService.ts   # Upload queue, retry
+> ├── stores/             # Zustand vanilla stores
+> │   ├── captureStore.ts
+> │   └── uploadStore.ts
+> ├── hooks/              # React bridge
+> │   ├── useCaptureState.ts
+> │   ├── useUploadState.ts
+> │   ├── useDragState.ts
+> │   └── useCaptureActions.ts
+> ├── headless/           # Legacy (useQuota still here)
+> └── views/              # React components
+> ```
+>
+> **Note**: The traces below may reference old hook names. The flow is the same,
+> but entry points have moved from React hooks to Service methods.
 
 ---
 

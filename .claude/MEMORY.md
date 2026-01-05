@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-05] Reviewed docs/operations for consistency with architecture docs; identified rate limit discrepancy (10s vs 2s) and quota tier ambiguity
-- **Next Steps**: Fix inconsistencies between ARCHITECTURE.md and QUOTA.md (rate limit, tier defaults)
+- **Last Progress**: [2026-01-05] Completed MVP0 architecture refactor - migrated capture module from headless hooks to Service pattern (captureService, fileService, uploadService + Zustand stores)
+- **Next Steps**: Manual testing of MVP0 (tauri dev), then proceed to MVP1 local testing
 - **Blockers**: None
 
 ## Architecture Decisions

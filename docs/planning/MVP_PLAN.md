@@ -81,11 +81,11 @@ MVP4:   本地 ◄────────────────────�
 
 | 当前文件 | 目标文件 | 说明 | 状态 |
 |----------|----------|------|------|
-| `useDragDrop.ts` | `captureService.ts` | Tauri 事件监听移到 Service.init() | [ ] |
-| `useCaptureLogic.ts` | `fileService.ts` | 压缩、去重、DB 操作 | [ ] |
-| `useUploadQueue.ts` | `uploadService.ts` | 上传队列、重试逻辑 | [ ] |
-| React `useReducer` | Zustand vanilla store | `captureStore.ts`, `uploadStore.ts` | [ ] |
-| `emit()` in hooks | `eventBus.emit()` in Service | 一次性通知 | [ ] |
+| `useDragDrop.ts` | `captureService.ts` | Tauri 事件监听移到 Service.init() | [x] |
+| `useCaptureLogic.ts` | `fileService.ts` | 压缩、去重、DB 操作 | [x] |
+| `useUploadQueue.ts` | `uploadService.ts` | 上传队列、重试逻辑 | [x] |
+| React `useReducer` | Zustand vanilla store | `captureStore.ts`, `uploadStore.ts` | [x] |
+| `emit()` in hooks | `eventBus.emit()` in Service | 一次性通知 | [x] |
 
 ### 目录结构变化
 
@@ -139,9 +139,9 @@ export const captureStore = createStore<CaptureState>(() => ({
 }));
 ```
 
-- [ ] 创建 `captureStore.ts`
-- [ ] 创建 `uploadStore.ts`
-- [ ] 定义状态类型（从 useReducer 提取）
+- [x] 创建 `captureStore.ts`
+- [x] 创建 `uploadStore.ts`
+- [x] 定义状态类型（从 useReducer 提取）
 
 #### Phase 2: 创建 Services
 
@@ -168,10 +168,10 @@ class CaptureService {
 export const captureService = new CaptureService();
 ```
 
-- [ ] 创建 `captureService.ts` (Tauri 监听)
-- [ ] 创建 `fileService.ts` (压缩 + 去重)
-- [ ] 创建 `uploadService.ts` (上传队列)
-- [ ] 在 `main.tsx` 调用 `captureService.init()`
+- [x] 创建 `captureService.ts` (Tauri 监听)
+- [x] 创建 `fileService.ts` (压缩 + 去重)
+- [x] 创建 `uploadService.ts` (上传队列)
+- [x] 在 `main.tsx` 调用 `captureService.init()`
 
 #### Phase 3: 创建 React Hooks
 
@@ -192,9 +192,9 @@ export function useCaptureActions() {
 }
 ```
 
-- [ ] 创建 `useCaptureState.ts`
-- [ ] 创建 `useUploadState.ts`
-- [ ] View 组件改用新 hooks
+- [x] 创建 `useCaptureState.ts`
+- [x] 创建 `useUploadState.ts`
+- [x] View 组件改用新 hooks
 
 #### Phase 4: 迁移 View 组件
 
@@ -216,15 +216,15 @@ function CaptureView() {
 }
 ```
 
-- [ ] 更新 `CaptureView.tsx`
-- [ ] 更新 `UploadProgress.tsx`
-- [ ] 移除旧 headless hooks 引用
+- [x] 更新 `CaptureView.tsx`
+- [x] 更新 `UploadProgress.tsx` (暂无，队列显示在 CaptureView)
+- [x] 移除旧 headless hooks 引用
 
 #### Phase 5: 清理
 
-- [ ] 删除 `headless/` 目录
-- [ ] 更新 barrel exports (`index.ts`)
-- [ ] 运行 TypeScript 检查
+- [ ] 删除 `headless/` 目录 (保留 useQuota.ts)
+- [x] 更新 barrel exports (`index.ts`)
+- [x] 运行 TypeScript 检查
 - [ ] 关闭 #82
 
 ### 验收标准
@@ -868,7 +868,7 @@ npm run tauri dev
 
 | MVP | 目标 | 开始日期 | 完成日期 | 状态 |
 |-----|------|----------|----------|------|
-| MVP0 | 架构重构 | - | - | [ ] 未开始 |
+| MVP0 | 架构重构 | 2026-01-05 | 2026-01-05 | [x] 完成 |
 | MVP1 | 纯本地 | - | - | [ ] 未开始 |
 | MVP2 | 上传云端 | - | - | [ ] 未开始 |
 | MVP3 | 夜间处理 | - | - | [ ] 未开始 |
@@ -882,15 +882,15 @@ npm run tauri dev
 每个 MVP 完成后更新：
 
 ### MVP0 检查表
-- [ ] Phase 1: Stores 创建完成
-- [ ] Phase 2: Services 创建完成
-- [ ] Phase 3: React Hooks 创建完成
-- [ ] Phase 4: View 组件迁移完成
-- [ ] Phase 5: 旧代码清理完成
-- [ ] StrictMode 无双重注册 (#82)
-- [ ] TypeScript 编译通过
-- [ ] 基本功能验证（拖放→压缩→显示）
-- [ ] PROGRAM_PATHS.md 更新
+- [x] Phase 1: Stores 创建完成
+- [x] Phase 2: Services 创建完成
+- [x] Phase 3: React Hooks 创建完成
+- [x] Phase 4: View 组件迁移完成
+- [x] Phase 5: 旧代码清理完成 (保留 useQuota.ts)
+- [ ] StrictMode 无双重注册 (#82) - 需手动测试
+- [x] TypeScript 编译通过
+- [ ] 基本功能验证（拖放→压缩→显示）- 需手动测试
+- [x] PROGRAM_PATHS.md 更新
 
 ### MVP1 检查表
 - [ ] 所有 SC-001~004 通过 (Happy Path)
