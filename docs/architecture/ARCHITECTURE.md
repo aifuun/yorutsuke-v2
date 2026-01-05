@@ -60,14 +60,15 @@ React 展示 (Display)
 
 | Aspect | Description |
 |--------|-------------|
-| Subscribe | Listen to Service events via EventBus or Store |
-| Trigger | Pass user intent (clicks, drags) to Service |
+| Subscribe | Listen to Service state via Zustand `useStore()` |
+| Trigger | Pass user intent (clicks, drags) to Service methods |
 | Local State | Only UI-specific state (modal open, input value) |
 
 **Boundaries**:
 - ❌ No global listeners (`tauri::listen`)
 - ❌ No direct AWS SDK calls
 - ❌ No business logic orchestration
+- ❌ No global business state (use Service store)
 
 #### 2. Pure TS Services Layer: The Orchestrator (指挥者)
 
@@ -76,12 +77,14 @@ React 展示 (Display)
 | Aspect | Description |
 |--------|-------------|
 | Orchestration | Decide "get URL → upload → update DB" flow |
-| State Sync | Maintain global business state (external Zustand control) |
+| Global State | Own business state via Zustand vanilla store |
 | Persistent Listeners | Register global events once at app startup |
 
 **Boundaries**:
 - ✅ Single exit point for all logic
+- ✅ Own global business state (Zustand vanilla)
 - ❌ No DOM operations or UI styles
+- ❌ No React hooks (use plain TS classes/functions)
 
 **Why This Solves #82**:
 - Decoupled lifecycle: Even if user closes upload modal (React unmounts), `uploadService` continues running
@@ -129,9 +132,78 @@ React 展示 (Display)
 | Feature | React | Services | Adapters | Tauri | AWS |
 |---------|-------|----------|----------|-------|-----|
 | Position | UI Renderer | App Brain | Translator | Native Worker | Authority |
-| Logic Type | UI State | Orchestration | None | IO/Compute | Validation |
+| Logic Type | None | Orchestration | None | IO/Compute | Validation |
+| State Type | Local UI | Global Business | Stateless | N/A | Persistent |
 | Lifecycle | Component | App Startup | Stateless | App Process | Cloud |
 | Performance Focus | FPS | Flow Control | None | CPU/Memory | Latency/Cost |
+
+### State Ownership (状态归属)
+
+Logic and State are separate concerns with different homes:
+
+#### Logic: All in Service Layer
+
+| Logic Type | Examples | Home |
+|------------|----------|------|
+| Business Logic | "If file > 1GB, check disk space first" | Service |
+| Flow Logic | "Login AWS → get token → init local DB" | Service |
+| Async Logic | Timers, polling, Promise chains | Service |
+| Event Listeners | Tauri native events (file drop, window focus) | Service |
+
+#### State: Split by Lifecycle
+
+| State Type | Home | Examples | Reason |
+|------------|------|----------|--------|
+| **Global Business State** | Services (Zustand vanilla) | User info, task list, upload progress, network status | Truth center: must persist even if UI unmounts |
+| **Local UI State** | React (useState) | Modal open, input text, selected tab index | Visual only: reset on component unmount is OK |
+
+#### Service → React Communication Pattern
+
+```typescript
+// ========== Service Layer (Pure TS) ==========
+// uploadService.ts - runs independently of React
+
+import { createStore } from 'zustand/vanilla';
+
+// Global state store (not a React hook)
+export const uploadStore = createStore(() => ({
+  tasks: [] as UploadTask[],
+  progress: 0,
+}));
+
+class UploadService {
+  start(file: string) {
+    // 1. Logic: prepare work
+    // 2. Update global state
+    uploadStore.setState({ progress: 0 });
+    // 3. Call Adapter → Tauri
+  }
+}
+
+export const uploadService = new UploadService();
+
+// ========== React Layer (View) ==========
+// ProgressBar.tsx - subscribes to Service state
+
+import { useStore } from 'zustand';
+import { uploadStore } from './uploadService';
+
+export function ProgressBar() {
+  // Subscribe to Service layer state
+  const progress = useStore(uploadStore, (s) => s.progress);
+
+  return <div style={{ width: `${progress}%` }} />;
+}
+```
+
+#### Why This Solves #82 Permanently
+
+| Aspect | React Hook Pattern | Service Pattern |
+|--------|-------------------|-----------------|
+| Listener Lifecycle | useEffect (re-runs on mount) | Service.init() (once at app start) |
+| State Persistence | Lost on unmount | Persists in store |
+| Testability | Needs React testing library | Plain unit tests |
+| StrictMode | Double registration bug | No issue |
 
 ### Example: S3 Large File Upload Flow
 
