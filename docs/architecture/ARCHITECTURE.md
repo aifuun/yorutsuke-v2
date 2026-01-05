@@ -6,7 +6,165 @@
 
 **Architecture**: Local-First + Cloud-Sync
 **Pattern**: AI_DEV_PROT v15 (Tauri + React + AWS CDK)
-**Last Updated**: 2026-01-02
+**Last Updated**: 2026-01-05
+
+## Architecture Philosophy
+
+### Core Principle
+
+```
+Service 指挥 (Orchestrate)
+Tauri 执行 (Execute)
+AWS 审计 (Validate)
+React 展示 (Display)
+```
+
+### Four-Layer Model
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  React Components (View)                                    │
+│  - UI 渲染、用户手势响应                                      │
+│  - 订阅 EventBus，但不设置监听器                              │
+└─────────────────────────────────────────────────────────────┘
+                              │ 调用
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Pure TS Services (Orchestrator)                            │
+│  - 业务流程编排                                              │
+│  - 全局事件监听 (Tauri drag-drop, 网络状态)                   │
+│  - App 启动时初始化，独立于 React 生命周期                     │
+└─────────────────────────────────────────────────────────────┘
+                              │ 调用
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Adapters (Bridge)                                          │
+│  - Tauri IPC 封装                                           │
+│  - AWS API 封装                                             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+┌─────────────────────────┐     ┌─────────────────────────────┐
+│  Tauri (Executor)       │     │  AWS (Authority)            │
+│  - 系统能力执行          │     │  - 认证授权                  │
+│  - 高性能计算            │     │  - 数据持久化                │
+└─────────────────────────┘     └─────────────────────────────┘
+```
+
+### Layer Responsibilities
+
+#### 1. React Layer: The View (展示者)
+
+**Position**: Pure UI rendering layer.
+
+| Aspect | Description |
+|--------|-------------|
+| Subscribe | Listen to Service events via EventBus or Store |
+| Trigger | Pass user intent (clicks, drags) to Service |
+| Local State | Only UI-specific state (modal open, input value) |
+
+**Boundaries**:
+- ❌ No global listeners (`tauri::listen`)
+- ❌ No direct AWS SDK calls
+- ❌ No business logic orchestration
+
+#### 2. Pure TS Services Layer: The Orchestrator (指挥者)
+
+**Position**: Business logic hub, independent of UI lifecycle.
+
+| Aspect | Description |
+|--------|-------------|
+| Orchestration | Decide "get URL → upload → update DB" flow |
+| State Sync | Maintain global business state (external Zustand control) |
+| Persistent Listeners | Register global events once at app startup |
+
+**Boundaries**:
+- ✅ Single exit point for all logic
+- ❌ No DOM operations or UI styles
+
+**Why This Solves #82**:
+- Decoupled lifecycle: Even if user closes upload modal (React unmounts), `uploadService` continues running
+- Single registration: Global listeners registered once at Service init, avoiding StrictMode double-registration bug
+- Testable: Can unit test Service logic without starting any UI
+
+#### 3. Adapters Layer: The Bridge (桥梁)
+
+**Position**: External capability abstraction.
+
+| Aspect | Description |
+|--------|-------------|
+| IPC Wrapper | Wrap `invoke("command")` as semantic TS functions |
+| SDK Isolation | Encapsulate AWS SDK, hide complex API parameters |
+
+**Boundaries**:
+- ❌ No business logic, only "data translation" and "API calls"
+
+#### 4. Tauri Layer: The Executor (执行者)
+
+**Position**: Native capability execution center (Rust).
+
+| Aspect | Description |
+|--------|-------------|
+| IO/Compute | Stream file read/write, SQLite transactions, image compression |
+
+**Boundaries**:
+- ❌ No decision-making (doesn't judge "should I delete?", only "execute delete")
+- ❌ No UI state management
+
+#### 5. AWS Layer: The Authority (权威者)
+
+**Position**: Final security and data validation.
+
+| Aspect | Description |
+|--------|-------------|
+| Auth & Persist | Validate tokens, store S3 objects |
+
+**Boundaries**:
+- ❌ Never trust client-side validation
+- ❌ No temporary UI interaction states
+
+### Layer Comparison
+
+| Feature | React | Services | Adapters | Tauri | AWS |
+|---------|-------|----------|----------|-------|-----|
+| Position | UI Renderer | App Brain | Translator | Native Worker | Authority |
+| Logic Type | UI State | Orchestration | None | IO/Compute | Validation |
+| Lifecycle | Component | App Startup | Stateless | App Process | Cloud |
+| Performance Focus | FPS | Flow Control | None | CPU/Memory | Latency/Cost |
+
+### Example: S3 Large File Upload Flow
+
+```
+1. React (Trigger):
+   User clicks UploadButton → call uploadService.startUpload(file)
+
+2. Service (Decide):
+   - Check local task queue
+   - Get Presigned URL via awsAdapter
+   - Call tauriAdapter to start native upload
+
+3. Tauri (Execute):
+   Rust spawns tokio thread for streaming upload
+   → emit("upload_progress") every second
+
+4. Service (Listen):
+   Service listens to upload_progress (registered at init)
+   → Calculate global progress
+   → EventBus.emit("PROGRESS_CHANGE")
+
+5. React (Display):
+   useProgress hook receives event
+   → Trigger re-render
+   → User sees progress bar moving
+```
+
+### Migration Note
+
+> **Issue #82**: Current `useDragDrop.ts` has temporary workaround (ignore flag pattern).
+> TODO: Refactor to Service pattern after MVP1 testing.
+
+---
 
 ## System Context
 

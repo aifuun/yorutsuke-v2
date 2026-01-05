@@ -12,6 +12,28 @@ Update at session end, read at session start.
 
 Record important decisions with context.
 
+### [2026-01-05] React = Dumb Display, Logic in Backend (#82)
+- **Decision**: React should only subscribe to events and render; all orchestration logic belongs in pure modules
+- **Trigger**: StrictMode race condition in `useDragDrop.ts` caused duplicate Tauri listeners
+- **Problem**: Tauri event listeners were managed inside React `useEffect`, leading to:
+  - Async race condition with cleanup
+  - Two listener sets registered → duplicate image processing
+  - Workaround needed (ignore flag pattern)
+- **Correct Pattern**:
+  ```
+  App Startup → initService() (once, outside React)
+       ↓ EventBus
+  Pure Module → emit('event', data)
+       ↓ EventBus subscription
+  React Hook → useAppEvent('event') → update state
+  ```
+- **Benefits**:
+  - No StrictMode issues (listeners initialized once)
+  - True Pillar L compliance (React only subscribes)
+  - Easier testing (pure modules)
+- **TODO**: Refactor `useDragDrop.ts` to Service pattern after MVP1
+- **Issue**: #82
+
 ### [2026-01-03] Mock Layer for UI Development
 - **Decision**: Centralized mock configuration in `00_kernel/config/mock.ts`
 - **Trigger**: `VITE_USE_MOCK=true` OR no Lambda URLs configured
