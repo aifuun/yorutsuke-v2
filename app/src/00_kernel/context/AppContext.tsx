@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { UserId } from '../types';
-import { getDeviceId, isDeviceId } from '../identity';
+import type { UserId as UserIdType } from '../types';
+import { UserId } from '../types';
+import { getDeviceId } from '../identity';
 import { initDb } from '../storage/db';
 import { logger } from '../telemetry';
 
 interface AppContextValue {
-  userId: UserId | null;
+  userId: UserIdType | null;
   isAuthenticated: boolean;
   isGuest: boolean;
   isLoading: boolean;
@@ -14,7 +15,7 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [userId, setUserId] = useState<UserId | null>(null);
+  const [userId, setUserId] = useState<UserIdType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize: load device ID on mount
@@ -24,11 +25,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Ensure database is initialized first
         await initDb();
 
-        // Get or create device ID
+        // Get or create device ID, use guest-{deviceId} format for consistency
+        // This matches useEffectiveUserId() format
         const deviceId = await getDeviceId();
-        setUserId(deviceId);
+        const guestUserId = UserId(`guest-${deviceId}`);
+        setUserId(guestUserId);
 
-        logger.info('[App] Initialized with Device ID', { deviceId });
+        logger.info('[App] Initialized with Guest User ID', { userId: guestUserId });
       } catch (error) {
         logger.error('[App] Failed to initialize', { error: String(error) });
       } finally {
@@ -40,8 +43,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // TODO: Replace with authenticated userId when user logs in
-  const isAuthenticated = userId !== null && !isDeviceId(userId);
-  const isGuest = userId !== null && isDeviceId(userId);
+  // Guest IDs use format: guest-{deviceId} (e.g., guest-device-xxx)
+  const isGuest = userId !== null && userId.startsWith('guest-');
+  const isAuthenticated = userId !== null && !isGuest;
 
   const value: AppContextValue = {
     userId,

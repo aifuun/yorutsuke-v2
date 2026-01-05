@@ -1,6 +1,6 @@
 // Pillar L: View - Debug tools for development
 // Follows same patterns as SettingsView for consistency
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
 import { useTranslation } from '../../../i18n';
@@ -27,6 +27,14 @@ export function DebugView() {
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
   const [seedStatus, setSeedStatus] = useState<'idle' | 'seeding' | 'done'>('idle');
   const [seedResult, setSeedResult] = useState<string | null>(null);
+
+  // Debug: log state
+  console.log('[DebugView] render', {
+    settingsStatus: state.status,
+    userIdLoading,
+    effectiveUserId,
+    user: user?.id
+  });
 
   // Handle loading state
   if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
@@ -55,6 +63,7 @@ export function DebugView() {
 
   const handleSeedData = async (force: boolean) => {
     const TAG = 'DebugUI';
+    console.log('[DebugView] handleSeedData called', { effectiveUserId, seedScenario, force });
     dlog.info(TAG, 'Seed button clicked', { userId: effectiveUserId, scenario: seedScenario });
 
     if (!effectiveUserId) {
@@ -148,9 +157,9 @@ export function DebugView() {
                     </span>
                     <span className="debug-log-tag">[{log.tag}]</span>
                     <span className="debug-log-msg">{log.message}</span>
-                    {log.data && (
+                    {log.data !== undefined && (
                       <span className="debug-log-data">
-                        {typeof log.data === 'object' ? JSON.stringify(log.data) : String(log.data)}
+                        {String(typeof log.data === 'object' ? JSON.stringify(log.data) : log.data)}
                       </span>
                     )}
                   </div>

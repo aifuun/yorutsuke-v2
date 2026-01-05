@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-04] Logging system optimization (#78) - local persistence + semantic events
-- **Next Steps**: Manual testing (#55), then production readiness
+- **Last Progress**: [2026-01-05] Fixed seed data bug (FK constraint + userId mismatch), reorganized test docs to `docs/tests/`
+- **Next Steps**: Reorganize docs/ into subdirectories, manual testing
 - **Blockers**: None
 
 ## Architecture Decisions

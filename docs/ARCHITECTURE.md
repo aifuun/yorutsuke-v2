@@ -458,4 +458,4 @@ Second drop (same receipt.jpg):
 - Schema: `./SCHEMA.md`
 - Interfaces: `./INTERFACES.md`
 - AI_DEV_PROT: `.prot/CHEATSHEET.md`
-- Test Scenarios: `./TEST_SCENARIOS.md`
+- Test Scenarios: `./tests/`

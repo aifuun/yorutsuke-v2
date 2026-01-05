@@ -2,8 +2,8 @@
 
 > Incremental testing plan for manual verification
 
-**Version**: 1.1.0
-**Last Updated**: 2026-01-04
+**Version**: 1.3.0
+**Last Updated**: 2026-01-05
 
 ## Overview
 
@@ -42,17 +42,50 @@ MVP4:   本地 ◄────────────────────�
 
 ### 测试场景
 
-从 [TEST_SCENARIOS.md](./TEST_SCENARIOS.md) 选取：
+从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
 
+#### 1.1 Happy Path
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-001 | 单张图片拖放 | 压缩成功，状态 compressed |
 | SC-002 | 多张图片拖放 | 顺序处理 |
 | SC-003 | 大图 (>5MB) | 压缩到 <500KB |
+| SC-004 | 小图 (<100KB) | 仍压缩为 WebP |
+
+#### 1.2 File Validation
+| ID | 场景 | 预期 |
+|----|------|------|
 | SC-010 | 有效格式 (JPG/PNG/HEIC) | 全部接受 |
 | SC-011 | 无效格式 (.txt/.pdf) | 拒绝并提示 |
+| SC-012 | 损坏图片 | 错误: "Failed to open image" |
+| SC-013 | 空文件 | 优雅处理错误 |
+
+#### 1.3 Duplicate Detection
+| ID | 场景 | 预期 |
+|----|------|------|
 | SC-020 | 同文件两次 | 第二次检测为重复 |
 | SC-021 | 相同内容不同名 | MD5 检测为重复 |
+| SC-022 | 相似但不同 | 两张都处理 (MD5 不同) |
+| SC-023 | 快速双击 | 只处理一次 |
+
+#### 6.1 App Lifecycle - Startup
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-500 | 全新安装 | DB 初始化，guest 模式 |
+| SC-501 | 恢复会话 | 关闭后重开，队列恢复 |
+| SC-502 | 恢复 pending | 崩溃后重开，pending 重新处理 |
+| SC-503 | 恢复 uploading | 崩溃后重开，重置为 compressed |
+
+#### 8. Data Integrity
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-700 | ImageId 唯一 | 拖放 100 张，ID 都唯一 |
+| SC-701 | TraceId 追踪 | 拖放→压缩→日志，traceId 一致 |
+| SC-702 | IntentId 幂等 | 上传→重试，intentId 不变 |
+| SC-703 | MD5 准确 | 同图两次，MD5 相同 |
+| SC-710 | 队列-DB 同步 | 拖放→压缩→检查 DB，数据一致 |
+| SC-711 | 状态转换 | 遵循允许的状态转换路径 |
+| SC-712 | 无孤儿记录 | 处理多张图片，DB 无孤儿 |
 
 ### 环境配置
 
@@ -69,6 +102,9 @@ npm run tauri dev
 - [ ] 拖放重复图片，正确检测并跳过
 - [ ] 重启应用后，队列状态从 SQLite 恢复
 - [ ] 无网络环境下正常工作
+- [ ] 所有 SC-001~023 通过
+- [ ] 所有 SC-500~503 通过
+- [ ] 所有 SC-700~712 通过
 
 ### 依赖
 
@@ -94,14 +130,51 @@ npm run tauri dev
 
 ### 测试场景
 
+从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+
+#### 3.1 Network - Offline Scenarios
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-300 | 离线启动 | 本地功能正常 |
 | SC-301 | 上传中断网 | 暂停并显示 offline |
 | SC-302 | 恢复网络 | 自动继续上传 |
+| SC-303 | 长时间离线 | 队列保留，恢复后续传 |
+
+#### 3.2 Network - Slow/Unstable
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-310 | 慢网络上传 | 显示进度，不超时 |
+| SC-311 | 上传超时 | 重试一次 |
 | SC-312 | 上传失败重试 | 自动重试最多 3 次 |
 | SC-313 | 永久失败 | 状态 failed，可手动重试 |
+| SC-314 | 断断续续 | 自动恢复继续 |
+
+#### 3.3 Network - Server Errors
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-320 | Lambda 500 | 重试一次 |
+| SC-321 | Lambda 超时 | 重试一次 |
+
+#### 4.1 Error Recovery - Upload
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-400 | Presign 失败 | 错误显示，可重试 |
+| SC-401 | S3 上传失败 | 自动重试 |
+| SC-402 | 部分成功 | 失败的显示错误，成功的继续 |
+| SC-403 | 并发上传 | 多张同时上传正常 |
+
+#### 4.2 Error Recovery - Presign
+| ID | 场景 | 预期 |
+|----|------|------|
 | SC-420 | URL 过期 | 获取新 URL 重试 |
+| SC-421 | 无效 URL | 获取新 URL 重试 |
+| SC-422 | Presign 限流 | 等待后重试 |
+
+#### 6.2 App Lifecycle - Background/Foreground
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-510 | 切到后台 | 上传继续 (Tauri) |
+| SC-511 | 回到前台 | 同步状态显示 |
 
 ### 环境配置
 
@@ -122,6 +195,11 @@ npm run tauri dev
 - [ ] 断网后上传暂停，恢复后自动继续
 - [ ] 上传失败后自动重试
 - [ ] Quota 正确显示 (used/limit)
+- [ ] 所有 SC-300~314 通过
+- [ ] 所有 SC-320~321 通过
+- [ ] 所有 SC-400~403 通过
+- [ ] 所有 SC-420~422 通过
+- [ ] 所有 SC-510~511 通过
 
 ### 依赖
 
@@ -148,14 +226,32 @@ npm run tauri dev
 
 ### 测试场景
 
+从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+
+#### 5.1 Batch Processing
 | ID | 场景 | 预期 |
 |----|------|------|
-| - | 上传 5 张收据 | S3 存储成功 |
-| - | 等待批处理 | 02:00 JST 处理 |
-| - | 查看晨报 | 显示提取的交易 |
-| - | 确认交易 | 标记为已确认 |
-| - | 编辑金额 | 修改并保存 |
-| - | 删除错误项 | 从列表移除 |
+| SC-520 | 上传 5 张收据 | S3 存储成功 |
+| SC-521 | 定时触发 | 02:00 JST 批处理运行 |
+| SC-522 | 手动触发 | Lambda 直接调用成功 |
+| SC-523 | AI 提取 | Nova Lite OCR 返回交易数据 |
+
+#### 5.2 Morning Report
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-530 | 查看晨报 | 显示昨日收支汇总 |
+| SC-531 | 交易列表 | 显示 AI 提取的交易 |
+| SC-532 | 确认交易 | 标记为已确认 |
+| SC-533 | 编辑金额 | 修改并保存到本地 |
+| SC-534 | 删除错误项 | 从列表移除 |
+| SC-535 | 历史日历 | 查看过去 7 天数据 |
+
+#### 5.3 Report Data Integrity
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-540 | 空报告 | 无交易时显示空状态 |
+| SC-541 | 大量交易 | 50+ 条交易正常显示 |
+| SC-542 | 分类汇总 | 按 sale/purchase/shipping 等分类 |
 
 ### 环境配置
 
@@ -177,6 +273,9 @@ aws lambda invoke \
 - [ ] 晨报显示昨日汇总
 - [ ] 可以确认/编辑/删除交易
 - [ ] 历史日历可以查看过去 7 天
+- [ ] 所有 SC-520~523 通过
+- [ ] 所有 SC-530~535 通过
+- [ ] 所有 SC-540~542 通过
 
 ### 依赖
 
@@ -355,15 +454,54 @@ const onLogin = async (userId: UserId) => {
 
 ### 测试场景
 
+从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+
+#### 2.1 Quota Management - Guest
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-100 | Guest 默认配额 | limit=10, tier=guest |
 | SC-101 | Guest 过期警告 | 显示剩余天数 |
+| SC-102 | Guest 接近限额 | 显示警告 "剩余 3 张" |
 | SC-103 | Guest 达到限额 | 阻止上传，提示注册 |
+
+#### 2.2 Quota Management - Registered Users
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-110 | Free Tier 配额 | limit=30 |
+| SC-111 | Basic Tier 配额 | limit=100 |
+| SC-112 | Pro Tier 配额 | limit=500 |
+| SC-113 | 配额重置 | 次日 00:00 JST 重置 |
+
+#### 2.3 Quota Edge Cases
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-120 | 配额检查失败 | 降级为本地限制 |
+| SC-121 | 同时上传超限 | 精确到张数限制 |
+| SC-130 | 升级 Tier | 即时更新配额 |
+| SC-131 | 降级 Tier | 不影响已上传 |
+
+#### 7.1 Auth - Guest Mode
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-600 | 默认 Guest | 新安装自动 Guest 模式 |
+| SC-601 | Guest 功能限制 | 可上传但有 60 天过期 |
+
+#### 7.2 Auth - Registration & Login
+| ID | 场景 | 预期 |
+|----|------|------|
 | SC-200 | 注册流程 | Guest → Register → Verify → Login |
 | SC-201 | 登录认领数据 | Guest 的图片迁移到新账户 |
-| SC-600 | 登录成功 | 显示用户信息 |
-| SC-602 | 登出 | 清除 Token，返回 Guest |
+| SC-610 | 登录成功 | 显示用户信息 |
+| SC-611 | 登录失败 | 显示错误，保留 Guest 数据 |
+| SC-612 | 登出 | 清除 Token，返回 Guest |
+| SC-613 | Token 过期 | 自动刷新或重新登录 |
+
+#### 7.3 Auth - Data Migration
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-620 | Guest 数据迁移 | 注册后图片关联新 userId |
+| SC-621 | 迁移失败回滚 | 保留原 Guest 数据 |
+| SC-622 | 已有账户登录 | 提示选择保留或合并 |
 
 ### 环境配置
 
@@ -385,6 +523,11 @@ npm run tauri dev
 - [ ] Guest 数据正确迁移到注册账户
 - [ ] 不同 Tier 配额正确显示和限制
 - [ ] 设置修改后重启仍保留
+- [ ] 所有 SC-100~103 通过
+- [ ] 所有 SC-110~113 通过
+- [ ] 所有 SC-120~131 通过
+- [ ] 所有 SC-200~201 通过
+- [ ] 所有 SC-600~622 通过
 
 ### 依赖
 
@@ -411,35 +554,43 @@ npm run tauri dev
 每个 MVP 完成后更新：
 
 ### MVP1 检查表
-- [ ] 所有 SC-001~004 通过
-- [ ] 所有 SC-010~013 通过
-- [ ] 所有 SC-020~023 通过
+- [ ] 所有 SC-001~004 通过 (Happy Path)
+- [ ] 所有 SC-010~013 通过 (File Validation)
+- [ ] 所有 SC-020~023 通过 (Duplicate Detection)
+- [ ] 所有 SC-500~503 通过 (App Lifecycle)
+- [ ] 所有 SC-700~712 通过 (Data Integrity)
 - [ ] 截图/录屏存档
 
 ### MVP2 检查表
-- [ ] 所有 SC-300~313 通过
-- [ ] 所有 SC-420~422 通过
+- [ ] 所有 SC-300~314 通过 (Network)
+- [ ] 所有 SC-320~321 通过 (Server Errors)
+- [ ] 所有 SC-400~403 通过 (Upload Recovery)
+- [ ] 所有 SC-420~422 通过 (Presign Recovery)
+- [ ] 所有 SC-510~511 通过 (Background/Foreground)
 - [ ] S3 验证有上传文件
 - [ ] 截图/录屏存档
 
 ### MVP3 检查表
+- [ ] 所有 SC-520~523 通过 (Batch Processing)
+- [ ] 所有 SC-530~535 通过 (Morning Report)
+- [ ] 所有 SC-540~542 通过 (Report Data Integrity)
 - [ ] 批处理成功运行
 - [ ] AI 提取结果正确
-- [ ] 晨报显示正常
-- [ ] 交易管理正常
 - [ ] 截图/录屏存档
 
 ### MVP3.5 检查表
-- [ ] 所有 SC-800~806 通过
+- [ ] 所有 SC-800~806 通过 (Cloud Sync)
 - [ ] DynamoDB 有确认记录
 - [ ] 离线同步队列正常
 - [ ] 新设备恢复成功
 - [ ] 截图/录屏存档
 
 ### MVP4 检查表
-- [ ] 所有 SC-100~131 通过
-- [ ] 所有 SC-200~222 通过
-- [ ] 所有 SC-600~603 通过
+- [ ] 所有 SC-100~103 通过 (Guest Quota)
+- [ ] 所有 SC-110~113 通过 (Tier Quota)
+- [ ] 所有 SC-120~131 通过 (Quota Edge Cases)
+- [ ] 所有 SC-200~201 通过 (Registration)
+- [ ] 所有 SC-600~622 通过 (Auth Flow)
 - [ ] Cognito 用户创建成功
 - [ ] 截图/录屏存档
 
@@ -464,6 +615,6 @@ npm run tauri dev
 ## References
 
 - [REQUIREMENTS.md](./REQUIREMENTS.md) - 功能需求
-- [TEST_SCENARIOS.md](./TEST_SCENARIOS.md) - 测试场景详情
+- [tests/](./tests/) - 测试场景详情
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - 技术架构
 - [DEPLOYMENT.md](./DEPLOYMENT.md) - 部署指南

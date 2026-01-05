@@ -155,4 +155,4 @@
 - Original yorutsuke PRD: `../yorutsuke/docs/final-prd.html`
 - Schema design: `./SCHEMA.md`
 - Architecture: `./ARCHITECTURE.md`
-- Test scenarios: `./TEST_SCENARIOS.md`
+- Test scenarios: `./tests/`

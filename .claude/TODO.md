@@ -2,18 +2,9 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Issue: #78 - Logging System Optimization
+## Current Issue: None
 
-**Tier**: T2 (Tauri IPC + File System)
-**Pillars**: R (Observability), N (Context), G (Traceability)
-
-### Steps
-- [x] Create `docs/LOGGING.md` design document
-- [x] Implement Tauri `log_write` command
-- [x] Implement log file rotation (7 days)
-- [x] Integrate `logger.ts` with Tauri IPC
-- [x] Add missing EVENTS constants
-- [x] Fix inconsistent log calls in kernel files
+Last completed: #78 - Logging System Optimization
 
 ## Milestones
 
@@ -115,6 +106,9 @@ Now tracked as GitHub Issues:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- Fixed seed data bug: FK constraint + userId mismatch (2026-01-05)
+- Reorganized test docs to `docs/tests/` with BACKEND.md (2026-01-05)
+- #78 Logging system optimization (2026-01-05)
 - #50 Guest data claim on registration (2026-01-04)
 - #51 Auto-refresh quota after tier change (2026-01-04)
 - #28 Intent-ID for idempotency (Pillar Q) (2026-01-02)

@@ -1,9 +1,14 @@
-# Test Scenarios
+# Frontend Test Scenarios
 
+> **Scope**: Tauri + React client application
+> **ID Prefix**: SC-xxx (Scenario Client)
+>
 > Lightweight test scenarios for manual and automated testing.
 > Each scenario has a unique ID for tracking and issue linking.
 >
-> **See also**: [PROGRAM_PATHS.md](./PROGRAM_PATHS.md) for detailed code flow traces.
+> **See also**:
+> - [BACKEND.md](./BACKEND.md) - Lambda, Batch Processing tests
+> - [../PROGRAM_PATHS.md](../PROGRAM_PATHS.md) - Detailed code flow traces
 
 ## How to Use
 
@@ -164,6 +169,7 @@
 | SC-420 | Presign URL expired | Wait >15min → Upload | Get new URL, retry | [ ] |
 | SC-421 | S3 access denied | Invalid credentials | Error, don't retry | [ ] |
 | SC-422 | Quota exceeded (server) | Server returns 429 | Pause queue, show message | [ ] |
+| SC-423 | Service limit reached | Backend returns 503 (cost limit) | Show "Service temporarily unavailable" message | [ ] |
 
 ---
 
@@ -229,6 +235,171 @@
 
 ---
 
+## 9. Transaction/Ledger Module
+
+### 9.1 Viewing Transactions
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-800 | Load transactions | Open Ledger tab | Transactions displayed by date desc | [ ] |
+| SC-801 | Empty state | No transactions exist | "No entries" message shown | [ ] |
+| SC-802 | Filter by year | Select different year | Only that year's transactions shown | [ ] |
+| SC-803 | Filter by month | Select specific month | Only that month's transactions shown | [ ] |
+| SC-804 | Full year view | Click "Full Year" | All months for selected year shown | [ ] |
+
+### 9.2 Transaction Actions
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-810 | Confirm pending | Click confirm on pending tx | confirmedAt set, tag removed | [ ] |
+| SC-811 | Delete transaction | Click delete → Confirm dialog | Transaction removed from list | [ ] |
+| SC-812 | Delete cancel | Click delete → Cancel dialog | Transaction preserved | [ ] |
+
+### 9.3 Summary Calculations
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-820 | Income total | View summary with income txs | Correct sum of income amounts | [ ] |
+| SC-821 | Expense total | View summary with expense txs | Correct sum of expense amounts | [ ] |
+| SC-822 | Mixed transactions | View with income + expense | Both totals calculated correctly | [ ] |
+| SC-823 | Filtered summary | Filter by month | Summary reflects filtered data only | [ ] |
+
+### 9.4 Transaction Display
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-830 | Income styling | View income transaction | Green amount with + prefix | [ ] |
+| SC-831 | Expense styling | View expense transaction | Red amount with - prefix | [ ] |
+| SC-832 | Pending indicator | View unconfirmed tx | "Pending" tag displayed | [ ] |
+| SC-833 | Category display | View transaction | Category translated correctly | [ ] |
+
+---
+
+## 10. Report/Dashboard Module
+
+### 10.1 Daily Summary
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-900 | Load dashboard | Open Dashboard tab | Today's summary displayed | [ ] |
+| SC-901 | Empty day | No transactions today | Zero values shown | [ ] |
+| SC-902 | Income display | Today has income | Correct income amount shown | [ ] |
+| SC-903 | Expense display | Today has expenses | Correct expense amount shown | [ ] |
+| SC-904 | Net profit | Today has both | Net = income - expense | [ ] |
+
+### 10.2 Pending Items
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-910 | Pending count | Have unconfirmed txs | Count displayed correctly | [ ] |
+| SC-911 | No pending | All txs confirmed | "0 pending" or hidden | [ ] |
+| SC-912 | Pending action | Click pending item | Navigate to transaction | [-] |
+
+### 10.3 Upload Status
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-920 | Queue empty | No uploads pending | "Ready" or empty state | [ ] |
+| SC-921 | Queue active | Images in queue | Count and status shown | [ ] |
+| SC-922 | Upload progress | Image uploading | Progress indicator visible | [ ] |
+
+---
+
+## 11. Settings Module
+
+### 11.1 Language Settings
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1000 | Switch to Japanese | Settings → Language → 日本語 | UI switches to Japanese | [ ] |
+| SC-1001 | Switch to English | Settings → Language → English | UI switches to English | [ ] |
+| SC-1002 | Language persists | Change language → Restart app | Language setting preserved | [ ] |
+| SC-1003 | Date format | Switch language | Dates formatted per locale | [ ] |
+
+### 11.2 Theme Settings
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1010 | Switch to dark | Settings → Theme → Dark | Dark theme applied | [ ] |
+| SC-1011 | Switch to light | Settings → Theme → Light | Light theme applied | [ ] |
+| SC-1012 | System theme | Settings → Theme → System | Follows OS preference | [ ] |
+| SC-1013 | Theme persists | Change theme → Restart app | Theme setting preserved | [ ] |
+
+### 11.3 Data Management
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1020 | Clear cache | Settings → Clear Cache → Confirm | Local data cleared | [ ] |
+| SC-1021 | Clear cancel | Settings → Clear Cache → Cancel | Data preserved | [ ] |
+
+---
+
+## 12. Debug Module
+
+### 12.1 System Info
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1100 | Display user info | Open Debug panel | User ID, email, tier shown | [ ] |
+| SC-1101 | Display settings | Open Debug panel | Theme, language shown | [ ] |
+| SC-1102 | Display versions | Open Debug panel | DB version, app version shown | [ ] |
+
+### 12.2 Mock Data Seeding
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1110 | Seed default | Debug → Seed (default) | 14-35 transactions created | [ ] |
+| SC-1111 | Seed empty | Debug → Seed (empty) | 0 transactions, empty state | [ ] |
+| SC-1112 | Seed busy | Debug → Seed (busy) | 35-70 transactions created | [ ] |
+| SC-1113 | Seed veteran | Debug → Seed (veteran) | 60-120 transactions, 30 days | [ ] |
+| SC-1114 | Seed with force | Have data → Seed with force | Old data replaced | [ ] |
+| SC-1115 | Seed shows in Ledger | Seed → Go to Ledger | Seeded transactions visible | [ ] |
+
+### 12.3 Debug Logs
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1120 | View logs | Open Debug panel | Recent logs displayed | [ ] |
+| SC-1121 | Log levels | Trigger info/warn/error | Different styling per level | [ ] |
+| SC-1122 | Clear logs | Click Clear button | Logs panel emptied | [ ] |
+| SC-1123 | Log persistence | Perform actions → Check logs | Actions logged with timestamps | [ ] |
+
+### 12.4 Feature Flags
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1130 | Toggle verbose logging | Debug → Toggle verbose | Setting persisted | [ ] |
+
+### 12.5 Danger Zone
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1140 | Clear localStorage | Debug → Clear → Confirm | All local data wiped, app reloads | [ ] |
+| SC-1141 | Clear cancel | Debug → Clear → Cancel | Data preserved | [ ] |
+
+---
+
+## 13. Internationalization (i18n)
+
+### 13.1 Translation Coverage
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1200 | All views translated | Switch to Japanese → Visit all views | No English fallback text | [ ] |
+| SC-1201 | Error messages | Trigger errors in Japanese mode | Errors in Japanese | [ ] |
+| SC-1202 | Category names | View transactions in Japanese | Categories translated | [ ] |
+| SC-1203 | Placeholders | View empty states in Japanese | Empty messages translated | [ ] |
+
+### 13.2 Number/Date Formatting
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1210 | Currency format | View amounts | ¥1,234 format (no decimals) | [ ] |
+| SC-1211 | Date format (EN) | English mode → View dates | "Jan 5" format | [ ] |
+| SC-1212 | Date format (JA) | Japanese mode → View dates | "1月5日" format | [ ] |
+
+---
+
 ## Issue Cross-Reference
 
 | Issue | Related Scenarios |
@@ -261,4 +432,4 @@ VITE_USE_MOCK=true npm run dev
 
 ---
 
-*Last updated: 2026-01-03*
+*Last updated: 2026-01-05*

@@ -17,7 +17,7 @@
 | [ADMIN_PANEL](./ADMIN_PANEL.md) | Admin console guide | Ops |
 | [CHANGELOG](./CHANGELOG.md) | Version history | All |
 | [ROADMAP](./ROADMAP.md) | Future plans | PM, Dev |
-| [TEST_SCENARIOS](./TEST_SCENARIOS.md) | Test cases & QA | Dev, QA |
+| [tests/](./tests/) | Test scenarios | Dev, QA |
 | [PROGRAM_PATHS](./PROGRAM_PATHS.md) | Code flow traces | Dev |
 
 ## Development Modes
@@ -113,7 +113,7 @@ Operations (Run & Maintain)
 └── QUOTA.md           Quota tiers, cost control
 
 Testing (Quality)
-├── TEST_SCENARIOS.md  Test cases, edge cases, QA
+├── tests/             Test scenarios (frontend & backend)
 └── PROGRAM_PATHS.md   Detailed code flow traces
 
 History

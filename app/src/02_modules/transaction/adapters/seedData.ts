@@ -1,6 +1,6 @@
 // Seed mock data for development (Pillar C)
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
-import { TransactionId, ImageId, UserId } from '../../../00_kernel/types';
+import { TransactionId, UserId } from '../../../00_kernel/types';
 import { fetchTransactions, saveTransaction, clearAllTransactions } from './transactionDb';
 import { dlog } from '../../debug/headless/debugLog';
 import { logger } from '../../../00_kernel/telemetry';
@@ -211,7 +211,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
   return {
     id: TransactionId(generateId('tx')),
     userId,
-    imageId: random() > 0.3 ? ImageId(generateId('img')) : null,
+    imageId: null, // Mock data has no real images (FK constraint)
     type,
     category,
     amount,
