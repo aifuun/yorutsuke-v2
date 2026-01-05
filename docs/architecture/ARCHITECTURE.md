@@ -651,6 +651,74 @@ React: App launch / Navigate to Report
 | AI | Bedrock Nova Lite | Cheap (~¥0.015/image), good OCR |
 | IaC | AWS CDK | TypeScript, type-safe |
 
+## Data Storage Strategy
+
+### Local-First with Cloud Sync
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Data Lifecycle                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Receipt Image:                                                             │
+│    拖入 → 压缩 → 本地永久保存 → 上传S3 → AI处理 → 交易数据                    │
+│                    │                      │                                 │
+│                    ▼                      ▼                                 │
+│              本地: 永久保留          S3: 30天后删除                           │
+│                                                                             │
+│  Transaction Data:                                                          │
+│    AI生成 → DynamoDB → 同步本地SQLite → 用户确认                             │
+│                              │                                              │
+│                              ▼                                              │
+│                        本地: 永久保留                                        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Image Storage: Permanent Local Retention
+
+| Aspect | Local | Cloud (S3) |
+|--------|-------|------------|
+| Purpose | Offline viewing, transaction verification | AI processing, backup |
+| Retention | **Permanent** | Tier-based (see below) |
+| Location | `$APPLOCALDATA/yorutsuke-v2/images/` | `s3://yorutsuke-images-{env}/` |
+| Size | ~50-100KB/image | Same |
+| Estimated | ~1.8GB/year (50 images/day) | Varies by tier |
+
+### S3 Retention by Tier
+
+| Tier | Subscription | S3 Retention | Rationale |
+|------|--------------|--------------|-----------|
+| Guest/Free | 未注册/未缴费 | **30 days** | Cost control, lifecycle rule |
+| Basic/Pro | 注册期内 | **Permanent** | Cloud backup for paying users |
+
+**Note**: Local images are always permanent regardless of tier.
+
+**Rationale**:
+1. **Offline verification**: User needs to compare AI results with original receipt
+2. **Local-first UX**: No network required for image viewing
+3. **Minimal storage**: Compressed WebP ~100KB, acceptable for permanent retention
+4. **Tier incentive**: Permanent cloud backup as paid feature
+
+### Platform Paths
+
+| OS | Data Directory |
+|----|----------------|
+| macOS | `~/Library/Application Support/yorutsuke-v2/` |
+| Linux | `~/.local/share/yorutsuke-v2/` |
+| Windows | `C:\Users\<user>\AppData\Local\yorutsuke-v2\` |
+
+```
+{data_dir}/
+├── images/           # Compressed receipts (permanent)
+│   └── {uuid}.webp
+├── logs/             # Daily logs (7-day retention)
+│   └── {date}.jsonl
+└── yorutsuke.db      # SQLite database
+```
+
+> See [SCHEMA.md](./SCHEMA.md#local-file-storage) for detailed storage schema.
+
 ## Module Tiers
 
 | Module | Tier | Current Pattern | Target Pattern | Complexity |

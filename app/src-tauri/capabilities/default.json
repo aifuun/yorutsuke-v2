@@ -19,14 +19,20 @@
       "identifier": "fs:allow-read",
       "allow": [
         { "path": "$TEMP/**" },
-        { "path": "$HOME/**" }
+        { "path": "$HOME/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA/**" },
+        { "path": "$APPLOCALDATA/yorutsuke-v2/**" }
       ]
     },
     {
       "identifier": "fs:allow-write",
       "allow": [
         { "path": "$TEMP/**" },
-        { "path": "$HOME/**" }
+        { "path": "$HOME/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA/**" },
+        { "path": "$APPLOCALDATA/yorutsuke-v2/**" }
       ]
     },
     {
@@ -34,7 +40,26 @@
       "allow": [
         { "path": "$TEMP/**" },
         { "path": "$HOME/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA/**" },
+        { "path": "$APPLOCALDATA/yorutsuke-v2/**" },
         { "path": "/var/folders/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        { "path": "$TEMP/**" },
+        { "path": "$HOME/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA/**" },
+        { "path": "$APPLOCALDATA/yorutsuke-v2/**" }
+      ]
+    },
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$APPLOCALDATA/yorutsuke-v2/**" }
       ]
     }
   ]

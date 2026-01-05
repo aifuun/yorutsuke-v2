@@ -39,14 +39,14 @@ export function CaptureView() {
   const queue = useCaptureQueue();
   const { pendingCount, uploadedCount } = useCaptureStats();
   const { isDragging, dragHandlers } = useDragState();
-  const { retryImage, retryAllFailed } = useCaptureActions();
+  const { retryAllFailed } = useCaptureActions();
 
   // Set user ID in captureService when it changes
   useEffect(() => {
     if (effectiveUserId) {
-      captureService.setUser(effectiveUserId, quota.limit);
+      captureService.setUser(effectiveUserId);
     }
-  }, [effectiveUserId, quota.limit]);
+  }, [effectiveUserId]);
 
   // Show loading while user ID is being resolved
   if (userLoading) {
@@ -106,7 +106,6 @@ export function CaptureView() {
                     <div
                       key={image.id}
                       className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''} ${image.status === 'skipped' ? 'queue-item--skipped' : ''}`}
-                      onClick={() => image.status === 'failed' && retryImage(image.id)}
                     >
                       <div className="queue-thumbnail">
                         {image.thumbnailPath ? (
@@ -130,9 +129,6 @@ export function CaptureView() {
                           <div className="progress-bar">
                             <div className="progress-bar__fill progress-bar__fill--info progress-bar__fill--animated" />
                           </div>
-                        )}
-                        {image.status === 'failed' && (
-                          <p className="queue-error">{t('capture.tapToRetry')}</p>
                         )}
                       </div>
                     </div>

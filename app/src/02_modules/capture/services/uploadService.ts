@@ -10,7 +10,7 @@ import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/netwo
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { canUpload } from '../../../01_domains/receipt';
 import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
-import { countTodayUploads } from '../adapters/imageDb';
+import { fetchQuota } from '../adapters/quotaApi';
 import { uploadStore, shouldRetry, classifyError, RETRY_DELAYS } from '../stores/uploadStore';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
@@ -19,7 +19,6 @@ class UploadService {
   private initialized = false;
   private lastUploadTime: number | null = null;
   private userId: UserId | null = null;
-  private dailyLimit = 30;
   private cleanupNetwork: (() => void) | null = null;
 
   /**
@@ -63,11 +62,10 @@ class UploadService {
   }
 
   /**
-   * Set current user and daily limit
+   * Set current user for upload operations
    */
-  setUser(userId: UserId | null, dailyLimit = 30): void {
+  setUser(userId: UserId | null): void {
     this.userId = userId;
-    this.dailyLimit = dailyLimit;
   }
 
   /**
@@ -116,12 +114,12 @@ class UploadService {
     const state = uploadStore.getState();
     if (state.status === 'processing') return;
 
-    // Check quota from database
-    const uploadedToday = await countTodayUploads(this.userId);
-    const quotaCheck = canUpload(uploadedToday, this.dailyLimit, this.lastUploadTime);
+    // Check quota - fetch fresh limit to avoid race condition
+    const quota = await fetchQuota(this.userId);
+    const quotaCheck = canUpload(quota.used, quota.limit, this.lastUploadTime);
 
     if (!quotaCheck.allowed) {
-      logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { imageId: id, reason: quotaCheck.reason, used: uploadedToday, limit: this.dailyLimit });
+      logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { imageId: id, reason: quotaCheck.reason, used: quota.used, limit: quota.limit });
       uploadStore.getState().pause('quota');
       return;
     }

@@ -87,9 +87,9 @@ class CaptureService {
   /**
    * Set current user ID and restore queue
    */
-  async setUser(userId: UserId | null, dailyLimit = 30): Promise<void> {
+  async setUser(userId: UserId | null): Promise<void> {
     this.userId = userId;
-    uploadService.setUser(userId, dailyLimit);
+    uploadService.setUser(userId);
 
     if (userId) {
       await fileService.restoreQueue(userId);
@@ -193,12 +193,23 @@ class CaptureService {
    * Auto-enqueue compressed images for upload
    */
   private enqueueCompressedImages(queue: ReceiptImage[]): void {
+    const compressedImages = queue.filter(img => img.status === 'compressed');
+    logger.debug(EVENTS.QUOTA_CHECKED, {
+      phase: 'enqueue_start',
+      totalQueue: queue.length,
+      compressedCount: compressedImages.length,
+      uploadTaskCount: uploadStore.getState().tasks.length,
+    });
+
     for (const image of queue) {
       if (image.status !== 'compressed') continue;
 
       // Check if already in upload queue
       const inQueue = uploadStore.getState().tasks.some(t => t.id === image.id);
-      if (inQueue) continue;
+      if (inQueue) {
+        logger.debug(EVENTS.QUEUE_AUTO_UPLOAD, { phase: 'already_in_queue', imageId: image.id });
+        continue;
+      }
 
       const compressedPath = image.thumbnailPath || image.localPath;
 

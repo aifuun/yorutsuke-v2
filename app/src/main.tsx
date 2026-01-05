@@ -6,6 +6,9 @@ import "./styles.css";
 // Initialize i18n before rendering
 import "./i18n";
 
+// Disable right-click context menu in production app
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
 // Initialize capture service (registers Tauri listeners once, outside React lifecycle)
 // MVP0: Fixes #82 StrictMode race condition
 import { captureService } from "./02_modules/capture/services/captureService";

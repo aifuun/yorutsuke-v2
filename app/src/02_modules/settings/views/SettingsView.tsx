@@ -54,10 +54,11 @@ export function SettingsView() {
 
       <div className="settings-content">
         <div className="settings-container">
-          {/* Appearance Section */}
+          {/* Section 1: General */}
           <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.appearance')}</h2>
+            <h2 className="section-header">{t('settings.preferences')}</h2>
 
+            {/* Theme */}
             <div className="setting-row">
               <div className="setting-info">
                 <p className="setting-label">{t('settings.theme')}</p>
@@ -73,6 +74,7 @@ export function SettingsView() {
               </select>
             </div>
 
+            {/* Language */}
             <div className="setting-row">
               <div className="setting-info">
                 <p className="setting-label">{t('settings.language')}</p>
@@ -87,12 +89,8 @@ export function SettingsView() {
                 <option value="en">English</option>
               </select>
             </div>
-          </div>
 
-          {/* Notifications Section */}
-          <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.notifications')}</h2>
-
+            {/* Notifications */}
             <div className="setting-row">
               <div className="setting-info">
                 <p className="setting-label">{t('settings.enableNotifications')}</p>
@@ -106,42 +104,13 @@ export function SettingsView() {
                 aria-checked={currentSettings.notificationEnabled}
               />
             </div>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.dailyReport')}</p>
-                <p className="setting-hint">{t('settings.dailyReportHint')}</p>
-              </div>
-              <button
-                type="button"
-                className={`toggle-switch ${currentSettings.notificationEnabled ? 'toggle-switch--active' : ''}`}
-                onClick={() => {}}
-                role="switch"
-                aria-checked={currentSettings.notificationEnabled}
-                disabled
-              />
-            </div>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.quotaAlert')}</p>
-                <p className="setting-hint">{t('settings.quotaAlertHint')}</p>
-              </div>
-              <button
-                type="button"
-                className={`toggle-switch ${currentSettings.notificationEnabled ? 'toggle-switch--active' : ''}`}
-                onClick={() => {}}
-                role="switch"
-                aria-checked={currentSettings.notificationEnabled}
-                disabled
-              />
-            </div>
           </div>
 
-          {/* Account Section */}
+          {/* Section 2: Account & Data */}
           <div className="premium-card settings-card">
             <h2 className="section-header">{t('settings.account')}</h2>
 
+            {/* Account Info */}
             <div className="setting-row">
               <div className="setting-info">
                 <p className="setting-label">{user?.email || t('auth.guest')}</p>
@@ -151,6 +120,28 @@ export function SettingsView() {
               </div>
               <button className="btn-action btn-action--dark" onClick={handleLogout}>
                 {t('settings.logout')}
+              </button>
+            </div>
+
+            {/* Export Data */}
+            <div className="setting-row">
+              <div className="setting-info">
+                <p className="setting-label">{t('settings.exportData')}</p>
+                <p className="setting-hint">{t('settings.exportDataHint')}</p>
+              </div>
+              <button className="btn-action btn-action--primary">
+                {t('settings.export')}
+              </button>
+            </div>
+
+            {/* Clear Cache */}
+            <div className="setting-row">
+              <div className="setting-info">
+                <p className="setting-label">{t('settings.clearCache')}</p>
+                <p className="setting-hint">{t('settings.clearCacheHint')}</p>
+              </div>
+              <button className="btn-action btn-action--danger">
+                {t('settings.clear')}
               </button>
             </div>
           </div>
@@ -170,32 +161,7 @@ export function SettingsView() {
             </div>
           )}
 
-          {/* Data Section */}
-          <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.data')}</h2>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.clearCache')}</p>
-                <p className="setting-hint">{t('settings.clearCacheHint')}</p>
-              </div>
-              <button className="btn-action btn-action--danger">
-                {t('settings.clear')}
-              </button>
-            </div>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.exportData')}</p>
-                <p className="setting-hint">{t('settings.exportDataHint')}</p>
-              </div>
-              <button className="btn-action btn-action--primary">
-                {t('settings.export')}
-              </button>
-            </div>
-          </div>
-
-          {/* About Section */}
+          {/* Section 3: About */}
           <div className="premium-card settings-card">
             <h2 className="section-header">{t('settings.about')}</h2>
 

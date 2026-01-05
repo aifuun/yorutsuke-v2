@@ -69,13 +69,19 @@ const TIER_LIMITS: Record<UserTier, number> = {
 
 /**
  * Fetch current quota status for user
- * In mock mode, uses local database for accurate upload count
+ *
+ * Mock behavior (different from presign/upload):
+ * Unlike presign/S3 upload which return fully mocked data,
+ * quota queries real local DB because:
+ * 1. Upload records are stored locally (imageDb)
+ * 2. Accurate count enables testing quota limits
+ * 3. Only the Lambda call is skipped, not the data
  */
 export async function fetchQuota(userId: UserId): Promise<QuotaResponse> {
-  // Mock mode - use local database for accurate count
+  // Mock mode - query local DB for accurate count (not fully mocked)
   if (USE_MOCK) {
     await mockDelay();
-    // Get actual upload count from local database
+    // Real count from local database, not hardcoded
     const used = await countTodayUploads(userId);
     const tier: UserTier = 'guest';
     const limit = TIER_LIMITS[tier];

@@ -3,6 +3,7 @@
 // Pillar Q: Intent-ID for idempotency
 // Pillar N: TraceId for lifecycle tracking
 
+import { exists } from '@tauri-apps/plugin-fs';
 import type { ImageId, UserId, TraceId, IntentId } from '../../../00_kernel/types';
 import { createIntentId, createTraceId, ImageId as createImageId } from '../../../00_kernel/types';
 import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
@@ -154,6 +155,7 @@ class FileService {
 
   /**
    * Restore queue from database on app startup
+   * Validates that compressed files exist; marks missing ones as failed
    */
   async restoreQueue(userId: UserId): Promise<void> {
     const restoreTraceId = createTraceId();
@@ -161,24 +163,60 @@ class FileService {
 
     try {
       // Reset any interrupted uploads in DB
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'reset_interrupted' });
       await resetInterruptedUploads(userId, restoreTraceId);
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'reset_complete' });
 
       // Load unfinished images
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'load_start' });
       const unfinished = await loadUnfinishedImages(userId);
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'load_complete', count: unfinished.length });
 
       if (unfinished.length === 0) {
         logger.info(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, count: 0 });
         return;
       }
 
-      // Convert to ReceiptImage and update store
-      const images = unfinished.map(row => rowToReceiptImage(row, userId));
+      // Convert to ReceiptImage and validate files exist
+      const images: ReceiptImage[] = [];
+      const missingFiles: string[] = [];
+
+      for (const row of unfinished) {
+        const image = rowToReceiptImage(row, userId);
+
+        // For compressed images, verify the file still exists
+        if (image.status === 'compressed' && image.thumbnailPath) {
+          const fileExists = await exists(image.thumbnailPath);
+          if (!fileExists) {
+            // Mark as failed since compressed file is missing (temp dir cleared)
+            logger.warn(EVENTS.IMAGE_CLEANUP, {
+              imageId: image.id,
+              path: image.thumbnailPath,
+              reason: 'compressed_file_missing',
+            });
+            missingFiles.push(image.id);
+
+            // Update DB to mark as failed
+            await dbUpdateStatus(image.id, 'failed', restoreTraceId, {
+              error: 'Compressed file missing after app restart',
+            });
+
+            // Don't add to queue - it can't be uploaded
+            continue;
+          }
+        }
+
+        images.push(image);
+      }
+
+      // Update store with valid images only
       captureStore.getState().restoreQueue(images);
 
       logger.info(EVENTS.QUEUE_RESTORED, {
         traceId: restoreTraceId,
         userId,
         count: images.length,
+        missingCount: missingFiles.length,
         statuses: images.reduce((acc, img) => {
           acc[img.status] = (acc[img.status] || 0) + 1;
           return acc;

@@ -403,13 +403,20 @@ body {
   width: 44px;
   height: 24px;
   background: #CBD5E1;
+  border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.2s ease-in-out;
+  flex-shrink: 0;
 }
 
 .toggle-switch--active {
   background: #3B82F6;
+}
+
+.toggle-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .toggle-switch::after {

@@ -5,10 +5,17 @@ use chrono::{Local, Duration};
 use image::GenericImageView;
 
 /// Get the app's data directory for storing compressed images
+/// Uses platform-standard data directory for permanent local storage
+/// - macOS: ~/Library/Application Support/yorutsuke-v2/images/
+/// - Linux: ~/.local/share/yorutsuke-v2/images/
+/// - Windows: C:\Users\<user>\AppData\Local\yorutsuke-v2\images\
 fn get_data_dir() -> std::path::PathBuf {
-    let base = std::env::temp_dir().join("yorutsuke-v2");
-    fs::create_dir_all(&base).ok();
-    base
+    let base = dirs::data_local_dir()
+        .or_else(dirs::data_dir)
+        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(std::env::temp_dir));
+    let images_dir = base.join("yorutsuke-v2").join("images");
+    fs::create_dir_all(&images_dir).ok();
+    images_dir
 }
 
 /// Compression result returned to frontend
