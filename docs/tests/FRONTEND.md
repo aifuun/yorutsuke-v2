@@ -9,6 +9,31 @@
 > **See also**:
 > - [BACKEND.md](./BACKEND.md) - Lambda, Batch Processing tests
 > - [../architecture/PROGRAM_PATHS.md](../architecture/PROGRAM_PATHS.md) - Detailed code flow traces
+> - [../planning/MVP_PLAN.md](../planning/MVP_PLAN.md) - MVP testing phases
+
+## Architecture Context
+
+> These scenarios test the **CURRENT** implementation using React headless hooks.
+> Post-MVP, the architecture will migrate to the Service pattern.
+>
+> | Current | Target |
+> |---------|--------|
+> | `useCaptureLogic.ts` | `fileService.ts` + `uploadService.ts` |
+> | `useUploadQueue.ts` | `uploadService.ts` |
+> | `useDragDrop.ts` | Service with Tauri listeners at init |
+>
+> See [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) for details.
+
+### ID Strategy
+
+| ID Type | Purpose | Tested In |
+|---------|---------|-----------|
+| `imageId` | Entity identifier | SC-700 |
+| `traceId` | Log correlation | SC-701 |
+| `intentId` | Idempotency (retry-safe) | SC-702 |
+| `md5` | Content deduplication | SC-020~023, SC-703 |
+
+---
 
 ## How to Use
 
@@ -36,7 +61,7 @@
 |----|----------|-------|-----------------|--------|
 | SC-010 | Valid formats | Drop JPG, PNG, HEIC | All accepted | [ ] |
 | SC-011 | Invalid format | Drop .txt, .pdf | Rejected with message | [ ] |
-| SC-012 | Corrupted image | Drop fake .jpg (text file) | Error: "Failed to open image" | [!] #45 |
+| SC-012 | Corrupted image | Drop fake .jpg (text file) | Error: "Failed to open image" | [ ] |
 | SC-013 | Zero-byte file | Drop empty file | Error handled gracefully | [ ] |
 
 ### 1.3 Duplicate Detection
@@ -81,8 +106,8 @@
 
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SC-130 | Quota survives restart | Upload 10, restart app | used=10 persisted | [!] #46 |
-| SC-131 | Quota across sessions | Upload 5, close, reopen, upload 5 | Total=10 | [!] #46 |
+| SC-130 | Quota survives restart | Upload 10, restart app | used=10 persisted | [ ] |
+| SC-131 | Quota across sessions | Upload 5, close, reopen, upload 5 | Total=10 | [ ] |
 
 ---
 
@@ -93,18 +118,18 @@
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
 | SC-200 | Register flow | Guest → Register → Verify → Login | Account created | [ ] |
-| SC-201 | Data claim on login | Guest with 10 images → Login | "10 images migrated" | [!] #50 |
+| SC-201 | Data claim on login | Guest with 10 images → Login | "10 images migrated" | [ ] |
 | SC-201a | Quota after claim | Guest 10/30 used → Login | Free user starts with 50/50 (quota reset) | [ ] |
-| SC-202 | Queue continuity | Guest queue [A,B] → Login | Queue preserved or synced | [!] #50 |
-| SC-203 | Local DB update | Guest → Login | images.user_id updated | [!] #48 |
+| SC-202 | Queue continuity | Guest queue [A,B] → Login | Queue preserved or synced | [ ] |
+| SC-203 | Local DB update | Guest → Login | images.user_id updated | [ ] |
 
 ### 3.2 Upgrade (Free → Paid)
 
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SC-210 | Upgrade mid-session | Free user → Complete payment | New limit shown | [!] #51 |
+| SC-210 | Upgrade mid-session | Free user → Complete payment | New limit shown | [ ] |
 | SC-211 | Upgrade at limit | Free at 50/50 → Upgrade to basic | Can upload again | [ ] |
-| SC-212 | Upgrade quota timing | Upgrade → Check quota | Immediate effect | [!] #51 |
+| SC-212 | Upgrade quota timing | Upgrade → Check quota | Immediate effect | [ ] |
 
 ### 3.3 Downgrade (Paid → Free)
 
@@ -144,7 +169,7 @@
 
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SC-320 | Disconnect during upload | Upload → Disconnect → Fail | Stays paused, not idle | [!] #47 |
+| SC-320 | Disconnect during upload | Upload → Disconnect → Fail | Stays paused, not idle | [ ] |
 | SC-321 | Reconnect during retry | Retrying → Reconnect | Completes on reconnect | [ ] |
 
 ---
@@ -155,7 +180,7 @@
 
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SC-400 | File deleted before compress | Drop → Delete source → Wait | Error, other images continue | [!] #45 |
+| SC-400 | File deleted before compress | Drop → Delete source → Wait | Error, other images continue | [ ] |
 | SC-401 | Disk full during compress | Fill disk → Compress | Error with clear message | [ ] |
 | SC-402 | Memory pressure | Low memory → Large image | Graceful degradation | [ ] |
 
@@ -163,7 +188,7 @@
 
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SC-410 | DB write fails | Compress OK → DB locked | Cleanup temp file | [!] #49 |
+| SC-410 | DB write fails | Compress OK → DB locked | Cleanup temp file | [ ] |
 | SC-411 | DB corrupted | Corrupt SQLite → Open app | Reset DB or error | [ ] |
 | SC-412 | Migration failure | Bad migration → Open app | Rollback or error | [ ] |
 
@@ -195,7 +220,7 @@
 |----|----------|-------|-----------------|--------|
 | SC-510 | Background processing | Minimize app | Uploads continue | [ ] |
 | SC-511 | Return from background | Minimize → Wait → Return | Queue status updated | [ ] |
-| SC-512 | Long background | Background 1 hour → Return | Quota refreshed | [!] #51 |
+| SC-512 | Long background | Background 1 hour → Return | Quota refreshed | [ ] |
 
 ---
 
@@ -236,7 +261,7 @@
 |----|----------|-------|-----------------|--------|
 | SC-710 | Queue-DB sync | Drop → Compress → Check DB | DB matches queue | [ ] |
 | SC-711 | Status transitions | Observe all transitions | Follow allowed paths only | [ ] |
-| SC-712 | No orphan records | Process many images | DB clean, no orphans | [!] #49 |
+| SC-712 | No orphan records | Process many images | DB clean, no orphans | [ ] |
 
 ---
 
@@ -487,18 +512,20 @@
 
 ---
 
-## Issue Cross-Reference
+## Fixed Issues
 
-| Issue | Related Scenarios |
-|-------|-------------------|
-| #45 | SC-012, SC-400 |
-| #46 | SC-130, SC-131 |
-| #47 | SC-320 |
-| #48 | SC-203 |
-| #49 | SC-410, SC-712 |
-| #50 | SC-201, SC-202 |
-| #51 | SC-210, SC-212, SC-512 |
-| #52 | SC-101 (related) |
+> All blocking issues have been resolved. Scenarios are ready for re-testing.
+
+| Issue | Related Scenarios | Fix |
+|-------|-------------------|-----|
+| #45 | SC-012, SC-400 | FAILURE resets to 'idle' |
+| #46 | SC-130, SC-131 | Quota loaded from DB on startup |
+| #47 | SC-320 | FAILURE respects paused state |
+| #48 | SC-203 | Added user_id column to images |
+| #49 | SC-410, SC-712 | Cleanup temp files on DB failure |
+| #50 | SC-201, SC-202 | Guest data migration on login |
+| #51 | SC-210, SC-212, SC-512 | Auto-refresh quota after tier change |
+| #52 | SC-101 | Guest data cleanup after expiration |
 
 ---
 

@@ -106,6 +106,7 @@ Now tracked as GitHub Issues:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- Reviewed docs/operations for consistency with architecture (2026-01-05)
 - Fixed seed data bug: FK constraint + userId mismatch (2026-01-05)
 - Reorganized test docs to `docs/tests/` with BACKEND.md (2026-01-05)
 - #78 Logging system optimization (2026-01-05)

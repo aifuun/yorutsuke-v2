@@ -362,8 +362,8 @@ export function ProgressBar() {
 
 ### Migration Note
 
-> **Issue #82**: Current `useDragDrop.ts` has temporary workaround (ignore flag pattern).
-> TODO: Refactor to Service pattern after MVP1 testing.
+> **Issue #82**: Being addressed in MVP0.
+> See [MVP_PLAN.md - MVP0](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for refactor plan.
 
 ---
 
@@ -488,12 +488,12 @@ app/src/
 └── 03_migrations/      # Data version upcasters
 ```
 
-> **Migration Note**:
-> - `headless/` currently contains React hooks that orchestrate business logic
-> - After MVP1, migrate to `services/` + `stores/` pattern
+> **Migration Note** (MVP0):
+> - `headless/` will be replaced by `services/` + `stores/` + `hooks/`
 > - `services/`: Pure TS classes for orchestration
 > - `stores/`: Zustand vanilla stores for global state
-> - `headless/`: React hooks that only subscribe to stores
+> - `hooks/`: React hooks that only subscribe to stores
+> - See [MVP_PLAN.md - MVP0](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for migration steps
 
 ### Infrastructure Layer (infra/)
 
@@ -709,17 +709,17 @@ React: App launch / Navigate to Report
 │  │  Storage    │  ← SQLite (local) / S3+DynamoDB (cloud)    │
 │  └─────────────┘                                            │
 │       │                                                     │
-│       │ emit result                                         │
+│       │ result                                              │
 │       ▼                                                     │
-│  ┌─────────────┐                                            │
-│  │  EventBus   │  ← Cross-component notification            │
-│  └─────────────┘                                            │
-│       │                                                     │
-│       │ subscribe                                           │
-│       ▼                                                     │
-│  ┌─────────────┐                                            │
-│  │  React Hook │  ← Update UI state                         │
-│  └─────────────┘                                            │
+│  ┌─────────────┐     ┌─────────────┐                        │
+│  │  Zustand    │     │  EventBus   │                        │
+│  │  (状態更新)  │     │  (一次性通知) │                        │
+│  └─────────────┘     └─────────────┘                        │
+│       │ subscribe           │ subscribe                     │
+│       ▼                     ▼                               │
+│  ┌─────────────────────────────────────┐                    │
+│  │  React (useStore / useAppEvent)     │                    │
+│  └─────────────────────────────────────┘                    │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -745,7 +745,9 @@ type QueueState =
   | { status: 'paused'; tasks: Task[]; reason: 'offline' | 'quota' };
 
 // Current: Reducer in React hook (useReducer)
-// Target: Reducer in Service, exposed via Zustand or EventBus
+// Target: Reducer in Service
+//   - FSM state changes → Zustand store (持久)
+//   - One-time notifications → EventBus (瞬时)
 function reducer(state: QueueState, action: Action): QueueState {
   switch (action.type) {
     case 'START_UPLOAD':
@@ -763,8 +765,9 @@ function reducer(state: QueueState, action: Action): QueueState {
 **Current vs Target**:
 | Aspect | Current | Target |
 |--------|---------|--------|
-| State Location | React hook (useReducer) | Service class or Zustand store |
-| Access | Hook return value | EventBus subscription or store selector |
+| State Location | React hook (useReducer) | Service class + Zustand store |
+| Persistent State | Hook return value | `useStore(store, selector)` |
+| One-time Events | N/A (often misused as state) | `useAppEvent('event', handler)` |
 | Mutations | dispatch() in hook | service.doAction() method |
 
 ### Concurrency Control
@@ -844,6 +847,11 @@ Multi-layer defense with single authoritative checkpoint:
 
 ### Event Bus
 
+**Purpose**: One-time notifications (瞬时信号), NOT persistent state.
+
+> EventBus = 敲门声：响一次就完事，不会存储。用于 toast、确认弹窗等一次性 UI 反馈。
+> 对比 Zustand = 存折：持久存储，任何时候读都能拿到最新值。
+
 Type-safe cross-component communication:
 
 ```typescript
@@ -856,13 +864,24 @@ const unsubscribe = on('upload:complete', (data) => {
 });
 ```
 
-**Event Types**:
+**Event Types** (all are one-time notifications):
 
-| Event | Trigger | Listeners |
-|-------|---------|-----------|
-| `upload:complete` | S3 upload success | Transaction sync |
-| `upload:failed` | S3 upload failure | Error UI |
-| `network:changed` | Connectivity change | Queue pause/resume |
+| Event | Trigger | Listeners | UI Effect |
+|-------|---------|-----------|-----------|
+| `toast:success` | Operation success | ToastContainer | Show toast (once) |
+| `toast:error` | Operation failure | ToastContainer | Show toast (once) |
+| `upload:started` | Upload begins | Progress UI | Show indicator |
+| `upload:complete` | S3 upload success | Transaction sync | Trigger sync |
+| `upload:failed` | Upload error | ToastContainer | Show error toast |
+| `file:duplicate` | MD5 match found | CaptureView | Show duplicate notice |
+| `file:compressed` | Compression done | Progress UI | Update thumbnail |
+| `quota:exceeded` | At daily limit | CaptureView | Block uploads |
+| `quota:warning` | Near limit | CaptureView | Show warning |
+| `network:changed` | Connectivity change | Service layer | Pause/resume queue |
+
+**Note**: Events are fire-and-forget. `upload:complete` triggers a sync action, which then updates Zustand state. The EventBus itself doesn't carry persistent state.
+
+See [INTERFACES.md](./INTERFACES.md) for full event type definitions.
 
 ### Known Issues & Improvements
 
@@ -890,12 +909,14 @@ const unsubscribe = on('upload:complete', (data) => {
 - [x] Add Intent-ID for idempotency (Pillar Q) (#28) - 2026-01-02
 - [x] ~~Add request-response pattern to EventBus~~ (#29) - Closed: over-engineering
 
-**P4 - Architecture Refactor**: 🔄 Pending (Post-MVP1)
+**P4 - Architecture Refactor**: 🔄 In Progress (MVP0)
+> See [MVP_PLAN.md](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for detailed plan.
+
 - [ ] Refactor `useDragDrop.ts` to Service pattern (#82)
 - [ ] Create `captureService.ts` to replace `useCaptureLogic.ts`
 - [ ] Create `uploadService.ts` to replace `useUploadQueue.ts`
 - [ ] Move Tauri event listeners to Service init
-- [ ] React hooks only subscribe to EventBus
+- [ ] React hooks only subscribe to Zustand stores
 
 ## ID Management Strategy
 

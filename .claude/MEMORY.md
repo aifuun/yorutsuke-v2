@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-05] Fixed seed data bug (FK constraint + userId mismatch), reorganized test docs to `docs/tests/`
-- **Next Steps**: Reorganize docs/ into subdirectories, manual testing
+- **Last Progress**: [2026-01-05] Reviewed docs/operations for consistency with architecture docs; identified rate limit discrepancy (10s vs 2s) and quota tier ambiguity
+- **Next Steps**: Fix inconsistencies between ARCHITECTURE.md and QUOTA.md (rate limit, tier defaults)
 - **Blockers**: None
 
 ## Architecture Decisions

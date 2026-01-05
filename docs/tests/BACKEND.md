@@ -8,6 +8,18 @@
 > **See also**:
 > - [FRONTEND.md](./FRONTEND.md) - Client application tests
 > - [../architecture/INTERFACES.md](../architecture/INTERFACES.md) - API specifications
+> - [../planning/MVP_PLAN.md](../planning/MVP_PLAN.md) - MVP testing phases
+
+## MVP Coverage
+
+| Phase | Backend Scenarios | Tested |
+|-------|-------------------|--------|
+| MVP2 | SB-100~122 (Presign) | [ ] |
+| MVP3 | SB-200~241 (Batch Processing) | [ ] |
+| MVP3.5 | SB-4xx (Sync), SB-5xx (Integrity) | [ ] |
+| MVP4 | SB-3xx (Cost), SB-6xx (Auth) | [ ] |
+
+---
 
 ## How to Use
 

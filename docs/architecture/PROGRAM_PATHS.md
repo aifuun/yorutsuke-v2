@@ -1,19 +1,43 @@
 # Program Paths
 
-> Detailed code flow traces for test scenarios.
+> Code flow traces for test scenarios.
 > Use this to understand and debug the capture pipeline.
+
+## Architecture Note
+
+> **Current → MVP0 Target Implementation**
+>
+> These traces describe the **CURRENT** implementation using React headless hooks.
+> **MVP0** will migrate these to the **Service pattern**.
+>
+> | Current | Target Service | Target Store |
+> |---------|----------------|--------------|
+> | `useDragDrop.ts` | `captureService.ts` | `captureStore.ts` |
+> | `useCaptureLogic.ts` | `fileService.ts` | `fileStore.ts` |
+> | `useUploadQueue.ts` | `uploadService.ts` | `uploadStore.ts` |
+>
+> **Key Changes**:
+> - Tauri event listeners move to `Service.init()` (called once at app startup)
+> - State management moves to Zustand vanilla stores
+> - React components use thin hooks (`useStore()`) for state access
+>
+> See [MVP_PLAN.md - MVP0](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for migration plan.
+> See [INTERFACES.md](./INTERFACES.md) for target Service interfaces.
+> See [SCHEMA.md](./SCHEMA.md) for target Store schemas.
+
+---
 
 ## Quick Reference
 
-| Phase | Files | Key Functions |
-|-------|-------|---------------|
-| Drop | `tauriDragDrop.ts` | `setupTauriDragListeners`, `pathsToDroppedItems` |
-| Queue | `useDragDrop.ts`, `CaptureView.tsx` | `onDrop`, `addImage` |
-| Compress | `useCaptureLogic.ts`, `imageIpc.ts` | `processImage`, `compressImage` |
-| Duplicate | `useCaptureLogic.ts`, `imageDb.ts` | `findImageByMd5` |
-| Upload | `useUploadQueue.ts`, `uploadApi.ts` | `enqueue`, `processTask`, `uploadToS3` |
-| Sync | `useCaptureLogic.ts`, `imageDb.ts` | `useEffect` sync, `updateImageStatus` |
-| Restore | `useCaptureLogic.ts`, `imageDb.ts` | `loadUnfinishedImages`, `resetInterruptedUploads` |
+| Phase | Module | Entry Point | Key Functions |
+|-------|--------|-------------|---------------|
+| Drop | `tauriDragDrop.ts` | `setupTauriDragListeners()` | `filterByExtension()`, `pathsToDroppedItems()` |
+| Queue | `useDragDrop.ts` | `onDrop` callback | `emit('image:pending')` |
+| Compress | `useCaptureLogic.ts` | compression `useEffect` | `processImage()`, `compressImage()` |
+| Duplicate | `useCaptureLogic.ts` | inside `processImage()` | `findImageByMd5()` |
+| Upload | `useUploadQueue.ts` | upload `useEffect` | `processTask()`, `uploadToS3()` |
+| Sync | `useCaptureLogic.ts` | sync `useEffect` | `dbUpdateStatus()` |
+| Restore | `useCaptureLogic.ts` | restore `useEffect` | `loadUnfinishedImages()`, `resetInterruptedUploads()` |
 
 ---
 
@@ -21,82 +45,125 @@
 
 ```
 User Action: Drop receipt.jpg
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
-Phase 1: Drop Event
-───────────────────
-1. Tauri → tauri://drag-drop event
-2. tauriDragDrop.ts:87 → listen('tauri://drag-drop')
-3. tauriDragDrop.ts:30 → filterByExtension(paths, ALLOWED_EXTENSIONS)
-4. tauriDragDrop.ts:53 → pathsToDroppedItems(accepted)
-   ├─ Creates: imageId = ImageId(crypto.randomUUID())
-   └─ Creates: traceId = createTraceId()
-5. tauriDragDrop.ts:105 → listeners.onDrop(items, rejected)
+### Phase 1: Drop Event
 
-Phase 2: Queue Addition
-───────────────────────
-6. useDragDrop.ts:71 → onDrop callback
-7. useDragDrop.ts:82 → emit('image:pending', {...})
-8. useDragDrop.ts:94 → onDropRef.current(items)
-9. CaptureView.tsx:46 → onDrop callback
-10. CaptureView.tsx:52 → intentId = createIntentId()
-11. CaptureView.tsx:49 → addImage({id, intentId, traceId, status:'pending'})
-12. useCaptureLogic.ts:214 → dispatch({ type: 'ADD_IMAGE' })
-13. Reducer:42-46 → queue = [...queue, image]
+```
+tauriDragDrop.ts
+├── listen('tauri://drag-drop')
+│   └── @trigger: Tauri native event
+├── filterByExtension(paths, ALLOWED_EXTENSIONS)
+│   └── Filter: jpg, jpeg, png, heic, webp
+└── pathsToDroppedItems(accepted)
+    ├── Creates: imageId = ImageId(crypto.randomUUID())
+    └── Creates: traceId = createTraceId()
 
-Phase 3: Auto-Compression
-─────────────────────────
-14. useCaptureLogic.ts:292-320 → useEffect triggers
-    └─ Guard: state.status === 'idle' ✓
-15. useCaptureLogic.ts:304 → image = pendingImages[0]
-16. useCaptureLogic.ts:315 → processImage(id, localPath, traceId, intentId)
-17. useCaptureLogic.ts:218 → dispatch({ type: 'START_PROCESS' })
-    └─ state.status → 'processing'
-18. imageIpc.ts:81-92 → compressImage(inputPath, imageId)
-    └─ Rust IPC: invoke('compress_image', {...})
-19. Rust → WebP compression + MD5 calculation
-20. useCaptureLogic.ts:230 → findImageByMd5(result.md5, traceId)
-21. imageDb.ts:21 → SELECT id FROM images WHERE md5 = ?
-    └─ Returns: null (no duplicate)
-22. useCaptureLogic.ts:247 → saveImage(id, traceId, intentId, {...})
-23. imageDb.ts:58 → INSERT INTO images (...)
-24. useCaptureLogic.ts:260 → emit('image:compressed', {...})
-25. useCaptureLogic.ts:270 → dispatch({ type: 'PROCESS_SUCCESS' })
-    └─ state.status → 'idle', image.status → 'compressed'
+Output: DroppedItem[] → calls onDrop callback
+```
 
-Phase 4: Auto-Upload
-────────────────────
-26. useCaptureLogic.ts:325-349 → useEffect triggers
-    └─ Finds compressed images not in upload queue
-27. useCaptureLogic.ts:344 → uploadQueue.enqueue(id, path, intentId, traceId)
-28. useUploadQueue.ts:312 → dispatch({ type: 'ENQUEUE' })
-29. useCaptureLogic.ts:347 → dispatch({ type: 'START_UPLOAD' })
-    └─ image.status → 'uploading'
-30. useUploadQueue.ts:228-239 → useEffect triggers
-    └─ Guard: isOnline && state.status === 'idle' ✓
-31. useUploadQueue.ts:241 → processTask(task)
-32. useUploadQueue.ts:249 → canUpload(uploadedToday, dailyLimit)
-33. useUploadQueue.ts:257 → dispatch({ type: 'START_UPLOAD' })
-    └─ queue.status → 'processing'
-34. useUploadQueue.ts:261 → getPresignedUrl(userId, filename, intentId)
-35. useUploadQueue.ts:264 → fetch(`file://${task.filePath}`)
-36. useUploadQueue.ts:270 → uploadToS3(url, blob)
-37. useUploadQueue.ts:274 → dispatch({ type: 'UPLOAD_SUCCESS' })
-    └─ queue.status → 'idle', task.status → 'success'
-38. useUploadQueue.ts:277 → emit('upload:complete', {...})
+### Phase 2: Queue Addition
 
-Phase 5: State Sync
-───────────────────
-39. useCaptureLogic.ts:354-375 → useEffect triggers
-40. useCaptureLogic.ts:362 → dispatch({ type: 'UPLOAD_SUCCESS' })
-    └─ image.status → 'uploaded'
-41. useCaptureLogic.ts:365 → dbUpdateStatus(id, 'uploaded', traceId)
-42. imageDb.ts:93 → UPDATE images SET status = 'uploaded'
+```
+useDragDrop.ts → onDrop callback
+├── emit('image:pending', { id, traceId })
+└── calls onDropRef.current(items)
 
-Final State:
-  - image.status = 'uploaded'
-  - Database: status = 'uploaded', uploaded_at = now()
-  - S3: {imageId}.webp uploaded
+CaptureView.tsx → onDrop callback
+├── Creates: intentId = createIntentId()
+└── addImage({ id, intentId, traceId, status: 'pending' })
+
+useCaptureLogic.ts → addImage()
+└── dispatch({ type: 'ADD_IMAGE' })
+    └── State: queue = [...queue, newImage]
+```
+
+### Phase 3: Auto-Compression
+
+```
+useCaptureLogic.ts → compression useEffect
+├── @trigger: queue changes, status changes
+├── Guard: state.status === 'idle' && pendingImages.length > 0
+│
+├── processImage(id, localPath, traceId, intentId)
+│   ├── dispatch({ type: 'START_PROCESS' })
+│   │   └── State: status = 'processing'
+│   │
+│   ├── imageIpc.compressImage(inputPath, imageId)
+│   │   └── Rust IPC: invoke('compress_image')
+│   │   └── Returns: { md5, compressedSize, outputPath }
+│   │
+│   ├── imageDb.findImageByMd5(md5)
+│   │   └── SQL: SELECT id FROM images WHERE md5 = ?
+│   │   └── Returns: existingId | null
+│   │
+│   ├── [if duplicate] → dispatch({ type: 'DUPLICATE_DETECTED' })
+│   │   └── State: remove from queue, status = 'idle'
+│   │   └── Event: emit('image:duplicate')
+│   │   └── Return early
+│   │
+│   ├── imageDb.saveImage(...)
+│   │   └── SQL: INSERT INTO images (...)
+│   │
+│   └── dispatch({ type: 'PROCESS_SUCCESS' })
+│       └── State: image.status = 'compressed', status = 'idle'
+│       └── Event: emit('image:compressed')
+```
+
+### Phase 4: Auto-Upload
+
+```
+useCaptureLogic.ts → upload trigger useEffect
+├── @trigger: queue changes
+├── Guard: has compressed images not in upload queue
+└── uploadQueue.enqueue(id, path, intentId, traceId)
+    └── dispatch({ type: 'START_UPLOAD' })
+        └── State: image.status = 'uploading'
+
+useUploadQueue.ts → upload useEffect
+├── @trigger: tasks changes, isOnline changes
+├── Guard: isOnline && state.status === 'idle' && hasPendingTasks
+│
+└── processTask(task)
+    ├── canUpload(uploadedToday, dailyLimit)
+    │   └── [if exceeded] → dispatch({ type: 'PAUSE', reason: 'quota' })
+    │
+    ├── dispatch({ type: 'START_UPLOAD' })
+    │   └── State: queue.status = 'processing'
+    │
+    ├── uploadApi.getPresignedUrl(userId, filename, intentId)
+    │   └── POST /presign → { url, key }
+    │
+    ├── fetch(`file://${task.filePath}`) → blob
+    │
+    ├── uploadApi.uploadToS3(url, blob)
+    │   └── PUT to S3 presigned URL
+    │
+    └── dispatch({ type: 'UPLOAD_SUCCESS' })
+        └── State: task.status = 'success', queue.status = 'idle'
+        └── Event: emit('upload:complete', { id, s3Key })
+```
+
+### Phase 5: State Sync
+
+```
+useCaptureLogic.ts → sync useEffect
+├── @trigger: uploadQueue.completedIds changes
+├── @listen: upload:complete event
+│
+├── dispatch({ type: 'UPLOAD_SUCCESS', id })
+│   └── State: image.status = 'uploaded'
+│
+└── imageDb.updateImageStatus(id, 'uploaded')
+    └── SQL: UPDATE images SET status = 'uploaded', uploaded_at = ?
+```
+
+### Final State
+
+```
+image.status = 'uploaded'
+Database: status = 'uploaded', uploaded_at = now()
+S3: {userId}/{date}/{imageId}.webp uploaded
 ```
 
 ---
@@ -105,47 +172,46 @@ Final State:
 
 ```
 User Action: Drop A.jpg, B.jpg, C.jpg (3 files at once)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
 
-Phase 1: Drop Event (Parallel ID Generation)
-────────────────────────────────────────────
-1. tauriDragDrop.ts:87 → event.payload.paths = [A.jpg, B.jpg, C.jpg]
-2. tauriDragDrop.ts:53 → pathsToDroppedItems() creates 3 DroppedItems
-   ├─ A: { id: 'img-aaa', traceId: 'trace-111', ... }
-   ├─ B: { id: 'img-bbb', traceId: 'trace-222', ... }
-   └─ C: { id: 'img-ccc', traceId: 'trace-333', ... }
+### Parallel ID Generation
 
-Phase 2: Queue Addition (For Loop)
-──────────────────────────────────
-3. useDragDrop.ts:79-90 → for (const item of items)
-   └─ emit('image:pending') × 3
-4. CaptureView.tsx:48-64 → for (const item of items)
-   ├─ A: intentId = 'intent-xxx', addImage(A)
-   ├─ B: intentId = 'intent-yyy', addImage(B)
-   └─ C: intentId = 'intent-zzz', addImage(C)
-5. Queue state: [A:pending, B:pending, C:pending]
+```
+tauriDragDrop.ts → pathsToDroppedItems()
+├── A: { id: 'img-aaa', traceId: 'trace-111' }
+├── B: { id: 'img-bbb', traceId: 'trace-222' }
+└── C: { id: 'img-ccc', traceId: 'trace-333' }
+```
 
-Phase 3: Sequential Processing (FSM Guards)
-───────────────────────────────────────────
-6. useEffect:292 → state.status === 'idle' ✓
-   └─ pendingImages = [A, B, C]
-7. Process A: image = pendingImages[0]
-8. dispatch({ type: 'START_PROCESS' }) → state.status = 'processing'
+### Sequential Processing (FSM Guards)
 
-9. useEffect:292 re-runs
-   └─ state.status !== 'idle' → SKIP (B, C wait)
+```
+Queue state: [A:pending, B:pending, C:pending]
 
-10. A completes → state.status = 'idle'
-11. useEffect:292 re-runs
-    └─ pendingImages = [B, C] → Process B
+useEffect run #1:
+├── Guard: status === 'idle' ✓
+├── Process A → status = 'processing'
+└── B, C wait
 
-12. B completes → Process C
-13. C completes → All done
+useEffect run #2:
+├── Guard: status !== 'idle' ✗
+└── Skip (A still processing)
 
-Processing Order:
-  A.jpg: compress → upload → ✓
-  B.jpg: compress → upload → ✓  (waits for A)
-  C.jpg: compress → upload → ✓  (waits for B)
+A completes → status = 'idle'
+
+useEffect run #3:
+├── Guard: status === 'idle' ✓
+└── Process B → status = 'processing'
+
+... continues until C completes
+```
+
+### Processing Order
+
+```
+A.jpg: pending → compressed → uploading → uploaded ✓
+B.jpg: pending → (wait) → compressed → uploading → uploaded ✓
+C.jpg: pending → (wait) → (wait) → compressed → uploading → uploaded ✓
 ```
 
 ---
@@ -154,170 +220,128 @@ Processing Order:
 
 ```
 User Action: Drop A.jpg, then same file again
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-First Image: A.jpg
-──────────────────
-1. Drop → compress → MD5 = "abc123def456..."
-2. findImageByMd5("abc123...") → null
-3. saveImage() → INSERT (md5 = "abc123...")
-4. Upload → status = 'uploaded'
-
-Second Image: A.jpg (or B.jpg copy)
-───────────────────────────────────
-5. Drop → compress → MD5 = "abc123def456..." (same)
-6. useCaptureLogic.ts:230 → findImageByMd5("abc123...")
-7. imageDb.ts:21-32:
-   SELECT id FROM images WHERE md5 = 'abc123...' LIMIT 1
-   └─ Returns: 'img-aaa' (existing ID)
-
-8. useCaptureLogic.ts:231-243:
-   if (existingId) {
-     emit('image:duplicate', {
-       id: currentId,
-       traceId,
-       duplicateWith: existingId,
-       reason: 'database',
-     });
-     dispatch({ type: 'DUPLICATE_DETECTED', id, duplicateWith });
-     return;  // ← Skip save & upload
-   }
-
-9. Reducer:75-80:
-   case 'DUPLICATE_DETECTED':
-     return {
-       status: 'idle',
-       queue: state.queue.filter(img => img.id !== action.id),
-     };
-   └─ Duplicate removed from queue
-
-Note: MD5 is calculated on WebP output, not original file.
-      Detection happens AFTER compression, not at drop time.
 ```
+
+### First Image
+
+```
+Drop → compress → MD5 = "abc123..."
+findImageByMd5("abc123...") → null (not found)
+saveImage() → INSERT
+Upload → status = 'uploaded'
+```
+
+### Second Image (Duplicate)
+
+```
+Drop → compress → MD5 = "abc123..." (same hash)
+
+useCaptureLogic.ts → processImage()
+├── findImageByMd5("abc123...")
+│   └── Returns: 'img-aaa' (existing ID)
+│
+├── [duplicate detected]
+│   ├── emit('image:duplicate', { id, duplicateWith: existingId })
+│   ├── dispatch({ type: 'DUPLICATE_DETECTED' })
+│   └── return (skip save & upload)
+│
+└── Reducer: DUPLICATE_DETECTED
+    └── queue = queue.filter(img => img.id !== duplicateId)
+    └── status = 'idle'
+```
+
+**Note**: MD5 is calculated on WebP output, not original file. Detection happens AFTER compression.
 
 ---
 
-## 4. Corrupted Image Error (SC-012) ❌ BUG #45
+## 4. Corrupted Image Error (SC-012)
 
 ```
 User Action: Drop fake.jpg (text file with .jpg extension)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. Drop → filterByExtension() → ✓ (extension is .jpg)
-2. Queue: [{id: 'img-fake', status: 'pending'}]
-3. useEffect:292 → processImage() called
-4. imageIpc.ts:85 → invoke('compress_image', {...})
-5. Rust image crate → Error: "Failed to open image: unsupported format"
-6. Error thrown back to TypeScript
-
-7. useCaptureLogic.ts:279-282:
-   catch (e) {
-     dispatch({ type: 'FAILURE', id, error: String(e) });
-   }
-
-8. Reducer:99-104:
-   case 'FAILURE':
-     return {
-       status: 'error',        // ← PROBLEM: FSM stuck in 'error'
-       queue: updateImageStatus(state.queue, action.id, 'failed'),
-       error: action.error,
-     };
-
-9. useEffect:292-294:
-   if (state.status !== 'idle') return;  // ← Always skips now!
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║ BUG #45: FAILURE blocks all subsequent processing                         ║
-║                                                                           ║
-║ Once FSM enters 'error' state, it never returns to 'idle'.               ║
-║ All pending images after the failed one will never be processed.          ║
-║                                                                           ║
-║ Fix: FAILURE should set status back to 'idle' after handling error.      ║
-╚═══════════════════════════════════════════════════════════════════════════╝
 ```
+
+### Flow
+
+```
+filterByExtension() → ✓ (extension is .jpg)
+Queue: [{ id: 'img-fake', status: 'pending' }]
+
+useCaptureLogic.ts → processImage()
+├── imageIpc.compressImage()
+│   └── Rust: Error "Failed to open image: unsupported format"
+│
+└── catch (error)
+    └── dispatch({ type: 'FAILURE', id, error })
+
+Reducer: FAILURE
+├── image.status = 'failed'
+└── status = 'idle'           ← Returns to idle, continues processing
+```
+
+> **Fixed (#45)**: FAILURE reducer now resets status to 'idle' after marking the image as failed, allowing subsequent images to be processed.
 
 ---
 
-## 5. Network Disconnect During Upload (SC-320) ❌ BUG #47
+## 5. Network Disconnect During Upload (SC-320)
 
 ```
 User Action: Start upload, then disconnect network
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Timeline:
-─────────
-T0: processTask() starts, state.status = 'processing'
-T1: uploadToS3() in progress...
-T2: Network disconnects
-T3: useNetworkStatus → isOnline = false
-
-T4: useEffect:219-225 runs:
-    if (!isOnline && state.status !== 'paused') {
-      dispatch({ type: 'PAUSE', reason: 'offline' });
-    }
-    └─ state.status → 'paused'
-
-T5: uploadToS3() fails with network error
-T6: catch block runs:
-    dispatch({ type: 'UPLOAD_FAILURE', id, error, errorType: 'network' });
-
-T7: Reducer:76-90:
-    case 'UPLOAD_FAILURE':
-      return {
-        status: 'idle',  // ← OVERWRITES 'paused'!
-        tasks: updateTask(...),
-      };
-
-T8: Now state.status = 'idle', but isOnline = false
-T9: useEffect:219-225 runs again → PAUSE again
-T10: State oscillates...
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║ BUG #47: UPLOAD_FAILURE overwrites PAUSED state                           ║
-║                                                                           ║
-║ When upload fails due to network error while queue is PAUSED,             ║
-║ the FAILURE action incorrectly sets status back to 'idle'.               ║
-║                                                                           ║
-║ Fix: Check current status in UPLOAD_FAILURE reducer.                      ║
-║      If paused, keep it paused.                                          ║
-╚═══════════════════════════════════════════════════════════════════════════╝
 ```
+
+### Timeline
+
+```
+T0: processTask() starts
+    └── state.status = 'processing'
+
+T1: uploadToS3() in progress...
+
+T2: Network disconnects
+    └── useNetworkStatus → isOnline = false
+
+T3: Offline useEffect runs
+    └── dispatch({ type: 'PAUSE', reason: 'offline' })
+    └── state.status = 'paused'
+
+T4: uploadToS3() fails with network error
+
+T5: catch block runs
+    └── dispatch({ type: 'UPLOAD_FAILURE' })
+
+T6: Reducer: UPLOAD_FAILURE
+    └── [if status === 'paused'] → keep 'paused'
+    └── [else] → status = 'idle'
+
+T7: Queue stays paused, resumes when online
+```
+
+> **Fixed (#47)**: UPLOAD_FAILURE reducer now checks current status before transitioning. If paused, it remains paused.
 
 ---
 
-## 6. Quota Persistence (SC-130/131) ❌ BUG #46
+## 6. Quota Persistence (SC-130/131)
 
 ```
 User Action: Upload 10 images, restart app, upload more
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Current Implementation:
-───────────────────────
-1. useUploadQueue.ts:248:
-   const uploadedToday = state.tasks.filter(t => t.status === 'success').length;
-
-2. state.tasks is useReducer memory state
-3. App restart → useReducer reinitializes
-   └─ state = { status: 'idle', tasks: [] }
-
-4. uploadedToday = 0  // ← Wrong! Should be 10
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║ BUG #46: Quota not persisted across restart                               ║
-║                                                                           ║
-║ Quota count is calculated from in-memory task list.                       ║
-║ Restarting app loses all history.                                        ║
-║                                                                           ║
-║ Missing Implementation:                                                   ║
-║ - imageDb: countTodayUploads(userId, date)                               ║
-║ - useQuota: Load from DB on mount                                        ║
-║                                                                           ║
-║ Fix Query:                                                                ║
-║   SELECT COUNT(*) FROM images                                             ║
-║   WHERE user_id = ? AND status = 'uploaded'                              ║
-║   AND DATE(uploaded_at) = DATE('now', 'localtime')                       ║
-╚═══════════════════════════════════════════════════════════════════════════╝
 ```
+
+### Flow
+
+```
+useUploadQueue.ts → restore useEffect
+├── @trigger: mount
+├── imageDb.getTodayUploadCount(userId)
+│   └── SQL: SELECT COUNT(*) FROM images
+│            WHERE user_id = ? AND status = 'uploaded'
+│            AND DATE(uploaded_at) = DATE('now', 'localtime')
+└── dispatch({ type: 'SET_UPLOADED_TODAY', count })
+
+useUploadQueue.ts → canUpload()
+├── uploadedToday = state.uploadedToday  ← From DB, not in-memory tasks
+└── return uploadedToday < dailyLimit
+```
+
+> **Fixed (#46)**: Quota is now loaded from database on startup, persisting across app restarts.
 
 ---
 
@@ -325,177 +349,133 @@ Current Implementation:
 
 ```
 App restart after crash with pending/uploading images
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-useCaptureLogic.ts:169-211 → useEffect (queue restoration)
-──────────────────────────────────────────────────────────
-
-1. Guard: userId && !restoredRef.current
-   └─ Prevents double execution in StrictMode
-
-2. resetInterruptedUploads(traceId):
-   imageDb.ts:148-157:
-     UPDATE images SET status = 'compressed'
-     WHERE status = 'uploading'
-   └─ Reset interrupted uploads to try again
-
-3. loadUnfinishedImages():
-   imageDb.ts:130-142:
-     SELECT * FROM images
-     WHERE status IN ('pending', 'compressed', 'uploading')
-     ORDER BY created_at ASC
-   └─ Get all unfinished work
-
-4. rowToReceiptImage(row, userId):
-   useCaptureLogic.ts:125-147:
-     // Reset 'uploading' to 'compressed'
-     const status = row.status === 'uploading' ? 'compressed' : row.status;
-   └─ Map DB row to ReceiptImage
-
-5. dispatch({ type: 'RESTORE_QUEUE', images })
-   Reducer:48-56:
-     return {
-       ...state,
-       queue: [
-         ...state.queue,
-         ...action.images.filter(img => !state.queue.some(q => q.id === img.id)),
-       ],
-     };
-   └─ Merge without duplicates
-
-6. Auto-processing useEffect triggers:
-   - pending images → re-compress
-   - compressed images → upload
-
-⚠️ Warning: If original file was deleted, compression will fail.
-   This is expected behavior - user must re-add the file.
 ```
+
+### Flow
+
+```
+useCaptureLogic.ts → restore useEffect
+├── @trigger: userId changes (once on mount)
+├── Guard: userId && !restoredRef.current
+
+├── imageDb.resetInterruptedUploads()
+│   └── SQL: UPDATE images SET status = 'compressed'
+│            WHERE status = 'uploading'
+
+├── imageDb.loadUnfinishedImages()
+│   └── SQL: SELECT * FROM images
+│            WHERE status IN ('pending', 'compressed', 'uploading')
+│            ORDER BY created_at ASC
+
+├── Map rows to ReceiptImage
+│   └── Reset 'uploading' → 'compressed'
+
+└── dispatch({ type: 'RESTORE_QUEUE', images })
+    └── Merge without duplicates
+
+Auto-processing useEffects trigger:
+├── pending images → re-compress
+└── compressed images → upload
+```
+
+**Warning**: If original file was deleted, compression will fail. User must re-add the file.
 
 ---
 
-## 8. Guest Login Data Migration (SC-201/203) ❌ BUG #48/#50
+## 8. Guest Login Data Migration (SC-201/203)
 
 ```
 Guest with images → Register → Login
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Current State:
-──────────────
-1. imageDb.ts:saveImage() inserts:
-   INSERT INTO images (id, trace_id, intent_id, ...)
-   └─ ❌ No user_id column!
-
-2. Guest uploads 10 images:
-   └─ All saved without user_id association
-
-3. User registers and logs in:
-   └─ userId changes from 'guest-xxx' to 'user-yyy'
-
-4. Problem:
-   └─ How to associate old images with new account?
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║ BUG #48: images table missing user_id column                              ║
-║                                                                           ║
-║ Current schema doesn't track which user owns which image.                 ║
-║ Cannot migrate guest data to registered account.                          ║
-║                                                                           ║
-║ Fix:                                                                      ║
-║ 1. Add migration: ALTER TABLE images ADD COLUMN user_id TEXT             ║
-║ 2. Update saveImage() to include user_id                                 ║
-║ 3. Add updateImageUserId(id, newUserId) for migration                    ║
-║ 4. On login: UPDATE images SET user_id = ? WHERE user_id = 'guest-xxx'  ║
-╚═══════════════════════════════════════════════════════════════════════════╝
-
-╔═══════════════════════════════════════════════════════════════════════════╗
-║ Feature #50: Implement guest data claim on registration                   ║
-║                                                                           ║
-║ After login, migrate guest data:                                          ║
-║   UPDATE images SET user_id = :newUserId                                 ║
-║   WHERE user_id = :guestId                                               ║
-╚═══════════════════════════════════════════════════════════════════════════╝
 ```
+
+### Flow
+
+```
+imageDb.saveImage()
+└── INSERT INTO images (id, user_id, trace_id, intent_id, ...)
+    └── user_id = current userId (guest or authenticated)
+
+Guest uploads 10 images:
+└── All saved with user_id = 'guest-xxx'
+
+User registers and logs in:
+└── userId changes: 'guest-xxx' → 'user-yyy'
+
+authService.onLogin()
+├── imageDb.migrateGuestData(guestId, newUserId)
+│   └── SQL: UPDATE images SET user_id = :newUserId
+│            WHERE user_id = :guestId
+└── All guest images now belong to authenticated user
+```
+
+> **Fixed (#48, #50)**: Images table now has user_id column. Guest data is migrated to authenticated user on login.
 
 ---
 
 ## ID Flow Summary
 
+| ID | Created At | Purpose | Persisted |
+|----|------------|---------|-----------|
+| `imageId` | `tauriDragDrop.pathsToDroppedItems()` | Entity identity, PK, S3 key prefix | ✓ DB |
+| `traceId` | `tauriDragDrop.pathsToDroppedItems()` | Log correlation across pipeline | ✓ DB |
+| `intentId` | `CaptureView.onDrop()` | Idempotency key for retries | ✓ DB |
+| `md5` | Rust `compress_image` | Content-based deduplication | ✓ DB |
+
+---
+
+## FSM State Diagrams
+
+### useCaptureLogic FSM
+
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ ID Creation Points                                                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│ imageId   : tauriDragDrop.ts:56   → ImageId(crypto.randomUUID())           │
-│ traceId   : tauriDragDrop.ts:55   → createTraceId()                        │
-│ intentId  : CaptureView.tsx:52    → createIntentId()                       │
-│ md5       : Rust compress_image   → calculated from WebP output            │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ ID Purposes                                                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│ imageId   : Entity identity, primary key in DB, S3 key prefix              │
-│ traceId   : Log correlation across drop → compress → upload                │
-│ intentId  : Idempotency key for retries (prevent duplicate uploads)        │
-│ md5       : Content-based deduplication (same image = same hash)           │
-│                                                                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ ID Persistence                                                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│ imageId   : ✓ DB (id column)                                               │
-│ traceId   : ✓ DB (trace_id column)                                         │
-│ intentId  : ✓ DB (intent_id column)                                        │
-│ md5       : ✓ DB (md5 column, used for duplicate detection)                │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+                         PROCESS_SUCCESS
+                         DUPLICATE_DETECTED
+                         FAILURE (fixed #45)
+                    ┌─────────────────────────┐
+                    │                         │
+                    ▼                         │
+┌────────┐    START_PROCESS    ┌────────────┐│
+│  idle  │ ─────────────────▶ │ processing ││
+└────────┘                     └────────────┘│
+    ▲                                        │
+    │                                        │
+    └────────────────────────────────────────┘
+```
+
+### useUploadQueue FSM
+
+```
+                         UPLOAD_SUCCESS
+                         UPLOAD_FAILURE (fixed #47)
+                    ┌─────────────────────────┐
+                    │                         │
+                    ▼                         │
+┌────────┐    START_UPLOAD   ┌────────────┐  │
+│  idle  │ ────────────────▶│ processing │──┘
+└────────┘                   └────────────┘
+    ▲  ▲                          │
+    │  │                          │ (respects paused)
+    │  │                          ▼
+    │  │  RESUME            ┌──────────┐
+    │  └────────────────────│  paused  │
+    │                       └──────────┘
+    │                             ▲
+    └─────────────────────────────┘
+              PAUSE (offline/quota)
 ```
 
 ---
 
-## FSM State Transitions
+## Fixed Issues
 
-```
-useCaptureLogic FSM:
-────────────────────
-                    ┌──────────────────────────────────────────────────┐
-                    │                                                  │
-                    ▼                                                  │
-┌────────┐    START_PROCESS    ┌────────────┐                         │
-│  idle  │ ─────────────────▶ │ processing │                         │
-└────────┘                     └────────────┘                         │
-    ▲                               │                                 │
-    │                               │                                 │
-    │   PROCESS_SUCCESS             │ FAILURE                         │
-    │   DUPLICATE_DETECTED          │                                 │
-    │   UPLOAD_SUCCESS              ▼                                 │
-    │                          ┌─────────┐                            │
-    └────────────────────────  │  error  │ ── (no recovery path) ────┘
-                               └─────────┘        ❌ BUG #45
-
-
-useUploadQueue FSM:
-───────────────────
-                        ┌────────────────────────────────────┐
-                        │                                    │
-                        ▼                                    │
-┌────────┐      START_UPLOAD      ┌────────────┐            │
-│  idle  │ ────────────────────▶ │ processing │            │
-└────────┘                        └────────────┘            │
-    ▲  ▲                               │                    │
-    │  │                               │                    │
-    │  │  UPLOAD_SUCCESS               │                    │
-    │  │  UPLOAD_FAILURE ───┐          │                    │
-    │  └────────────────────┼──────────┘                    │
-    │                       │                               │
-    │                       │ ❌ Overwrites!                │
-    │                       ▼                               │
-    │  RESUME          ┌────────┐                          │
-    └─────────────────│ paused │◀──── PAUSE (offline/quota)│
-                       └────────┘                          │
-                                     BUG #47 ──────────────┘
-```
+| Issue | Scenario | Problem | Fix |
+|-------|----------|---------|-----|
+| #45 | SC-012 | FSM stuck in 'error' state | FAILURE resets to 'idle' |
+| #46 | SC-130/131 | Quota not persisted | Load from DB on startup |
+| #47 | SC-320 | FAILURE overwrites PAUSED | Check status before transition |
+| #48 | SC-203 | images missing user_id | Added user_id column |
+| #50 | SC-201/202 | Guest data migration | Migrate on login |
 
 ---
 
-*Last updated: 2026-01-03*
+*Last updated: 2026-01-05*

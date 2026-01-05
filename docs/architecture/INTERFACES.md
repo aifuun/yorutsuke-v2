@@ -1,12 +1,270 @@
 # INTERFACES.md
 
-> Interface definitions - IPC commands and Cloud APIs
+> Interface definitions - Service layer, IPC commands, and Cloud APIs
 
 ## Overview
 
+**Service**: Pure TypeScript orchestration layer
 **IPC**: Tauri commands (Rust ↔ TypeScript)
 **Cloud API**: Lambda Function URLs
-**Last Updated**: 2025-12-28
+**Last Updated**: 2026-01-05
+
+---
+
+## Four-Layer Communication
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  React                                                      │
+│  └─ calls Service methods                                   │
+│  └─ subscribes to Zustand stores                            │
+│  └─ listens to EventBus                                     │
+├─────────────────────────────────────────────────────────────┤
+│  Service (this section)                                     │
+│  └─ orchestrates business logic                             │
+│  └─ calls Adapters                                          │
+│  └─ updates Zustand stores                                  │
+│  └─ emits EventBus events                                   │
+├─────────────────────────────────────────────────────────────┤
+│  Adapters                                                   │
+│  └─ Tauri IPC (see IPC Commands section)                    │
+│  └─ Cloud API (see Cloud APIs section)                      │
+├─────────────────────────────────────────────────────────────┤
+│  Backend                                                    │
+│  └─ Tauri (Rust) / AWS Lambda                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Service Layer Interfaces
+
+> Service layer is the orchestration layer between React and Adapters.
+> See [ARCHITECTURE.md](./ARCHITECTURE.md) for the four-layer model.
+
+### captureService
+
+Entry point for image capture. Registers Tauri listeners at app startup.
+
+```typescript
+// app/src/02_modules/capture/services/captureService.ts
+
+class CaptureService {
+  // Initialize at app startup (registers Tauri drag-drop listener)
+  // Called once in main.tsx, independent of React lifecycle
+  init(): void;
+
+  // Handle dropped files (called by Tauri listener)
+  // Generates IDs, validates files, delegates to fileService
+  handleDrop(paths: string[]): Promise<void>;
+
+  // Manual file selection (future: file picker)
+  selectFiles(): Promise<void>;
+}
+
+// Singleton instance
+export const captureService: CaptureService;
+
+// State access via Zustand store
+export const captureStore: StoreApi<CaptureStore>;
+```
+
+**Store interface:**
+
+```typescript
+interface CaptureStore {
+  // Processing state
+  status: 'idle' | 'processing' | 'error';
+
+  // Queue of images being processed
+  queue: QueuedImage[];
+
+  // Currently processing image
+  currentId: ImageId | null;
+}
+
+interface QueuedImage {
+  id: ImageId;
+  traceId: TraceId;
+  intentId: IntentId;
+  localPath: string;
+  status: 'pending' | 'compressing' | 'compressed' | 'failed';
+}
+```
+
+### uploadService
+
+Manages image upload queue.
+
+```typescript
+// app/src/02_modules/capture/services/uploadService.ts
+
+class UploadService {
+  // Initialize at app startup (registers Tauri listeners)
+  init(): void;
+
+  // Add file to upload queue
+  enqueue(file: DroppedFile): void;
+
+  // Pause/resume queue (offline, quota)
+  pause(reason: 'offline' | 'quota'): void;
+  resume(): void;
+
+  // Manual retry for failed uploads
+  retry(id: ImageId): void;
+
+  // Cancel pending upload
+  cancel(id: ImageId): void;
+}
+
+// Singleton instance
+export const uploadService: UploadService;
+
+// State access via Zustand store
+export const uploadStore: StoreApi<UploadStore>;
+```
+
+### fileService
+
+Manages local file operations.
+
+```typescript
+// app/src/02_modules/capture/services/fileService.ts
+
+class FileService {
+  // Process dropped file (compress, hash, save)
+  processFile(file: DroppedFile): Promise<ProcessedFile>;
+
+  // Check for duplicate by MD5
+  checkDuplicate(md5: string): Promise<ImageId | null>;
+
+  // Delete local file and DB record
+  deleteFile(id: ImageId): Promise<void>;
+
+  // Restore queue on app restart
+  restoreQueue(): Promise<void>;
+}
+
+export const fileService: FileService;
+export const fileStore: StoreApi<FileStore>;
+```
+
+### syncService
+
+Manages cloud synchronization (MVP3.5+).
+
+```typescript
+// app/src/02_modules/sync/services/syncService.ts
+
+class SyncService {
+  // Sync confirmed transaction to cloud
+  syncTransaction(tx: Transaction): Promise<void>;
+
+  // Queue action for offline sync
+  queueAction(action: SyncAction): void;
+
+  // Process offline queue when online
+  processQueue(): Promise<void>;
+
+  // Fetch cloud data for recovery
+  fetchCloudData(userId: UserId): Promise<Transaction[]>;
+}
+
+export const syncService: SyncService;
+export const syncStore: StoreApi<SyncStore>;
+```
+
+### quotaService
+
+Manages user quota.
+
+```typescript
+// app/src/02_modules/quota/services/quotaService.ts
+
+class QuotaService {
+  // Refresh quota from server
+  refresh(): Promise<void>;
+
+  // Check if can upload (soft check)
+  canUpload(): boolean;
+
+  // Increment local count (after successful upload)
+  incrementUsed(): void;
+}
+
+export const quotaService: QuotaService;
+export const quotaStore: StoreApi<QuotaStore>;
+```
+
+### EventBus Events
+
+Service layer emits these events for one-time notifications:
+
+```typescript
+// Event types (fire-and-forget)
+type AppEvents = {
+  // Toast notifications
+  'toast:success': { message: string };
+  'toast:error': { message: string };
+
+  // Upload lifecycle
+  'upload:started': { id: ImageId; traceId: TraceId };
+  'upload:complete': { id: ImageId; s3Key: string };
+  'upload:failed': { id: ImageId; error: string };
+
+  // File processing
+  'file:duplicate': { id: ImageId; existingId: ImageId };
+  'file:compressed': { id: ImageId; size: number };
+
+  // Quota
+  'quota:exceeded': { used: number; limit: number };
+  'quota:warning': { remaining: number };
+
+  // Network
+  'network:changed': { online: boolean };
+};
+
+// Usage in Service
+eventBus.emit('toast:success', { message: '削除しました' });
+
+// Usage in React
+useAppEvent('toast:success', ({ message }) => showToast(message));
+```
+
+### React Integration
+
+```typescript
+// Reading state from Service layer
+function UploadProgress() {
+  // Subscribe to Zustand store
+  const progress = useStore(uploadStore, (s) => s.progress);
+  const status = useStore(uploadStore, (s) => s.status);
+
+  return <ProgressBar value={progress} paused={status === 'paused'} />;
+}
+
+// Calling Service methods
+function UploadButton() {
+  const handleDrop = (files: DroppedFile[]) => {
+    files.forEach((file) => uploadService.enqueue(file));
+  };
+
+  return <DropZone onDrop={handleDrop} />;
+}
+
+// Listening to one-time events
+function ToastContainer() {
+  useAppEvent('toast:success', ({ message }) => {
+    toast.success(message);
+  });
+
+  useAppEvent('toast:error', ({ message }) => {
+    toast.error(message);
+  });
+
+  return <ToastViewport />;
+}
+```
 
 ---
 

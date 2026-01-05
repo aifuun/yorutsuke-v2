@@ -16,6 +16,7 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
+| [README](./architecture/README.md) | Document index & status | Dev |
 | [ARCHITECTURE](./architecture/ARCHITECTURE.md) | System design | Dev |
 | [SCHEMA](./architecture/SCHEMA.md) | Data model | Dev |
 | [INTERFACES](./architecture/INTERFACES.md) | IPC & API | Dev |

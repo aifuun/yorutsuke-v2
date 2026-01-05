@@ -2,26 +2,270 @@
 
 > Incremental testing plan for manual verification
 
-**Version**: 2.0.0
+**Version**: 3.0.0
 **Last Updated**: 2026-01-05
+
+## Architecture Context
+
+> See [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) for full details.
+
+### Implementation Strategy
+
+**MVP0 先完成架构重构，后续 MVP 基于 Service 模式验证功能。**
+
+| Aspect | Before MVP0 | After MVP0 |
+|--------|-------------|------------|
+| Orchestration | React headless hooks | Pure TS Services |
+| State Management | useReducer | Zustand vanilla stores |
+| Event Listeners | useEffect | Service.init() |
+| Tauri Events | Component lifecycle | App startup (once) |
+
+### Module Tiers
+
+| Module | Tier | Pattern | Refactor In | Test In |
+|--------|------|---------|-------------|---------|
+| capture | T2 | FSM + Queue | MVP0 | MVP1, MVP2 |
+| report | T1 | Fetch + Render | MVP3 | MVP3 |
+| transaction | T2 | CRUD + Confirm | MVP3 | MVP3, MVP3.5 |
+| batch | T3 | Saga (AWS) | N/A | MVP3 |
+| auth | T2 | Login + Migration | MVP4 | MVP4 |
+
+### ID Strategy
+
+| ID Type | Purpose | Tested In |
+|---------|---------|-----------|
+| `imageId` | Entity identifier | SC-700 |
+| `traceId` | Log correlation | SC-701 |
+| `intentId` | Idempotency (retry-safe) | SC-702 |
+| `md5` | Content deduplication | SC-703, SC-020~023 |
+
+---
 
 ## Overview
 
-逐步验证产品功能，从最小可测试单元开始，每个 MVP 阶段都可独立手动测试。
+逐步验证产品功能，从架构重构开始，每个 MVP 阶段都可独立验证。
 
 ```
-MVP1 (Local) → MVP2 (Upload) → MVP3 (Batch) → MVP3.5 (Sync) → MVP4 (Auth)
-   纯本地         上传云端        夜间处理        确认回写        完整认证
+MVP0 (Refactor) → MVP1 (Local) → MVP2 (Upload) → MVP3 (Batch) → MVP3.5 (Sync) → MVP4 (Auth)
+   架构重构          纯本地         上传云端        夜间处理        确认回写        完整认证
 ```
+
+### 阶段说明
+
+| 阶段 | 类型 | 目标 |
+|------|------|------|
+| MVP0 | 重构 | headless hooks → Service pattern |
+| MVP1 | 功能 | 本地拖放、压缩、队列、去重 |
+| MVP2 | 功能 | S3 上传、网络处理、配额 |
+| MVP3 | 功能 | 批处理、报告、交易管理 |
+| MVP3.5 | 功能 | 确认回写、数据恢复 |
+| MVP4 | 功能 | 认证、Tier、数据迁移 |
 
 ### 数据流向
 
 ```
+MVP0:   无数据流变化（纯重构）
 MVP1-2: 本地 ────────────────────────────► 云端 (图片上传)
 MVP3:   本地 ◄──────────────────────────── 云端 (AI 结果拉取)
 MVP3.5: 本地 ────────────────────────────► 云端 (确认回写)
 MVP4:   本地 ◄──────────────────────────► 云端 (完整双向)
 ```
+
+---
+
+## MVP0 - 架构重构 (Service Pattern)
+
+> **目标**: 将 capture 模块从 headless hooks 迁移到 Service 模式，解决 #82 StrictMode 问题
+
+### 重构范围
+
+| 当前文件 | 目标文件 | 说明 | 状态 |
+|----------|----------|------|------|
+| `useDragDrop.ts` | `captureService.ts` | Tauri 事件监听移到 Service.init() | [ ] |
+| `useCaptureLogic.ts` | `fileService.ts` | 压缩、去重、DB 操作 | [ ] |
+| `useUploadQueue.ts` | `uploadService.ts` | 上传队列、重试逻辑 | [ ] |
+| React `useReducer` | Zustand vanilla store | `captureStore.ts`, `uploadStore.ts` | [ ] |
+| `emit()` in hooks | `eventBus.emit()` in Service | 一次性通知 | [ ] |
+
+### 目录结构变化
+
+```
+app/src/02_modules/capture/
+├── headless/                    # [删除] 迁移后删除
+│   ├── useDragDrop.ts          → services/captureService.ts
+│   ├── useCaptureLogic.ts      → services/fileService.ts
+│   └── useUploadQueue.ts       → services/uploadService.ts
+│
+├── services/                    # [新增] 业务逻辑
+│   ├── captureService.ts        # Tauri 监听 + 流程编排
+│   ├── fileService.ts           # 压缩 + 去重 + DB
+│   └── uploadService.ts         # 上传队列 + 重试
+│
+├── stores/                      # [新增] 状态管理
+│   ├── captureStore.ts          # 拖放队列状态
+│   └── uploadStore.ts           # 上传队列状态
+│
+├── hooks/                       # [新增] React 桥接
+│   ├── useCaptureState.ts       # useStore(captureStore)
+│   └── useUploadState.ts        # useStore(uploadStore)
+│
+├── adapters/                    # [保留] 无变化
+│   ├── imageIpc.ts
+│   ├── imageDb.ts
+│   └── uploadApi.ts
+│
+└── views/                       # [保留] 调用方式变化
+    └── CaptureView.tsx          # service.method() 替代 hook()
+```
+
+### 重构步骤
+
+#### Phase 1: 创建 Stores
+
+```typescript
+// stores/captureStore.ts
+import { createStore } from 'zustand/vanilla';
+
+interface CaptureState {
+  status: 'idle' | 'processing' | 'error';
+  queue: QueuedImage[];
+  currentId: ImageId | null;
+}
+
+export const captureStore = createStore<CaptureState>(() => ({
+  status: 'idle',
+  queue: [],
+  currentId: null,
+}));
+```
+
+- [ ] 创建 `captureStore.ts`
+- [ ] 创建 `uploadStore.ts`
+- [ ] 定义状态类型（从 useReducer 提取）
+
+#### Phase 2: 创建 Services
+
+```typescript
+// services/captureService.ts
+class CaptureService {
+  private initialized = false;
+
+  init() {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    // 一次性注册，不受 React 生命周期影响
+    listen('tauri://drag-drop', this.handleDrop.bind(this));
+  }
+
+  async handleDrop(event: TauriDropEvent) {
+    // 业务逻辑...
+    captureStore.setState({ ... });
+    eventBus.emit('file:dropped', { ... });
+  }
+}
+
+export const captureService = new CaptureService();
+```
+
+- [ ] 创建 `captureService.ts` (Tauri 监听)
+- [ ] 创建 `fileService.ts` (压缩 + 去重)
+- [ ] 创建 `uploadService.ts` (上传队列)
+- [ ] 在 `main.tsx` 调用 `captureService.init()`
+
+#### Phase 3: 创建 React Hooks
+
+```typescript
+// hooks/useCaptureState.ts
+import { useStore } from 'zustand';
+import { captureStore } from '../stores/captureStore';
+
+export function useCaptureState() {
+  return useStore(captureStore);
+}
+
+export function useCaptureActions() {
+  return {
+    handleDrop: captureService.handleDrop.bind(captureService),
+    // ...
+  };
+}
+```
+
+- [ ] 创建 `useCaptureState.ts`
+- [ ] 创建 `useUploadState.ts`
+- [ ] View 组件改用新 hooks
+
+#### Phase 4: 迁移 View 组件
+
+```typescript
+// views/CaptureView.tsx
+function CaptureView() {
+  // 读取状态
+  const { queue, status } = useCaptureState();
+
+  // 触发动作（不再是 hook 返回的函数）
+  const handleRetry = () => uploadService.retry(id);
+
+  // 一次性事件
+  useAppEvent('file:duplicate', ({ id }) => {
+    toast.info('重复图片已跳过');
+  });
+
+  return <DropZone>...</DropZone>;
+}
+```
+
+- [ ] 更新 `CaptureView.tsx`
+- [ ] 更新 `UploadProgress.tsx`
+- [ ] 移除旧 headless hooks 引用
+
+#### Phase 5: 清理
+
+- [ ] 删除 `headless/` 目录
+- [ ] 更新 barrel exports (`index.ts`)
+- [ ] 运行 TypeScript 检查
+- [ ] 关闭 #82
+
+### 验收标准
+
+| 检查项 | 验证方法 | 状态 |
+|--------|----------|------|
+| StrictMode 无双重注册 | Dev 模式下拖放一次只触发一次 | [ ] |
+| 状态持久化 | 关闭 Modal 再打开，队列状态保留 | [ ] |
+| 事件监听一次性 | App 启动只注册一次 Tauri 监听 | [ ] |
+| TypeScript 编译通过 | `npm run typecheck` | [ ] |
+| 现有功能不变 | 拖放→压缩→显示缩略图 | [ ] |
+
+### 不包含
+
+- ❌ 新功能开发
+- ❌ 新测试场景（复用 MVP1 场景验证）
+- ❌ report/transaction 模块重构（在各自 MVP 阶段进行）
+
+### 环境配置
+
+```bash
+# 开发模式（StrictMode 开启）
+cd app
+npm run tauri dev
+
+# 验证 StrictMode 问题已解决
+# 1. 拖放图片
+# 2. 检查控制台无重复日志
+# 3. 检查队列只有一个条目
+```
+
+### 依赖
+
+- 无后端依赖
+- 无新 npm 包（zustand 已安装）
+
+### 参考
+
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - 四层模型、状态归属
+- [INTERFACES.md](../architecture/INTERFACES.md) - Service 接口定义
+- [PROGRAM_PATHS.md](../architecture/PROGRAM_PATHS.md) - 当前代码流程（重构后需更新）
 
 ---
 
@@ -624,6 +868,7 @@ npm run tauri dev
 
 | MVP | 目标 | 开始日期 | 完成日期 | 状态 |
 |-----|------|----------|----------|------|
+| MVP0 | 架构重构 | - | - | [ ] 未开始 |
 | MVP1 | 纯本地 | - | - | [ ] 未开始 |
 | MVP2 | 上传云端 | - | - | [ ] 未开始 |
 | MVP3 | 夜间处理 | - | - | [ ] 未开始 |
@@ -635,6 +880,17 @@ npm run tauri dev
 ## 测试检查表
 
 每个 MVP 完成后更新：
+
+### MVP0 检查表
+- [ ] Phase 1: Stores 创建完成
+- [ ] Phase 2: Services 创建完成
+- [ ] Phase 3: React Hooks 创建完成
+- [ ] Phase 4: View 组件迁移完成
+- [ ] Phase 5: 旧代码清理完成
+- [ ] StrictMode 无双重注册 (#82)
+- [ ] TypeScript 编译通过
+- [ ] 基本功能验证（拖放→压缩→显示）
+- [ ] PROGRAM_PATHS.md 更新
 
 ### MVP1 检查表
 - [ ] 所有 SC-001~004 通过 (Happy Path)
@@ -706,7 +962,13 @@ npm run tauri dev
 
 ## References
 
+### Product & Testing
 - [REQUIREMENTS.md](../product/REQUIREMENTS.md) - 功能需求
 - [tests/](../tests/) - 测试场景详情
-- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - 技术架构
 - [DEPLOYMENT.md](../operations/DEPLOYMENT.md) - 部署指南
+
+### Architecture (for debugging)
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - 系统设计、四层模型
+- [SCHEMA.md](../architecture/SCHEMA.md) - 数据模型、Zustand stores
+- [INTERFACES.md](../architecture/INTERFACES.md) - IPC/API 接口定义
+- [PROGRAM_PATHS.md](../architecture/PROGRAM_PATHS.md) - 代码流程追踪
