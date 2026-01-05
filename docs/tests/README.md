@@ -6,11 +6,15 @@
 
 | Phase | Scope | Key Scenarios | Dependencies |
 |-------|-------|---------------|--------------|
+| MVP0 | Architecture Refactor | (No new scenarios - reuses MVP1) | None |
 | MVP1 | Local Only | SC-001~023, SC-500~503, SC-700~712 | None |
 | MVP2 | Upload | SC-300~321, SC-400~423, SC-510~512 | Lambda: presign |
 | MVP3 | Batch + Report | SB-200~221, SC-304~307, SC-800~934 | Full backend |
 | MVP3.5 | Cloud Sync | SC-1500~1521 | Lambda: transactions-sync |
 | MVP4 | Full Auth | SC-100~131, SC-200~222, SC-600~603 | Cognito |
+
+> **MVP0 验收**: Service pattern 迁移完成后，运行 MVP1 场景验证功能不变。
+> 特别关注 #82 (StrictMode 双重监听) 是否修复。
 
 See [MVP_PLAN.md](../planning/MVP_PLAN.md) for detailed test checklists.
 

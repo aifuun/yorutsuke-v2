@@ -13,14 +13,16 @@
 
 ## Architecture Context
 
-> These scenarios test the **CURRENT** implementation using React headless hooks.
-> Post-MVP, the architecture will migrate to the Service pattern.
+> **MVP0 Complete**: The capture module has been migrated to the Service pattern.
 >
-> | Current | Target |
-> |---------|--------|
-> | `useCaptureLogic.ts` | `fileService.ts` + `uploadService.ts` |
-> | `useUploadQueue.ts` | `uploadService.ts` |
-> | `useDragDrop.ts` | Service with Tauri listeners at init |
+> | Layer | File | Purpose |
+> |-------|------|---------|
+> | Service | `captureService.ts` | Tauri listeners, orchestration |
+> | Service | `fileService.ts` | Compression, duplicate check |
+> | Service | `uploadService.ts` | Upload queue, retry |
+> | Store | `captureStore.ts` | Processing queue state |
+> | Store | `uploadStore.ts` | Upload queue state |
+> | Hook | `useCaptureState.ts` | React bridge to stores |
 >
 > See [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) for details.
 
