@@ -31,7 +31,7 @@ function AppContent() {
 
         <main className="main-content accounting-grid">
           <div className={`view-panel ${activeView === 'dashboard' ? 'active' : ''}`}>
-            <DashboardView userId={userId} />
+            <DashboardView userId={userId} onViewChange={setActiveView} />
           </div>
 
           <div className={`view-panel ${activeView === 'capture' ? 'active' : ''}`}>

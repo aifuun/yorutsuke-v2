@@ -250,6 +250,11 @@
   color: #3B82F6;
   text-decoration: none;
   transition: color 0.2s;
+  /* Reset button styles */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .activity-link:hover {

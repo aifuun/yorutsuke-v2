@@ -48,9 +48,6 @@ export function CaptureView() {
     }
   }, [effectiveUserId, quota.limit]);
 
-  // Remaining quota calculation
-  const remainingQuota = quota.limit - uploadedCount;
-
   // Show loading while user ID is being resolved
   if (userLoading) {
     return (
@@ -63,9 +60,8 @@ export function CaptureView() {
     );
   }
 
-  // Calculate quota percentage
-  const quotaUsed = quota.limit - remainingQuota;
-  const quotaPercent = quota.limit > 0 ? (quotaUsed / quota.limit) * 100 : 0;
+  // Use quota.used from API/DB (not store queue count)
+  const quotaPercent = quota.limit > 0 ? (quota.used / quota.limit) * 100 : 0;
   const quotaVariant = quotaPercent >= 100 ? 'error' : quotaPercent >= 80 ? 'warning' : 'success';
 
   return (
@@ -164,7 +160,7 @@ export function CaptureView() {
             <div className="stats-bar-item">
               <span className="stats-bar-label">{t('capture.todayQuota')}</span>
               <span className={`stats-bar-value mono quota-text--${quotaVariant}`}>
-                {quotaUsed} / {quota.limit}
+                {quota.used} / {quota.limit}
               </span>
             </div>
             <div className="stats-bar-sep" />

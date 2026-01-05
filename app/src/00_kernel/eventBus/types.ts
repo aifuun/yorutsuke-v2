@@ -193,6 +193,18 @@ export interface AppEvents {
     oldUserId: string;  // guest-{deviceId}
     newUserId: string;  // actual userId
   };
+
+  // =========================================================================
+  // Quota Events
+  // =========================================================================
+
+  /**
+   * @trigger quota:reset
+   * @payload Quota was reset (debug action) - all views should refresh
+   */
+  'quota:reset': {
+    count: number;  // Number of uploads reset
+  };
 }
 
 export type AppEventKey = keyof AppEvents;

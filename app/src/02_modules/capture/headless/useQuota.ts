@@ -109,6 +109,15 @@ export function useQuota(userId: UserId | null) {
     }
   });
 
+  // 2. Refresh after quota reset (debug action)
+  // @listen quota:reset
+  useAppEvent('quota:reset', () => {
+    if (userId && isMountedRef.current) {
+      logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'quota_reset' });
+      refresh();
+    }
+  });
+
   // 2. Periodic refresh every 5 minutes (catch tier changes)
   useEffect(() => {
     if (!userId) return;

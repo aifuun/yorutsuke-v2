@@ -8,6 +8,7 @@ import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import { resetTodayQuota } from '../../capture/adapters/imageDb';
 import { dlog, getLogs, clearLogs, subscribeLogs, type LogEntry } from '../headless/debugLog';
+import { emit } from '../../../00_kernel/eventBus';
 import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
 
@@ -91,6 +92,8 @@ export function DebugView() {
       const count = await resetTodayQuota(effectiveUserId as UserId);
       dlog.info('Debug', 'Quota reset', { count });
       setActionResult(count > 0 ? `Reset ${count} uploads` : 'No uploads today');
+      // Emit event so other views (Capture) can refresh their quota
+      emit('quota:reset', { count });
       refreshQuota();
     } catch (e) {
       dlog.error('Debug', 'Quota reset failed', e);

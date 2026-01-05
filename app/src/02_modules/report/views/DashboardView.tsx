@@ -1,6 +1,7 @@
 // Pillar L: View - Dashboard with premium UI design
 import { useMemo } from 'react';
 import type { UserId } from '../../../00_kernel/types';
+import type { ViewType } from '../../../components/Sidebar';
 import { createDailySummary, createMonthlySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
 import { useQuota } from '../../capture';
@@ -10,9 +11,10 @@ import '../styles/dashboard.css';
 
 interface DashboardViewProps {
   userId: UserId | null;
+  onViewChange: (view: ViewType) => void;
 }
 
-export function DashboardView({ userId }: DashboardViewProps) {
+export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const { t } = useTranslation();
   const today = new Date().toISOString().split('T')[0];
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -174,7 +176,9 @@ export function DashboardView({ userId }: DashboardViewProps) {
               </div>
             )}
             <div className="activity-footer">
-              <a href="#" className="activity-link">{t('dashboard.viewAllInLedger')} →</a>
+              <button type="button" className="activity-link" onClick={() => onViewChange('ledger')}>
+                {t('dashboard.viewAllInLedger')} →
+              </button>
             </div>
           </div>
         </div>
