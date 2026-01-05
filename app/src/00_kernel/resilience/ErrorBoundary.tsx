@@ -1,6 +1,6 @@
 // React Error Boundary - catches render errors in child components
 import { Component, ReactNode } from 'react';
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -45,7 +45,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    logger.error('[ErrorBoundary] Caught error', {
+    logger.error(EVENTS.APP_ERROR, {
+      context: 'ErrorBoundary',
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,

@@ -1,7 +1,7 @@
 :root {
   /* Typography - ui_design spec */
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-mono: 'Roboto Mono', ui-monospace, monospace;
   --font-size-base: 14px;
 
   /* Accent Colors - Tailwind palette */
@@ -290,8 +290,8 @@ body {
 }
 
 .queue-card:hover {
-  transform: translateX(4px);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #CBD5E1;
 }
 
 /* Monospace Text */
@@ -342,6 +342,11 @@ body {
 .status-badge--warning {
   background: #FEF3C7;
   color: #B45309;
+}
+
+.status-badge--skipped {
+  background: #F1F5F9;
+  color: #64748B;
 }
 
 /* Progress Bar */

@@ -1,6 +1,7 @@
 // Pillar L: Views are pure JSX, logic in Service layer
 // MVP0: Migrated from headless hooks to Service pattern
 import { useEffect } from 'react';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { useCaptureQueue, useCaptureStats } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
 import { useCaptureActions } from '../hooks/useCaptureActions';
@@ -22,6 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; icon: string; variant: stri
   processed: { label: 'capture.status.processed', icon: '✅', variant: 'success' },
   confirmed: { label: 'capture.status.confirmed', icon: '💾', variant: 'success' },
   failed: { label: 'capture.status.failed', icon: '❌', variant: 'error' },
+  skipped: { label: 'capture.status.skipped', icon: '⏭️', variant: 'skipped' },
 };
 
 export function CaptureView() {
@@ -35,7 +37,7 @@ export function CaptureView() {
 
   // New Service-based hooks (MVP0)
   const queue = useCaptureQueue();
-  const { pendingCount, uploadedCount, skippedCount } = useCaptureStats();
+  const { pendingCount, uploadedCount } = useCaptureStats();
   const { isDragging, dragHandlers } = useDragState();
   const { retryImage, retryAllFailed } = useCaptureActions();
 
@@ -107,11 +109,19 @@ export function CaptureView() {
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''}`}
+                      className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''} ${image.status === 'skipped' ? 'queue-item--skipped' : ''}`}
                       onClick={() => image.status === 'failed' && retryImage(image.id)}
                     >
                       <div className="queue-thumbnail">
-                        <span className="queue-thumb-icon">🧾</span>
+                        {image.thumbnailPath ? (
+                          <img
+                            src={convertFileSrc(image.thumbnailPath)}
+                            alt=""
+                            className="queue-thumb-img"
+                          />
+                        ) : (
+                          <span className="queue-thumb-icon">🧾</span>
+                        )}
                       </div>
                       <div className="queue-content">
                         <div className="queue-row">
@@ -145,54 +155,27 @@ export function CaptureView() {
                     {t('capture.retryAll')}
                   </button>
                 )}
-                {queue.some(img => img.status === 'uploaded' || img.status === 'confirmed') && (
-                  <button type="button" className="queue-action queue-action--clear">
-                    {t('capture.clearCompleted')}
-                  </button>
-                )}
               </div>
             </div>
           )}
 
-          {/* Duplicate Detection Banner (shown when duplicates are skipped) */}
-          {skippedCount > 0 && (
-            <div className="info-banner info-banner--info">
-              <span className="banner-icon">ℹ️</span>
-              <div className="banner-content">
-                <p className="banner-title">{t('capture.duplicateDetected')}</p>
-                <p className="banner-text">
-                  {t('capture.duplicateSkipped', { date: new Date().toISOString().split('T')[0] })}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Combined Stats Card - Bottom */}
-          <div className="premium-card stats-summary-card">
-            <div className="stats-summary-header">
-              <span className="section-header">{t('capture.todayQuota')}</span>
-              <span className={`quota-badge quota-badge--${quotaVariant}`}>
+          {/* Stats Row - Three columns inline */}
+          <div className="premium-card stats-bar">
+            <div className="stats-bar-item">
+              <span className="stats-bar-label">{t('capture.todayQuota')}</span>
+              <span className={`stats-bar-value mono quota-text--${quotaVariant}`}>
                 {quotaUsed} / {quota.limit}
               </span>
             </div>
-            <div className="progress-bar">
-              <div
-                className={`progress-bar__fill progress-bar__fill--${quotaVariant}`}
-                style={{ width: `${Math.min(quotaPercent, 100)}%` }}
-              />
+            <div className="stats-bar-sep" />
+            <div className="stats-bar-item">
+              <span className="stats-bar-label">⏳ {t('capture.pending')}</span>
+              <span className="stats-bar-value mono">{pendingCount}</span>
             </div>
-            <div className="stats-summary-row">
-              <div className="stats-summary-item">
-                <span className="stats-summary-icon">⏳</span>
-                <span className="stats-summary-label">{t('capture.pending')}</span>
-                <span className="stats-summary-value mono">{pendingCount}</span>
-              </div>
-              <div className="stats-summary-divider" />
-              <div className="stats-summary-item">
-                <span className="stats-summary-icon">✅</span>
-                <span className="stats-summary-label">{t('capture.uploaded')}</span>
-                <span className="stats-summary-value mono">{uploadedCount}</span>
-              </div>
+            <div className="stats-bar-sep" />
+            <div className="stats-bar-item">
+              <span className="stats-bar-label">✅ {t('capture.uploaded')}</span>
+              <span className="stats-bar-value mono">{uploadedCount}</span>
             </div>
           </div>
         </div>

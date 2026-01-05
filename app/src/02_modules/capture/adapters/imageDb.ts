@@ -4,7 +4,7 @@
 
 import { select, execute, type ImageRow } from '../../../00_kernel/storage';
 import { ImageId, type ImageId as ImageIdType, type TraceId, type IntentId, type UserId } from '../../../00_kernel/types';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 
 /**
  * Find image by MD5 hash
@@ -16,7 +16,7 @@ export async function findImageByMd5(
   md5: string,
   traceId: TraceId,
 ): Promise<ImageIdType | null> {
-  logger.debug('[ImageDb] Finding image by MD5', { md5, traceId });
+  logger.debug(EVENTS.QUOTA_CHECKED, { md5, traceId, phase: 'md5_lookup' });
 
   const rows = await select<Array<{ id: string }>>(
     'SELECT id FROM images WHERE md5 = ? LIMIT 1',
@@ -24,11 +24,11 @@ export async function findImageByMd5(
   );
 
   if (rows.length > 0) {
-    logger.info('[ImageDb] Duplicate found', { md5, existingId: rows[0].id, traceId });
+    logger.info(EVENTS.IMAGE_DUPLICATE, { md5, existingId: rows[0].id, traceId });
     return ImageId(rows[0].id);
   }
 
-  logger.debug('[ImageDb] No duplicate found', { md5, traceId });
+  logger.debug(EVENTS.QUOTA_CHECKED, { md5, traceId, phase: 'no_duplicate' });
   return null;
 }
 
@@ -54,7 +54,7 @@ export async function saveImage(
     s3Key: string | null;
   },
 ): Promise<void> {
-  logger.debug('[ImageDb] Saving image', { id, userId, traceId, intentId, status: data.status });
+  logger.debug(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, intentId, status: data.status, phase: 'start' });
 
   await execute(
     `INSERT INTO images (
@@ -78,7 +78,7 @@ export async function saveImage(
     ],
   );
 
-  logger.info('[ImageDb] Image saved', { id, userId, traceId, intentId });
+  logger.info(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, intentId });
 }
 
 /**
@@ -90,7 +90,7 @@ export async function updateImageStatus(
   traceId: TraceId,
   extraFields?: Record<string, unknown>,
 ): Promise<void> {
-  logger.debug('[ImageDb] Updating image status', { id, status, traceId });
+  logger.debug(EVENTS.STATE_TRANSITION, { entity: 'Image', entityId: id, to: status, traceId });
 
   let sql = 'UPDATE images SET status = ?';
   const params: unknown[] = [status];
@@ -106,7 +106,7 @@ export async function updateImageStatus(
   params.push(String(id));
 
   await execute(sql, params);
-  logger.info('[ImageDb] Image status updated', { id, status, traceId });
+  logger.info(EVENTS.STATE_TRANSITION, { entity: 'Image', entityId: id, to: status, traceId, phase: 'complete' });
 }
 
 /**
@@ -131,7 +131,7 @@ export async function getImageById(id: ImageIdType): Promise<ImageRow | null> {
  * - 'uploading': Upload was interrupted, reset to 'compressed' and re-upload
  */
 export async function loadUnfinishedImages(userId: UserId): Promise<ImageRow[]> {
-  logger.info('[ImageDb] Loading unfinished images for queue restoration', { userId });
+  logger.debug(EVENTS.QUEUE_RESTORED, { userId, phase: 'load_start' });
 
   const rows = await select<ImageRow[]>(
     `SELECT * FROM images
@@ -141,7 +141,7 @@ export async function loadUnfinishedImages(userId: UserId): Promise<ImageRow[]> 
     [String(userId)],
   );
 
-  logger.info('[ImageDb] Found unfinished images', { userId, count: rows.length });
+  logger.info(EVENTS.QUEUE_RESTORED, { userId, count: rows.length, phase: 'load_complete' });
   return rows;
 }
 
@@ -151,14 +151,14 @@ export async function loadUnfinishedImages(userId: UserId): Promise<ImageRow[]> 
  * Filtered by user_id for multi-user isolation (#48)
  */
 export async function resetInterruptedUploads(userId: UserId, traceId: TraceId): Promise<void> {
-  logger.info('[ImageDb] Resetting interrupted uploads', { userId, traceId });
+  logger.debug(EVENTS.QUEUE_RESTORED, { userId, traceId, phase: 'reset_interrupted' });
 
   await execute(
     `UPDATE images SET status = 'compressed' WHERE user_id = ? AND status = 'uploading'`,
     [String(userId)],
   );
 
-  logger.info('[ImageDb] Reset interrupted uploads complete', { userId, traceId });
+  logger.info(EVENTS.QUEUE_RESTORED, { userId, traceId, phase: 'reset_complete' });
 }
 
 /**
@@ -175,7 +175,7 @@ export async function countTodayUploads(userId: UserId): Promise<number> {
   );
 
   const count = rows[0]?.count ?? 0;
-  logger.debug('[ImageDb] Today uploads count', { userId, count });
+  logger.debug(EVENTS.QUOTA_CHECKED, { userId, count, phase: 'today_count' });
   return count;
 }
 
@@ -191,7 +191,7 @@ export async function updateImagesUserId(
   oldUserId: UserId,
   newUserId: UserId,
 ): Promise<number> {
-  logger.info('[ImageDb] Migrating images to new user', { oldUserId, newUserId });
+  logger.info(EVENTS.DATA_MIGRATED, { entity: 'images', oldUserId, newUserId, phase: 'start' });
 
   // Get count before update
   const countRows = await select<Array<{ count: number }>>(
@@ -201,7 +201,7 @@ export async function updateImagesUserId(
   const count = countRows[0]?.count ?? 0;
 
   if (count === 0) {
-    logger.info('[ImageDb] No images to migrate', { oldUserId });
+    logger.info(EVENTS.DATA_MIGRATED, { entity: 'images', oldUserId, count: 0, phase: 'skip' });
     return 0;
   }
 
@@ -211,6 +211,6 @@ export async function updateImagesUserId(
     [String(newUserId), String(oldUserId)],
   );
 
-  logger.info('[ImageDb] Images migrated successfully', { oldUserId, newUserId, count });
+  logger.info(EVENTS.DATA_MIGRATED, { entity: 'images', oldUserId, newUserId, count, phase: 'complete' });
   return count;
 }

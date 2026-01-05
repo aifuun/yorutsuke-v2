@@ -7,7 +7,7 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/types';
 import { emit } from '../../../00_kernel/eventBus';
 import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/network';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { canUpload } from '../../../01_domains/receipt';
 import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
 import { countTodayUploads } from '../adapters/imageDb';
@@ -28,21 +28,21 @@ class UploadService {
    */
   init(): void {
     if (this.initialized) {
-      logger.warn('[UploadService] Already initialized');
+      logger.warn(EVENTS.SERVICE_INITIALIZED, { service: 'UploadService', status: 'already_initialized' });
       return;
     }
     this.initialized = true;
 
-    logger.info('[UploadService] Initializing');
+    logger.debug(EVENTS.SERVICE_INITIALIZED, { service: 'UploadService', phase: 'start' });
 
     // Setup network status listeners
     this.cleanupNetwork = setupNetworkListeners((state, prevState) => {
       if (state === 'online' && prevState === 'offline') {
-        logger.info('[UploadService] Back online - resuming');
+        logger.info(EVENTS.UPLOAD_QUEUE_RESUMED, { reason: 'network_restored' });
         uploadStore.getState().resume();
         this.processQueue();
       } else if (state === 'offline') {
-        logger.info('[UploadService] Offline - pausing');
+        logger.info(EVENTS.UPLOAD_QUEUE_PAUSED, { reason: 'offline' });
         uploadStore.getState().pause('offline');
       }
     });
@@ -59,7 +59,7 @@ class UploadService {
       }
     });
 
-    logger.info('[UploadService] Initialized');
+    logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'UploadService' });
   }
 
   /**
@@ -74,7 +74,7 @@ class UploadService {
    * Add file to upload queue
    */
   enqueue(id: ImageId, filePath: string, intentId: IntentId, traceId: TraceId): void {
-    logger.debug('[UploadService] Enqueue', { id, intentId, traceId });
+    logger.debug(EVENTS.UPLOAD_ENQUEUED, { imageId: id, intentId, traceId });
     uploadStore.getState().enqueue({ id, intentId, traceId, filePath });
     this.processQueue();
   }
@@ -121,7 +121,7 @@ class UploadService {
     const quotaCheck = canUpload(uploadedToday, this.dailyLimit, this.lastUploadTime);
 
     if (!quotaCheck.allowed) {
-      logger.warn('[UploadService] Quota check failed', { reason: quotaCheck.reason });
+      logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { imageId: id, reason: quotaCheck.reason, used: uploadedToday, limit: this.dailyLimit });
       uploadStore.getState().pause('quota');
       return;
     }
@@ -152,7 +152,7 @@ class UploadService {
       // Emit success event
       emit('upload:complete', { id, traceId, s3Key: key });
 
-      logger.info('[UploadService] Upload success', { id, traceId, s3Key: key });
+      logger.info(EVENTS.UPLOAD_COMPLETED, { imageId: id, traceId, s3Key: key });
     } catch (e) {
       const error = String(e);
       const errorType = classifyError(error);
@@ -173,7 +173,7 @@ class UploadService {
         retryCount,
       });
 
-      logger.warn('[UploadService] Upload failed', { id, traceId, error, errorType, willRetry });
+      logger.warn(EVENTS.UPLOAD_FAILED, { imageId: id, traceId, error, errorType, willRetry, retryCount });
 
       // Schedule retry with exponential backoff
       if (willRetry) {

@@ -3,7 +3,7 @@ import type { UserId as UserIdType } from '../types';
 import { UserId } from '../types';
 import { getDeviceId } from '../identity';
 import { initDb } from '../storage/db';
-import { logger } from '../telemetry';
+import { logger, EVENTS } from '../telemetry';
 
 interface AppContextValue {
   userId: UserIdType | null;
@@ -31,9 +31,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const guestUserId = UserId(`guest-${deviceId}`);
         setUserId(guestUserId);
 
-        logger.info('[App] Initialized with Guest User ID', { userId: guestUserId });
+        logger.info(EVENTS.APP_INITIALIZED, { userId: guestUserId, isGuest: true });
       } catch (error) {
-        logger.error('[App] Failed to initialize', { error: String(error) });
+        logger.error(EVENTS.APP_ERROR, { context: 'init', error: String(error) });
       } finally {
         setIsLoading(false);
       }

@@ -245,7 +245,8 @@
       "processing": "AI Processing",
       "processed": "Processed",
       "confirmed": "Saved",
-      "failed": "Failed"
+      "failed": "Failed",
+      "skipped": "Duplicate"
     }
   }
 }

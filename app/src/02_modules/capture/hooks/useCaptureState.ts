@@ -33,13 +33,13 @@ export function useCaptureStatus() {
  */
 export function useCaptureStats() {
   const queue = useStore(captureStore, (state) => state.queue);
-  const skippedCount = useStore(captureStore, (state) => state.skippedCount);
 
   const pendingCount = queue.filter(img => img.status === 'pending').length;
   const compressingCount = queue.filter(img => img.status === 'compressed').length;
   const uploadingCount = queue.filter(img => img.status === 'uploading').length;
   const uploadedCount = queue.filter(img => img.status === 'uploaded').length;
   const failedCount = queue.filter(img => img.status === 'failed').length;
+  const skippedCount = queue.filter(img => img.status === 'skipped').length;
   const awaitingProcessCount = queue.filter(img =>
     img.status === 'uploaded' && !img.processedAt
   ).length;

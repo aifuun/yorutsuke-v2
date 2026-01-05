@@ -3,7 +3,7 @@
 
 import { getSetting, setSetting } from '../../../00_kernel/storage';
 import { UserId } from '../../../00_kernel/types';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import type { AuthTokens, User, UserTier } from '../types';
 import { AUTH_STORAGE_KEYS } from '../types';
 
@@ -16,7 +16,7 @@ export async function saveTokens(tokens: AuthTokens): Promise<void> {
     setSetting(AUTH_STORAGE_KEYS.refreshToken, tokens.refreshToken),
     setSetting(AUTH_STORAGE_KEYS.idToken, tokens.idToken),
   ]);
-  logger.debug('[TokenStorage] Tokens saved');
+  logger.debug(EVENTS.TOKEN_SAVED, {});
 }
 
 /**
@@ -60,7 +60,7 @@ export async function saveUser(user: User): Promise<void> {
     tier: user.tier,
   });
   await setSetting(AUTH_STORAGE_KEYS.user, userJson);
-  logger.debug('[TokenStorage] User saved', { userId: user.id });
+  logger.debug(EVENTS.USER_SAVED, { userId: user.id });
 }
 
 /**
@@ -80,7 +80,7 @@ export async function loadUser(): Promise<User | null> {
       tier: parsed.tier,
     };
   } catch (e) {
-    logger.warn('[TokenStorage] Failed to parse user JSON', { error: String(e) });
+    logger.warn(EVENTS.API_PARSE_FAILED, { context: 'loadUser', error: String(e) });
     return null;
   }
 }
@@ -95,7 +95,7 @@ export async function clearAuthData(): Promise<void> {
     setSetting(AUTH_STORAGE_KEYS.idToken, null),
     setSetting(AUTH_STORAGE_KEYS.user, null),
   ]);
-  logger.info('[TokenStorage] Auth data cleared');
+  logger.info(EVENTS.AUTH_DATA_CLEARED, {});
 }
 
 /**
@@ -107,7 +107,7 @@ export async function getDeviceId(): Promise<string> {
   if (!deviceId) {
     deviceId = crypto.randomUUID();
     await setSetting(AUTH_STORAGE_KEYS.deviceId, deviceId);
-    logger.info('[TokenStorage] New device ID created', { deviceId });
+    logger.info(EVENTS.DEVICE_ID_GENERATED, { deviceId });
   }
 
   return deviceId;

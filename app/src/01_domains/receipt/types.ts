@@ -9,7 +9,8 @@ export type ImageStatus =
   | 'processing'   // Being processed by Nova Lite
   | 'processed'    // OCR complete, transaction extracted
   | 'confirmed'    // User confirmed transaction
-  | 'failed';      // Processing failed
+  | 'failed'       // Processing failed
+  | 'skipped';     // Duplicate detected, skipped
 
 export interface ReceiptImage {
   id: ImageId;
@@ -30,7 +31,7 @@ export interface ReceiptImage {
 
 // Valid state transitions
 export const IMAGE_TRANSITIONS: Record<ImageStatus, ImageStatus[]> = {
-  pending: ['compressed', 'failed'],
+  pending: ['compressed', 'failed', 'skipped'],
   compressed: ['uploading', 'failed'],
   uploading: ['uploaded', 'failed'],
   uploaded: ['processing', 'failed'],
@@ -38,4 +39,5 @@ export const IMAGE_TRANSITIONS: Record<ImageStatus, ImageStatus[]> = {
   processed: ['confirmed'],
   confirmed: [],
   failed: ['pending'], // Allow retry
+  skipped: [],         // Terminal state (duplicate)
 };

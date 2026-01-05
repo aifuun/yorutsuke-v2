@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { UserId, type UserId as UserIdType } from '../../../00_kernel/types';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { getGuestId } from '../adapters/tokenStorage';
 import { useAuth } from './useAuth';
 
@@ -38,9 +38,9 @@ export function useEffectiveUserId(): {
       try {
         const id = await getGuestId();
         setGuestId(UserId(id));
-        logger.debug('[useEffectiveUserId] Guest ID loaded', { guestId: id });
+        logger.debug(EVENTS.DEVICE_ID_LOADED, { guestId: id });
       } catch (e) {
-        logger.error('[useEffectiveUserId] Failed to load guest ID', { error: String(e) });
+        logger.error(EVENTS.APP_ERROR, { context: 'loadGuestId', error: String(e) });
       } finally {
         setGuestLoading(false);
       }

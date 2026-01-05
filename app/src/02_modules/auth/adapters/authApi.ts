@@ -3,7 +3,7 @@
 // Pillar I: Adapter layer isolates Cognito API from business logic
 
 import { z } from 'zod';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import type {
   RegisterResponse,
   VerifyResponse,
@@ -63,7 +63,7 @@ async function authFetch<T>(
   body: Record<string, unknown>
 ): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   if (!API_BASE) {
-    logger.warn('[AuthApi] API not configured');
+    logger.warn(EVENTS.API_NOT_CONFIGURED, { context: 'authFetch' });
     return { ok: false, error: 'Auth API not configured' };
   }
 
@@ -84,14 +84,14 @@ async function authFetch<T>(
 
     if (!response.ok) {
       const error = data.error || data.message || `Request failed: ${response.status}`;
-      logger.warn('[AuthApi] Request failed', { endpoint, status: response.status, error });
+      logger.warn(EVENTS.API_REQUEST_FAILED, { endpoint, status: response.status, error });
       return { ok: false, error };
     }
 
     return { ok: true, data: data as T };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    logger.error('[AuthApi] Request error', { endpoint, error });
+    logger.error(EVENTS.API_REQUEST_FAILED, { endpoint, error });
     return { ok: false, error };
   }
 }
@@ -103,7 +103,7 @@ export async function register(
   email: string,
   password: string
 ): Promise<RegisterResponse> {
-  logger.info('[AuthApi] Register', { email });
+  logger.info(EVENTS.AUTH_REGISTER_STARTED, { email });
 
   const result = await authFetch<{ message?: string; error?: string }>('/register', {
     email,
@@ -124,7 +124,7 @@ export async function verify(
   email: string,
   code: string
 ): Promise<VerifyResponse> {
-  logger.info('[AuthApi] Verify', { email });
+  logger.info(EVENTS.AUTH_VERIFY_STARTED, { email });
 
   const result = await authFetch<{ message?: string; error?: string }>('/verify', {
     email,
@@ -147,7 +147,7 @@ export async function login(
   password: string,
   deviceId: string
 ): Promise<{ ok: true; data: LoginResponse } | { ok: false; error: string }> {
-  logger.info('[AuthApi] Login', { email, deviceId: deviceId.substring(0, 8) + '...' });
+  logger.info(EVENTS.AUTH_LOGIN_STARTED, { email, deviceId: deviceId.substring(0, 8) + '...' });
 
   const result = await authFetch<unknown>('/login', {
     email,
@@ -162,13 +162,13 @@ export async function login(
   // Pillar B: Validate response with Zod schema
   const parsed = LoginResponseSchema.safeParse(result.data);
   if (!parsed.success) {
-    logger.warn('[AuthApi] Invalid login response', { error: parsed.error.message });
+    logger.warn(EVENTS.API_PARSE_FAILED, { context: 'login', error: parsed.error.message });
     return { ok: false, error: 'Invalid login response' };
   }
 
   // Log device binding info
   if (parsed.data.deviceBound !== undefined) {
-    logger.info('[AuthApi] Device binding', {
+    logger.info(EVENTS.AUTH_LOGIN_SUCCESS, {
       bound: parsed.data.deviceBound,
       claimed: parsed.data.dataClaimed || 0,
     });
@@ -183,7 +183,7 @@ export async function login(
 export async function refreshToken(
   currentRefreshToken: string
 ): Promise<{ ok: true; data: RefreshResponse } | { ok: false; error: string }> {
-  logger.debug('[AuthApi] Refresh token');
+  logger.debug(EVENTS.AUTH_TOKEN_REFRESHED, { phase: 'start' });
 
   const result = await authFetch<unknown>('/refresh', {
     refreshToken: currentRefreshToken,
@@ -196,7 +196,7 @@ export async function refreshToken(
   // Pillar B: Validate response with Zod schema
   const parsed = RefreshResponseSchema.safeParse(result.data);
   if (!parsed.success) {
-    logger.warn('[AuthApi] Invalid refresh response', { error: parsed.error.message });
+    logger.warn(EVENTS.API_PARSE_FAILED, { context: 'refresh', error: parsed.error.message });
     return { ok: false, error: 'Invalid refresh response' };
   }
 

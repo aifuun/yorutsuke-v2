@@ -12,7 +12,6 @@ export interface CaptureState {
   status: CaptureStatus;
   queue: ReceiptImage[];
   currentId: ImageId | null;
-  skippedCount: number;
 }
 
 export interface CaptureActions {
@@ -52,7 +51,6 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
   status: 'idle',
   queue: [],
   currentId: null,
-  skippedCount: 0,
 
   // Queue management
   addImage: (image) => set((state) => ({
@@ -74,7 +72,6 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
     status: 'idle',
     queue: [],
     currentId: null,
-    skippedCount: 0,
   }),
 
   // Processing lifecycle
@@ -84,12 +81,12 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
     currentId: id,
   })),
 
-  processSuccess: (id, _compressedPath, compressedSize, _md5) => set((state) => ({
+  processSuccess: (id, compressedPath, compressedSize, _md5) => set((state) => ({
     status: 'idle',
     currentId: null,
     queue: state.queue.map(img =>
       img.id === id
-        ? { ...img, status: 'compressed' as ImageStatus, compressedSize }
+        ? { ...img, status: 'compressed' as ImageStatus, compressedSize, thumbnailPath: compressedPath }
         : img
     ),
   })),
@@ -97,8 +94,11 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
   duplicateDetected: (id) => set((state) => ({
     status: 'idle',
     currentId: null,
-    queue: state.queue.filter(img => img.id !== id),
-    skippedCount: state.skippedCount + 1,
+    queue: state.queue.map(img =>
+      img.id === id
+        ? { ...img, status: 'skipped' as ImageStatus }
+        : img
+    ),
   })),
 
   // Upload lifecycle

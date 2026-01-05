@@ -3,7 +3,7 @@
 
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { ImageId, createTraceId } from '../../../00_kernel/types';
 import { ALLOWED_EXTENSIONS } from '../types';
 import type { DroppedItem } from '../types';
@@ -54,7 +54,7 @@ function pathsToDroppedItems(paths: string[]): DroppedItem[] {
   return paths.map((path) => {
     const traceId = createTraceId();
     const id = ImageId(crypto.randomUUID());
-    logger.debug('[TauriDragDrop] Creating DroppedItem', { id, traceId, path });
+    logger.debug(EVENTS.IMAGE_DROPPED, { id, traceId, path, phase: 'create_item' });
     return {
       id,
       traceId,
@@ -81,13 +81,13 @@ export async function setupTauriDragListeners(
   listeners: TauriDragListeners,
   allowedExtensions: readonly string[] = ALLOWED_EXTENSIONS
 ): Promise<UnlistenFn> {
-  logger.debug('[TauriDragDrop] Setting up listeners');
+  logger.debug(EVENTS.DRAG_LISTENERS_REGISTERED, { phase: 'setup' });
 
   // Listen to tauri://drag-drop
   const unlistenDrop = await listen<TauriDragDropPayload>(
     'tauri://drag-drop',
     (event) => {
-      logger.debug('[TauriDragDrop] Drop event', { pathCount: event.payload.paths.length });
+      logger.debug(EVENTS.DRAG_DROP, { pathCount: event.payload.paths.length });
 
       const { accepted, rejected } = filterByExtension(
         event.payload.paths,
@@ -95,13 +95,13 @@ export async function setupTauriDragListeners(
       );
 
       if (rejected.length > 0) {
-        logger.info('[TauriDragDrop] Rejected files', { count: rejected.length, rejected });
+        logger.info(EVENTS.IMAGE_REJECTED, { count: rejected.length, rejected });
       }
 
       const items = pathsToDroppedItems(accepted);
 
       if (items.length > 0) {
-        logger.info('[TauriDragDrop] Accepted files', { count: items.length });
+        logger.info(EVENTS.IMAGE_DROPPED, { count: items.length });
         listeners.onDrop(items, rejected);
       } else if (rejected.length > 0) {
         // All files were rejected
@@ -112,24 +112,24 @@ export async function setupTauriDragListeners(
 
   // Listen to tauri://drag-enter
   const unlistenEnter = await listen('tauri://drag-enter', () => {
-    logger.debug('[TauriDragDrop] Drag enter');
+    logger.debug(EVENTS.DRAG_ENTER, {});
     listeners.onDragEnter();
   });
 
   // Listen to tauri://drag-leave
   const unlistenLeave = await listen('tauri://drag-leave', () => {
-    logger.debug('[TauriDragDrop] Drag leave');
+    logger.debug(EVENTS.DRAG_LEAVE, {});
     listeners.onDragLeave();
   });
 
-  logger.debug('[TauriDragDrop] Listeners registered');
+  logger.debug(EVENTS.DRAG_LISTENERS_REGISTERED, {});
 
   // Return combined cleanup function
   return () => {
     unlistenDrop();
     unlistenEnter();
     unlistenLeave();
-    logger.debug('[TauriDragDrop] Listeners removed');
+    logger.debug(EVENTS.DRAG_LISTENERS_REMOVED, {});
   };
 }
 

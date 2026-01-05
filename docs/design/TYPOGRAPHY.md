@@ -11,10 +11,7 @@
 | Token | Value | CSS Variable |
 |-------|-------|--------------|
 | UI Font | `'Inter', -apple-system, BlinkMacSystemFont, sans-serif` | `var(--font-ui)` |
-| Mono Font | `'IBM Plex Mono', ui-monospace, monospace` | `var(--font-mono)` |
-
-> **Why IBM Plex Mono?** More traditional, professional appearance suited for accounting software.
-> IBM's design heritage conveys reliability and precision for financial data.
+| Mono Font | `'JetBrains Mono', ui-monospace, monospace` | `var(--font-mono)` |
 
 ### Base Settings
 
@@ -246,7 +243,7 @@ The brand name is the ONLY element that uses italic.
 
 ```css
 .debug-panel {
-  font-family: var(--font-mono);  /* IBM Plex Mono */
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 

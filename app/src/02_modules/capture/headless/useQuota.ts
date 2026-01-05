@@ -5,7 +5,7 @@ import { useReducer, useCallback, useEffect, useRef } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import { fetchQuota, type QuotaResponse, type UserTier, type GuestExpirationInfo } from '../adapters/quotaApi';
 import { useAppEvent } from '../../../00_kernel/eventBus';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 
 // Default values for offline/guest mode
 const DEFAULTS = {
@@ -104,7 +104,7 @@ export function useQuota(userId: UserId | null) {
   // @listen upload:complete
   useAppEvent('upload:complete', () => {
     if (userId && isMountedRef.current) {
-      logger.debug('[Quota] Refreshing after upload complete');
+      logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'upload_complete' });
       refresh();
     }
   });
@@ -115,7 +115,7 @@ export function useQuota(userId: UserId | null) {
 
     const interval = setInterval(() => {
       if (isMountedRef.current) {
-        logger.debug('[Quota] Periodic refresh');
+        logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'periodic' });
         refresh();
       }
     }, PERIODIC_REFRESH_MS);
@@ -129,7 +129,7 @@ export function useQuota(userId: UserId | null) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isMountedRef.current) {
-        logger.debug('[Quota] Refreshing on visibility change');
+        logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'visibility_change' });
         refresh();
       }
     };

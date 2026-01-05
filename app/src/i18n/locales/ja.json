@@ -245,7 +245,8 @@
       "processing": "AI処理中",
       "processed": "処理完了",
       "confirmed": "保存済",
-      "failed": "失敗"
+      "failed": "失敗",
+      "skipped": "重複"
     }
   }
 }

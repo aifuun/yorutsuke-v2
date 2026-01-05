@@ -5,7 +5,7 @@
 
 import { useReducer, useCallback, useEffect } from 'react';
 import { UserId } from '../../../00_kernel/types';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { emit } from '../../../00_kernel/eventBus';
 import type { AuthState, AuthStatus, User } from '../types';
 import * as authApi from '../adapters/authApi';
@@ -115,13 +115,13 @@ export function useAuth(): UseAuthResult {
       ]);
 
       if (tokens && user) {
-        logger.info('[useAuth] Restored session', { userId: user.id });
+        logger.info(EVENTS.AUTH_SESSION_RESTORED, { userId: user.id });
         dispatch({ type: 'LOADED', user });
       } else {
         dispatch({ type: 'LOGGED_OUT' });
       }
     } catch (e) {
-      logger.error('[useAuth] Failed to load stored auth', { error: String(e) });
+      logger.error(EVENTS.AUTH_LOAD_FAILED, { error: String(e) });
       dispatch({ type: 'LOGGED_OUT' });
     }
   };
@@ -194,7 +194,7 @@ export function useAuth(): UseAuthResult {
       await tokenStorage.saveUser(user);
 
       dispatch({ type: 'LOADED', user });
-      logger.info('[useAuth] Login success', { userId: user.id });
+      logger.info(EVENTS.AUTH_LOGIN_SUCCESS, { userId: user.id });
 
       // Handle guest data claim (#50)
       // When a guest registers and logs in, backend claims their device data
@@ -202,7 +202,7 @@ export function useAuth(): UseAuthResult {
         const oldUserId = UserId(`guest-${deviceId}`);
         const newUserId = user.id;
 
-        logger.info('[useAuth] Guest data claimed', {
+        logger.info(EVENTS.AUTH_GUEST_DATA_CLAIMED, {
           count: data.dataClaimed,
           oldUserId,
           newUserId,
@@ -228,7 +228,7 @@ export function useAuth(): UseAuthResult {
   const logout = useCallback(async () => {
     await tokenStorage.clearAuthData();
     dispatch({ type: 'LOGGED_OUT' });
-    logger.info('[useAuth] Logged out');
+    logger.info(EVENTS.AUTH_LOGOUT, {});
   }, []);
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
@@ -254,7 +254,7 @@ export function useAuth(): UseAuthResult {
       idToken: data.idToken,
     });
 
-    logger.debug('[useAuth] Token refreshed');
+    logger.debug(EVENTS.AUTH_TOKEN_REFRESHED, {});
     return true;
   }, [logout]);
 

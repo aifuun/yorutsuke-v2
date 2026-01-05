@@ -6,7 +6,7 @@ import type { ImageId, UserId } from '../../../00_kernel/types';
 import { createIntentId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
-import { logger } from '../../../00_kernel/telemetry';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { setupTauriDragListeners } from '../adapters/tauriDragDrop';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
@@ -30,12 +30,12 @@ class CaptureService {
    */
   async init(): Promise<void> {
     if (this.initialized) {
-      logger.warn('[CaptureService] Already initialized');
+      logger.warn(EVENTS.SERVICE_INITIALIZED, { service: 'CaptureService', status: 'already_initialized' });
       return;
     }
     this.initialized = true;
 
-    logger.info('[CaptureService] Initializing');
+    logger.debug(EVENTS.SERVICE_INITIALIZED, { service: 'CaptureService', phase: 'start' });
 
     // Initialize upload service
     uploadService.init();
@@ -58,7 +58,7 @@ class CaptureService {
 
     // Subscribe to auth:dataClaimed event to clear queue
     this.cleanupAuthSubscription = on('auth:dataClaimed', (payload) => {
-      logger.info('[CaptureService] Guest data claimed, clearing queue', {
+      logger.info(EVENTS.AUTH_GUEST_DATA_CLAIMED, {
         count: payload.count,
         oldUserId: payload.oldUserId,
         newUserId: payload.newUserId,
@@ -81,7 +81,7 @@ class CaptureService {
       this.enqueueCompressedImages(state.queue);
     });
 
-    logger.info('[CaptureService] Initialized');
+    logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'CaptureService' });
   }
 
   /**
@@ -104,17 +104,17 @@ class CaptureService {
 
     // Notify about rejected files (log only, no event since it's UI concern)
     if (rejectedPaths.length > 0) {
-      logger.info('[CaptureService] Rejected files', { count: rejectedPaths.length, paths: rejectedPaths });
+      logger.info(EVENTS.IMAGE_REJECTED, { count: rejectedPaths.length, paths: rejectedPaths });
     }
 
     if (items.length === 0) return;
 
-    logger.info('[CaptureService] Files dropped', { count: items.length });
+    logger.info(EVENTS.IMAGE_DROPPED, { count: items.length });
 
     // Add each item to queue
     for (const item of items) {
       if (!this.userId) {
-        logger.warn('[CaptureService] No user ID, cannot process', { id: item.id });
+        logger.warn(EVENTS.IMAGE_PROCESSING_SKIPPED, { imageId: item.id, reason: 'no_user_id' });
         continue;
       }
 
@@ -149,7 +149,7 @@ class CaptureService {
         localPath: item.localPath,
       });
 
-      logger.debug('[CaptureService] Image added to queue', { id: item.id, traceId: item.traceId });
+      logger.debug(EVENTS.IMAGE_DROPPED, { imageId: item.id, traceId: item.traceId, source: 'queue_added' });
     }
 
     // Trigger processing
@@ -175,8 +175,8 @@ class CaptureService {
     // Process first pending image
     const image = pendingImages[0];
 
-    logger.info('[CaptureService] Auto-processing pending image', {
-      id: image.id,
+    logger.debug(EVENTS.QUEUE_AUTO_PROCESS, {
+      imageId: image.id,
       traceId: image.traceId,
     });
 
@@ -202,8 +202,8 @@ class CaptureService {
 
       const compressedPath = image.thumbnailPath || image.localPath;
 
-      logger.info('[CaptureService] Auto-enqueueing for upload', {
-        id: image.id,
+      logger.debug(EVENTS.QUEUE_AUTO_UPLOAD, {
+        imageId: image.id,
         traceId: image.traceId,
         intentId: image.intentId,
       });
