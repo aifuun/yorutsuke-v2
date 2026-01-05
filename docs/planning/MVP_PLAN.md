@@ -222,7 +222,7 @@ function CaptureView() {
 
 #### Phase 5: 清理
 
-- [ ] 删除 `headless/` 目录 (保留 useQuota.ts)
+- [x] 删除 `headless/` 目录 (保留 useQuota.ts)
 - [x] 更新 barrel exports (`index.ts`)
 - [x] 运行 TypeScript 检查
 - [ ] 关闭 #82
@@ -886,11 +886,13 @@ npm run tauri dev
 - [x] Phase 2: Services 创建完成
 - [x] Phase 3: React Hooks 创建完成
 - [x] Phase 4: View 组件迁移完成
-- [x] Phase 5: 旧代码清理完成 (保留 useQuota.ts)
+- [x] Phase 5: 旧代码清理完成 (删除 useCaptureLogic, useDragDrop, useUploadQueue)
 - [ ] StrictMode 无双重注册 (#82) - 需手动测试
-- [x] TypeScript 编译通过
+- [x] TypeScript 编译通过 (Vite 环境)
 - [ ] 基本功能验证（拖放→压缩→显示）- 需手动测试
 - [x] PROGRAM_PATHS.md 更新
+- [x] SCHEMA.md 更新 (CaptureStore 定义)
+- [x] INTERFACES.md 更新 (EventBus 事件)
 
 ### MVP1 检查表
 - [ ] 所有 SC-001~004 通过 (Happy Path)

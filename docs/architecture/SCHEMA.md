@@ -417,27 +417,25 @@ Processing queue state for capture module.
 ```typescript
 // createStore from 'zustand/vanilla'
 interface CaptureStore {
-  // FSM status for processing pipeline
-  status: 'idle' | 'processing' | 'error';
+  // FSM status for queue processing
+  // - 'idle': Ready for next image
+  // - 'processing': Compressing an image
+  // - 'uploading': Uploading an image (coordinates with uploadStore)
+  status: 'idle' | 'processing' | 'uploading';
 
-  // Queue of images being processed (drop → compress)
-  queue: QueuedImage[];
+  // Queue of images (uses domain ReceiptImage type)
+  queue: ReceiptImage[];
 
   // Currently processing image
   currentId: ImageId | null;
 
-  // NOTE: No error message here!
-  // Error notifications go through EventBus
-}
+  // Count of skipped duplicates (for UI feedback)
+  skippedCount: number;
 
-interface QueuedImage {
-  id: ImageId;
-  traceId: TraceId;
-  intentId: IntentId;
-  localPath: string;
-  originalPath: string;  // Source file path
-  status: 'pending' | 'compressing' | 'compressed' | 'failed';
-  // When 'compressed', image moves to uploadStore
+  // NOTE: No error message field!
+  // Per ARCHITECTURE.md anti-pattern rules:
+  // - Errors stored per-image in ReceiptImage.error field
+  // - One-time notifications via EventBus
 }
 ```
 

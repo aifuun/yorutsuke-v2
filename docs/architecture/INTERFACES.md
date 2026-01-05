@@ -207,21 +207,24 @@ type AppEvents = {
   'toast:success': { message: string };
   'toast:error': { message: string };
 
+  // Image lifecycle (from eventBus/types.ts)
+  'image:pending': { id: ImageId; traceId: TraceId; name: string; source: 'drop' | 'paste' | 'select' };
+  'image:compressing': { id: ImageId; traceId: TraceId };
+  'image:compressed': { id: ImageId; traceId: TraceId; compressedPath: string; md5: string };
+  'image:duplicate': { id: ImageId; traceId: TraceId; duplicateWith: string; reason: 'queue' | 'database' };
+  'image:failed': { id: ImageId; traceId: TraceId; error: string; stage: 'compress' | 'save' | 'upload' };
+  'image:deleted': { id: ImageId; traceId: TraceId; mode: 'local' | 'cloud' | 'permanent' | 'wipe' };
+
   // Upload lifecycle
-  'upload:started': { id: ImageId; traceId: TraceId };
-  'upload:complete': { id: ImageId; s3Key: string };
-  'upload:failed': { id: ImageId; error: string };
-
-  // File processing
-  'file:duplicate': { id: ImageId; existingId: ImageId };
-  'file:compressed': { id: ImageId; size: number };
-
-  // Quota
-  'quota:exceeded': { used: number; limit: number };
-  'quota:warning': { remaining: number };
+  'upload:complete': { id: ImageId; traceId: TraceId; s3Key: string };
+  'upload:failed': { id: ImageId; traceId: TraceId; error: string; errorType: 'network' | 'quota' | 'server' | 'unknown' };
+  'upload:batch-complete': { count: number; successCount: number; failCount: number };
 
   // Network
   'network:changed': { online: boolean };
+
+  // Auth
+  'auth:dataClaimed': { count: number; oldUserId: string; newUserId: string };
 };
 
 // Usage in Service

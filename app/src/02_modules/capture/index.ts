@@ -47,9 +47,3 @@ export { ALLOWED_EXTENSIONS } from './types';
 
 // Adapters (for cross-module access)
 export { updateImagesUserId } from './adapters/imageDb';
-
-// Legacy exports (deprecated, use new hooks instead)
-// @deprecated Use useCaptureStats and useCaptureQueue instead
-export { useCaptureLogic } from './headless';
-// @deprecated Use useDragState instead
-export { useDragDrop } from './headless';
