@@ -1,11 +1,14 @@
 // Pillar L: View - Debug tools for development
-// Follows same patterns as SettingsView for consistency
+// Merged into 3 sections: System & Config, Logs, Dev Actions
 import { useState, useSyncExternalStore } from 'react';
 import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
+import { useQuota } from '../../capture/headless/useQuota';
 import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
+import { resetTodayQuota } from '../../capture/adapters/imageDb';
 import { dlog, getLogs, clearLogs, subscribeLogs, type LogEntry } from '../headless/debugLog';
+import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
 
 // App version from package.json
@@ -21,26 +24,19 @@ export function DebugView() {
   const { user } = useAuth();
   const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
   const { state, update } = useSettings();
+  const { quota, refresh: refreshQuota } = useQuota(effectiveUserId);
   const logs = useLogs();
 
   // Seed data state
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
-  const [seedStatus, setSeedStatus] = useState<'idle' | 'seeding' | 'done'>('idle');
-  const [seedResult, setSeedResult] = useState<string | null>(null);
-
-  // Debug: log state
-  console.log('[DebugView] render', {
-    settingsStatus: state.status,
-    userIdLoading,
-    effectiveUserId,
-    user: user?.id
-  });
+  const [actionStatus, setActionStatus] = useState<'idle' | 'running'>('idle');
+  const [actionResult, setActionResult] = useState<string | null>(null);
 
   // Handle loading state
   if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
     return (
       <div className="debug">
-        <DebugHeader title={t('debug.title')} />
+        <DebugHeader title={t('debug.title')} version={APP_VERSION} />
         <div className="debug-content">
           <div className="debug-loading">{t('common.loading')}</div>
         </div>
@@ -61,35 +57,54 @@ export function DebugView() {
 
   const currentSettings = state.settings;
 
-  const handleSeedData = async (force: boolean) => {
-    const TAG = 'DebugUI';
-    console.log('[DebugView] handleSeedData called', { effectiveUserId, seedScenario, force });
-    dlog.info(TAG, 'Seed button clicked', { userId: effectiveUserId, scenario: seedScenario });
-
+  const handleSeedData = async () => {
     if (!effectiveUserId) {
-      dlog.error(TAG, 'No user ID available');
-      setSeedResult('No user ID available');
+      setActionResult('No user ID');
       return;
     }
 
-    setSeedStatus('seeding');
-    setSeedResult(null);
+    setActionStatus('running');
+    setActionResult(null);
 
     try {
-      const result = await seedMockTransactions(effectiveUserId, seedScenario, force);
-      dlog.info(TAG, 'Seed result', result);
-
-      if (result.seeded) {
-        setSeedResult(t('debug.seedSuccess', { count: result.count }));
-      } else {
-        setSeedResult(t('debug.seedSkipped'));
-      }
+      const result = await seedMockTransactions(effectiveUserId, seedScenario, true);
+      dlog.info('Debug', 'Seed completed', result);
+      setActionResult(result.seeded ? `Seeded ${result.count} items` : 'Skipped');
     } catch (e) {
-      dlog.error(TAG, 'Seed failed', e);
-      setSeedResult(t('debug.seedError'));
+      dlog.error('Debug', 'Seed failed', e);
+      setActionResult('Error');
     }
 
-    setSeedStatus('done');
+    setActionStatus('idle');
+  };
+
+  const handleResetQuota = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+
+    setActionStatus('running');
+    setActionResult(null);
+
+    try {
+      const count = await resetTodayQuota(effectiveUserId as UserId);
+      dlog.info('Debug', 'Quota reset', { count });
+      setActionResult(count > 0 ? `Reset ${count} uploads` : 'No uploads today');
+      refreshQuota();
+    } catch (e) {
+      dlog.error('Debug', 'Quota reset failed', e);
+      setActionResult('Error');
+    }
+
+    setActionStatus('idle');
+  };
+
+  const handleClearStorage = () => {
+    if (confirm(t('debug.clearCacheConfirm'))) {
+      localStorage.clear();
+      window.location.reload();
+    }
   };
 
   return (
@@ -98,48 +113,58 @@ export function DebugView() {
 
       <div className="debug-content">
         <div className="debug-container">
-          {/* System Info */}
+          {/* Section 1: System & Config */}
           <div className="premium-card debug-card">
             <h2 className="section-header">{t('debug.systemInfo')}</h2>
-            <div className="debug-info-panel">
-              <div className="debug-info-row">
-                <span className="debug-info-label">User ID</span>
-                <span className="debug-info-value">{user?.id || 'guest'}</span>
+
+            <div className="debug-grid">
+              <div className="debug-grid-item">
+                <span className="debug-label">User</span>
+                <span className="debug-value mono">{user?.id || 'guest'}</span>
               </div>
-              <div className="debug-info-row">
-                <span className="debug-info-label">Email</span>
-                <span className="debug-info-value">{user?.email || 'N/A'}</span>
+              <div className="debug-grid-item">
+                <span className="debug-label">Tier</span>
+                <span className="debug-value">{user?.tier || 'free'}</span>
               </div>
-              <div className="debug-info-row">
-                <span className="debug-info-label">Tier</span>
-                <span className="debug-info-value">{user?.tier || 'free'}</span>
+              <div className="debug-grid-item">
+                <span className="debug-label">Quota</span>
+                <span className="debug-value mono">{quota.used} / {quota.limit}</span>
               </div>
-              <div className="debug-info-row">
-                <span className="debug-info-label">Theme</span>
-                <span className="debug-info-value">{currentSettings.theme}</span>
+              <div className="debug-grid-item">
+                <span className="debug-label">Theme</span>
+                <span className="debug-value">{currentSettings.theme}</span>
               </div>
-              <div className="debug-info-row">
-                <span className="debug-info-label">Language</span>
-                <span className="debug-info-value">{currentSettings.language}</span>
+              <div className="debug-grid-item">
+                <span className="debug-label">Lang</span>
+                <span className="debug-value">{currentSettings.language}</span>
               </div>
-              <div className="debug-info-row">
-                <span className="debug-info-label">DB Version</span>
-                <span className="debug-info-value">3</span>
+              <div className="debug-grid-item">
+                <span className="debug-label">DB</span>
+                <span className="debug-value mono">v3</span>
               </div>
-              <div className="debug-info-row">
-                <span className="debug-info-label">App Version</span>
-                <span className="debug-info-value">{APP_VERSION}</span>
+            </div>
+
+            <div className="debug-toggle-row">
+              <div className="debug-toggle-info">
+                <span className="debug-toggle-label">{t('debug.verboseLogging')}</span>
               </div>
+              <button
+                type="button"
+                className={`toggle-switch ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
+                onClick={() => update('debugEnabled', !currentSettings.debugEnabled)}
+                role="switch"
+                aria-checked={currentSettings.debugEnabled}
+              />
             </div>
           </div>
 
-          {/* Debug Logs */}
+          {/* Section 2: Logs */}
           <div className="premium-card debug-card">
             <div className="debug-logs-header">
               <h2 className="section-header">Logs</h2>
               <button
                 type="button"
-                className="btn-action btn-action--ghost"
+                className="btn-action btn-action--ghost btn-action--sm"
                 onClick={clearLogs}
                 disabled={logs.length === 0}
               >
@@ -168,91 +193,73 @@ export function DebugView() {
             </div>
           </div>
 
-          {/* Mock Data */}
+          {/* Section 3: Dev Actions */}
           <div className="premium-card debug-card">
-            <h2 className="section-header">{t('debug.mockData')}</h2>
-            <p className="debug-hint">{t('debug.mockDataHint')}</p>
+            <h2 className="section-header">{t('debug.devActions')}</h2>
 
-            <div className="seed-section">
-              <div className="seed-row">
-                <label className="seed-label">{t('debug.scenario')}</label>
+            {/* Seed Data */}
+            <div className="debug-action-row">
+              <div className="debug-action-info">
+                <span className="debug-action-label">{t('debug.mockData')}</span>
                 <select
-                  className="seed-select"
+                  className="debug-select"
                   value={seedScenario}
                   onChange={(e) => setSeedScenario(e.target.value as SeedScenario)}
-                  disabled={seedStatus === 'seeding'}
+                  disabled={actionStatus === 'running'}
                 >
                   {getSeedScenarios().map((scenario) => (
-                    <option key={scenario} value={scenario}>
-                      {scenario}
-                    </option>
+                    <option key={scenario} value={scenario}>{scenario}</option>
                   ))}
                 </select>
               </div>
-
-              <div className="seed-actions">
-                <button
-                  type="button"
-                  className="btn-action btn-action--primary"
-                  onClick={() => handleSeedData(true)}
-                  disabled={seedStatus === 'seeding' || !effectiveUserId}
-                >
-                  {seedStatus === 'seeding' ? t('common.loading') : t('debug.seed')}
-                </button>
-              </div>
-
-              {seedResult && (
-                <div className="seed-result">
-                  <span className="seed-result-text">{seedResult}</span>
-                </div>
-              )}
+              <button
+                type="button"
+                className="btn-action btn-action--primary btn-action--sm"
+                onClick={handleSeedData}
+                disabled={actionStatus === 'running' || !effectiveUserId}
+              >
+                Seed
+              </button>
             </div>
-          </div>
 
-          {/* Feature Flags */}
-          <div className="premium-card debug-card">
-            <h2 className="section-header">{t('debug.featureFlags')}</h2>
+            <div className="debug-divider" />
 
-            <div className="debug-setting-row">
-              <div className="debug-setting-info">
-                <p className="debug-setting-label">{t('debug.verboseLogging')}</p>
-                <p className="debug-setting-hint">{t('debug.verboseLoggingHint')}</p>
+            {/* Danger Actions */}
+            <div className="debug-action-row debug-action-row--danger">
+              <div className="debug-action-info">
+                <span className="debug-action-label">⚠️ {t('debug.resetQuota')}</span>
+                <span className="debug-action-hint">{t('debug.resetQuotaHint')}</span>
               </div>
               <button
                 type="button"
-                className={`toggle-switch ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
-                onClick={() => update('debugEnabled', !currentSettings.debugEnabled)}
-                role="switch"
-                aria-checked={currentSettings.debugEnabled}
-              />
+                className="btn-action btn-action--warning btn-action--sm"
+                onClick={handleResetQuota}
+                disabled={actionStatus === 'running' || !effectiveUserId}
+              >
+                Reset
+              </button>
             </div>
-          </div>
 
-          {/* Danger Zone */}
-          <div className="premium-card debug-card debug-card--danger">
-            <h2 className="section-header">{t('debug.dangerZone')}</h2>
-            <p className="debug-hint">{t('debug.dangerZoneHint')}</p>
-
-            <div className="danger-section">
-              <div className="danger-row">
-                <div className="danger-info">
-                  <p className="danger-label">{t('debug.clearLocalStorage')}</p>
-                  <p className="danger-hint">{t('settings.clearCacheHint')}</p>
-                </div>
-                <button
-                  type="button"
-                  className="btn-action btn-action--danger"
-                  onClick={() => {
-                    if (confirm(t('debug.clearCacheConfirm'))) {
-                      localStorage.clear();
-                      window.location.reload();
-                    }
-                  }}
-                >
-                  {t('settings.clear')}
-                </button>
+            <div className="debug-action-row debug-action-row--danger">
+              <div className="debug-action-info">
+                <span className="debug-action-label">⚠️ {t('debug.clearLocalStorage')}</span>
+                <span className="debug-action-hint">{t('settings.clearCacheHint')}</span>
               </div>
+              <button
+                type="button"
+                className="btn-action btn-action--danger btn-action--sm"
+                onClick={handleClearStorage}
+              >
+                Clear
+              </button>
             </div>
+
+            {/* Action Result */}
+            {actionResult && (
+              <div className="debug-action-result">
+                {actionResult}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -260,7 +267,7 @@ export function DebugView() {
   );
 }
 
-// Header component - matches SettingsHeader pattern
+// Header component
 function DebugHeader({ title, version }: { title: string; version?: string }) {
   return (
     <header className="debug-header">

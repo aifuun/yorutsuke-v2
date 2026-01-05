@@ -104,7 +104,7 @@ export function CaptureView() {
             <div className="premium-card queue-card">
               <h2 className="section-header">{t('capture.processingQueue')}</h2>
               <div className="queue-list">
-                {queue.map((image) => {
+                {[...queue].reverse().map((image) => {
                   const config = STATUS_CONFIG[image.status] || STATUS_CONFIG.pending;
                   return (
                     <div

@@ -218,6 +218,25 @@ cd app && npm test             # Run tests
 | User | 50 images/day | Quota check |
 | Rate | 1 image/10sec | MIN_UPLOAD_INTERVAL_MS |
 
+## Logging
+
+| Item | Location |
+|------|----------|
+| **Log files** | `~/.yorutsuke/logs/YYYY-MM-DD.jsonl` |
+| **Documentation** | `docs/operations/LOGGING.md` |
+| **Frontend logger** | `app/src/00_kernel/telemetry/logger.ts` |
+
+```bash
+# View today's logs
+cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .
+
+# Filter by event
+cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.event == "UPLOAD_FAILED")'
+
+# Filter by traceId
+cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
+```
+
 ## Memory & Context
 
 - **Session tasks**: `.claude/TODO.md`

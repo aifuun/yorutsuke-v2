@@ -201,8 +201,9 @@
   },
   "debug": {
     "title": "デバッグツール",
-    "systemInfo": "システム情報",
-    "mockData": "モックデータ",
+    "systemInfo": "システム設定",
+    "devActions": "開発アクション",
+    "mockData": "シードデータ",
     "mockDataHint": "テスト用の取引データを生成します",
     "scenario": "シナリオ",
     "seed": "生成",
@@ -214,9 +215,11 @@
     "featureFlags": "機能フラグ",
     "verboseLogging": "詳細ログ",
     "verboseLoggingHint": "デバッグ用の詳細なコンソールログを有効にする",
+    "resetQuota": "配額リセット",
+    "resetQuotaHint": "今日のアップロードを昨日に移動（テスト用）",
     "dangerZone": "危険ゾーン",
     "dangerZoneHint": "これらの操作は元に戻せません",
-    "clearLocalStorage": "ローカルストレージをクリア",
+    "clearLocalStorage": "ストレージをクリア",
     "clearCacheConfirm": "すべてのローカルデータをクリアしてアプリを再読み込みしますか？"
   },
   "capture": {

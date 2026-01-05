@@ -28,6 +28,14 @@
         { "path": "$TEMP/**" },
         { "path": "$HOME/**" }
       ]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        { "path": "$TEMP/**" },
+        { "path": "$HOME/**" },
+        { "path": "/var/folders/**" }
+      ]
     }
   ]
 }

@@ -56,6 +56,11 @@
 | SC-002 | Multiple images drop | Drop 3 images at once | All processed sequentially | [ ] |
 | SC-003 | Large image (>5MB) | Drop large JPEG | Compressed to <500KB WebP | [ ] |
 | SC-004 | Small image (<100KB) | Drop small PNG | Still compressed to WebP | [ ] |
+| SC-005 | Click to select single | Click drop zone → select 1 file | File picker opens, file processed | [ ] |
+| SC-006 | Click to select multiple | Click drop zone → select 3 files | All processed sequentially | [ ] |
+| SC-007 | Paste screenshot | Take screenshot → Cmd+V in app | Clipboard image processed | [ ] |
+| SC-008 | Paste single image file | Copy 1 image in Finder → Cmd+V | File data processed | [ ] |
+| SC-009 | Paste multiple image files | Copy 3 images in Finder → Cmd+V | All files processed sequentially | [ ] |
 
 ### 1.2 File Validation
 

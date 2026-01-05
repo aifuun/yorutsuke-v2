@@ -214,3 +214,41 @@ export async function updateImagesUserId(
   logger.info(EVENTS.DATA_MIGRATED, { entity: 'images', oldUserId, newUserId, count, phase: 'complete' });
   return count;
 }
+
+/**
+ * Reset today's quota by backdating uploaded_at to yesterday
+ * DEBUG ONLY: Used for testing quota limits
+ *
+ * @returns Number of images reset
+ */
+export async function resetTodayQuota(userId: UserId): Promise<number> {
+  logger.warn(EVENTS.QUOTA_CHECKED, { userId, phase: 'reset_quota_start' });
+
+  // Get count of today's uploads
+  const countRows = await select<Array<{ count: number }>>(
+    `SELECT COUNT(*) as count FROM images
+     WHERE user_id = ?
+     AND status = 'uploaded'
+     AND DATE(uploaded_at) = DATE('now', 'localtime')`,
+    [String(userId)],
+  );
+  const count = countRows[0]?.count ?? 0;
+
+  if (count === 0) {
+    logger.info(EVENTS.QUOTA_CHECKED, { userId, count: 0, phase: 'reset_quota_skip' });
+    return 0;
+  }
+
+  // Backdate uploaded_at to yesterday
+  await execute(
+    `UPDATE images
+     SET uploaded_at = datetime(uploaded_at, '-1 day')
+     WHERE user_id = ?
+     AND status = 'uploaded'
+     AND DATE(uploaded_at) = DATE('now', 'localtime')`,
+    [String(userId)],
+  );
+
+  logger.warn(EVENTS.QUOTA_CHECKED, { userId, count, phase: 'reset_quota_complete' });
+  return count;
+}

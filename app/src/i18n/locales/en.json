@@ -201,8 +201,9 @@
   },
   "debug": {
     "title": "Debug Tools",
-    "systemInfo": "System Information",
-    "mockData": "Mock Data",
+    "systemInfo": "System & Config",
+    "devActions": "Dev Actions",
+    "mockData": "Seed Data",
     "mockDataHint": "Generate test transactions for development and testing",
     "scenario": "Scenario",
     "seed": "Seed",
@@ -214,9 +215,11 @@
     "featureFlags": "Feature Flags",
     "verboseLogging": "Verbose Logging",
     "verboseLoggingHint": "Enable detailed console logging for debugging",
+    "resetQuota": "Reset Quota",
+    "resetQuotaHint": "Move today's uploads to yesterday for testing",
     "dangerZone": "Danger Zone",
     "dangerZoneHint": "These actions cannot be undone",
-    "clearLocalStorage": "Clear Local Storage",
+    "clearLocalStorage": "Clear Storage",
     "clearCacheConfirm": "This will clear all local data and reload the app. Continue?"
   },
   "capture": {
