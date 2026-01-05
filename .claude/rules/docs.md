@@ -5,20 +5,31 @@ paths: docs/**
 
 Files in `docs/` are **Source of Truth**. Read before coding.
 
+## Directory Structure
+
+| Directory | Contents |
+|-----------|----------|
+| `product/` | REQUIREMENTS, ROADMAP, CHANGELOG |
+| `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS |
+| `design/` | UI mockups (HTML) |
+| `operations/` | DEPLOYMENT, OPERATIONS, QUOTA, LOGGING |
+| `planning/` | MVP_PLAN |
+| `tests/` | FRONTEND, BACKEND test scenarios |
+
 ## Core Documents (Required)
 
 | Document | Purpose | Content |
 |----------|---------|---------|
-| `REQUIREMENTS.md` | What to build | Features, specs, acceptance criteria |
-| `ARCHITECTURE.md` | How to organize | Modules, tech stack, data flow |
-| `SCHEMA.md` | Data model | Entities, relationships, constraints |
+| `product/REQUIREMENTS.md` | What to build | Features, specs, acceptance criteria |
+| `architecture/ARCHITECTURE.md` | How to organize | Modules, tech stack, data flow |
+| `architecture/SCHEMA.md` | Data model | Entities, relationships, constraints |
 
 ## Tauri Desktop App
 
 | Document | Purpose |
 |----------|---------|
-| `DESIGN.md` | UI/UX design system + screens |
-| `INTERFACES.md` | IPC commands + Cloud API |
+| `design/` | UI/UX mockups (HTML) |
+| `architecture/INTERFACES.md` | IPC commands + Cloud API |
 
 ## By Product Type (Reference)
 

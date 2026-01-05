@@ -6,7 +6,7 @@
 
 | Document | Scope | ID Prefix | Scenarios |
 |----------|-------|-----------|-----------|
-| [FRONTEND.md](./FRONTEND.md) | Tauri + React | SC-xxx | 95+ |
+| [FRONTEND.md](./FRONTEND.md) | Tauri + React | SC-xxx | 115+ |
 | [BACKEND.md](./BACKEND.md) | Lambda, AWS | SB-xxx | 50+ |
 
 ## ID Conventions
@@ -22,10 +22,11 @@
 | SC-6xx | Authentication | SC-600 ~ SC-611 |
 | SC-7xx | Data Integrity | SC-700 ~ SC-712 |
 | SC-8xx | Transaction/Ledger | SC-800 ~ SC-833 |
-| SC-9xx | Report/Dashboard | SC-900 ~ SC-922 |
+| SC-9xx | Report/Dashboard | SC-900 ~ SC-934 |
 | SC-10xx | Settings | SC-1000 ~ SC-1021 |
 | SC-11xx | Debug | SC-1100 ~ SC-1141 |
 | SC-12xx | i18n | SC-1200 ~ SC-1212 |
+| SC-14xx | Performance (NFR) | SC-1400 ~ SC-1432 |
 | SB-1xx | Presign Lambda | SB-100 ~ SB-122 |
 | SB-2xx | Batch Processing | SB-200 ~ SB-241 |
 | SB-3xx | Cost Control | SB-300 ~ SB-314 |

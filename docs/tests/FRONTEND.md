@@ -126,6 +126,10 @@
 | SC-301 | Go offline mid-queue | Queue 3 images → Disconnect | Upload pauses, shows "offline" | [ ] |
 | SC-302 | Reconnect resume | Offline → Reconnect | Uploads resume automatically | [ ] |
 | SC-303 | Offline indicator | Disconnect network | UI shows offline status | [ ] |
+| SC-304 | Offline view transactions | Disconnect → Open Ledger | Local transactions displayed | [ ] |
+| SC-305 | Offline view dashboard | Disconnect → Open Dashboard | Local summary displayed | [ ] |
+| SC-306 | Offline confirm transaction | Disconnect → Confirm tx | Local DB updated, sync queued | [ ] |
+| SC-307 | Offline delete transaction | Disconnect → Delete tx | Local delete, sync queued | [ ] |
 
 ### 4.2 Network Instability
 
@@ -247,6 +251,9 @@
 | SC-802 | Filter by year | Select different year | Only that year's transactions shown | [ ] |
 | SC-803 | Filter by month | Select specific month | Only that month's transactions shown | [ ] |
 | SC-804 | Full year view | Click "Full Year" | All months for selected year shown | [ ] |
+| SC-805 | Filter by type | Select income/expense | Only that type shown | [ ] |
+| SC-806 | Filter by category | Select sale/purchase/etc | Only that category shown | [ ] |
+| SC-807 | Combined filters | Year + Month + Type | All filters applied correctly | [ ] |
 
 ### 9.2 Transaction Actions
 
@@ -303,6 +310,16 @@
 | SC-920 | Queue empty | No uploads pending | "Ready" or empty state | [ ] |
 | SC-921 | Queue active | Images in queue | Count and status shown | [ ] |
 | SC-922 | Upload progress | Image uploading | Progress indicator visible | [ ] |
+
+### 10.4 Report History (FR-006)
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-930 | Calendar view | Open history → View calendar | Calendar with transaction indicators | [ ] |
+| SC-931 | Select past date | Click date on calendar | Show that day's report | [ ] |
+| SC-932 | Monthly summary | Select month header | Show month's total income/expense | [ ] |
+| SC-933 | Navigate months | Click prev/next arrows | Calendar updates to new month | [ ] |
+| SC-934 | Empty date | Click date with no transactions | Show empty state for that date | [ ] |
 
 ---
 
@@ -398,6 +415,43 @@
 | SC-1210 | Currency format | View amounts | ¥1,234 format (no decimals) | [ ] |
 | SC-1211 | Date format (EN) | English mode → View dates | "Jan 5" format | [ ] |
 | SC-1212 | Date format (JA) | Japanese mode → View dates | "1月5日" format | [ ] |
+
+---
+
+## 14. Performance (NFR)
+
+### 14.1 Build Size (NFR-001)
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1400 | App bundle size | Run `npm run build` → Check dist | Total < 5MB | [ ] |
+| SC-1401 | Tauri app size | Run `npm run tauri build` → Check .app/.exe | < 15MB (with Tauri runtime) | [ ] |
+
+### 14.2 Compression Performance (NFR-002)
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1410 | Small image (<1MB) | Drop 500KB JPEG | Compress < 1 second | [ ] |
+| SC-1411 | Medium image (1-5MB) | Drop 3MB JPEG | Compress < 2 seconds | [ ] |
+| SC-1412 | Large image (>5MB) | Drop 8MB JPEG | Compress < 3 seconds | [ ] |
+| SC-1413 | Batch compression | Drop 5 images at once | All complete < 10 seconds | [ ] |
+
+### 14.3 App Responsiveness
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1420 | Cold start | Launch app from closed | Ready < 3 seconds | [ ] |
+| SC-1421 | Tab switch | Click between tabs | Switch < 100ms | [ ] |
+| SC-1422 | Large list scroll | Scroll 100+ transactions | Smooth 60fps | [ ] |
+| SC-1423 | Filter apply | Apply date filter | Results < 200ms | [ ] |
+
+### 14.4 Memory Usage
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1430 | Idle memory | App open, no activity | < 100MB RAM | [ ] |
+| SC-1431 | After batch upload | Upload 20 images | < 200MB RAM, no leak | [ ] |
+| SC-1432 | Long session | Use app for 1 hour | Memory stable, no growth | [ ] |
 
 ---
 

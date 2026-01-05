@@ -97,11 +97,12 @@ yorutsuke-v2/
 │   └── bin/
 │
 ├── docs/                   # Source of Truth
-│   ├── REQUIREMENTS.md
-│   ├── ARCHITECTURE.md
-│   ├── SCHEMA.md
-│   ├── ui_design/          # UI mockups (HTML)
-│   └── INTERFACES.md
+│   ├── product/            # REQUIREMENTS, ROADMAP, CHANGELOG
+│   ├── architecture/       # ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS
+│   ├── design/             # UI mockups (HTML)
+│   ├── operations/         # DEPLOYMENT, OPERATIONS, QUOTA, LOGGING
+│   ├── planning/           # MVP_PLAN
+│   └── tests/              # FRONTEND, BACKEND test scenarios
 │
 ├── .claude/                # Claude Code config
 │   ├── commands/

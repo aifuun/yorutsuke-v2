@@ -2,7 +2,7 @@
 
 > Incremental testing plan for manual verification
 
-**Version**: 1.3.0
+**Version**: 2.0.0
 **Last Updated**: 2026-01-05
 
 ## Overview
@@ -42,7 +42,7 @@ MVP4:   本地 ◄────────────────────�
 
 ### 测试场景
 
-从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+从 [FRONTEND.md](../tests/FRONTEND.md) 选取：
 
 #### 1.1 Happy Path
 | ID | 场景 | 预期 |
@@ -130,51 +130,51 @@ npm run tauri dev
 
 ### 测试场景
 
-从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+从 [FRONTEND.md](../tests/FRONTEND.md) 选取：
 
-#### 3.1 Network - Offline Scenarios
+#### 4.1 Network - Offline Handling
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-300 | 离线启动 | 本地功能正常 |
 | SC-301 | 上传中断网 | 暂停并显示 offline |
 | SC-302 | 恢复网络 | 自动继续上传 |
-| SC-303 | 长时间离线 | 队列保留，恢复后续传 |
+| SC-303 | 离线指示器 | UI 显示离线状态 |
 
-#### 3.2 Network - Slow/Unstable
+#### 4.2 Network - Instability
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-310 | 慢网络上传 | 显示进度，不超时 |
-| SC-311 | 上传超时 | 重试一次 |
-| SC-312 | 上传失败重试 | 自动重试最多 3 次 |
+| SC-310 | 不稳定连接 | 模拟丢包，指数退避重试 |
+| SC-311 | 超时处理 | 慢网络 (>15s) 压缩超时 |
+| SC-312 | 上传重试 | 自动重试最多 3 次 |
 | SC-313 | 永久失败 | 状态 failed，可手动重试 |
-| SC-314 | 断断续续 | 自动恢复继续 |
 
-#### 3.3 Network - Server Errors
+#### 4.3 Network - Race Conditions
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-320 | Lambda 500 | 重试一次 |
-| SC-321 | Lambda 超时 | 重试一次 |
+| SC-320 | 上传中断网 | 保持 paused 状态，非 idle |
+| SC-321 | 重试中恢复 | 恢复后正常完成 |
 
-#### 4.1 Error Recovery - Upload
+#### 5.1 Error Recovery - Compression
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-400 | Presign 失败 | 错误显示，可重试 |
-| SC-401 | S3 上传失败 | 自动重试 |
-| SC-402 | 部分成功 | 失败的显示错误，成功的继续 |
-| SC-403 | 并发上传 | 多张同时上传正常 |
+| SC-400 | 源文件删除 | 报错，其他图片继续 |
+| SC-401 | 磁盘满 | 清晰错误消息 |
+| SC-402 | 内存压力 | 优雅降级 |
 
-#### 4.2 Error Recovery - Presign
+#### 5.3 Error Recovery - Upload
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-420 | URL 过期 | 获取新 URL 重试 |
-| SC-421 | 无效 URL | 获取新 URL 重试 |
-| SC-422 | Presign 限流 | 等待后重试 |
+| SC-421 | S3 访问拒绝 | 报错，不重试 |
+| SC-422 | 配额超限 (服务端) | 暂停队列，显示消息 |
+| SC-423 | 服务限制 | 显示"服务暂时不可用" |
 
 #### 6.2 App Lifecycle - Background/Foreground
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-510 | 切到后台 | 上传继续 (Tauri) |
-| SC-511 | 回到前台 | 同步状态显示 |
+| SC-511 | 回到前台 | 状态同步显示 |
+| SC-512 | 长时间后台 | 后台 1 小时后返回，配额刷新 |
 
 ### 环境配置
 
@@ -195,11 +195,12 @@ npm run tauri dev
 - [ ] 断网后上传暂停，恢复后自动继续
 - [ ] 上传失败后自动重试
 - [ ] Quota 正确显示 (used/limit)
-- [ ] 所有 SC-300~314 通过
-- [ ] 所有 SC-320~321 通过
-- [ ] 所有 SC-400~403 通过
-- [ ] 所有 SC-420~422 通过
-- [ ] 所有 SC-510~511 通过
+- [ ] 所有 SC-300~303 通过 (Offline)
+- [ ] 所有 SC-310~313 通过 (Instability)
+- [ ] 所有 SC-320~321 通过 (Race Conditions)
+- [ ] 所有 SC-400~402 通过 (Compression Errors)
+- [ ] 所有 SC-420~423 通过 (Upload Errors)
+- [ ] 所有 SC-510~512 通过 (Background/Foreground)
 
 ### 依赖
 
@@ -226,32 +227,40 @@ npm run tauri dev
 
 ### 测试场景
 
-从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+从 [FRONTEND.md](../tests/FRONTEND.md) 和 [BACKEND.md](../tests/BACKEND.md) 选取：
 
-#### 5.1 Batch Processing
+#### Backend: Batch Processing (SB-2xx)
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-520 | 上传 5 张收据 | S3 存储成功 |
-| SC-521 | 定时触发 | 02:00 JST 批处理运行 |
-| SC-522 | 手动触发 | Lambda 直接调用成功 |
-| SC-523 | AI 提取 | Nova Lite OCR 返回交易数据 |
+| SB-200 | 定时触发 | EventBridge 02:00 JST 触发 |
+| SB-201 | 手动触发 | Lambda 直接调用成功 |
+| SB-202 | 空队列 | 无 pending 图片时跳过 |
+| SB-210 | 清晰收据 | 提取商户、金额、分类 |
+| SB-211 | 模糊收据 | 低置信度 (<0.7) |
+| SB-220 | 创建交易 | OCR 结果写入 DynamoDB |
+| SB-221 | 去重 | 同图不创建重复交易 |
 
-#### 5.2 Morning Report
+#### Frontend: Dashboard (SC-9xx)
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-530 | 查看晨报 | 显示昨日收支汇总 |
-| SC-531 | 交易列表 | 显示 AI 提取的交易 |
-| SC-532 | 确认交易 | 标记为已确认 |
-| SC-533 | 编辑金额 | 修改并保存到本地 |
-| SC-534 | 删除错误项 | 从列表移除 |
-| SC-535 | 历史日历 | 查看过去 7 天数据 |
+| SC-900 | 加载仪表盘 | 显示今日汇总 |
+| SC-901 | 空日期 | 无交易显示零值 |
+| SC-902 | 收入显示 | 正确收入金额 |
+| SC-903 | 支出显示 | 正确支出金额 |
+| SC-904 | 净利润 | 净值 = 收入 - 支出 |
+| SC-910 | 待确认数 | 正确显示待确认数量 |
+| SC-920 | 队列空 | 显示"Ready"状态 |
+| SC-921 | 队列活跃 | 显示数量和状态 |
 
-#### 5.3 Report Data Integrity
+#### Frontend: Transaction/Ledger (SC-8xx)
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-540 | 空报告 | 无交易时显示空状态 |
-| SC-541 | 大量交易 | 50+ 条交易正常显示 |
-| SC-542 | 分类汇总 | 按 sale/purchase/shipping 等分类 |
+| SC-800 | 加载交易 | 按日期降序显示 |
+| SC-801 | 空状态 | 显示"无记录" |
+| SC-810 | 确认交易 | confirmedAt 设置，标签移除 |
+| SC-811 | 删除交易 | 确认对话框后删除 |
+| SC-820 | 收入合计 | 正确收入总和 |
+| SC-821 | 支出合计 | 正确支出总和 |
 
 ### 环境配置
 
@@ -273,9 +282,9 @@ aws lambda invoke \
 - [ ] 晨报显示昨日汇总
 - [ ] 可以确认/编辑/删除交易
 - [ ] 历史日历可以查看过去 7 天
-- [ ] 所有 SC-520~523 通过
-- [ ] 所有 SC-530~535 通过
-- [ ] 所有 SC-540~542 通过
+- [ ] 所有 SB-200~221 通过 (Backend Batch)
+- [ ] 所有 SC-800~821 通过 (Transaction/Ledger)
+- [ ] 所有 SC-900~921 通过 (Dashboard)
 
 ### 依赖
 
@@ -454,54 +463,65 @@ const onLogin = async (userId: UserId) => {
 
 ### 测试场景
 
-从 [tests/FRONTEND.md](./tests/FRONTEND.md) 选取：
+从 [FRONTEND.md](../tests/FRONTEND.md) 选取：
 
-#### 2.1 Quota Management - Guest
+#### 2.1 Quota - Guest User
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-100 | Guest 默认配额 | limit=10, tier=guest |
-| SC-101 | Guest 过期警告 | 显示剩余天数 |
-| SC-102 | Guest 接近限额 | 显示警告 "剩余 3 张" |
-| SC-103 | Guest 达到限额 | 阻止上传，提示注册 |
+| SC-100 | Guest 默认配额 | limit=30, tier=guest |
+| SC-101 | Guest 过期警告 | 46+ 天显示"X 天后过期" |
+| SC-102 | Guest 接近限额 | 28/30 显示剩余数量 |
+| SC-103 | Guest 达到限额 | 30/30 阻止上传，提示消息 |
 
-#### 2.2 Quota Management - Registered Users
+#### 2.2 Quota - Free Tier
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-110 | Free Tier 配额 | limit=30 |
-| SC-111 | Basic Tier 配额 | limit=100 |
-| SC-112 | Pro Tier 配额 | limit=500 |
-| SC-113 | 配额重置 | 次日 00:00 JST 重置 |
+| SC-110 | Free Tier 配额 | limit=50, 无过期警告 |
+| SC-111 | Free 达到限额 | 50/50 阻止，建议升级 |
+| SC-112 | Free 配额重置 | 午夜 JST 重置 |
 
-#### 2.3 Quota Edge Cases
+#### 2.3 Quota - Paid Tiers
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-120 | 配额检查失败 | 降级为本地限制 |
-| SC-121 | 同时上传超限 | 精确到张数限制 |
-| SC-130 | 升级 Tier | 即时更新配额 |
-| SC-131 | 降级 Tier | 不影响已上传 |
+| SC-120 | Basic Tier 配额 | limit=100 |
+| SC-121 | Pro Tier 配额 | limit=500 或无限制 |
 
-#### 7.1 Auth - Guest Mode
+#### 2.4 Quota Persistence
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-600 | 默认 Guest | 新安装自动 Guest 模式 |
-| SC-601 | Guest 功能限制 | 可上传但有 60 天过期 |
+| SC-130 | 配额持久化 | 重启后 used 保持 |
+| SC-131 | 跨会话配额 | 关闭重开后累计正确 |
 
-#### 7.2 Auth - Registration & Login
+#### 3.1 Tier Transitions - Guest → Registered
 | ID | 场景 | 预期 |
 |----|------|------|
 | SC-200 | 注册流程 | Guest → Register → Verify → Login |
-| SC-201 | 登录认领数据 | Guest 的图片迁移到新账户 |
-| SC-610 | 登录成功 | 显示用户信息 |
-| SC-611 | 登录失败 | 显示错误，保留 Guest 数据 |
-| SC-612 | 登出 | 清除 Token，返回 Guest |
-| SC-613 | Token 过期 | 自动刷新或重新登录 |
+| SC-201 | 登录认领数据 | Guest 图片迁移到新账户 |
+| SC-201a | 认领后配额 | 配额重置为新 Tier 限额 |
+| SC-202 | 队列连续性 | 队列保留或同步 |
+| SC-203 | 本地 DB 更新 | images.user_id 更新 |
 
-#### 7.3 Auth - Data Migration
+#### 3.2 Tier Transitions - Upgrade
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-620 | Guest 数据迁移 | 注册后图片关联新 userId |
-| SC-621 | 迁移失败回滚 | 保留原 Guest 数据 |
-| SC-622 | 已有账户登录 | 提示选择保留或合并 |
+| SC-210 | 会话中升级 | 支付后显示新限额 |
+| SC-211 | 限额时升级 | 50/50 → 升级 → 可继续上传 |
+| SC-212 | 升级生效时间 | 即时生效 |
+
+#### 3.3 Tier Transitions - Downgrade
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-220 | 降级配额 | 80/100 → 降级 → 显示 80/50 |
+| SC-221 | 降级阻止 | 超限后阻止上传直到重置 |
+| SC-222 | 降级数据保留 | 历史数据保留 |
+
+#### 7.1 Auth - Login/Logout
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-600 | 登录成功 | 显示用户信息 |
+| SC-601 | 登录失败 | 错误消息，可重试 |
+| SC-602 | 登出 | 清除 Token，返回 Guest |
+| SC-603 | Session 过期 | 自动刷新或重新登录 |
 
 ### 环境配置
 
@@ -523,11 +543,12 @@ npm run tauri dev
 - [ ] Guest 数据正确迁移到注册账户
 - [ ] 不同 Tier 配额正确显示和限制
 - [ ] 设置修改后重启仍保留
-- [ ] 所有 SC-100~103 通过
-- [ ] 所有 SC-110~113 通过
-- [ ] 所有 SC-120~131 通过
-- [ ] 所有 SC-200~201 通过
-- [ ] 所有 SC-600~622 通过
+- [ ] 所有 SC-100~103 通过 (Guest Quota)
+- [ ] 所有 SC-110~112 通过 (Free Tier)
+- [ ] 所有 SC-120~121 通过 (Paid Tiers)
+- [ ] 所有 SC-130~131 通过 (Quota Persistence)
+- [ ] 所有 SC-200~222 通过 (Tier Transitions)
+- [ ] 所有 SC-600~603 通过 (Auth)
 
 ### 依赖
 
@@ -562,35 +583,37 @@ npm run tauri dev
 - [ ] 截图/录屏存档
 
 ### MVP2 检查表
-- [ ] 所有 SC-300~314 通过 (Network)
-- [ ] 所有 SC-320~321 通过 (Server Errors)
-- [ ] 所有 SC-400~403 通过 (Upload Recovery)
-- [ ] 所有 SC-420~422 通过 (Presign Recovery)
-- [ ] 所有 SC-510~511 通过 (Background/Foreground)
+- [ ] 所有 SC-300~303 通过 (Offline Handling)
+- [ ] 所有 SC-310~313 通过 (Network Instability)
+- [ ] 所有 SC-320~321 通过 (Race Conditions)
+- [ ] 所有 SC-400~402 通过 (Compression Errors)
+- [ ] 所有 SC-420~423 通过 (Upload Errors)
+- [ ] 所有 SC-510~512 通过 (Background/Foreground)
 - [ ] S3 验证有上传文件
 - [ ] 截图/录屏存档
 
 ### MVP3 检查表
-- [ ] 所有 SC-520~523 通过 (Batch Processing)
-- [ ] 所有 SC-530~535 通过 (Morning Report)
-- [ ] 所有 SC-540~542 通过 (Report Data Integrity)
+- [ ] 所有 SB-200~221 通过 (Backend Batch)
+- [ ] 所有 SC-800~821 通过 (Transaction/Ledger)
+- [ ] 所有 SC-900~921 通过 (Dashboard)
 - [ ] 批处理成功运行
 - [ ] AI 提取结果正确
 - [ ] 截图/录屏存档
 
 ### MVP3.5 检查表
-- [ ] 所有 SC-800~806 通过 (Cloud Sync)
-- [ ] DynamoDB 有确认记录
+- [ ] 确认交易同步到 DynamoDB
+- [ ] 修改交易同步正常
 - [ ] 离线同步队列正常
 - [ ] 新设备恢复成功
 - [ ] 截图/录屏存档
 
 ### MVP4 检查表
 - [ ] 所有 SC-100~103 通过 (Guest Quota)
-- [ ] 所有 SC-110~113 通过 (Tier Quota)
-- [ ] 所有 SC-120~131 通过 (Quota Edge Cases)
-- [ ] 所有 SC-200~201 通过 (Registration)
-- [ ] 所有 SC-600~622 通过 (Auth Flow)
+- [ ] 所有 SC-110~112 通过 (Free Tier)
+- [ ] 所有 SC-120~121 通过 (Paid Tiers)
+- [ ] 所有 SC-130~131 通过 (Quota Persistence)
+- [ ] 所有 SC-200~222 通过 (Tier Transitions)
+- [ ] 所有 SC-600~603 通过 (Auth)
 - [ ] Cognito 用户创建成功
 - [ ] 截图/录屏存档
 
