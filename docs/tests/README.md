@@ -27,6 +27,7 @@
 | SC-11xx | Debug | SC-1100 ~ SC-1141 |
 | SC-12xx | i18n | SC-1200 ~ SC-1212 |
 | SC-14xx | Performance (NFR) | SC-1400 ~ SC-1432 |
+| SC-15xx | Cloud Sync | SC-1500 ~ SC-1521 |
 | SB-1xx | Presign Lambda | SB-100 ~ SB-122 |
 | SB-2xx | Batch Processing | SB-200 ~ SB-241 |
 | SB-3xx | Cost Control | SB-300 ~ SB-314 |

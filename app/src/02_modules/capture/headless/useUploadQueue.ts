@@ -3,6 +3,7 @@
 // Pillar G: @trigger upload:complete, upload:failed
 // Pillar Q: Intent-ID for idempotency
 import { useReducer, useCallback, useEffect, useRef } from 'react';
+import { readFile } from '@tauri-apps/plugin-fs';
 import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/types';
 import type { UploadErrorType } from '../../../00_kernel/eventBus/types';
 import { emit } from '../../../00_kernel/eventBus';
@@ -283,12 +284,9 @@ export function useUploadQueue(userId: UserId | null, dailyLimit: number = 30) {
       // Get presigned URL (Pillar Q: pass intentId for idempotency)
       const { url, key } = await getPresignedUrl(userId, `${task.id}.webp`, task.intentId);
 
-      // Read file and upload
-      const response = await fetch(`file://${task.filePath}`);
-      if (!response.ok) {
-        throw new Error(`Failed to read file: ${response.status}`);
-      }
-      const blob = await response.blob();
+      // Read file using Tauri fs plugin (fixes #80: fetch('file://') doesn't work in Tauri)
+      const fileData = await readFile(task.filePath);
+      const blob = new Blob([fileData], { type: 'image/webp' });
 
       await uploadToS3(url, blob);
 

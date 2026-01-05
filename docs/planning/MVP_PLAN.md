@@ -87,6 +87,15 @@ MVP4:   本地 ◄────────────────────�
 | SC-711 | 状态转换 | 遵循允许的状态转换路径 |
 | SC-712 | 无孤儿记录 | 处理多张图片，DB 无孤儿 |
 
+#### 14. Performance (NFR)
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-1400 | App bundle 大小 | < 5MB |
+| SC-1410 | 小图压缩 (<1MB) | < 1 秒 |
+| SC-1411 | 中图压缩 (1-5MB) | < 2 秒 |
+| SC-1412 | 大图压缩 (>5MB) | < 3 秒 |
+| SC-1420 | 冷启动 | < 3 秒 |
+
 ### 环境配置
 
 ```bash
@@ -105,6 +114,7 @@ npm run tauri dev
 - [ ] 所有 SC-001~023 通过
 - [ ] 所有 SC-500~503 通过
 - [ ] 所有 SC-700~712 通过
+- [ ] 所有 SC-1400, SC-1410~1412, SC-1420 通过 (Performance)
 
 ### 依赖
 
@@ -139,6 +149,15 @@ npm run tauri dev
 | SC-301 | 上传中断网 | 暂停并显示 offline |
 | SC-302 | 恢复网络 | 自动继续上传 |
 | SC-303 | 离线指示器 | UI 显示离线状态 |
+
+> **Note**: SC-304~307 (离线交易操作) 移至 MVP3，因为交易数据需要 AI 批处理后才存在。
+
+#### 5.2 Error Recovery - Database
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-410 | DB 写入失败 | 压缩 OK → DB 锁定，清理临时文件 |
+| SC-411 | DB 损坏 | 打开应用，重置或报错 |
+| SC-412 | 迁移失败 | 打开应用，回滚或报错 |
 
 #### 4.2 Network - Instability
 | ID | 场景 | 预期 |
@@ -195,7 +214,8 @@ npm run tauri dev
 - [ ] 断网后上传暂停，恢复后自动继续
 - [ ] 上传失败后自动重试
 - [ ] Quota 正确显示 (used/limit)
-- [ ] 所有 SC-300~303 通过 (Offline)
+- [ ] 所有 SC-300~303 通过 (Offline Handling)
+- [ ] 所有 SC-410~412 通过 (Database Errors)
 - [ ] 所有 SC-310~313 通过 (Instability)
 - [ ] 所有 SC-320~321 通过 (Race Conditions)
 - [ ] 所有 SC-400~402 通过 (Compression Errors)
@@ -257,10 +277,30 @@ npm run tauri dev
 |----|------|------|
 | SC-800 | 加载交易 | 按日期降序显示 |
 | SC-801 | 空状态 | 显示"无记录" |
+| SC-805 | 按类型筛选 | 选择 income/expense | 只显示该类型 |
+| SC-806 | 按分类筛选 | 选择 sale/purchase 等 | 只显示该分类 |
+| SC-807 | 组合筛选 | 年+月+类型 | 全部正确应用 |
 | SC-810 | 确认交易 | confirmedAt 设置，标签移除 |
 | SC-811 | 删除交易 | 确认对话框后删除 |
 | SC-820 | 收入合计 | 正确收入总和 |
 | SC-821 | 支出合计 | 正确支出总和 |
+
+#### Frontend: Report History (SC-9xx)
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-930 | 日历视图 | 显示带交易指示的日历 |
+| SC-931 | 选择历史日期 | 点击日历日期显示该日报告 |
+| SC-932 | 月度汇总 | 点击月份头部显示月汇总 |
+| SC-933 | 月份导航 | 点击前/后箭头切换月份 |
+| SC-934 | 空日期 | 点击无交易日期显示空状态 |
+
+#### Offline CRUD (SC-3xx, 从 MVP2 移入)
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-304 | 离线查看交易 | 断网→打开 Ledger，本地交易显示 |
+| SC-305 | 离线查看仪表盘 | 断网→打开 Dashboard，本地汇总显示 |
+| SC-306 | 离线确认交易 | 断网→确认交易，本地 DB 更新，同步队列 |
+| SC-307 | 离线删除交易 | 断网→删除交易，本地删除，同步队列 |
 
 ### 环境配置
 
@@ -280,17 +320,21 @@ aws lambda invoke \
 
 - [ ] 上传的收据被 AI 正确解析
 - [ ] 晨报显示昨日汇总
-- [ ] 可以确认/编辑/删除交易
+- [ ] 可以确认/编辑/删除交易 (**本地确认，云端同步在 MVP3.5**)
 - [ ] 历史日历可以查看过去 7 天
 - [ ] 所有 SB-200~221 通过 (Backend Batch)
+- [ ] 所有 SC-304~307 通过 (Offline CRUD)
 - [ ] 所有 SC-800~821 通过 (Transaction/Ledger)
 - [ ] 所有 SC-900~921 通过 (Dashboard)
+- [ ] 所有 SC-930~934 通过 (Report History)
+
+> **Note**: MVP3 中的确认/编辑/删除只写入本地 SQLite。云端同步（写入 DynamoDB）在 MVP3.5 实现。
 
 ### 依赖
 
 - Lambda: `presign`, `batch`, `batch-process`
 - S3: `yorutsuke-images-dev`
-- DynamoDB: `yorutsuke-transactions-dev`
+- DynamoDB: `yorutsuke-transactions-dev` (只读，AI 写入)
 - Bedrock: Nova Lite
 
 ---
@@ -371,15 +415,30 @@ aws lambda invoke \
 
 ### 测试场景
 
+从 [FRONTEND.md](../tests/FRONTEND.md) Section 15 选取：
+
+#### 15.1 Confirmation Sync
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-800 | 确认交易 | 本地+云端都更新 |
-| SC-801 | 修改后确认 | 修改内容同步到云端 |
-| SC-802 | 删除交易 | 云端标记删除 |
-| SC-803 | 离线确认 | 恢复网络后自动同步 |
-| SC-804 | 新设备登录 | 提示恢复云端数据 |
-| SC-805 | 恢复数据 | 已确认交易写入本地 |
-| SC-806 | 冲突处理 | 较新的记录覆盖旧的 |
+| SC-1500 | 确认同步到云端 | DynamoDB 有 confirmedAt |
+| SC-1501 | 修改后同步 | 云端有更新后的金额 |
+| SC-1502 | 删除同步到云端 | 云端标记为已删除 |
+| SC-1503 | 离线确认入队 | 同步队列，显示 pending |
+| SC-1504 | 恢复网络后处理 | 队列中的同步完成 |
+
+#### 15.2 Data Recovery
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-1510 | 新设备检测 | 显示"发现云端数据" |
+| SC-1511 | 恢复确认数据 | 已确认交易恢复到 SQLite |
+| SC-1512 | 拒绝恢复 | 从头开始，云端数据不变 |
+| SC-1513 | 合并恢复 | 本地+云端合并，无重复 |
+
+#### 15.3 Conflict Resolution
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-1520 | 最后写入优先 | 两设备编辑，新时间戳覆盖 |
+| SC-1521 | 离线冲突 | 离线编辑→同步→冲突，新版本生效 |
 
 ### 环境配置
 
@@ -402,11 +461,14 @@ npm run tauri dev
 - [ ] 离线确认，恢复后自动同步
 - [ ] 新设备登录可恢复已确认交易
 - [ ] 本地和云端数据一致
+- [ ] 所有 SC-1500~1504 通过 (Confirmation Sync)
+- [ ] 所有 SC-1510~1513 通过 (Data Recovery)
+- [ ] 所有 SC-1520~1521 通过 (Conflict Resolution)
 
 ### 依赖
 
 - Lambda: `transactions-sync` (新增)
-- DynamoDB: `yorutsuke-transactions-dev`
+- DynamoDB: `yorutsuke-transactions-dev` (读写)
 - 需要先完成 MVP3
 
 ### 实现要点
@@ -580,6 +642,7 @@ npm run tauri dev
 - [ ] 所有 SC-020~023 通过 (Duplicate Detection)
 - [ ] 所有 SC-500~503 通过 (App Lifecycle)
 - [ ] 所有 SC-700~712 通过 (Data Integrity)
+- [ ] 所有 SC-1400~1420 通过 (Performance)
 - [ ] 截图/录屏存档
 
 ### MVP2 检查表
@@ -587,6 +650,7 @@ npm run tauri dev
 - [ ] 所有 SC-310~313 通过 (Network Instability)
 - [ ] 所有 SC-320~321 通过 (Race Conditions)
 - [ ] 所有 SC-400~402 通过 (Compression Errors)
+- [ ] 所有 SC-410~412 通过 (Database Errors)
 - [ ] 所有 SC-420~423 通过 (Upload Errors)
 - [ ] 所有 SC-510~512 通过 (Background/Foreground)
 - [ ] S3 验证有上传文件
@@ -594,13 +658,18 @@ npm run tauri dev
 
 ### MVP3 检查表
 - [ ] 所有 SB-200~221 通过 (Backend Batch)
+- [ ] 所有 SC-304~307 通过 (Offline CRUD)
 - [ ] 所有 SC-800~821 通过 (Transaction/Ledger)
 - [ ] 所有 SC-900~921 通过 (Dashboard)
+- [ ] 所有 SC-930~934 通过 (Report History)
 - [ ] 批处理成功运行
 - [ ] AI 提取结果正确
 - [ ] 截图/录屏存档
 
 ### MVP3.5 检查表
+- [ ] 所有 SC-1500~1504 通过 (Confirmation Sync)
+- [ ] 所有 SC-1510~1513 通过 (Data Recovery)
+- [ ] 所有 SC-1520~1521 通过 (Conflict Resolution)
 - [ ] 确认交易同步到 DynamoDB
 - [ ] 修改交易同步正常
 - [ ] 离线同步队列正常

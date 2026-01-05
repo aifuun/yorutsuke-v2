@@ -455,6 +455,38 @@
 
 ---
 
+## 15. Cloud Sync (MVP3.5)
+
+> **Scope**: Transaction confirmation writeback and data recovery
+
+### 15.1 Confirmation Sync
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1500 | Confirm syncs to cloud | Confirm transaction → Check DynamoDB | Cloud has confirmedAt | [ ] |
+| SC-1501 | Edit syncs to cloud | Edit amount → Confirm | Cloud has updated amount | [ ] |
+| SC-1502 | Delete syncs to cloud | Delete transaction | Cloud marked as deleted | [ ] |
+| SC-1503 | Offline confirm queued | Disconnect → Confirm tx | Sync queued, pending indicator | [ ] |
+| SC-1504 | Queue processes on reconnect | Reconnect network | Queued syncs complete | [ ] |
+
+### 15.2 Data Recovery
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1510 | New device detection | Login on new device | "Cloud data found" prompt | [ ] |
+| SC-1511 | Restore confirmed data | Accept restore prompt | Confirmed txs restored to SQLite | [ ] |
+| SC-1512 | Decline restore | Decline restore prompt | Start fresh, cloud data untouched | [ ] |
+| SC-1513 | Restore merge | Have local + cloud data | Merged without duplicates | [ ] |
+
+### 15.3 Conflict Resolution
+
+| ID | Scenario | Steps | Expected Result | Status |
+|----|----------|-------|-----------------|--------|
+| SC-1520 | Last-write-wins | Edit same tx on two devices | Newer timestamp wins | [ ] |
+| SC-1521 | Offline conflict | Edit offline → Sync → Conflict | Newer version applied | [ ] |
+
+---
+
 ## Issue Cross-Reference
 
 | Issue | Related Scenarios |
