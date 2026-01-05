@@ -118,7 +118,7 @@ export function useQuota(userId: UserId | null) {
     }
   });
 
-  // 2. Periodic refresh every 5 minutes (catch tier changes)
+  // 3. Periodic refresh every 5 minutes (catch tier changes)
   useEffect(() => {
     if (!userId) return;
 
@@ -132,7 +132,7 @@ export function useQuota(userId: UserId | null) {
     return () => clearInterval(interval);
   }, [userId, refresh]);
 
-  // 3. Refresh on app focus/visibility change (catch changes while away)
+  // 4. Refresh on app focus/visibility change (catch changes while away)
   useEffect(() => {
     if (!userId) return;
 
