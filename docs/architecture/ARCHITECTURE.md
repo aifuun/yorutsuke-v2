@@ -173,35 +173,68 @@ React 展示 (Display)
 │                              User Device                                     │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
 │  │                     Yorutsuke Desktop App                              │  │
-│  │  ┌─────────────────┐           ┌─────────────────┐                    │  │
-│  │  │  React Frontend │◄─────────►│  Tauri (Rust)   │                    │  │
-│  │  │                 │    IPC    │  - Compression  │                    │  │
-│  │  │  - UI/Views     │           │  - File I/O     │                    │  │
-│  │  │  - Headless     │           │  - SQLite       │                    │  │
-│  │  │  - Adapters     │           │                 │                    │  │
-│  │  └─────────────────┘           └─────────────────┘                    │  │
+│  │                                                                        │  │
+│  │  ┌─────────────────┐                                                   │  │
+│  │  │  React (View)   │  UI Components only                               │  │
+│  │  │  - Render UI    │  Subscribe to EventBus                            │  │
+│  │  │  - User gestures│  Call Service methods                             │  │
+│  │  └────────┬────────┘                                                   │  │
+│  │           │ call                                                       │  │
+│  │           ▼                                                            │  │
+│  │  ┌─────────────────┐                                                   │  │
+│  │  │  Services       │  Business orchestration                           │  │
+│  │  │  - captureService│ Init at app startup                              │  │
+│  │  │  - uploadService │ Listen to Tauri events                           │  │
+│  │  └────────┬────────┘                                                   │  │
+│  │           │ call                                                       │  │
+│  │           ▼                                                            │  │
+│  │  ┌─────────────────┐                                                   │  │
+│  │  │  Adapters       │  External capability abstraction                  │  │
+│  │  │  - tauriAdapter │  IPC wrapper                                      │  │
+│  │  │  - awsAdapter   │  AWS API wrapper                                  │  │
+│  │  └────────┬────────┘                                                   │  │
+│  │           │                                                            │  │
+│  │           ├──────────────────────────────┐                             │  │
+│  │           ▼                              │                             │  │
+│  │  ┌─────────────────┐                     │                             │  │
+│  │  │  Tauri (Rust)   │                     │                             │  │
+│  │  │  - Compression  │                     │ HTTPS                       │  │
+│  │  │  - File I/O     │                     │                             │  │
+│  │  │  - SQLite       │                     │                             │  │
+│  │  └─────────────────┘                     │                             │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      │ HTTPS
-                                      ▼
+                                              │
+                                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              AWS Cloud                                       │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │   Cognito   │  │   Lambda    │  │     S3      │  │     DynamoDB        │ │
 │  │   (Auth)    │  │  (Presign)  │  │  (Images)   │  │   (Transactions)    │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
-│                          │                                    ▲              │
-│                          │ 02:00 JST                          │              │
-│                          ▼                                    │              │
-│                   ┌─────────────┐                             │              │
-│                   │   Lambda    │─────────────────────────────┘              │
+│                          │                  ▲                ▲              │
+│                          │ 02:00 JST        │                │              │
+│                          ▼                  │ Presigned PUT  │              │
+│                   ┌─────────────┐           │ (from Tauri)   │              │
+│                   │   Lambda    │───────────┴────────────────┘              │
 │                   │   (Batch)   │                                            │
 │                   │  + Bedrock  │                                            │
 │                   │  Nova Lite  │                                            │
 │                   └─────────────┘                                            │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Communication Rules
+
+| From | To | Allowed? | Mechanism |
+|------|----|----------|-----------|
+| React | Service | ✅ | Direct method call |
+| React | Adapter | ❌ | Must go through Service |
+| React | AWS | ❌ | Must go through Service → Adapter |
+| Service | Adapter | ✅ | Direct method call |
+| Service | Tauri events | ✅ | Listen at init (not in useEffect) |
+| Tauri | S3 | ✅ | Presigned URL PUT (streaming) |
+| Tauri | AWS API | ❌ | No Cognito tokens in Rust |
 
 ## Layer Structure
 
@@ -211,7 +244,8 @@ React 展示 (Display)
 app/src/
 ├── 00_kernel/          # Infrastructure (no business logic)
 │   ├── types/          # Branded types (UserId, ImageId, etc.)
-│   ├── context/        # React Context (Auth, App state)
+│   ├── eventBus/       # Cross-component communication
+│   ├── services/       # Service initialization (NEW)
 │   └── telemetry/      # Logging, error tracking
 │
 ├── 01_domains/         # Pure business logic (no I/O, no UI)
@@ -220,19 +254,23 @@ app/src/
 │
 ├── 02_modules/         # Feature modules
 │   ├── capture/        # T2: Image capture & upload queue
-│   │   ├── adapters/   # IPC + S3 API
-│   │   ├── headless/   # useCaptureLogic
-│   │   └── views/      # DropZone, Queue UI
+│   │   ├── services/   # captureService.ts (Orchestrator) [TARGET]
+│   │   ├── adapters/   # IPC + S3 API (Bridge)
+│   │   ├── headless/   # React hooks (Subscribe to Service) [CURRENT]
+│   │   └── views/      # Pure UI components
 │   ├── report/         # T1: Morning report display
 │   │   ├── adapters/   # Report API
 │   │   └── views/      # ReportView
 │   └── transaction/    # T2: Transaction management
 │       ├── adapters/   # SQLite DB
-│       ├── headless/   # useTransactionLogic
+│       ├── headless/   # React hooks [CURRENT]
 │       └── views/      # TransactionView
 │
 └── 03_migrations/      # Data version upcasters
 ```
+
+> **Migration Note**: `headless/` currently contains React hooks that orchestrate business logic.
+> After MVP1, refactor to `services/` pattern where hooks only subscribe to Service events.
 
 ### Infrastructure Layer (infra/)
 
@@ -345,12 +383,14 @@ App launch
 
 ## Module Tiers
 
-| Module | Tier | Pattern | Complexity |
-|--------|------|---------|------------|
-| capture | T2 | View → Headless → Adapter | Queue management, FSM |
-| report | T1 | View → Adapter | Simple fetch/render |
-| transaction | T2 | View → Headless → Adapter | CRUD, confirmation flow |
-| batch | T3 | Saga | Compensation, idempotency |
+| Module | Tier | Current Pattern | Target Pattern | Complexity |
+|--------|------|-----------------|----------------|------------|
+| capture | T2 | View → Headless → Adapter | View → Service → Adapter | Queue management, FSM |
+| report | T1 | View → Adapter | View → Service → Adapter | Simple fetch/render |
+| transaction | T2 | View → Headless → Adapter | View → Service → Adapter | CRUD, confirmation flow |
+| batch | T3 | Saga | Saga (in Service) | Compensation, idempotency |
+
+> **Target Pattern**: `View` triggers `Service`, `Service` orchestrates via `Adapter`, `View` subscribes to EventBus.
 
 ## Security
 
@@ -375,18 +415,20 @@ App launch
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Control Flow                              │
+│                    Control Flow (Target)                     │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  User Action                                                │
+│  User Action (React)                                        │
 │       │                                                     │
+│       │ call service method                                 │
 │       ▼                                                     │
 │  ┌─────────────┐                                            │
-│  │  Reducer    │  ← Single source of truth (FSM State)      │
-│  │  (FSM)      │     - status: idle|processing|paused       │
-│  │             │     - currentId: active task               │
-│  └─────────────┘     - tasks: task list                     │
+│  │  Service    │  ← Business orchestration                  │
+│  │             │     - Decide what to do                    │
+│  │             │     - Coordinate adapters                  │
+│  └─────────────┘     - Manage FSM state                     │
 │       │                                                     │
+│       │ call adapter                                        │
 │       ▼                                                     │
 │  ┌─────────────┐                                            │
 │  │  Adapter    │  ← Boundary validation (Pillar B)          │
@@ -397,13 +439,29 @@ App launch
 │  │  Storage    │  ← SQLite (local) / S3+DynamoDB (cloud)    │
 │  └─────────────┘                                            │
 │       │                                                     │
+│       │ emit result                                         │
 │       ▼                                                     │
 │  ┌─────────────┐                                            │
 │  │  EventBus   │  ← Cross-component notification            │
 │  └─────────────┘                                            │
+│       │                                                     │
+│       │ subscribe                                           │
+│       ▼                                                     │
+│  ┌─────────────┐                                            │
+│  │  React Hook │  ← Update UI state                         │
+│  └─────────────┘                                            │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Current vs Target
+
+| Aspect | Current (Headless) | Target (Service) |
+|--------|-------------------|------------------|
+| Orchestration | React hooks | Pure TS Service |
+| Event Listeners | useEffect | Service.init() |
+| State Management | useReducer | Service internal or Zustand |
+| Lifecycle | Component mount/unmount | App startup/shutdown |
 
 ### State Management Pattern
 
@@ -416,7 +474,8 @@ type QueueState =
   | { status: 'processing'; tasks: Task[]; currentId: ImageId }
   | { status: 'paused'; tasks: Task[]; reason: 'offline' | 'quota' };
 
-// Reducer handles all state transitions atomically
+// Current: Reducer in React hook (useReducer)
+// Target: Reducer in Service, exposed via Zustand or EventBus
 function reducer(state: QueueState, action: Action): QueueState {
   switch (action.type) {
     case 'START_UPLOAD':
@@ -427,10 +486,16 @@ function reducer(state: QueueState, action: Action): QueueState {
 ```
 
 **Rules**:
-- Use `useReducer` for complex state (not multiple `useState`)
-- State transitions only via `dispatch`
+- FSM state transitions only via dispatch/action
 - No external refs for tracking (avoid dual source of truth)
 - Impossible states should be unrepresentable
+
+**Current vs Target**:
+| Aspect | Current | Target |
+|--------|---------|--------|
+| State Location | React hook (useReducer) | Service class or Zustand store |
+| Access | Hook return value | EventBus subscription or store selector |
+| Mutations | dispatch() in hook | service.doAction() method |
 
 ### Concurrency Control
 
@@ -461,17 +526,31 @@ export async function withTransaction<T>(
 Sequential processing with FSM guards:
 
 ```typescript
+// Current: In React hook
 // Only process when idle
 if (state.status !== 'idle') return;
-
-// Mark as processing before async work
 dispatch({ type: 'START_UPLOAD', id: task.id });
-
 try {
   await uploadToS3(...);
   dispatch({ type: 'UPLOAD_SUCCESS', id: task.id });
 } catch (e) {
   dispatch({ type: 'UPLOAD_FAILURE', id: task.id, error: e });
+}
+
+// Target: In Service class
+class UploadService {
+  async processNext() {
+    if (this.state.status !== 'idle') return;
+    this.dispatch({ type: 'START_UPLOAD', id: task.id });
+    try {
+      await this.adapter.uploadToS3(...);
+      this.dispatch({ type: 'UPLOAD_SUCCESS', id: task.id });
+      this.eventBus.emit('upload:success', { id: task.id });
+    } catch (e) {
+      this.dispatch({ type: 'UPLOAD_FAILURE', id: task.id, error: e });
+      this.eventBus.emit('upload:failure', { id: task.id, error: e });
+    }
+  }
 }
 ```
 
@@ -479,20 +558,19 @@ try {
 
 Multi-layer defense with single authoritative checkpoint:
 
-| Layer | Location | Type | Data Source | Purpose |
-|-------|----------|------|-------------|---------|
-| Frontend | `useCaptureLogic.ts` | Soft/UX | Local queue | Fast feedback |
-| Frontend | `useUploadQueue.ts` | Soft/UX | Local queue | Prevent wasted API calls |
-| **Lambda** | `presign/index.mjs` | **HARD** | DynamoDB | Authoritative enforcement |
-| Lambda | `quota/index.mjs` | Info | DynamoDB | Query API for frontend sync |
+| Layer | Location (Current) | Location (Target) | Type | Purpose |
+|-------|-------------------|-------------------|------|---------|
+| Client | `useCaptureLogic.ts` | `captureService.ts` | Soft/UX | Fast feedback |
+| Client | `useUploadQueue.ts` | `uploadService.ts` | Soft/UX | Prevent wasted API calls |
+| **Cloud** | `presign/index.mjs` | (same) | **HARD** | Authoritative enforcement |
+| Cloud | `quota/index.mjs` | (same) | Info | Query API for frontend sync |
 
 **Design Rationale**:
-- Frontend checks may be stale (wrong day, cached count) - acceptable for UX hints
+- Client checks may be stale (wrong day, cached count) - acceptable for UX hints
 - Lambda presign is the single authoritative checkpoint (increments quota atomically)
-- Quota Lambda allows frontend to refresh local understanding on demand
+- Quota Lambda allows client to refresh local understanding on demand
 
-**Stale Closure Note**: Frontend quota check in `useUploadQueue` reads `state.tasks` which
-may be stale in async context. This is acceptable because Lambda is authoritative.
+**Note**: Moving quota check from React hooks to Service layer doesn't change the fundamental design - Lambda remains authoritative.
 
 ### Event Bus
 
@@ -526,6 +604,7 @@ const unsubscribe = on('upload:complete', (data) => {
 | No explicit DB transactions | `db.ts` | Added `withTransaction()` wrapper | 2026-01-02 |
 | Stale closure in quota check | `useUploadQueue.ts` | Documented as acceptable (Lambda is authoritative) | 2026-01-02 |
 | emitSync misleading name | `eventBus.ts` | Renamed to `broadcast` | 2026-01-02 |
+| StrictMode double listener (#82) | `useDragDrop.ts` | Temporary fix: ignore flag pattern | 2026-01-05 |
 
 #### Improvement Roadmap
 
@@ -540,6 +619,13 @@ const unsubscribe = on('upload:complete', (data) => {
 **P3 - Robustness**: ✅ Complete
 - [x] Add Intent-ID for idempotency (Pillar Q) (#28) - 2026-01-02
 - [x] ~~Add request-response pattern to EventBus~~ (#29) - Closed: over-engineering
+
+**P4 - Architecture Refactor**: 🔄 Pending (Post-MVP1)
+- [ ] Refactor `useDragDrop.ts` to Service pattern (#82)
+- [ ] Create `captureService.ts` to replace `useCaptureLogic.ts`
+- [ ] Create `uploadService.ts` to replace `useUploadQueue.ts`
+- [ ] Move Tauri event listeners to Service init
+- [ ] React hooks only subscribe to EventBus
 
 ## ID Management Strategy
 
@@ -599,7 +685,8 @@ Second drop (same receipt.jpg):
 - Format: `intent-{uuid}` to distinguish from traceId
 
 **4. All IDs Generated at Drop Time**
-- Single point of ID creation (tauriDragDrop.ts + CaptureView.tsx)
+- Current: IDs created in tauriDragDrop.ts (adapter) + CaptureView.tsx (React)
+- Target: IDs created in captureService.ts (Service layer)
 - No ID generation during async operations
 - Prevents race conditions
 
