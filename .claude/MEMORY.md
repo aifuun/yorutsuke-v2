@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-05] Completed MVP0 architecture refactor - migrated capture module from headless hooks to Service pattern (captureService, fileService, uploadService + Zustand stores)
-- **Next Steps**: Manual testing of MVP0 (tauri dev), then proceed to MVP1 local testing
+- **Last Progress**: [2026-01-05] MVP0 Phase 5 cleanup complete - deleted legacy hooks, created MOCKING.md, updated docs consistency
+- **Next Steps**: Manual testing of MVP0 (`npm run tauri dev`), verify #82 fix, then close #82
 - **Blockers**: None
 
 ## Architecture Decisions
