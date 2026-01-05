@@ -253,6 +253,6 @@ aws ce get-cost-and-usage \
 
 ## References
 
-- Architecture: `./ARCHITECTURE.md`
+- Architecture: `../architecture/ARCHITECTURE.md`
 - Deployment: `./DEPLOYMENT.md`
 - CDK Stack: `infra/lib/yorutsuke-stack.ts`

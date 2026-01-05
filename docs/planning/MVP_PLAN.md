@@ -614,7 +614,7 @@ npm run tauri dev
 
 ## References
 
-- [REQUIREMENTS.md](./REQUIREMENTS.md) - 功能需求
-- [tests/](./tests/) - 测试场景详情
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - 技术架构
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - 部署指南
+- [REQUIREMENTS.md](../product/REQUIREMENTS.md) - 功能需求
+- [tests/](../tests/) - 测试场景详情
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - 技术架构
+- [DEPLOYMENT.md](../operations/DEPLOYMENT.md) - 部署指南

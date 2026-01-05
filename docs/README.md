@@ -4,21 +4,52 @@
 
 ## Quick Navigation
 
+### Product (What to Build)
+
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [REQUIREMENTS](./REQUIREMENTS.md) | What to build | PM, Dev |
-| [ARCHITECTURE](./ARCHITECTURE.md) | How to organize | Dev |
-| [SCHEMA](./SCHEMA.md) | Data model | Dev |
-| [UI Design](./ui_design/) | UI/UX mockups | Dev, Design |
-| [INTERFACES](./INTERFACES.md) | IPC & API | Dev |
-| [QUOTA](./QUOTA.md) | Quota system | Dev, Ops |
-| [DEPLOYMENT](./DEPLOYMENT.md) | Build & deploy | Dev, Ops |
-| [OPERATIONS](./OPERATIONS.md) | Emergency & monitoring | Ops |
-| [ADMIN_PANEL](./ADMIN_PANEL.md) | Admin console guide | Ops |
-| [CHANGELOG](./CHANGELOG.md) | Version history | All |
-| [ROADMAP](./ROADMAP.md) | Future plans | PM, Dev |
+| [REQUIREMENTS](./product/REQUIREMENTS.md) | User stories, specs | PM, Dev |
+| [ROADMAP](./product/ROADMAP.md) | Future plans | PM, Dev |
+| [CHANGELOG](./product/CHANGELOG.md) | Version history | All |
+
+### Architecture (How it Works)
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [ARCHITECTURE](./architecture/ARCHITECTURE.md) | System design | Dev |
+| [SCHEMA](./architecture/SCHEMA.md) | Data model | Dev |
+| [INTERFACES](./architecture/INTERFACES.md) | IPC & API | Dev |
+| [PROGRAM_PATHS](./architecture/PROGRAM_PATHS.md) | Code flow traces | Dev |
+
+### Design (Look & Feel)
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [design/](./design/) | UI/UX mockups | Dev, Design |
+
+### Operations (Run & Maintain)
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [DEPLOYMENT](./operations/DEPLOYMENT.md) | Build & deploy | Dev, Ops |
+| [OPERATIONS](./operations/OPERATIONS.md) | Emergency & monitoring | Ops |
+| [ADMIN_PANEL](./operations/ADMIN_PANEL.md) | Admin console | Ops |
+| [QUOTA](./operations/QUOTA.md) | Quota system | Dev, Ops |
+| [LOGGING](./operations/LOGGING.md) | Logging design | Dev |
+
+### Testing (Quality)
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
 | [tests/](./tests/) | Test scenarios | Dev, QA |
-| [PROGRAM_PATHS](./PROGRAM_PATHS.md) | Code flow traces | Dev |
+
+### Planning
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [MVP_PLAN](./planning/MVP_PLAN.md) | Incremental testing | Dev |
+
+---
 
 ## Development Modes
 
@@ -75,49 +106,52 @@ npm run tauri dev
 
 ### For New Developers
 
-1. **REQUIREMENTS.md** - Understand the product
-2. **ARCHITECTURE.md** - Understand the system
-3. **SCHEMA.md** - Understand the data
-4. **INTERFACES.md** - Understand the APIs
+1. **product/REQUIREMENTS.md** - Understand the product
+2. **architecture/ARCHITECTURE.md** - Understand the system
+3. **architecture/SCHEMA.md** - Understand the data
+4. **architecture/INTERFACES.md** - Understand the APIs
 
 ### For UI/UX Work
 
-1. **ui_design/** - HTML mockups & design docs
-2. **REQUIREMENTS.md** - User stories
+1. **design/** - HTML mockups & design docs
+2. **product/REQUIREMENTS.md** - User stories
 
 ### For Operations
 
-1. **DEPLOYMENT.md** - How to deploy
-2. **OPERATIONS.md** - How to operate
-3. **QUOTA.md** - Cost controls
+1. **operations/DEPLOYMENT.md** - How to deploy
+2. **operations/OPERATIONS.md** - How to operate
+3. **operations/QUOTA.md** - Cost controls
 
-## Document Categories
+---
+
+## Directory Structure
 
 ```
-Product (What)
-├── REQUIREMENTS.md    User stories, acceptance criteria
-└── ROADMAP.md         Future plans, backlog
-
-Architecture (How)
-├── ARCHITECTURE.md    System design, data flows
-├── SCHEMA.md          Database tables, types
-└── INTERFACES.md      IPC commands, REST APIs
-
-Design (Look & Feel)
-└── ui_design/         HTML mockups, design specs
-
-Operations (Run & Maintain)
-├── DEPLOYMENT.md      Build, deploy, rollback
-├── OPERATIONS.md      Monitoring, emergency response
-├── ADMIN_PANEL.md     Admin console, controls
-└── QUOTA.md           Quota tiers, cost control
-
-Testing (Quality)
-├── tests/             Test scenarios (frontend & backend)
-└── PROGRAM_PATHS.md   Detailed code flow traces
-
-History
-└── CHANGELOG.md       Version history
+docs/
+├── README.md              # This file (index)
+├── product/               # What to build
+│   ├── REQUIREMENTS.md
+│   ├── ROADMAP.md
+│   └── CHANGELOG.md
+├── architecture/          # How it works
+│   ├── ARCHITECTURE.md
+│   ├── SCHEMA.md
+│   ├── INTERFACES.md
+│   └── PROGRAM_PATHS.md
+├── design/                # Look & feel
+│   └── *.md               # UI mockups
+├── operations/            # Run & maintain
+│   ├── DEPLOYMENT.md
+│   ├── OPERATIONS.md
+│   ├── ADMIN_PANEL.md
+│   ├── QUOTA.md
+│   └── LOGGING.md
+├── tests/                 # Quality
+│   ├── FRONTEND.md
+│   └── BACKEND.md
+├── planning/              # Dev planning
+│   └── MVP_PLAN.md
+└── archive/               # Historical docs
 ```
 
 ## Conventions
@@ -129,7 +163,7 @@ History
 
 ## Related Resources
 
-- Project README: `../README.md` (if exists)
+- Project README: `../README.md`
 - Protocol: `../.prot/CHEATSHEET.md`
-- Claude Config: `../.claude/CLAUDE.md`
-- Archive: `./archive/` (historical docs)
+- Claude Config: `../.claude/`
+- Archive: `./archive/`

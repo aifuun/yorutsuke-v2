@@ -8,7 +8,7 @@
 >
 > **See also**:
 > - [BACKEND.md](./BACKEND.md) - Lambda, Batch Processing tests
-> - [../PROGRAM_PATHS.md](../PROGRAM_PATHS.md) - Detailed code flow traces
+> - [../architecture/PROGRAM_PATHS.md](../architecture/PROGRAM_PATHS.md) - Detailed code flow traces
 
 ## How to Use
 

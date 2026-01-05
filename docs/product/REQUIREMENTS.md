@@ -152,7 +152,7 @@
 
 ## References
 
-- Original yorutsuke PRD: `../yorutsuke/docs/final-prd.html`
-- Schema design: `./SCHEMA.md`
-- Architecture: `./ARCHITECTURE.md`
-- Test scenarios: `./tests/`
+- Original yorutsuke PRD: `../../yorutsuke/docs/final-prd.html`
+- Schema design: `../architecture/SCHEMA.md`
+- Architecture: `../architecture/ARCHITECTURE.md`
+- Test scenarios: `../tests/`

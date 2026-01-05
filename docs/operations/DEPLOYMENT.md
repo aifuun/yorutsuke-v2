@@ -310,7 +310,7 @@ npm run tauri build
 
 ## References
 
-- Architecture: `./ARCHITECTURE.md`
+- Architecture: `../architecture/ARCHITECTURE.md`
 - Operations: `./OPERATIONS.md`
 - CDK Stack: `infra/lib/yorutsuke-stack.ts`
 - Tauri Config: `app/src-tauri/tauri.conf.json`

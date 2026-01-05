@@ -134,6 +134,6 @@ const MIN_UPLOAD_INTERVAL_MS = 2000; // 2 seconds
 
 ## Related Documentation
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) - Quota enforcement in Control Strategy
-- [INTERFACES.md](./INTERFACES.md) - POST /quota API
+- [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - Quota enforcement in Control Strategy
+- [INTERFACES.md](../architecture/INTERFACES.md) - POST /quota API
 - [OPERATIONS.md](./OPERATIONS.md) - Cost controls

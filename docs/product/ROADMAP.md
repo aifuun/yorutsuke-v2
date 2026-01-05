@@ -84,12 +84,12 @@ These are explicitly not planned:
 
 ## Archived
 
-Completed phase details: [archive/ROADMAP-v2-history.md](./archive/ROADMAP-v2-history.md)
+Completed phase details: [archive/ROADMAP-v2-history.md](../archive/ROADMAP-v2-history.md)
 
 ---
 
 ## References
 
-- Source project: `../yorutsuke/`
-- Protocol: `../.prot/CHEATSHEET.md`
+- Source project: `../../yorutsuke/`
+- Protocol: `../../.prot/CHEATSHEET.md`
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)

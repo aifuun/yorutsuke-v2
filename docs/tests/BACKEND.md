@@ -7,7 +7,7 @@
 >
 > **See also**:
 > - [FRONTEND.md](./FRONTEND.md) - Client application tests
-> - [../INTERFACES.md](../INTERFACES.md) - API specifications
+> - [../architecture/INTERFACES.md](../architecture/INTERFACES.md) - API specifications
 
 ## How to Use
 

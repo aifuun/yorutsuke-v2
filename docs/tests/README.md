@@ -44,9 +44,9 @@
 
 ## Quick Links
 
-- [Program Paths](../PROGRAM_PATHS.md) - Code flow traces
-- [Interfaces](../INTERFACES.md) - API specifications
-- [Architecture](../ARCHITECTURE.md) - System design
+- [Program Paths](../architecture/PROGRAM_PATHS.md) - Code flow traces
+- [Interfaces](../architecture/INTERFACES.md) - API specifications
+- [Architecture](../architecture/ARCHITECTURE.md) - System design
 
 ---
 
