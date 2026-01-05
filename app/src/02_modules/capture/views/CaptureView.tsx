@@ -123,6 +123,24 @@ export function CaptureView() {
             </p>
           </div>
 
+          {/* Stats Row */}
+          <div className="stats-row">
+            <div className="premium-card stat-card">
+              <span className="stat-icon">⏳</span>
+              <div className="stat-content">
+                <span className="stat-label">{t('capture.pending')}</span>
+                <span className="stat-value mono">{pendingCount}</span>
+              </div>
+            </div>
+            <div className="premium-card stat-card">
+              <span className="stat-icon">✅</span>
+              <div className="stat-content">
+                <span className="stat-label">{t('capture.uploaded')}</span>
+                <span className="stat-value mono">{uploadedCount}</span>
+              </div>
+            </div>
+          </div>
+
           {/* Drop Zone */}
           <div className="premium-card drop-card">
             <div
@@ -185,26 +203,6 @@ export function CaptureView() {
               </div>
             </div>
           )}
-
-          {/* Stats Summary */}
-          <div className="premium-card stats-card">
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-icon">⏳</span>
-                <div className="stat-content">
-                  <span className="stat-label">{t('capture.pending')}</span>
-                  <span className="stat-value mono">{pendingCount}</span>
-                </div>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">✅</span>
-                <div className="stat-content">
-                  <span className="stat-label">{t('capture.uploaded')}</span>
-                  <span className="stat-value mono">{uploadedCount}</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Duplicate Detection Banner (shown when duplicates are skipped) */}
           {/* TODO: Connect to duplicate detection logic in useCaptureLogic */}
