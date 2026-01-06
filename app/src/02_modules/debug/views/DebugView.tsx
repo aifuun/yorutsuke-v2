@@ -10,6 +10,7 @@ import { resetTodayQuota } from '../../capture/adapters/imageDb';
 import { clearAllData } from '../../../00_kernel/storage/db';
 import { dlog, getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
+import { setMockEnabled, subscribeMockMode, getMockSnapshot } from '../../../00_kernel/config/mock';
 import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
 
@@ -21,6 +22,11 @@ function useLogs(): LogEntry[] {
   return useSyncExternalStore(subscribeLogs, getLogs, getLogs);
 }
 
+// Hook to subscribe to mock mode
+function useMockMode(): boolean {
+  return useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
+}
+
 export function DebugView() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -28,6 +34,7 @@ export function DebugView() {
   const { state, update } = useSettings();
   const { quota } = useQuota();
   const logs = useLogs();
+  const mockEnabled = useMockMode();
 
   // Seed data state
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
@@ -144,8 +151,8 @@ export function DebugView() {
       <div className="debug-content">
         <div className="debug-container">
           {/* Section 1: System & Config */}
-          <div className="premium-card debug-card">
-            <h2 className="section-header">{t('debug.systemInfo')}</h2>
+          <div className="card card--settings">
+            <h2 className="card--settings__header">{t('debug.systemInfo')}</h2>
 
             <div className="debug-grid">
               <div className="debug-grid-item">
@@ -173,17 +180,16 @@ export function DebugView() {
                 <span className="debug-value mono">v3</span>
               </div>
             </div>
-
           </div>
 
           {/* Section 2: Dev Actions */}
-          <div className="premium-card debug-card">
-            <h2 className="section-header">{t('debug.devActions')}</h2>
+          <div className="card card--settings">
+            <h2 className="card--settings__header">{t('debug.devActions')}</h2>
 
             {/* Seed Data */}
-            <div className="debug-action-row">
-              <span className="debug-action-label">{t('debug.mockData')}</span>
-              <div className="debug-action-controls">
+            <div className="setting-row">
+              <div className="setting-row__info" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                <p className="setting-row__label" style={{ margin: 0 }}>{t('debug.mockData')}</p>
                 <select
                   className="select select--sm"
                   value={seedScenario}
@@ -194,6 +200,8 @@ export function DebugView() {
                     <option key={scenario} value={scenario}>{scenario}</option>
                   ))}
                 </select>
+              </div>
+              <div className="setting-row__control">
                 <button
                   type="button"
                   className="btn btn--primary btn--sm"
@@ -205,36 +213,55 @@ export function DebugView() {
               </div>
             </div>
 
-            <div className="debug-divider" />
-
-            {/* Danger Actions */}
-            <div className="debug-action-row debug-action-row--danger">
-              <div className="debug-action-info">
-                <span className="debug-action-label">⚠️ {t('debug.resetQuota')}</span>
-                <span className="debug-action-hint">{t('debug.resetQuotaHint')}</span>
+            {/* Mock Mode Toggle */}
+            <div className="setting-row">
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('debug.mockMode')}</p>
+                <p className="setting-row__hint">{t('debug.mockModeHint')}</p>
               </div>
-              <button
-                type="button"
-                className="btn btn--warning btn--sm"
-                onClick={handleResetQuota}
-                disabled={actionStatus === 'running' || !effectiveUserId}
-              >
-                Reset
-              </button>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className={`toggle-switch toggle-switch--sm ${mockEnabled ? 'toggle-switch--active' : ''}`}
+                  onClick={() => setMockEnabled(!mockEnabled)}
+                  role="switch"
+                  aria-checked={mockEnabled}
+                />
+              </div>
             </div>
 
-            <div className="debug-action-row debug-action-row--danger">
-              <div className="debug-action-info">
-                <span className="debug-action-label">⚠️ {t('debug.clearLocalStorage')}</span>
-                <span className="debug-action-hint">{t('settings.clearCacheHint')}</span>
+            {/* Danger Actions */}
+            <div className="setting-row setting-row--danger">
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('debug.resetQuota')}</p>
+                <p className="setting-row__hint">{t('debug.resetQuotaHint')}</p>
               </div>
-              <button
-                type="button"
-                className="btn btn--danger btn--sm"
-                onClick={handleClearStorage}
-              >
-                Clear
-              </button>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--warning btn--sm"
+                  onClick={handleResetQuota}
+                  disabled={actionStatus === 'running' || !effectiveUserId}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-row setting-row--danger">
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('debug.clearLocalStorage')}</p>
+                <p className="setting-row__hint">{t('settings.clearCacheHint')}</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--danger btn--sm"
+                  onClick={handleClearStorage}
+                >
+                  Clear
+                </button>
+              </div>
             </div>
 
             {/* Action Result */}
@@ -246,9 +273,9 @@ export function DebugView() {
           </div>
 
           {/* Section 3: Logs */}
-          <div className="premium-card debug-card">
+          <div className="card card--settings">
             <div className="debug-logs-header">
-              <h2 className="section-header">Logs</h2>
+              <h2 className="card--settings__header">Logs</h2>
               <div className="debug-logs-controls">
                 <label className="debug-verbose-toggle">
                   <span className="debug-verbose-label">Verbose</span>

@@ -227,7 +227,9 @@
     "dangerZone": "Danger Zone",
     "dangerZoneHint": "These actions cannot be undone",
     "clearLocalStorage": "Clear Storage",
-    "clearCacheConfirm": "This will clear all local data and reload the app. Continue?"
+    "clearCacheConfirm": "This will clear all local data and reload the app. Continue?",
+    "mockMode": "Mock Mode",
+    "mockModeHint": "Use mock API responses instead of real backend"
   },
   "capture": {
     "todayQuota": "Today's Quota",
@@ -235,7 +237,9 @@
     "quotaFull": "Daily quota reached",
     "dropHere": "Drop receipts here",
     "dropRelease": "Release to upload",
-    "supportedFormats": "Supports JPG, PNG, HEIC",
+    "supportedFormats": "Supports JPG, PNG, WebP",
+    "rejected": "{{count}} file(s) rejected",
+    "rejectedHint": "Only JPG, PNG, and WebP images are supported",
     "processingQueue": "Processing Queue",
     "pending": "Pending",
     "uploaded": "Uploaded",

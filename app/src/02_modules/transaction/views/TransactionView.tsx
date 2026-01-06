@@ -6,15 +6,18 @@ import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import './ledger.css';
 
+type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
+
 interface TransactionViewProps {
   userId: UserId | null;
+  onNavigate?: (view: ViewType) => void;
 }
 
 // Month names for the interval selector
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_JA = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
-export function TransactionView({ userId }: TransactionViewProps) {
+export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t, i18n } = useTranslation();
   const { state, filteredTransactions, confirm, remove } = useTransactionLogic(userId);
 
@@ -44,11 +47,13 @@ export function TransactionView({ userId }: TransactionViewProps) {
     return { income, expense, count: displayTransactions.length };
   }, [displayTransactions]);
 
+  const handleNewEntry = () => onNavigate?.('capture');
+
   // Handle all states (Pillar D: FSM)
   if (state.status === 'idle') {
     return (
       <div className="ledger">
-        <LedgerHeader title={t('nav.ledger')} />
+        <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
         <div className="ledger-content">
           <div className="ledger-loading">{t('auth.login')}</div>
         </div>
@@ -59,7 +64,7 @@ export function TransactionView({ userId }: TransactionViewProps) {
   if (state.status === 'loading') {
     return (
       <div className="ledger">
-        <LedgerHeader title={t('nav.ledger')} />
+        <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
         <div className="ledger-content">
           <div className="ledger-loading">{t('common.loading')}</div>
         </div>
@@ -70,7 +75,7 @@ export function TransactionView({ userId }: TransactionViewProps) {
   if (state.status === 'error') {
     return (
       <div className="ledger">
-        <LedgerHeader title={t('nav.ledger')} />
+        <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
         <div className="ledger-content">
           <div className="ledger-error">{state.error}</div>
         </div>
@@ -82,7 +87,7 @@ export function TransactionView({ userId }: TransactionViewProps) {
 
   return (
     <div className="ledger">
-      <LedgerHeader title={t('nav.ledger')} />
+      <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
 
       {/* Time Control Bar */}
       <div className="ledger-controls">
@@ -132,38 +137,32 @@ export function TransactionView({ userId }: TransactionViewProps) {
         <div className="ledger-container">
           {/* Summary Cards */}
           <div className="summary-grid">
-            <div className="card card--stat is-income">
-              <div className="card--stat__icon">📈</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('ledger.annualInflow')}</p>
-                <p className="card--stat__value">¥{summary.income.toLocaleString()}</p>
-              </div>
+            <div className="card card--summary is-income">
+              <p className="card--summary__label">{t('ledger.annualInflow')}</p>
+              <p className="card--summary__value">¥{summary.income.toLocaleString()}</p>
             </div>
-            <div className="card card--stat is-expense">
-              <div className="card--stat__icon">📉</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('ledger.annualOutflow')}</p>
-                <p className="card--stat__value">¥{summary.expense.toLocaleString()}</p>
-              </div>
+            <div className="card card--summary is-expense">
+              <p className="card--summary__label">{t('ledger.annualOutflow')}</p>
+              <p className="card--summary__value">¥{summary.expense.toLocaleString()}</p>
             </div>
           </div>
 
           {/* Transaction List */}
-          <div className="registry-section">
-            <div className="registry-header">
-              <h2 className="registry-title">{t('ledger.latestEntries')}</h2>
-              <span className="registry-count">
+          <div className="card card--list">
+            <div className="card--list__header">
+              <h2 className="card--list__title">{t('ledger.latestEntries')}</h2>
+              <span className="card--list__count">
                 {t('ledger.totalItems', { count: summary.count })}
               </span>
             </div>
 
             {displayTransactions.length === 0 ? (
-              <div className="glass-card empty-state">
+              <div className="card--list__empty">
                 <p className="empty-title">{t('empty.no-results.title')}</p>
                 <p className="empty-message">{t('empty.no-results.message')}</p>
               </div>
             ) : (
-              <div className="transaction-list">
+              <div className="card--list__items">
                 {displayTransactions.map((transaction) => (
                   <TransactionCard
                     key={transaction.id}
@@ -182,12 +181,12 @@ export function TransactionView({ userId }: TransactionViewProps) {
 }
 
 // Header component
-function LedgerHeader({ title }: { title: string }) {
+function LedgerHeader({ title, onNewEntry }: { title: string; onNewEntry?: () => void }) {
   const { t } = useTranslation();
   return (
     <header className="ledger-header">
       <h1 className="ledger-title">{title}</h1>
-      <button type="button" className="btn btn--primary">
+      <button type="button" className="btn btn--primary" onClick={onNewEntry}>
         + {t('ledger.newEntry')}
       </button>
     </header>

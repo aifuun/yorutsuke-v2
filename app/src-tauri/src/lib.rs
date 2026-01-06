@@ -52,8 +52,8 @@ fn compress_image(input_path: String, image_id: String) -> Result<CompressResult
 
     let (orig_width, orig_height) = img.dimensions();
 
-    // Calculate new dimensions (max 1024px on longest side)
-    const MAX_SIZE: u32 = 1024;
+    // Calculate new dimensions (max 1536px on longest side)
+    const MAX_SIZE: u32 = 1536;
     let (new_width, new_height) = if orig_width > orig_height {
         if orig_width > MAX_SIZE {
             let ratio = MAX_SIZE as f32 / orig_width as f32;
@@ -87,9 +87,9 @@ fn compress_image(input_path: String, image_id: String) -> Result<CompressResult
     let actual_width = rgb_image.width();
     let actual_height = rgb_image.height();
 
-    // Encode to WebP (75% quality - optimized for OCR)
+    // Encode to WebP (85% quality - balanced for OCR and visual quality)
     let encoder = webp::Encoder::from_rgb(&rgb_image, actual_width, actual_height);
-    let webp_data = encoder.encode(75.0);
+    let webp_data = encoder.encode(85.0);
 
     // Calculate MD5 hash of compressed data (for duplicate detection)
     let md5_hash = format!("{:x}", md5::compute(&*webp_data));

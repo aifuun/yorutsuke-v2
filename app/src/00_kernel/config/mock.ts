@@ -2,15 +2,55 @@
 // When enabled, API calls return mock data instead of hitting real backends
 
 /**
- * Mock mode is enabled when:
+ * Initial mock mode is enabled when:
  * 1. VITE_USE_MOCK=true (explicit), or
  * 2. No Lambda URLs are configured (implicit)
  */
-export const USE_MOCK =
+const INITIAL_MOCK =
   import.meta.env.VITE_USE_MOCK === 'true' ||
   (!import.meta.env.VITE_LAMBDA_PRESIGN_URL &&
    !import.meta.env.VITE_LAMBDA_QUOTA_URL &&
    !import.meta.env.VITE_LAMBDA_CONFIG_URL);
+
+// Runtime mock state
+let _mockEnabled = INITIAL_MOCK;
+const _listeners = new Set<() => void>();
+
+/**
+ * Check if mock mode is currently enabled
+ */
+export function isMockEnabled(): boolean {
+  return _mockEnabled;
+}
+
+/**
+ * For backwards compatibility - use isMockEnabled() for reactive checks
+ */
+export const USE_MOCK = INITIAL_MOCK;
+
+/**
+ * Toggle mock mode at runtime
+ */
+export function setMockEnabled(enabled: boolean): void {
+  _mockEnabled = enabled;
+  _listeners.forEach(listener => listener());
+  console.log(`[Mock] Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+}
+
+/**
+ * Subscribe to mock mode changes
+ */
+export function subscribeMockMode(listener: () => void): () => void {
+  _listeners.add(listener);
+  return () => _listeners.delete(listener);
+}
+
+/**
+ * Get current mock state (for useSyncExternalStore)
+ */
+export function getMockSnapshot(): boolean {
+  return _mockEnabled;
+}
 
 /**
  * Simulate network delay for realistic mock behavior
@@ -23,5 +63,5 @@ export function mockDelay(ms?: number): Promise<void> {
 
 // Log mock mode status in development
 if (import.meta.env.DEV) {
-  console.log(`[Mock] Mode: ${USE_MOCK ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`[Mock] Mode: ${INITIAL_MOCK ? 'ENABLED' : 'DISABLED'}`);
 }

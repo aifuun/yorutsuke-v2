@@ -115,26 +115,34 @@ describe('receipt/rules', () => {
     it('allows upload when under limit and no recent upload', () => {
       const result = canUpload(5, 30, null);
       expect(result.allowed).toBe(true);
-      expect(result.reason).toBeUndefined();
     });
 
     it('denies upload when limit reached', () => {
       const result = canUpload(30, 30, null);
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Daily limit reached');
+      if (!result.allowed) {
+        expect(result.type).toBe('quota_exceeded');
+        expect(result.reason).toContain('Daily limit reached');
+      }
     });
 
     it('denies upload when over limit', () => {
       const result = canUpload(35, 30, null);
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Daily limit reached');
+      if (!result.allowed) {
+        expect(result.type).toBe('quota_exceeded');
+        expect(result.reason).toContain('Daily limit reached');
+      }
     });
 
     it('denies upload when too soon after last upload', () => {
       const now = Date.now();
       const result = canUpload(5, 30, now - 500); // 500ms ago
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Please wait');
+      if (!result.allowed && result.type === 'rate_limited') {
+        expect(result.reason).toContain('Please wait');
+        expect(result.waitMs).toBeGreaterThan(0);
+      }
     });
 
     it('allows upload after interval has passed', () => {

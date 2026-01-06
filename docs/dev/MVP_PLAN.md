@@ -306,7 +306,7 @@ npm run tauri dev
 #### 1.2 File Validation
 | ID | 场景 | 预期 |
 |----|------|------|
-| SC-010 | 有效格式 (JPG/PNG/HEIC) | 全部接受 |
+| SC-010 | 有效格式 (JPG/PNG/WebP) | 全部接受 |
 | SC-011 | 无效格式 (.txt/.pdf) | 拒绝并提示 |
 | SC-012 | 损坏图片 | 错误: "Failed to open image" |
 | SC-013 | 空文件 | 优雅处理错误 |

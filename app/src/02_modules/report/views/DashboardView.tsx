@@ -122,39 +122,23 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             </div>
           </div>
 
-          {/* Quick Stats - Row 1: Pending + Quota */}
-          <div className="stats-row">
-            <div className="card card--stat is-sm is-warning">
-              <div className="card--stat__icon">📷</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('dashboard.pending')}</p>
-                <p className="card--stat__value">{pendingCount}</p>
-              </div>
+          {/* Quick Stats Grid */}
+          <div className="summary-grid">
+            <div className="card card--summary is-pending">
+              <p className="card--summary__label">{t('dashboard.pending')}</p>
+              <p className="card--summary__value">{pendingCount}</p>
             </div>
-            <div className="card card--stat is-sm">
-              <div className="card--stat__icon">🎯</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('dashboard.quotaRemaining')}</p>
-                <p className="card--stat__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
-              </div>
+            <div className="card card--summary is-info">
+              <p className="card--summary__label">{t('dashboard.quotaRemaining')}</p>
+              <p className="card--summary__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
             </div>
-          </div>
-
-          {/* Quick Stats - Row 2: Monthly Income + Expense */}
-          <div className="stats-row">
-            <div className="card card--stat is-sm is-income">
-              <div className="card--stat__icon">📈</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('dashboard.monthlyIncome')}</p>
-                <p className="card--stat__value">¥{monthlySummary.income.toLocaleString()}</p>
-              </div>
+            <div className="card card--summary is-income">
+              <p className="card--summary__label">{t('dashboard.monthlyIncome')}</p>
+              <p className="card--summary__value">¥{monthlySummary.income.toLocaleString()}</p>
             </div>
-            <div className="card card--stat is-sm is-expense">
-              <div className="card--stat__icon">📉</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('dashboard.monthlyExpense')}</p>
-                <p className="card--stat__value">¥{monthlySummary.expense.toLocaleString()}</p>
-              </div>
+            <div className="card card--summary is-expense">
+              <p className="card--summary__label">{t('dashboard.monthlyExpense')}</p>
+              <p className="card--summary__value">¥{monthlySummary.expense.toLocaleString()}</p>
             </div>
           </div>
 

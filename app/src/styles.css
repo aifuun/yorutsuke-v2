@@ -366,14 +366,18 @@ body {
 .card--stat {
   display: flex;
   align-items: center;
-  padding: 0 24px 0 0;
+  padding: 0;
+  padding-right: 24px;
   gap: 8px;
 }
 
 .card--stat__icon {
-  width: 64px;
-  height: auto;
-  font-size: 42px;
+  width: 80px;
+  align-self: stretch;
+  margin: 0;
+  margin-left: -1px;
+  padding: 0;
+  font-size: 64px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -445,7 +449,7 @@ body {
 /* Responsive: Stat */
 @media (max-width: 768px) {
   .card--stat__icon {
-    width: 56px;
+    width: 64px;
     font-size: 36px;
   }
 
@@ -460,7 +464,7 @@ body {
 
 @media (max-width: 480px) {
   .card--stat__icon {
-    width: 48px;
+    width: 56px;
     font-size: 32px;
   }
 
@@ -470,6 +474,118 @@ body {
 
   .card--stat__value {
     font-size: 20px;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * Card Variant: Summary (Left border stripe + gradient)
+ * - Colored left border (8px)
+ * - Gradient background from accent color
+ * - Label + Value stacked
+ * -------------------------------------------------------------------------- */
+.card--summary {
+  padding: 28px 32px;
+  border-left-width: 4px;
+  border-left-style: solid;
+  border-left-color: var(--slate-200);
+}
+
+.card--summary__label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--slate-500);
+  margin: 0 0 8px 0;
+}
+
+.card--summary__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--slate-800);
+  font-family: var(--font-mono);
+  margin: 0;
+  line-height: 1;
+}
+
+/* Summary: Income variant */
+.card--summary.is-income {
+  border-left-color: var(--emerald-500);
+  background: linear-gradient(135deg, rgba(209, 250, 229, 0.3) 0%, rgba(255, 255, 255, 0.3) 100%);
+}
+
+.card--summary.is-income .card--summary__label {
+  color: var(--emerald-600);
+}
+
+.card--summary.is-income .card--summary__value {
+  color: var(--emerald-600);
+}
+
+/* Summary: Expense variant */
+.card--summary.is-expense {
+  border-left-color: var(--rose-500);
+  background: linear-gradient(135deg, rgba(255, 228, 230, 0.3) 0%, rgba(255, 255, 255, 0.3) 100%);
+}
+
+.card--summary.is-expense .card--summary__label {
+  color: var(--rose-600);
+}
+
+.card--summary.is-expense .card--summary__value {
+  color: var(--rose-600);
+}
+
+/* Summary: Warning variant */
+.card--summary.is-warning {
+  border-left-color: var(--amber-500);
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.3) 0%, rgba(255, 255, 255, 0.3) 100%);
+}
+
+.card--summary.is-warning .card--summary__label {
+  color: var(--amber-600);
+}
+
+.card--summary.is-warning .card--summary__value {
+  color: var(--amber-800);
+}
+
+/* Summary: Info variant (blue) - for Quota */
+.card--summary.is-info {
+  border-left-color: var(--blue-500);
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.3) 0%, rgba(255, 255, 255, 0.3) 100%);
+}
+
+.card--summary.is-info .card--summary__label {
+  color: var(--blue-600);
+}
+
+.card--summary.is-info .card--summary__value {
+  color: var(--blue-600);
+}
+
+/* Summary: Pending variant (brown) - for Pending items */
+.card--summary.is-pending {
+  border-left-color: #A1887F;
+  background: linear-gradient(135deg, rgba(215, 204, 200, 0.3) 0%, rgba(255, 255, 255, 0.3) 100%);
+}
+
+.card--summary.is-pending .card--summary__label {
+  color: #6D4C41;
+}
+
+.card--summary.is-pending .card--summary__value {
+  color: #5D4037;
+}
+
+/* Responsive: Summary */
+@media (max-width: 768px) {
+  .card--summary {
+    padding: 20px 24px;
+  }
+
+  .card--summary__value {
+    font-size: 24px;
   }
 }
 
@@ -513,12 +629,25 @@ body {
 }
 
 .card--list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 16px 0;
+}
+
+.card--list__title {
   font-size: 10px;
   font-weight: 800;
   color: var(--slate-400);
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  margin: 0 0 16px 0;
+  margin: 0;
+}
+
+.card--list__count {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--slate-300);
 }
 
 .card--list__items {
@@ -532,6 +661,135 @@ body {
   padding: 24px;
   color: var(--slate-400);
   font-size: 14px;
+}
+
+/* -----------------------------------------------------------------------------
+ * Card Variant: Settings (For settings/debug pages)
+ * -------------------------------------------------------------------------- */
+.card--settings {
+  padding: 24px;
+}
+
+.card--settings__header {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin: 0 0 20px 0;
+}
+
+/* Setting Row - 2 column grid layout */
+.setting-row {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.setting-row:first-of-type {
+  padding-top: 0;
+}
+
+.setting-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setting-row__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-700);
+  margin: 0;
+}
+
+.setting-row__hint {
+  font-size: 12px;
+  color: var(--slate-400);
+  margin: 0;
+}
+
+.setting-row__control {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Control fills the right column */
+.setting-row__control .select,
+.setting-row__control .btn {
+  width: 100%;
+}
+
+.setting-row__control .toggle-switch {
+  /* Toggle doesn't need full width */
+}
+
+.setting-row__value {
+  font-size: 14px;
+  color: var(--slate-500);
+  text-align: right;
+}
+
+/* Setting Row with wider control (for select + button combos) */
+.setting-row--wide {
+  grid-template-columns: 1fr 200px;
+}
+
+/* Inline controls (select + button side by side) */
+.setting-row__control--inline {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.setting-row__control--inline .select {
+  width: auto;
+  min-width: 100px;
+}
+
+.setting-row__control--inline .btn {
+  width: auto;
+  flex-shrink: 0;
+}
+
+/* Danger variant */
+.setting-row--danger {
+  background: rgba(244, 63, 94, 0.05);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 4px -16px;
+  border-bottom: none;
+}
+
+.setting-row--danger + .setting-row--danger {
+  margin-top: 8px;
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 640px) {
+  .setting-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .setting-row__control {
+    justify-content: flex-start;
+  }
+
+  .setting-row__control .select,
+  .setting-row__control .btn {
+    width: auto;
+  }
 }
 
 /* Stat Card - Smaller variant (LEGACY) */

@@ -3,6 +3,9 @@
 import { z } from 'zod';
 import type { UserId, IntentId } from '../../../00_kernel/types';
 import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
+import { dlog } from '../../debug/headless/debugLog';
+
+const TAG = 'API';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
 
@@ -53,7 +56,7 @@ export async function getPresignedUrl(
   // Mock mode for UI development
   if (USE_MOCK) {
     await mockDelay(100);
-    console.log('[Mock] Presign URL generated for:', fileName);
+    dlog.info(TAG, 'Mock presign', { fileName });
     return createMockPresign(userId, fileName);
   }
 
@@ -99,7 +102,7 @@ export async function uploadToS3(
   // Mock mode for UI development
   if (USE_MOCK || presignedUrl.includes('mock-s3.local')) {
     await mockDelay(500); // Simulate upload time
-    console.log('[Mock] S3 upload completed, size:', file.size, 'bytes');
+    dlog.info(TAG, 'Mock S3 upload', { size: file.size });
     return;
   }
 

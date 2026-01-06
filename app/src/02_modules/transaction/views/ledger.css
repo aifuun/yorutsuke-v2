@@ -413,18 +413,3 @@
   }
 }
 
-/* Small mobile */
-@media (max-width: 480px) {
-  .summary-grid .stat__icon {
-    width: 48px;
-    font-size: 32px;
-  }
-
-  .summary-grid .stat__label {
-    font-size: 10px;
-  }
-
-  .summary-grid .stat__value {
-    font-size: 20px;
-  }
-}

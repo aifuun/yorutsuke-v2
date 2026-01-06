@@ -186,7 +186,7 @@ export class YorutsukeStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda/config"),
       environment: {
         QUOTA_LIMIT: "50",
-        UPLOAD_INTERVAL_MS: "10000",
+        UPLOAD_INTERVAL_MS: "2000",
         BATCH_TIME: "02:00",
         MIN_VERSION: "1.0.0",
         LATEST_VERSION: "1.1.0",

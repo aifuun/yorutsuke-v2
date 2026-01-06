@@ -4,14 +4,15 @@
 import type { ImageId as ImageIdType, TransactionId as TransactionIdType } from '../types';
 import { ImageId, TransactionId } from '../types';
 
-// Image status FSM states
+// Image status FSM states (local lifecycle)
+// Note: 'compressing' was removed - compression is synchronous
 export type ImageStatus =
   | 'pending'      // Awaiting compression
-  | 'compressing'  // Being compressed
   | 'compressed'   // Compressed, awaiting upload
   | 'uploading'    // Being uploaded
   | 'uploaded'     // Successfully uploaded to S3
-  | 'failed';      // Processing failed
+  | 'failed'       // Processing failed
+  | 'skipped';     // Duplicate detected, skipped
 
 // Image location for offline/online tracking
 export type ImageLocation = 'local' | 'cloud' | 'both';

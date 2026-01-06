@@ -230,7 +230,7 @@ cd app && npm test             # Run tests
 |-------|-------|-------------|
 | Global | ¥1,000/day | Lambda hard stop |
 | User | 50 images/day | Quota check |
-| Rate | 1 image/10sec | MIN_UPLOAD_INTERVAL_MS |
+| Rate | 1 image/2sec | MIN_UPLOAD_INTERVAL_MS |
 
 ## Logging
 

@@ -61,56 +61,7 @@
   color: var(--rose-600);
 }
 
-/* Settings Cards */
-.settings-card {
-  padding: 24px;
-}
-
-.settings-card .section-header {
-  margin-bottom: 20px;
-}
-
-/* Setting Row */
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-}
-
-.setting-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.setting-row:first-of-type {
-  padding-top: 0;
-}
-
-.setting-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.setting-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--slate-700);
-  margin: 0;
-}
-
-.setting-hint {
-  font-size: 12px;
-  color: var(--slate-400);
-  margin: 4px 0 0 0;
-}
-
-.setting-value {
-  font-size: 14px;
-  color: var(--slate-500);
-}
+/* Settings Cards - now uses global .card--settings */
 
 /* Setting Link */
 .setting-link {

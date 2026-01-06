@@ -4,9 +4,81 @@
 
 ## Overview
 
-Yorutsuke uses a semantic logging system designed for machine parsing and debugging. All logs are JSON-formatted with consistent structure across frontend and backend.
+Yorutsuke uses a **dual logging system** designed for different purposes:
 
-## Architecture
+| System | Purpose | Visibility | Persistence |
+|--------|---------|------------|-------------|
+| `dlog` | User debugging | Debug UI panel + console | Memory only |
+| `logger` | Telemetry/analytics | Console (JSON) | File (~/.yorutsuke/logs/) |
+
+## Logging Strategy
+
+### When to Use Which
+
+| Scenario | Use | Reason |
+|----------|-----|--------|
+| User-facing operations (upload, retry, quota) | `dlog` | User can see in Debug panel |
+| System events (auth, circuit breaker) | `logger` | Structured for analysis |
+| Errors user should know about | `dlog.error` | Always visible (no Verbose needed) |
+| Performance metrics | `logger` | Machine-parseable |
+| State transitions | Both | Debug visibility + analytics |
+
+### Decision Tree
+
+```
+Is this useful for user debugging?
+├─ YES → Use dlog
+│   └─ Is it an error/warning? → dlog.error/warn (always visible)
+│   └─ Is it informational? → dlog.info (requires Verbose)
+└─ NO → Is this for telemetry/analytics?
+    └─ YES → Use logger
+    └─ NO → Don't log
+```
+
+## Debug Log System (dlog)
+
+### Purpose
+Real-time debugging visible in the app's Debug panel.
+
+### Levels
+
+| Level | Verbose OFF | Verbose ON | Use Case |
+|-------|-------------|------------|----------|
+| `error` | ✅ Visible | ✅ Visible | Failures, exceptions |
+| `warn` | ✅ Visible | ✅ Visible | Quota exceeded, retries exhausted |
+| `info` | ❌ Hidden | ✅ Visible | Normal operations |
+
+### Usage
+
+```typescript
+import { dlog } from '@/02_modules/debug/headless/debugLog';
+
+const TAG = 'Upload';
+
+// Always visible
+dlog.error(TAG, 'Upload failed', { id, error });
+dlog.warn(TAG, 'Quota exceeded', { used, limit });
+
+// Requires Verbose mode
+dlog.info(TAG, 'Starting upload', { id });
+dlog.info(TAG, 'Upload success', { id, key });
+```
+
+### Output
+- Debug UI panel (in-app)
+- Browser console (with `[Tag] Message` format)
+
+### Coverage Requirements
+
+All user-facing modules MUST use dlog:
+- `capture/` - drop, compress, upload, retry
+- `transaction/` - CRUD operations
+- `settings/` - preference changes
+- `auth/` - login/logout (summary only)
+
+## Telemetry System (logger)
+
+### Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐

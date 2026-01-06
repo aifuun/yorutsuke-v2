@@ -7,7 +7,10 @@ import { createIntentId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
+import { dlog } from '../../debug/headless/debugLog';
 import { setupTauriDragListeners } from '../adapters/tauriDragDrop';
+
+const TAG = 'Capture';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
 import { uploadService } from './uploadService';
@@ -18,11 +21,15 @@ import { ALLOWED_EXTENSIONS } from '../types';
 let currentDragState: DragState = 'idle';
 const dragStateListeners = new Set<(state: DragState) => void>();
 
+// Polling interval for local processing (1 second)
+const PROCESS_POLL_INTERVAL_MS = 1000;
+
 class CaptureService {
   private initialized = false;
   private userId: UserId | null = null;
   private cleanupTauri: (() => void) | null = null;
   private cleanupAuthSubscription: (() => void) | null = null;
+  private processingTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
    * Initialize capture service
@@ -70,18 +77,42 @@ class CaptureService {
       }
     });
 
-    // Subscribe to store changes for auto-processing
+    // Subscribe to store changes for auto-upload enqueue
     captureStore.subscribe((state) => {
-      // Auto-process pending images when status is idle
-      if (state.status === 'idle') {
-        this.processPendingImages();
-      }
-
       // Auto-enqueue compressed images for upload
       this.enqueueCompressedImages(state.queue);
     });
 
     logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'CaptureService' });
+  }
+
+  /**
+   * Start polling for pending images
+   * Immediately processes, then polls every 1 second
+   * Auto-stops when no pending images remain
+   */
+  private startProcessingPolling(): void {
+    if (this.processingTimer) return; // Already polling
+
+    logger.debug(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'polling_started' });
+
+    // Process immediately, then poll at intervals
+    this.processPendingImages();
+
+    this.processingTimer = setInterval(() => {
+      this.processPendingImages();
+    }, PROCESS_POLL_INTERVAL_MS);
+  }
+
+  /**
+   * Stop processing polling
+   */
+  private stopProcessingPolling(): void {
+    if (this.processingTimer) {
+      clearInterval(this.processingTimer);
+      this.processingTimer = null;
+      logger.debug(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'polling_stopped' });
+    }
   }
 
   /**
@@ -93,6 +124,8 @@ class CaptureService {
 
     if (userId) {
       await fileService.restoreQueue(userId);
+      // Start polling to process any restored pending images
+      this.startProcessingPolling();
     }
   }
 
@@ -102,13 +135,16 @@ class CaptureService {
   private handleDrop(items: DroppedItem[], rejectedPaths: string[]): void {
     this.setDragState('idle');
 
-    // Notify about rejected files (log only, no event since it's UI concern)
+    // Notify UI about rejected files
     if (rejectedPaths.length > 0) {
+      dlog.warn(TAG, 'Files rejected', { count: rejectedPaths.length });
       logger.info(EVENTS.IMAGE_REJECTED, { count: rejectedPaths.length, paths: rejectedPaths });
+      captureStore.getState().setRejection(rejectedPaths.length);
     }
 
     if (items.length === 0) return;
 
+    dlog.info(TAG, 'Files dropped', { count: items.length });
     logger.info(EVENTS.IMAGE_DROPPED, { count: items.length });
 
     // Add each item to queue
@@ -152,12 +188,13 @@ class CaptureService {
       logger.debug(EVENTS.IMAGE_DROPPED, { imageId: item.id, traceId: item.traceId, source: 'queue_added' });
     }
 
-    // Trigger processing
-    this.processPendingImages();
+    // Start processing polling
+    this.startProcessingPolling();
   }
 
   /**
    * Process pending images in queue
+   * Called by polling timer every 1 second
    */
   private async processPendingImages(): Promise<void> {
     const state = captureStore.getState();
@@ -170,7 +207,11 @@ class CaptureService {
       img => img.status === 'pending' && !fileService.isProcessing(img.id)
     );
 
-    if (pendingImages.length === 0) return;
+    if (pendingImages.length === 0) {
+      // No more pending images - stop polling
+      this.stopProcessingPolling();
+      return;
+    }
 
     // Process first pending image
     const image = pendingImages[0];
@@ -264,6 +305,8 @@ class CaptureService {
     const image = captureStore.getState().queue.find(img => img.id === id);
     if (!image) return;
 
+    dlog.info(TAG, 'Retrying image', { id: id.slice(0, 8) });
+
     // Reset to pending for reprocessing
     const retryImage: ReceiptImage = {
       ...image,
@@ -273,7 +316,7 @@ class CaptureService {
 
     captureStore.getState().removeImage(id);
     captureStore.getState().addImage(retryImage);
-    this.processPendingImages();
+    this.startProcessingPolling();
   }
 
   /**
@@ -294,6 +337,7 @@ class CaptureService {
    * Cleanup resources
    */
   destroy(): void {
+    this.stopProcessingPolling();
     this.cleanupTauri?.();
     this.cleanupAuthSubscription?.();
     uploadService.destroy();

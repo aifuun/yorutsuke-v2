@@ -39,7 +39,7 @@ function AppContent() {
           </div>
 
           <div className={`view-panel ${activeView === 'ledger' ? 'active' : ''}`}>
-            <TransactionView userId={userId} />
+            <TransactionView userId={userId} onNavigate={setActiveView} />
           </div>
 
           <div className={`view-panel ${activeView === 'settings' ? 'active' : ''}`}>

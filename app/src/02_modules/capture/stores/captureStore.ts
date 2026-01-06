@@ -8,10 +8,16 @@ import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
 // FSM State (from useCaptureLogic reducer)
 export type CaptureStatus = 'idle' | 'processing' | 'uploading';
 
+export interface RejectionInfo {
+  count: number;
+  timestamp: number;
+}
+
 export interface CaptureState {
   status: CaptureStatus;
   queue: ReceiptImage[];
   currentId: ImageId | null;
+  rejection: RejectionInfo | null;
 }
 
 export interface CaptureActions {
@@ -33,6 +39,10 @@ export interface CaptureActions {
   // Error handling
   failure: (id: ImageId, error: string) => void;
 
+  // Rejection notification
+  setRejection: (count: number) => void;
+  clearRejection: () => void;
+
   // Direct state access for service layer
   getQueue: () => ReceiptImage[];
   getStatus: () => CaptureStatus;
@@ -51,6 +61,7 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
   status: 'idle',
   queue: [],
   currentId: null,
+  rejection: null,
 
   // Queue management
   addImage: (image) => set((state) => ({
@@ -128,6 +139,12 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
         : img
     ),
   })),
+
+  // Rejection notification
+  setRejection: (count) => set({
+    rejection: { count, timestamp: Date.now() },
+  }),
+  clearRejection: () => set({ rejection: null }),
 
   // Direct state access
   getQueue: () => get().queue,

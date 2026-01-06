@@ -197,25 +197,18 @@ export async function clearAllData(): Promise<Record<string, number>> {
   // Tables to clear (order matters for foreign keys)
   const tables = ['images', 'transactions', 'settings'];
 
-  await database.execute('BEGIN TRANSACTION');
-
-  try {
-    for (const table of tables) {
+  // Delete from each table individually (no transaction needed for simple deletes)
+  for (const table of tables) {
+    try {
       const result = await database.execute(`DELETE FROM ${table}`);
       results[table] = result.rowsAffected ?? 0;
+    } catch (error) {
+      // Table might not exist, that's ok
+      logger.debug('db_clear_table_skip', { table, error: String(error) });
+      results[table] = 0;
     }
-
-    await database.execute('COMMIT');
-    logger.info('db_data_cleared', results);
-
-    return results;
-  } catch (error) {
-    await database.execute('ROLLBACK');
-    logger.error(EVENTS.APP_ERROR, {
-      component: 'database',
-      action: 'clearAllData',
-      error: String(error),
-    });
-    throw error;
   }
+
+  logger.info('db_data_cleared', results);
+  return results;
 }

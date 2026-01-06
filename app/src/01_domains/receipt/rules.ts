@@ -32,18 +32,24 @@ export function shouldCompress(originalSizeBytes: number): boolean {
 // Quota rules - limit is now dynamic based on user tier
 export const MIN_UPLOAD_INTERVAL_MS = 2_000; // 2 seconds (per QUOTA.md)
 
+export type QuotaCheckResult =
+  | { allowed: true }
+  | { allowed: false; type: 'quota_exceeded'; reason: string }
+  | { allowed: false; type: 'rate_limited'; reason: string; waitMs: number };
+
 export function canUpload(
   uploadedToday: number,
   dailyLimit: number,
   lastUploadTime: number | null,
-): { allowed: boolean; reason?: string } {
+): QuotaCheckResult {
   if (uploadedToday >= dailyLimit) {
-    return { allowed: false, reason: `Daily limit reached (${dailyLimit})` };
+    return { allowed: false, type: 'quota_exceeded', reason: `Daily limit reached (${dailyLimit})` };
   }
 
   if (lastUploadTime && Date.now() - lastUploadTime < MIN_UPLOAD_INTERVAL_MS) {
-    const waitSeconds = Math.ceil((MIN_UPLOAD_INTERVAL_MS - (Date.now() - lastUploadTime)) / 1000);
-    return { allowed: false, reason: `Please wait ${waitSeconds}s` };
+    const waitMs = MIN_UPLOAD_INTERVAL_MS - (Date.now() - lastUploadTime);
+    const waitSeconds = Math.ceil(waitMs / 1000);
+    return { allowed: false, type: 'rate_limited', reason: `Please wait ${waitSeconds}s`, waitMs };
   }
 
   return { allowed: true };

@@ -3,7 +3,7 @@
 
 import { useStore } from 'zustand';
 import { captureStore } from '../stores/captureStore';
-import type { CaptureState } from '../stores/captureStore';
+import type { CaptureState, RejectionInfo } from '../stores/captureStore';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 
 /**
@@ -54,4 +54,16 @@ export function useCaptureStats() {
     skippedCount,
     totalCount: queue.length,
   };
+}
+
+/**
+ * Get rejection notification state
+ */
+export function useRejection(): {
+  rejection: RejectionInfo | null;
+  clearRejection: () => void;
+} {
+  const rejection = useStore(captureStore, (state) => state.rejection);
+  const clearRejection = captureStore.getState().clearRejection;
+  return { rejection, clearRejection };
 }

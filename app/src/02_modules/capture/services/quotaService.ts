@@ -6,8 +6,11 @@
 import type { UserId } from '../../../00_kernel/types';
 import { on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
+import { dlog } from '../../debug/headless/debugLog';
 import { fetchQuota } from '../adapters/quotaApi';
 import { quotaStore } from '../stores/quotaStore';
+
+const TAG = 'Quota';
 
 // Refresh intervals
 const PERIODIC_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
@@ -86,8 +89,10 @@ class QuotaService {
 
     try {
       const quota = await fetchQuota(this.userId);
+      dlog.info(TAG, 'Refreshed', { used: quota.used, limit: quota.limit });
       quotaStore.getState().fetchSuccess(quota);
     } catch (e) {
+      dlog.error(TAG, 'Refresh failed', { error: String(e) });
       quotaStore.getState().fetchError(String(e));
     }
   }

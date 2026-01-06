@@ -376,13 +376,14 @@ type ReportId = string & { __brand: 'ReportId' };
 ```typescript
 // 00_kernel/storage/types.ts
 // Used in SQLite operations (local lifecycle only)
+// Note: 'compressing' was removed - compression is synchronous
 type ImageStatus =
   | 'pending'      // Awaiting compression
-  | 'compressing'  // Being compressed
   | 'compressed'   // Compressed, awaiting upload
   | 'uploading'    // Being uploaded
   | 'uploaded'     // Successfully uploaded to S3
-  | 'failed';      // Processing failed
+  | 'failed'       // Processing failed
+  | 'skipped';     // Duplicate detected, skipped
 ```
 
 ### Domain Layer Enums
@@ -395,10 +396,11 @@ type ImageStatus =
   | 'compressed'   // WebP compressed, ready for upload
   | 'uploading'    // Currently uploading to S3
   | 'uploaded'     // In S3, waiting for batch processing
-  | 'processing'   // Being processed by Nova Lite (cloud)
-  | 'processed'    // OCR complete, transaction extracted (cloud)
-  | 'confirmed'    // User confirmed transaction (cloud)
-  | 'failed';      // Processing failed
+  | 'processing'   // Being processed by Nova Lite (cloud, MVP2)
+  | 'processed'    // OCR complete, transaction extracted (cloud, MVP2)
+  | 'confirmed'    // User confirmed transaction (cloud, MVP2)
+  | 'failed'       // Processing failed
+  | 'skipped';     // Duplicate detected, skipped
 
 type TransactionType = 'income' | 'expense';
 

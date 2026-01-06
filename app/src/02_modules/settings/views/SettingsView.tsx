@@ -47,82 +47,57 @@ export function SettingsView() {
       <div className="settings-content">
         <div className="settings-container">
           {/* Section 1: General */}
-          <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.preferences')}</h2>
-
-            {/* Theme */}
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.theme')}</p>
-                <p className="setting-hint">{t('settings.themeHint')}</p>
-              </div>
-              <select
-                className="select"
-                value={currentSettings.theme}
-                onChange={(e) => update('theme', e.target.value as 'light' | 'dark')}
-              >
-                <option value="dark">{t('settings.themeDark')}</option>
-                <option value="light">{t('settings.themeLight')}</option>
-              </select>
-            </div>
+          <div className="card card--settings">
+            <h2 className="card--settings__header">{t('settings.preferences')}</h2>
 
             {/* Language */}
             <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.language')}</p>
-                <p className="setting-hint">{t('settings.languageHint')}</p>
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('settings.language')}</p>
+                <p className="setting-row__hint">{t('settings.languageHint')}</p>
               </div>
-              <select
-                className="select"
-                value={currentSettings.language}
-                onChange={(e) => handleLanguageChange(e.target.value as 'ja' | 'en')}
-              >
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-
-            {/* Notifications */}
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.enableNotifications')}</p>
-                <p className="setting-hint">{t('settings.enableNotificationsHint')}</p>
+              <div className="setting-row__control">
+                <select
+                  className="select"
+                  value={currentSettings.language}
+                  onChange={(e) => handleLanguageChange(e.target.value as 'ja' | 'en')}
+                >
+                  <option value="ja">日本語</option>
+                  <option value="en">English</option>
+                </select>
               </div>
-              <button
-                type="button"
-                className={`toggle-switch ${currentSettings.notificationEnabled ? 'toggle-switch--active' : ''}`}
-                onClick={() => update('notificationEnabled', !currentSettings.notificationEnabled)}
-                role="switch"
-                aria-checked={currentSettings.notificationEnabled}
-              />
             </div>
           </div>
 
           {/* Section 2: Data */}
-          <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.data')}</h2>
+          <div className="card card--settings">
+            <h2 className="card--settings__header">{t('settings.data')}</h2>
 
             {/* Export Data */}
             <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.exportData')}</p>
-                <p className="setting-hint">{t('settings.exportDataHint')}</p>
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('settings.exportData')}</p>
+                <p className="setting-row__hint">{t('settings.exportDataHint')}</p>
               </div>
-              <button type="button" className="btn btn--primary">
-                {t('settings.export')}
-              </button>
+              <div className="setting-row__control">
+                <button type="button" className="btn btn--primary">
+                  {t('settings.export')}
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Section 3: About */}
-          <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.about')}</h2>
+          <div className="card card--settings">
+            <h2 className="card--settings__header">{t('settings.about')}</h2>
 
             <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.version')}</p>
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('settings.version')}</p>
               </div>
-              <span className="setting-value mono">{APP_VERSION}</span>
+              <div className="setting-row__control">
+                <span className="setting-row__value mono">{APP_VERSION}</span>
+              </div>
             </div>
           </div>
         </div>

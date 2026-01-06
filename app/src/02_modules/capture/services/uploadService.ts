@@ -8,7 +8,13 @@ import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/type
 import { emit } from '../../../00_kernel/eventBus';
 import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/network';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
+import { dlog } from '../../debug/headless/debugLog';
 import { canUpload } from '../../../01_domains/receipt';
+
+const TAG = 'Upload';
+
+// Polling interval (1 second) - rate limit is enforced separately by canUpload()
+const UPLOAD_POLL_INTERVAL_MS = 1000;
 import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
 import { fetchQuota } from '../adapters/quotaApi';
 import { uploadStore, shouldRetry, classifyError, RETRY_DELAYS } from '../stores/uploadStore';
@@ -20,6 +26,7 @@ class UploadService {
   private lastUploadTime: number | null = null;
   private userId: UserId | null = null;
   private cleanupNetwork: (() => void) | null = null;
+  private pollingTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
    * Initialize upload service
@@ -39,22 +46,22 @@ class UploadService {
       if (state === 'online' && prevState === 'offline') {
         logger.info(EVENTS.UPLOAD_QUEUE_RESUMED, { reason: 'network_restored' });
         uploadStore.getState().resume();
-        this.processQueue();
+        this.startPolling();
       } else if (state === 'offline') {
         logger.info(EVENTS.UPLOAD_QUEUE_PAUSED, { reason: 'offline' });
         uploadStore.getState().pause('offline');
+        this.stopPolling();
       }
     });
 
-    // Subscribe to store changes to trigger queue processing
+    // Subscribe to store changes to trigger polling
     uploadStore.subscribe((state, prevState) => {
-      // Process queue when status changes to idle
-      if (state.status === 'idle' && prevState.status !== 'idle') {
-        this.processQueue();
-      }
-      // Process queue when new tasks are added
-      if (state.tasks.length > prevState.tasks.length) {
-        this.processQueue();
+      // Start polling when status changes to idle or new tasks are added
+      if (
+        (state.status === 'idle' && prevState.status !== 'idle') ||
+        state.tasks.length > prevState.tasks.length
+      ) {
+        this.startPolling();
       }
     });
 
@@ -72,14 +79,44 @@ class UploadService {
    * Add file to upload queue
    */
   enqueue(id: ImageId, filePath: string, intentId: IntentId, traceId: TraceId): void {
+    dlog.info(TAG, 'Enqueued', { id: id.slice(0, 8) });
     logger.debug(EVENTS.UPLOAD_ENQUEUED, { imageId: id, intentId, traceId });
     uploadStore.getState().enqueue({ id, intentId, traceId, filePath });
+    this.startPolling();
+  }
+
+  /**
+   * Start polling timer for queue processing
+   * Timer runs every 1 second, rate limit enforced by canUpload()
+   * Auto-stops when no tasks remain
+   */
+  startPolling(): void {
+    if (this.pollingTimer) return; // Already polling
+
+    logger.debug(EVENTS.UPLOAD_QUEUE_RESUMED, { reason: 'polling_started' });
+
+    // Process immediately, then poll at intervals
     this.processQueue();
+
+    this.pollingTimer = setInterval(() => {
+      this.processQueue();
+    }, UPLOAD_POLL_INTERVAL_MS);
+  }
+
+  /**
+   * Stop polling timer
+   */
+  private stopPolling(): void {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+      logger.debug(EVENTS.UPLOAD_QUEUE_PAUSED, { reason: 'polling_stopped' });
+    }
   }
 
   /**
    * Process the upload queue
-   * Called automatically when queue state changes
+   * Called by polling timer every 2 seconds
    */
   private async processQueue(): Promise<void> {
     const state = uploadStore.getState();
@@ -92,6 +129,24 @@ class UploadService {
     // Find idle tasks
     const idleTasks = state.getIdleTasks();
     if (idleTasks.length === 0) {
+      // No more tasks - stop polling
+      this.stopPolling();
+      return;
+    }
+
+    // Check rate limit before processing
+    const quota = await fetchQuota(this.userId);
+    const quotaCheck = canUpload(quota.used, quota.limit, this.lastUploadTime);
+
+    if (!quotaCheck.allowed) {
+      if (quotaCheck.type === 'quota_exceeded') {
+        // Daily quota exceeded - stop polling
+        dlog.warn(TAG, 'Quota exceeded', { used: quota.used, limit: quota.limit });
+        logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { reason: quotaCheck.reason, used: quota.used, limit: quota.limit });
+        uploadStore.getState().pause('quota');
+        this.stopPolling();
+      }
+      // Rate limited - just wait for next poll cycle
       return;
     }
 
@@ -102,6 +157,7 @@ class UploadService {
 
   /**
    * Process a single upload task
+   * Called by processQueue after quota/rate limit checks pass
    */
   private async processTask(
     id: ImageId,
@@ -114,18 +170,9 @@ class UploadService {
     const state = uploadStore.getState();
     if (state.status === 'processing') return;
 
-    // Check quota - fetch fresh limit to avoid race condition
-    const quota = await fetchQuota(this.userId);
-    const quotaCheck = canUpload(quota.used, quota.limit, this.lastUploadTime);
-
-    if (!quotaCheck.allowed) {
-      logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { imageId: id, reason: quotaCheck.reason, used: quota.used, limit: quota.limit });
-      uploadStore.getState().pause('quota');
-      return;
-    }
-
     uploadStore.getState().startUpload(id);
     captureStore.getState().startUpload(id);
+    dlog.info(TAG, 'Starting upload', { id: id.slice(0, 8) });
 
     try {
       // Get presigned URL
@@ -139,17 +186,21 @@ class UploadService {
 
       // Success
       this.lastUploadTime = Date.now();
-      uploadStore.getState().uploadSuccess(id, key);
-      captureStore.getState().uploadSuccess(id, key);
 
-      // Update database
+      // Update database FIRST (before store updates trigger subscriptions)
+      // This prevents SQLite "database is locked" errors from concurrent writes
       await fileService.updateStatus(id, 'uploaded', traceId, {
         uploaded_at: new Date().toISOString(),
       });
 
+      // THEN update stores (subscriptions may trigger new operations)
+      uploadStore.getState().uploadSuccess(id, key);
+      captureStore.getState().uploadSuccess(id, key);
+
       // Emit success event
       emit('upload:complete', { id, traceId, s3Key: key });
 
+      dlog.info(TAG, 'Upload success', { id: id.slice(0, 8), key });
       logger.info(EVENTS.UPLOAD_COMPLETED, { imageId: id, traceId, s3Key: key });
     } catch (e) {
       const error = String(e);
@@ -160,6 +211,8 @@ class UploadService {
 
       uploadStore.getState().uploadFailure(id, error, errorType);
       captureStore.getState().failure(id, error);
+
+      dlog.error(TAG, 'Upload failed', { id: id.slice(0, 8), error: errorType, willRetry });
 
       // Emit failure event
       emit('upload:failed', {
@@ -187,16 +240,19 @@ class UploadService {
    * Retry a failed upload
    */
   retry(id: ImageId): void {
+    dlog.info(TAG, 'Retrying', { id: id.slice(0, 8) });
     uploadStore.getState().retry(id);
-    this.processQueue();
+    this.startPolling();
   }
 
   /**
    * Retry all failed uploads
    */
   retryAllFailed(): void {
+    const failedCount = uploadStore.getState().tasks.filter(t => t.status === 'failed').length;
+    dlog.info(TAG, 'Retrying all failed', { count: failedCount });
     uploadStore.getState().resetAllFailed();
-    this.processQueue();
+    this.startPolling();
   }
 
   /**
@@ -211,6 +267,7 @@ class UploadService {
    */
   pause(reason: 'offline' | 'quota'): void {
     uploadStore.getState().pause(reason);
+    this.stopPolling();
   }
 
   /**
@@ -218,13 +275,14 @@ class UploadService {
    */
   resume(): void {
     uploadStore.getState().resume();
-    this.processQueue();
+    this.startPolling();
   }
 
   /**
    * Cleanup resources
    */
   destroy(): void {
+    this.stopPolling();
     this.cleanupNetwork?.();
     this.initialized = false;
   }

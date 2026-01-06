@@ -73,7 +73,7 @@ tauriDragDrop.ts
 ├── listen('tauri://drag-drop')
 │   └── @trigger: Tauri native event
 ├── filterByExtension(paths, ALLOWED_EXTENSIONS)
-│   └── Filter: jpg, jpeg, png, heic, webp
+│   └── Filter: jpg, jpeg, png, webp
 └── pathsToDroppedItems(accepted)
     ├── Creates: imageId = ImageId(crypto.randomUUID())
     └── Creates: traceId = createTraceId()

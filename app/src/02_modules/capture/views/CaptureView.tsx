@@ -2,7 +2,7 @@
 // MVP0: Migrated from headless hooks to Service pattern
 import { useEffect } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import { useCaptureQueue, useCaptureStats } from '../hooks/useCaptureState';
+import { useCaptureQueue, useCaptureStats, useRejection } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
 import { useCaptureActions } from '../hooks/useCaptureActions';
 import { useQuota } from '../hooks/useQuotaState';
@@ -13,19 +13,61 @@ import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
 import './capture.css';
 
-// Status badge configuration
-const STATUS_CONFIG: Record<string, { label: string; icon: string; variant: string }> = {
-  pending: { label: 'capture.status.pending', icon: '⏳', variant: 'pending' },
-  compressing: { label: 'capture.status.compressing', icon: '🔄', variant: 'processing' },
-  compressed: { label: 'capture.status.compressed', icon: '📦', variant: 'processing' },
-  uploading: { label: 'capture.status.uploading', icon: '☁️', variant: 'processing' },
-  uploaded: { label: 'capture.status.uploaded', icon: '✅', variant: 'success' },
-  processing: { label: 'capture.status.processing', icon: '🤖', variant: 'processing' },
-  processed: { label: 'capture.status.processed', icon: '✅', variant: 'success' },
-  confirmed: { label: 'capture.status.confirmed', icon: '💾', variant: 'success' },
-  failed: { label: 'capture.status.failed', icon: '❌', variant: 'error' },
-  skipped: { label: 'capture.status.skipped', icon: '⏭️', variant: 'skipped' },
+// Format file size for display
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+// Status pipeline configuration (matches ImageStatus from types.ts)
+// Order: pending → compressed → uploading → uploaded
+const STATUS_PIPELINE = ['pending', 'compressed', 'uploading', 'uploaded'] as const;
+
+// Map status to pipeline index (-1 = not in pipeline, e.g., failed/skipped)
+function getStatusIndex(status: string): number {
+  const idx = STATUS_PIPELINE.indexOf(status as typeof STATUS_PIPELINE[number]);
+  return idx;
+}
+
+// Status label mapping
+const STATUS_LABELS: Record<string, { text: string; hint?: string }> = {
+  pending: { text: 'Pending' },
+  compressed: { text: 'Ready' },
+  uploading: { text: 'Uploading' },
+  uploaded: { text: 'Uploaded' },
+  failed: { text: 'Failed' },
+  skipped: { text: 'Duplicate' },
 };
+
+// Status Dots Component (dots only, no label)
+function StatusDots({ status }: { status: string }) {
+  const currentIndex = getStatusIndex(status);
+  const isFailed = status === 'failed';
+  const isSkipped = status === 'skipped';
+
+  return (
+    <div className="status-dots">
+      {STATUS_PIPELINE.map((step, idx) => {
+        let className = 'status-dot';
+
+        if (isFailed) {
+          className += idx < currentIndex ? ' status-dot--active' : '';
+          className += idx === currentIndex ? ' status-dot--error' : '';
+        } else if (isSkipped) {
+          className += ' status-dot--skipped';
+        } else if (idx < currentIndex) {
+          className += ' status-dot--active';
+        } else if (idx === currentIndex) {
+          const isProcessing = ['pending', 'uploading'].includes(status);
+          className += isProcessing ? ' status-dot--current' : ' status-dot--active';
+        }
+
+        return <span key={step} className={className} />;
+      })}
+    </div>
+  );
+}
 
 export function CaptureView() {
   const { t } = useTranslation();
@@ -41,6 +83,15 @@ export function CaptureView() {
   const { pendingCount, uploadedCount } = useCaptureStats();
   const { isDragging, dragHandlers } = useDragState();
   const { retryAllFailed } = useCaptureActions();
+  const { rejection, clearRejection } = useRejection();
+
+  // Auto-clear rejection after 5 seconds
+  useEffect(() => {
+    if (rejection) {
+      const timer = setTimeout(clearRejection, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [rejection, clearRejection]);
 
   // Set user ID in services when it changes
   useEffect(() => {
@@ -83,6 +134,27 @@ export function CaptureView() {
             </div>
           )}
 
+          {/* Rejection Banner */}
+          {rejection && (
+            <div className="info-banner info-banner--warning">
+              <span className="banner-icon">⚠️</span>
+              <div className="banner-content">
+                <p className="banner-title">
+                  {t('capture.rejected', { count: rejection.count })}
+                </p>
+                <p className="banner-text">{t('capture.rejectedHint')}</p>
+              </div>
+              <button
+                type="button"
+                className="banner-dismiss"
+                onClick={clearRejection}
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Drop Zone */}
           <div className="card drop-card">
             <div
@@ -100,33 +172,46 @@ export function CaptureView() {
           {/* Processing Queue */}
           {queue.length > 0 && (
             <div className="card card--list queue-card">
-              <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
+              <div className="queue-header">
+                <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
+                {queue.some(img => img.status === 'uploaded') && (
+                  <span className="queue-header__hint">AI processing at 02:00</span>
+                )}
+              </div>
               <div className="card--list__items">
                 {[...queue].reverse().map((image) => {
-                  const config = STATUS_CONFIG[image.status] || STATUS_CONFIG.pending;
+                  const labelInfo = STATUS_LABELS[image.status] || { text: image.status };
+                  const isFailed = image.status === 'failed';
+                  const isSkipped = image.status === 'skipped';
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item media ${image.status === 'failed' ? 'queue-item--failed' : ''} ${image.status === 'skipped' ? 'queue-item--skipped' : ''}`}
+                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
                     >
-                      <div className="media__figure">
-                        {image.thumbnailPath ? (
-                          <img src={convertFileSrc(image.thumbnailPath)} alt="" />
-                        ) : (
-                          <span className="media__icon">🧾</span>
-                        )}
-                      </div>
-                      <div className="media__body">
-                        <div className="queue-row">
-                          <p className="media__title">{image.id.slice(0, 16)}...</p>
-                          <span className={`status-badge status-badge--${config.variant}`}>
-                            {config.icon} {t(config.label)}
-                          </span>
+                      {/* Column 1: Thumbnail + ID */}
+                      <div className="queue-item__left">
+                        <div className="queue-item__thumb">
+                          {image.thumbnailPath ? (
+                            <img src={convertFileSrc(image.thumbnailPath)} alt="" />
+                          ) : (
+                            <span className="queue-item__icon">🧾</span>
+                          )}
                         </div>
-                        {(image.status === 'pending' || image.status === 'uploading') && (
-                          <div className="progress-bar">
-                            <div className="progress-bar__fill progress-bar__fill--info progress-bar__fill--animated" />
-                          </div>
+                        <p className="queue-item__id">{image.id.slice(0, 12)}...</p>
+                      </div>
+
+                      {/* Column 2: Status Pipeline (dots) */}
+                      <div className="queue-item__center">
+                        <StatusDots status={image.status} />
+                      </div>
+
+                      {/* Column 3: Status Label + Size */}
+                      <div className="queue-item__right">
+                        <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
+                          {labelInfo.text}
+                        </span>
+                        {image.compressedSize && image.compressedSize > 0 && (
+                          <span className="queue-item__size">{formatSize(image.compressedSize)}</span>
                         )}
                       </div>
                     </div>
@@ -151,26 +236,17 @@ export function CaptureView() {
 
           {/* Stats Row */}
           <div className="stats-row">
-            <div className={`card card--stat is-sm ${quotaVariant === 'error' ? 'is-expense' : quotaVariant === 'warning' ? 'is-warning' : ''}`}>
-              <div className="card--stat__icon">🎯</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('capture.todayQuota')}</p>
-                <p className="card--stat__value">{quota.used}/{quota.limit}</p>
-              </div>
+            <div className={`card card--summary ${quotaVariant === 'error' ? 'is-expense' : quotaVariant === 'warning' ? 'is-warning' : 'is-info'}`}>
+              <p className="card--summary__label">{t('capture.todayQuota')}</p>
+              <p className="card--summary__value">{quota.used}/{quota.limit}</p>
             </div>
-            <div className="card card--stat is-sm is-warning">
-              <div className="card--stat__icon">⏳</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('capture.pending')}</p>
-                <p className="card--stat__value">{pendingCount}</p>
-              </div>
+            <div className="card card--summary is-pending">
+              <p className="card--summary__label">{t('capture.pending')}</p>
+              <p className="card--summary__value">{pendingCount}</p>
             </div>
-            <div className="card card--stat is-sm is-income">
-              <div className="card--stat__icon">✅</div>
-              <div className="card--stat__content">
-                <p className="card--stat__label">{t('capture.uploaded')}</p>
-                <p className="card--stat__value">{uploadedCount}</p>
-              </div>
+            <div className="card card--summary is-income">
+              <p className="card--summary__label">{t('capture.uploaded')}</p>
+              <p className="card--summary__value">{uploadedCount}</p>
             </div>
           </div>
         </div>

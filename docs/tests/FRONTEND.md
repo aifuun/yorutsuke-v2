@@ -66,7 +66,7 @@
 
 | ID | Scenario | Steps | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SC-010 | Valid formats | Drop JPG, PNG, HEIC | All accepted | [ ] |
+| SC-010 | Valid formats | Drop JPG, PNG, WebP | All accepted | [ ] |
 | SC-011 | Invalid format | Drop .txt, .pdf | Rejected with message | [ ] |
 | SC-012 | Corrupted image | Drop fake .jpg (text file) | Error: "Failed to open image" | [ ] |
 | SC-013 | Zero-byte file | Drop empty file | Error handled gracefully | [ ] |

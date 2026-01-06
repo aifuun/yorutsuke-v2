@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-05] MVP0 Phase 5 cleanup complete - deleted legacy hooks, created MOCKING.md, updated docs consistency
-- **Next Steps**: Manual testing of MVP0 (`npm run tauri dev`), verify #82 fix, then close #82
+- **Last Progress**: [2026-01-06] MVP1 testing started, fixed SQLite lock bug in uploadService
+- **Next Steps**: Continue MVP1 test scenarios (SC-001 onwards)
 - **Blockers**: None
 
 ## Architecture Decisions
@@ -98,6 +98,23 @@ Record important decisions with context.
 ## Solved Issues
 
 Problems encountered and their solutions.
+
+### [2026-01-06] SQLite "database is locked" Error
+- **Problem**: Upload shows success briefly, then fails with "database is locked"
+- **Root Cause**: Store updates trigger synchronous subscriptions that start new DB writes
+  ```typescript
+  // ❌ Wrong order - store update triggers subscription before DB write completes
+  uploadStore.uploadSuccess(id);     // Triggers subscription → new DB operation
+  await fileService.updateStatus();  // Conflicts with above → lock error
+  ```
+- **Solution**: IO-First Pattern - complete all DB operations before updating stores
+  ```typescript
+  // ✅ Correct order
+  await fileService.updateStatus();  // DB write first
+  uploadStore.uploadSuccess(id);     // Then notify UI
+  ```
+- **Prevention**: Added `.claude/rules/service-layer.md` with IO-First Pattern
+- **Key Insight**: Zustand `subscribe()` callbacks run synchronously, not on next tick
 
 ### [2026-01-03] Capture Pipeline Core Bugs (#45-49)
 - **#45 FAILURE blocks processing**: FSM entered 'error' state and never returned to 'idle'

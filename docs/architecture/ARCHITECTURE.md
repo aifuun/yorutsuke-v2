@@ -744,7 +744,7 @@ React: App launch / Navigate to Report
 |---------|-------|-------------|
 | Global daily | ¥1,000 | Lambda hard stop |
 | Per-user daily | 50 images | Quota check in presign |
-| Rate limit | 1 image/10s | Frontend throttle |
+| Rate limit | 1 image/2s | Frontend throttle |
 | S3 lifecycle | 30 days | Auto-delete old images |
 
 ## Control Strategy

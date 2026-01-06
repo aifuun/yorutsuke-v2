@@ -88,7 +88,7 @@ interface QueuedImage {
   traceId: TraceId;
   intentId: IntentId;
   localPath: string;
-  status: 'pending' | 'compressing' | 'compressed' | 'failed';
+  status: 'pending' | 'compressed' | 'failed' | 'skipped';
 }
 ```
 
@@ -540,7 +540,7 @@ Get app configuration.
 ```typescript
 interface ConfigResponse {
   quotaLimit: number;        // 50
-  uploadIntervalMs: number;  // 10000
+  uploadIntervalMs: number;  // 2000
   batchTime: string;         // '02:00'
   maintenanceMode: boolean;
   version: {
