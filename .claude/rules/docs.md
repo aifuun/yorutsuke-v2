@@ -12,7 +12,7 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | `product/` | REQUIREMENTS, ROADMAP, CHANGELOG |
 | `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES |
 | `design/` | COLOR, TYPOGRAPHY, 00-04 view specs |
-| `operations/` | OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL, PROGRAM_PATHS |
+| `operations/` | OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL |
 | `dev/` | MVP_PLAN, dev notes |
 | `tests/` | FRONTEND, BACKEND, MOCKING |
 | `archive/` | Historical docs |

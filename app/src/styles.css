@@ -673,7 +673,9 @@ body {
   appearance: none;
   cursor: pointer;
   transition: all 0.2s;
+  width: fit-content;
   min-width: 120px;
+  max-width: 240px;
 }
 
 .select:hover {

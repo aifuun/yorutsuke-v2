@@ -20,7 +20,7 @@
 | [ARCHITECTURE](./architecture/ARCHITECTURE.md) | System design | Dev |
 | [SCHEMA](./architecture/SCHEMA.md) | Data model | Dev |
 | [INTERFACES](./architecture/INTERFACES.md) | IPC & API | Dev |
-| [PROGRAM_PATHS](./operations/PROGRAM_PATHS.md) | Code flow traces | Dev |
+| [PROGRAM_PATHS](./dev/PROGRAM_PATHS.md) | Code flow traces | Dev |
 
 ### Design (Look & Feel)
 
