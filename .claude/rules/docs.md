@@ -10,11 +10,11 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | Directory | Contents |
 |-----------|----------|
 | `product/` | REQUIREMENTS, ROADMAP, CHANGELOG |
-| `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS, MOCKING |
-| `design/` | COLOR (25-color palette), TYPOGRAPHY, view mockups (0-4) |
-| `operations/` | DEPLOYMENT, OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL |
+| `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES |
+| `design/` | COLOR, TYPOGRAPHY, 00-04 view specs |
+| `operations/` | OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL, PROGRAM_PATHS |
 | `dev/` | MVP_PLAN, dev notes |
-| `tests/` | FRONTEND, BACKEND test scenarios |
+| `tests/` | FRONTEND, BACKEND, MOCKING |
 | `archive/` | Historical docs |
 
 ## Core Documents (Required)

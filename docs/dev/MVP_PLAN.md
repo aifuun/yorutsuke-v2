@@ -265,7 +265,7 @@ npm run tauri dev
 
 - [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - 四层模型、状态归属
 - [INTERFACES.md](../architecture/INTERFACES.md) - Service 接口定义
-- [PROGRAM_PATHS.md](../architecture/PROGRAM_PATHS.md) - 当前代码流程（重构后需更新）
+- [PROGRAM_PATHS.md](../operations/PROGRAM_PATHS.md) - 当前代码流程（重构后需更新）
 
 ---
 
@@ -974,10 +974,10 @@ npm run tauri dev
 ### Product & Testing
 - [REQUIREMENTS.md](../product/REQUIREMENTS.md) - 功能需求
 - [tests/](../tests/) - 测试场景详情
-- [DEPLOYMENT.md](../operations/DEPLOYMENT.md) - 部署指南
+- [OPERATIONS.md](../operations/OPERATIONS.md) - 部署指南
 
 ### Architecture (for debugging)
 - [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) - 系统设计、四层模型
 - [SCHEMA.md](../architecture/SCHEMA.md) - 数据模型、Zustand stores
 - [INTERFACES.md](../architecture/INTERFACES.md) - IPC/API 接口定义
-- [PROGRAM_PATHS.md](../architecture/PROGRAM_PATHS.md) - 代码流程追踪
+- [PROGRAM_PATHS.md](../operations/PROGRAM_PATHS.md) - 代码流程追踪

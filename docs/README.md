@@ -16,11 +16,11 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [README](./architecture/README.md) | Document index & status | Dev |
+| [README](./architecture/ARCHITECTURE.md) | Document index & status | Dev |
 | [ARCHITECTURE](./architecture/ARCHITECTURE.md) | System design | Dev |
 | [SCHEMA](./architecture/SCHEMA.md) | Data model | Dev |
 | [INTERFACES](./architecture/INTERFACES.md) | IPC & API | Dev |
-| [PROGRAM_PATHS](./architecture/PROGRAM_PATHS.md) | Code flow traces | Dev |
+| [PROGRAM_PATHS](./operations/PROGRAM_PATHS.md) | Code flow traces | Dev |
 
 ### Design (Look & Feel)
 
@@ -32,7 +32,7 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [DEPLOYMENT](./operations/DEPLOYMENT.md) | Build & deploy | Dev, Ops |
+| [DEPLOYMENT](./operations/OPERATIONS.md) | Build & deploy | Dev, Ops |
 | [OPERATIONS](./operations/OPERATIONS.md) | Emergency & monitoring | Ops |
 | [ADMIN_PANEL](./operations/ADMIN_PANEL.md) | Admin console | Ops |
 | [QUOTA](./operations/QUOTA.md) | Quota system | Dev, Ops |
@@ -119,7 +119,7 @@ npm run tauri dev
 
 ### For Operations
 
-1. **operations/DEPLOYMENT.md** - How to deploy
+1. **operations/OPERATIONS.md** - How to deploy
 2. **operations/OPERATIONS.md** - How to operate
 3. **operations/QUOTA.md** - Cost controls
 
@@ -142,7 +142,7 @@ docs/
 ├── design/                # Look & feel
 │   └── *.md               # UI mockups
 ├── operations/            # Run & maintain
-│   ├── DEPLOYMENT.md
+│   # DEPLOYMENT.md merged into OPERATIONS.md
 │   ├── OPERATIONS.md
 │   ├── ADMIN_PANEL.md
 │   ├── QUOTA.md
