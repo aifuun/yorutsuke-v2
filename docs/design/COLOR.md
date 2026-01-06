@@ -1,26 +1,37 @@
 # Color System
 
-Yorutsuke uses a minimal, consistent color palette based on Tailwind CSS Slate scale with semantic colors for states.
+Yorutsuke uses a **25-color palette**: 10 neutrals + 15 accent colors.
 
 ## Design Principles
 
-1. **Minimal palette**: 4 semantic colors + 1 neutral scale
-2. **Consistent usage**: Same color = same meaning everywhere
-3. **CSS variables**: All colors defined as tokens, no magic values
-4. **Accessibility**: WCAG 2.1 AA contrast ratios
+1. **Controlled palette**: 25 colors maximum, no growth without review
+2. **Semantic tokens**: Developers use semantic names, not raw palette colors
+3. **CSS variables**: All colors defined as tokens, no magic hex values
+4. **WCAG AA compliance**: Amber-800 for warning text (yellow contrast issue)
 
-## Color Palette
+## Color Count Summary
 
-### Neutral (Slate)
+| Palette | Count | Shades |
+|---------|-------|--------|
+| Slate (Neutrals) | 10 | 50, 100, 200, 300, 400, 500, 600, 700, 800, 900 |
+| Blue (Primary) | 3 | 100, 500, 600 |
+| Emerald (Success) | 3 | 100, 500, 600 |
+| Amber (Warning) | 5 | 100, 300, 500, 600, 800 |
+| Rose (Error) | 4 | 100, 200, 500, 600 |
+| **Total** | **25** | |
 
-Used for text, backgrounds, borders, and UI chrome.
+---
+
+## Base Palette
+
+### Slate (Neutrals) - 10 shades
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | `--slate-50` | #F8FAFC | Subtle backgrounds |
 | `--slate-100` | #F1F5F9 | App background, input bg |
 | `--slate-200` | #E2E8F0 | Borders, dividers |
-| `--slate-300` | #CBD5E1 | Inactive borders, progress bg |
+| `--slate-300` | #CBD5E1 | Muted borders, progress bg |
 | `--slate-400` | #94A3B8 | Disabled text, placeholders |
 | `--slate-500` | #64748B | Muted text, hints |
 | `--slate-600` | #475569 | Secondary text |
@@ -28,107 +39,122 @@ Used for text, backgrounds, borders, and UI chrome.
 | `--slate-800` | #1E293B | Headers, dark panels |
 | `--slate-900` | #0F172A | Sidebar, dark surfaces |
 
-### Primary (Blue)
-
-Used for interactive elements, links, focus states.
+### Blue (Primary) - 3 shades
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--blue-50` | #EFF6FF | Info banner bg |
-| `--blue-100` | #DBEAFE | Hover states, badges |
-| `--blue-200` | #BFDBFE | Borders |
+| `--blue-100` | #DBEAFE | Info backgrounds, badges |
 | `--blue-500` | #3B82F6 | Primary buttons, links |
-| `--blue-600` | #2563EB | Hover state |
-| `--blue-700` | #1D4ED8 | Active state |
+| `--blue-600` | #2563EB | Hover/active state |
 
-### Success (Emerald)
-
-Used for positive states, income, completed actions.
+### Emerald (Success) - 3 shades
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--emerald-50` | #ECFDF5 | Success banner bg |
-| `--emerald-100` | #D1FAE5 | Success badges |
-| `--emerald-200` | #A7F3D0 | Borders |
-| `--emerald-400` | #34D399 | Accent lines |
+| `--emerald-100` | #D1FAE5 | Success backgrounds |
 | `--emerald-500` | #10B981 | Success icons |
-| `--emerald-600` | #059669 | Income text |
+| `--emerald-600` | #059669 | Income text, success text |
 
-### Warning (Amber)
+### Amber (Warning) - 5 shades
 
-Used for warnings, pending states, guest mode.
+| Token | Value | Usage | Note |
+|-------|-------|-------|------|
+| `--amber-100` | #FEF3C7 | Warning backgrounds | |
+| `--amber-300` | #FCD34D | Warning borders | Needed for visual coherence |
+| `--amber-500` | #F59E0B | Warning icons | |
+| `--amber-600` | #D97706 | Warning accent | |
+| `--amber-800` | #92400E | Warning text | **WCAG AA required** |
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--amber-50` | #FFFBEB | Warning banner bg |
-| `--amber-100` | #FEF3C7 | Warning badges |
-| `--amber-300` | #FCD34D | Borders |
-| `--amber-500` | #F59E0B | Warning icons |
-| `--amber-600` | #D97706 | Warning text |
-| `--amber-800` | #92400E | Dark warning text |
+### Rose (Error) - 4 shades
 
-### Error (Rose)
+| Token | Value | Usage | Note |
+|-------|-------|-------|------|
+| `--rose-100` | #FFE4E6 | Error backgrounds | |
+| `--rose-200` | #FECACA | Error hover states | Needed for interaction feedback |
+| `--rose-500` | #F43F5E | Error icons | |
+| `--rose-600` | #E11D48 | Expense text, error text | |
 
-Used for errors, expenses, destructive actions.
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--rose-50` | #FFF1F2 | Error banner bg |
-| `--rose-100` | #FFE4E6 | Error badges |
-| `--rose-200` | #FECACA | Borders |
-| `--rose-400` | #FB7185 | Accent lines |
-| `--rose-500` | #F43F5E | Error icons |
-| `--rose-600` | #E11D48 | Expense text |
+---
 
 ## Semantic Tokens
 
-Higher-level tokens that map to the base palette:
+**Use these instead of raw palette colors for consistency and maintainability.**
+
+### State Colors
 
 ```css
-:root {
-  /* Backgrounds */
-  --bg-app: var(--slate-100);
-  --bg-card: #FFFFFF;
-  --bg-sidebar: var(--slate-900);
-  --bg-input: #FFFFFF;
-  --bg-panel: var(--slate-800);
-
-  /* Text */
-  --text-primary: var(--slate-700);
-  --text-secondary: var(--slate-500);
-  --text-muted: var(--slate-400);
-  --text-inverse: var(--slate-100);
-
-  /* Borders */
-  --border-default: var(--slate-200);
-  --border-muted: var(--slate-300);
-
-  /* States */
-  --color-primary: var(--blue-500);
-  --color-primary-hover: var(--blue-600);
-  --color-success: var(--emerald-500);
-  --color-warning: var(--amber-500);
-  --color-error: var(--rose-500);
-
-  /* Financial */
-  --color-income: var(--emerald-600);
-  --color-expense: var(--rose-600);
-}
+--color-primary: var(--blue-500);
+--color-primary-hover: var(--blue-600);
+--color-success: var(--emerald-500);
+--color-warning: var(--amber-500);
+--color-error: var(--rose-500);
 ```
+
+### Financial
+
+```css
+--color-income: var(--emerald-600);
+--color-expense: var(--rose-600);
+```
+
+### Backgrounds
+
+```css
+--bg-app: var(--slate-100);
+--bg-card: #FFFFFF;
+--bg-sidebar: var(--slate-900);
+--bg-dark: var(--slate-800);
+
+/* Component state backgrounds */
+--bg-info: var(--blue-100);
+--bg-success: var(--emerald-100);
+--bg-warning: var(--amber-100);
+--bg-error: var(--rose-100);
+--bg-error-hover: var(--rose-200);
+```
+
+### Text
+
+```css
+--text-primary: var(--slate-700);
+--text-secondary: var(--slate-500);
+--text-muted: var(--slate-400);
+--text-inverse: var(--slate-100);
+```
+
+### Borders
+
+```css
+--border: var(--slate-200);
+--border-muted: var(--slate-300);
+--border-warning: var(--amber-300);
+--border-error: var(--rose-200);
+```
+
+---
 
 ## Usage Guidelines
 
 ### DO
 
-- Use semantic tokens for consistency: `var(--color-primary)`
-- Use slate scale for neutral grays: `var(--slate-500)`
-- Keep the palette minimal
+```css
+/* Use semantic tokens */
+.banner { background: var(--bg-warning); }
+.error-text { color: var(--color-error); }
+.income { color: var(--color-income); }
+```
 
 ### DON'T
 
-- Use hex codes directly in CSS files
-- Create new colors without adding to this spec
-- Mix different gray scales (e.g., gray + slate)
+```css
+/* Don't use hex codes */
+.banner { background: #FEF3C7; }
+
+/* Don't use palette colors directly when semantic exists */
+.error-text { color: var(--rose-500); } /* Use --color-error */
+```
+
+---
 
 ## Button Colors
 
@@ -137,15 +163,33 @@ Higher-level tokens that map to the base palette:
 | Primary | `--blue-500` | `--blue-600` | white |
 | Secondary | `--slate-700` | `--slate-800` | white |
 | Danger | `--rose-100` | `--rose-200` | `--rose-600` |
-| Warning | `--amber-600` | `--amber-700` | white |
-| Ghost | transparent | `--slate-100` | `--slate-700` |
+| Confirm | `--emerald-100` | `box-shadow` | `--emerald-600` |
 
 ## Status Badge Colors
 
 | Status | Background | Text |
 |--------|------------|------|
 | Default | `--slate-200` | `--slate-600` |
-| Info | `--blue-100` | `--blue-700` |
-| Success | `--emerald-100` | `--emerald-700` |
-| Warning | `--amber-100` | `--amber-800` |
-| Error | `--rose-100` | `--rose-600` |
+| Info | `--bg-info` | `--blue-600` |
+| Success | `--bg-success` | `--emerald-600` |
+| Warning | `--bg-warning` | `--amber-600` |
+| Error | `--bg-error` | `--rose-600` |
+
+---
+
+## Rationale for Kept Colors
+
+| Color | Why Kept |
+|-------|----------|
+| `amber-300` | Warning borders need yellow tint for visual coherence |
+| `amber-800` | WCAG AA compliance - yellow 500/600 fail contrast on white |
+| `rose-200` | Hover states need visible feedback (rose-100 too subtle) |
+
+## Deleted Colors (Do Not Add Back)
+
+| Deleted | Replacement |
+|---------|-------------|
+| `blue-50`, `blue-200`, `blue-700` | `--bg-info`, `blue-100`, `blue-600` |
+| `emerald-50`, `emerald-200`, `emerald-400` | `--bg-success`, `emerald-100`, `emerald-500` |
+| `amber-50` | `--bg-warning` |
+| `rose-50`, `rose-400` | `--bg-error`, `rose-500` |

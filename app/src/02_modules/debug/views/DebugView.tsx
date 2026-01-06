@@ -181,42 +181,7 @@ export function DebugView() {
             </div>
           </div>
 
-          {/* Section 2: Logs */}
-          <div className="premium-card debug-card">
-            <div className="debug-logs-header">
-              <h2 className="section-header">Logs</h2>
-              <button
-                type="button"
-                className="btn-action btn-action--ghost btn-action--sm"
-                onClick={clearLogs}
-                disabled={logs.length === 0}
-              >
-                Clear
-              </button>
-            </div>
-            <div className="debug-logs-panel">
-              {logs.length === 0 ? (
-                <div className="debug-logs-empty">No logs yet</div>
-              ) : (
-                logs.slice().reverse().map((log, i) => (
-                  <div key={i} className={`debug-log-entry debug-log-entry--${log.level}`}>
-                    <span className="debug-log-time">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                    <span className="debug-log-tag">[{log.tag}]</span>
-                    <span className="debug-log-msg">{log.message}</span>
-                    {log.data !== undefined && (
-                      <span className="debug-log-data">
-                        {String(typeof log.data === 'object' ? JSON.stringify(log.data) : log.data)}
-                      </span>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Section 3: Dev Actions */}
+          {/* Section 2: Dev Actions */}
           <div className="premium-card debug-card">
             <h2 className="section-header">{t('debug.devActions')}</h2>
 
@@ -283,6 +248,41 @@ export function DebugView() {
                 {actionResult}
               </div>
             )}
+          </div>
+
+          {/* Section 3: Logs */}
+          <div className="premium-card debug-card">
+            <div className="debug-logs-header">
+              <h2 className="section-header">Logs</h2>
+              <button
+                type="button"
+                className="btn-action btn-action--ghost btn-action--sm"
+                onClick={clearLogs}
+                disabled={logs.length === 0}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="debug-logs-panel">
+              {logs.length === 0 ? (
+                <div className="debug-logs-empty">No logs yet</div>
+              ) : (
+                logs.slice().reverse().map((log, i) => (
+                  <div key={i} className={`debug-log-entry debug-log-entry--${log.level}`}>
+                    <span className="debug-log-time">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </span>
+                    <span className="debug-log-tag">[{log.tag}]</span>
+                    <span className="debug-log-msg">{log.message}</span>
+                    {log.data !== undefined && (
+                      <span className="debug-log-data">
+                        {String(typeof log.data === 'object' ? JSON.stringify(log.data) : log.data)}
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
