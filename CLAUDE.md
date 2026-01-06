@@ -98,11 +98,12 @@ yorutsuke-v2/
 │
 ├── docs/                   # Source of Truth
 │   ├── product/            # REQUIREMENTS, ROADMAP, CHANGELOG
-│   ├── architecture/       # ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS
-│   ├── design/             # UI mockups (HTML)
-│   ├── operations/         # DEPLOYMENT, OPERATIONS, QUOTA, LOGGING
+│   ├── architecture/       # ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS, MOCKING
+│   ├── design/             # UI specs: COLOR, TYPOGRAPHY, view mockups (0-4)
+│   ├── operations/         # DEPLOYMENT, OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL
 │   ├── planning/           # MVP_PLAN
-│   └── tests/              # FRONTEND, BACKEND test scenarios
+│   ├── tests/              # FRONTEND, BACKEND test scenarios
+│   └── archive/            # Historical docs
 │
 ├── .claude/                # Claude Code config
 │   ├── commands/
@@ -252,7 +253,25 @@ cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
 | **Dev** | `docs/` | Project documentation |
 
 ---
+
+## Key Documentation
+
+| Category | File | Description |
+|----------|------|-------------|
+| **Architecture** | `docs/architecture/ARCHITECTURE.md` | System design, layers, data flow |
+| **Schema** | `docs/architecture/SCHEMA.md` | Entity definitions, database schema |
+| **Interfaces** | `docs/architecture/INTERFACES.md` | IPC commands, API contracts |
+| **Design System** | `docs/design/COLOR.md` | 25-color palette, semantic tokens |
+| **Typography** | `docs/design/TYPOGRAPHY.md` | Font scales, text styles |
+| **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
+| **MVP Plan** | `docs/planning/MVP_PLAN.md` | Current milestone tasks |
+| **Logging** | `docs/operations/LOGGING.md` | Log format, debug commands |
+| **Quota** | `docs/operations/QUOTA.md` | Upload limits, rate limiting |
+
+---
 @.prot/CHEATSHEET.md
 @.claude/rules/tauri-stack.md
+@docs/design/COLOR.md
+@docs/architecture/ARCHITECTURE.md
 
 <!-- yorutsuke-v2 v0.1.0 -->

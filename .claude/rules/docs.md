@@ -10,11 +10,12 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | Directory | Contents |
 |-----------|----------|
 | `product/` | REQUIREMENTS, ROADMAP, CHANGELOG |
-| `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS |
-| `design/` | UI mockups (HTML) |
-| `operations/` | DEPLOYMENT, OPERATIONS, QUOTA, LOGGING |
+| `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS, MOCKING |
+| `design/` | COLOR (25-color palette), TYPOGRAPHY, view mockups (0-4) |
+| `operations/` | DEPLOYMENT, OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL |
 | `planning/` | MVP_PLAN |
 | `tests/` | FRONTEND, BACKEND test scenarios |
+| `archive/` | Historical docs |
 
 ## Core Documents (Required)
 
@@ -28,7 +29,9 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 
 | Document | Purpose |
 |----------|---------|
-| `design/` | UI/UX mockups (HTML) |
+| `design/COLOR.md` | 25-color palette with semantic tokens |
+| `design/TYPOGRAPHY.md` | Font scales and text styles |
+| `design/0-4 *.md` | View-specific UI specs |
 | `architecture/INTERFACES.md` | IPC commands + Cloud API |
 
 ## By Product Type (Reference)
