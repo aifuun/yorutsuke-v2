@@ -139,10 +139,14 @@
 /* Action Rows */
 .debug-action-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: 12px 0;
+}
+
+.debug-action-row > .btn {
+  margin-top: 2px; /* Align button baseline with label */
 }
 
 .debug-action-row:first-of-type {
