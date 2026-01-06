@@ -23,29 +23,22 @@
   --slate-900: #0F172A;
 
   /* ---------------------------------------------------------------------------
-   * Base Palette - Blue (Primary)
+   * Base Palette - Blue (Primary) - 3 shades
    * --------------------------------------------------------------------------- */
-  --blue-50: #EFF6FF;
   --blue-100: #DBEAFE;
-  --blue-200: #BFDBFE;
   --blue-500: #3B82F6;
   --blue-600: #2563EB;
-  --blue-700: #1D4ED8;
 
   /* ---------------------------------------------------------------------------
-   * Base Palette - Emerald (Success)
+   * Base Palette - Emerald (Success) - 3 shades
    * --------------------------------------------------------------------------- */
-  --emerald-50: #ECFDF5;
   --emerald-100: #D1FAE5;
-  --emerald-200: #A7F3D0;
-  --emerald-400: #34D399;
   --emerald-500: #10B981;
   --emerald-600: #059669;
 
   /* ---------------------------------------------------------------------------
-   * Base Palette - Amber (Warning)
+   * Base Palette - Amber (Warning) - 5 shades (800 for WCAG AA text)
    * --------------------------------------------------------------------------- */
-  --amber-50: #FFFBEB;
   --amber-100: #FEF3C7;
   --amber-300: #FCD34D;
   --amber-500: #F59E0B;
@@ -53,12 +46,10 @@
   --amber-800: #92400E;
 
   /* ---------------------------------------------------------------------------
-   * Base Palette - Rose (Error)
+   * Base Palette - Rose (Error) - 4 shades (200 for hover states)
    * --------------------------------------------------------------------------- */
-  --rose-50: #FFF1F2;
   --rose-100: #FFE4E6;
   --rose-200: #FECACA;
-  --rose-400: #FB7185;
   --rose-500: #F43F5E;
   --rose-600: #E11D48;
 
@@ -114,6 +105,18 @@
   --border: var(--slate-200);
   --border-muted: var(--slate-300);
   --border-light: rgba(255, 255, 255, 0.05);
+  --border-warning: var(--amber-300);
+  --border-error: var(--rose-200);
+
+  /* ---------------------------------------------------------------------------
+   * Semantic Tokens - Component Backgrounds
+   * Use these instead of raw palette colors for consistency
+   * --------------------------------------------------------------------------- */
+  --bg-info: var(--blue-100);
+  --bg-success: var(--emerald-100);
+  --bg-warning: var(--amber-100);
+  --bg-error: var(--rose-100);
+  --bg-error-hover: var(--rose-200);
 }
 
 * {
@@ -300,8 +303,8 @@ body {
 
 .drop-zone--dragging {
   border-color: var(--blue-500);
-  background: var(--blue-50);
-  color: var(--blue-700);
+  background: var(--bg-info);
+  color: var(--blue-600);
 }
 
 .queue-list {
@@ -393,8 +396,8 @@ body {
 }
 
 .status-badge--processing {
-  background: var(--blue-100);
-  color: var(--blue-700);
+  background: var(--bg-info);
+  color: var(--blue-600);
 }
 
 .status-badge--success {
@@ -446,23 +449,23 @@ body {
 }
 
 .info-banner--info {
-  background: var(--blue-50);
-  border: 1px solid var(--blue-200);
+  background: var(--bg-info);
+  border: 1px solid var(--blue-100);
 }
 
 .info-banner--warning {
-  background: var(--amber-50);
-  border: 1px solid var(--amber-300);
+  background: var(--bg-warning);
+  border: 1px solid var(--border-warning);
 }
 
 .info-banner--error {
-  background: var(--rose-50);
-  border: 1px solid var(--rose-200);
+  background: var(--bg-error);
+  border: 1px solid var(--border-error);
 }
 
 .info-banner--success {
-  background: var(--emerald-50);
-  border: 1px solid var(--emerald-200);
+  background: var(--bg-success);
+  border: 1px solid var(--emerald-100);
 }
 
 /* Toggle Switch */

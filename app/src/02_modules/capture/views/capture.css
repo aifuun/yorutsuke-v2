@@ -173,7 +173,7 @@
 
 .queue-item--failed:hover {
   background: rgba(254, 242, 242, 0.9);
-  border-color: var(--rose-400);
+  border-color: var(--rose-500);
 }
 
 .queue-item--skipped {
@@ -291,8 +291,8 @@
 }
 
 .info-banner--info {
-  background: var(--blue-100);
-  border: 1px solid var(--blue-200);
+  background: var(--bg-info);
+  border: 1px solid var(--blue-100);
 }
 
 .info-banner .banner-icon {
@@ -315,7 +315,7 @@
 }
 
 .info-banner--info .banner-title {
-  color: var(--blue-700);
+  color: var(--blue-600);
 }
 
 .info-banner .banner-text {

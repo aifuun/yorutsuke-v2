@@ -7,6 +7,7 @@ import { useQuota } from '../../capture/headless/useQuota';
 import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import { resetTodayQuota } from '../../capture/adapters/imageDb';
+import { clearAllData } from '../../../00_kernel/storage/db';
 import { dlog, getLogs, clearLogs, subscribeLogs, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
 import type { UserId } from '../../../00_kernel/types';
@@ -103,10 +104,29 @@ export function DebugView() {
     setActionStatus('idle');
   };
 
-  const handleClearStorage = () => {
-    if (confirm(t('debug.clearCacheConfirm'))) {
-      localStorage.clear();
-      window.location.reload();
+  const handleClearStorage = async () => {
+    if (!confirm(t('debug.clearCacheConfirm'))) {
+      return;
+    }
+
+    setActionStatus('running');
+    setActionResult(null);
+
+    try {
+      dlog.info('Debug', 'Clearing all data...');
+      const results = await clearAllData();
+      const total = Object.values(results).reduce((a, b) => a + b, 0);
+      dlog.info('Debug', 'Data cleared', results);
+      setActionResult(`Cleared ${total} rows`);
+
+      // Reload after short delay so user sees the result
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (e) {
+      dlog.error('Debug', 'Clear failed', e);
+      setActionResult('Error: ' + String(e));
+      setActionStatus('idle');
     }
   };
 

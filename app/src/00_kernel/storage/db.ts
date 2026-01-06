@@ -184,3 +184,38 @@ export async function getSchemaVersion(): Promise<number> {
 export async function setSchemaVersion(version: number): Promise<void> {
   await setSetting('schema_version', String(version));
 }
+
+/**
+ * Clear all user data from database (for debug/reset)
+ * Preserves schema version and settings structure
+ * Returns count of deleted rows per table
+ */
+export async function clearAllData(): Promise<Record<string, number>> {
+  const database = await getDb();
+  const results: Record<string, number> = {};
+
+  // Tables to clear (order matters for foreign keys)
+  const tables = ['images', 'transactions', 'settings'];
+
+  await database.execute('BEGIN TRANSACTION');
+
+  try {
+    for (const table of tables) {
+      const result = await database.execute(`DELETE FROM ${table}`);
+      results[table] = result.rowsAffected ?? 0;
+    }
+
+    await database.execute('COMMIT');
+    logger.info('db_data_cleared', results);
+
+    return results;
+  } catch (error) {
+    await database.execute('ROLLBACK');
+    logger.error(EVENTS.APP_ERROR, {
+      component: 'database',
+      action: 'clearAllData',
+      error: String(error),
+    });
+    throw error;
+  }
+}

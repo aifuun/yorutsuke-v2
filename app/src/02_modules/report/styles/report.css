@@ -542,7 +542,8 @@
 }
 
 .btn-confirm:hover {
-  background: var(--emerald-200);
+  background: var(--emerald-100);
+  box-shadow: inset 0 0 0 1px var(--emerald-500);
 }
 
 .btn-delete {
@@ -613,5 +614,5 @@
 }
 
 .context-menu button.delete:hover {
-  background: var(--rose-50);
+  background: var(--bg-error);
 }
