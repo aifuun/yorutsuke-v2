@@ -188,7 +188,7 @@ export function CaptureView() {
                       key={image.id}
                       className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
                     >
-                      {/* Column 1: Thumbnail + ID */}
+                      {/* Column 1: Thumbnail + MD5/ID */}
                       <div className="queue-item__left">
                         <div className="queue-item__thumb">
                           {image.thumbnailPath ? (
@@ -197,7 +197,7 @@ export function CaptureView() {
                             <span className="queue-item__icon">🧾</span>
                           )}
                         </div>
-                        <p className="queue-item__id">{image.id.slice(0, 12)}...</p>
+                        <p className="queue-item__id">{image.md5 ? image.md5.slice(0, 8) : image.id.slice(0, 8)}...</p>
                       </div>
 
                       {/* Column 2: Status Pipeline (dots) */}

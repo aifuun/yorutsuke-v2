@@ -30,7 +30,7 @@ export interface CaptureActions {
   // Processing lifecycle
   startProcess: (id: ImageId) => void;
   processSuccess: (id: ImageId, compressedPath: string, compressedSize: number, md5: string) => void;
-  duplicateDetected: (id: ImageId) => void;
+  duplicateDetected: (id: ImageId, md5: string, originalThumbnail: string | null) => void;
 
   // Upload lifecycle
   startUpload: (id: ImageId) => void;
@@ -92,22 +92,22 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
     currentId: id,
   })),
 
-  processSuccess: (id, compressedPath, compressedSize, _md5) => set((state) => ({
+  processSuccess: (id, compressedPath, compressedSize, md5) => set((state) => ({
     status: 'idle',
     currentId: null,
     queue: state.queue.map(img =>
       img.id === id
-        ? { ...img, status: 'compressed' as ImageStatus, compressedSize, thumbnailPath: compressedPath }
+        ? { ...img, status: 'compressed' as ImageStatus, compressedSize, thumbnailPath: compressedPath, md5 }
         : img
     ),
   })),
 
-  duplicateDetected: (id) => set((state) => ({
+  duplicateDetected: (id, md5, originalThumbnail) => set((state) => ({
     status: 'idle',
     currentId: null,
     queue: state.queue.map(img =>
       img.id === id
-        ? { ...img, status: 'skipped' as ImageStatus }
+        ? { ...img, status: 'skipped' as ImageStatus, md5, thumbnailPath: originalThumbnail }
         : img
     ),
   })),

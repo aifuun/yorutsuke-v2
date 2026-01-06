@@ -1,6 +1,7 @@
 // Pillar L: View - User profile and account management
 import { useAuth } from '../../auth';
 import { useTranslation } from '../../../i18n';
+import { ask } from '@tauri-apps/plugin-dialog';
 import '../styles/settings.css';
 
 export function UserProfileView() {
@@ -8,7 +9,11 @@ export function UserProfileView() {
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    if (confirm(t('settings.logoutConfirm'))) {
+    const confirmed = await ask(t('settings.logoutConfirm'), {
+      title: 'Logout',
+      kind: 'warning',
+    });
+    if (confirmed) {
       await logout();
     }
   };

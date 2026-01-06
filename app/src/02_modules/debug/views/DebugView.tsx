@@ -10,6 +10,7 @@ import { resetTodayQuota } from '../../capture/adapters/imageDb';
 import { clearAllData } from '../../../00_kernel/storage/db';
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { setMockEnabled, subscribeMockMode, getMockSnapshot } from '../../../00_kernel/config/mock';
 import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
@@ -115,7 +116,12 @@ export function DebugView() {
   };
 
   const handleClearStorage = async () => {
-    if (!confirm(t('debug.clearCacheConfirm'))) {
+    const confirmed = await ask(t('debug.clearCacheConfirm'), {
+      title: 'Clear Storage',
+      kind: 'warning',
+    });
+
+    if (!confirmed) {
       return;
     }
 

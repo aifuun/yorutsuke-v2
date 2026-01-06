@@ -1,7 +1,11 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useTransactionLogic } from '../headless/useTransactionLogic';
 import { useTranslation } from '../../../i18n';
+import { ask } from '@tauri-apps/plugin-dialog';
+import DatePicker from 'react-datepicker';
+import { ja } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import './ledger.css';
@@ -13,28 +17,97 @@ interface TransactionViewProps {
   onNavigate?: (view: ViewType) => void;
 }
 
-// Month names for the interval selector
+// Month names for display
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const MONTHS_JA = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
+// Get day boundaries
+function getDayStart(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function getDayEnd(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+// Quick filter helpers
+function getThisMonth(): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of month
+  return { start, end };
+}
+
+function getLastMonth(): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
+  return { start, end };
+}
+
+function getThisYear(): { start: Date; end: Date } {
+  const year = new Date().getFullYear();
+  return {
+    start: new Date(year, 0, 1),
+    end: new Date(year, 11, 31),
+  };
+}
+
+type QuickFilter = 'thisMonth' | 'lastMonth' | 'thisYear' | 'all' | 'custom';
 
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t, i18n } = useTranslation();
   const { state, filteredTransactions, confirm, remove } = useTransactionLogic(userId);
 
-  // Year/month selection state
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null); // null = full year
+  // Date range state
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [activeFilter, setActiveFilter] = useState<QuickFilter>('thisMonth');
 
-  // Filter transactions by selected year/month
+  // Apply quick filter
+  const applyQuickFilter = useCallback((filter: QuickFilter) => {
+    setActiveFilter(filter);
+    if (filter === 'thisMonth') {
+      const { start, end } = getThisMonth();
+      setStartDate(start);
+      setEndDate(end);
+    } else if (filter === 'lastMonth') {
+      const { start, end } = getLastMonth();
+      setStartDate(start);
+      setEndDate(end);
+    } else if (filter === 'thisYear') {
+      const { start, end } = getThisYear();
+      setStartDate(start);
+      setEndDate(end);
+    }
+    // 'all' and 'custom' don't change the date selectors
+  }, []);
+
+  // Handle manual date change from DatePicker
+  const handleDateChange = (type: 'start' | 'end', date: Date | null) => {
+    if (!date) return;
+    setActiveFilter('custom');
+    if (type === 'start') {
+      setStartDate(date);
+    } else {
+      setEndDate(date);
+    }
+  };
+
+  // Filter transactions by date range
   const displayTransactions = useMemo(() => {
+    if (activeFilter === 'all') {
+      return filteredTransactions;
+    }
+    const start = getDayStart(startDate);
+    const end = getDayEnd(endDate);
     return filteredTransactions.filter((t) => {
       const date = new Date(t.date);
-      if (date.getFullYear() !== selectedYear) return false;
-      if (selectedMonth !== null && date.getMonth() !== selectedMonth) return false;
-      return true;
+      return date >= start && date <= end;
     });
-  }, [filteredTransactions, selectedYear, selectedMonth]);
+  }, [filteredTransactions, startDate, endDate, activeFilter]);
+
+  // DatePicker locale
+  const dateLocale = i18n.language === 'ja' ? ja : undefined;
 
   // Calculate summary
   const summary = useMemo(() => {
@@ -83,58 +156,78 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     );
   }
 
-  const months = i18n.language === 'ja' ? MONTHS_JA : MONTHS;
-
   return (
     <div className="ledger">
       <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
 
-      {/* Time Control Bar */}
-      <div className="ledger-controls">
-        <div className="control-row">
-          <span className="control-label">{t('ledger.yearly')}</span>
-          <div className="year-selector">
-            {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
-              <button
-                key={year}
-                type="button"
-                className={`year-btn ${year === selectedYear ? 'year-btn--active' : ''}`}
-                onClick={() => setSelectedYear(year)}
-              >
-                {year}
-                {year === selectedYear && <span className="active-dot" />}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="control-row">
-          <span className="control-label">{t('ledger.interval')}</span>
-          <div className="interval-selector">
-            <button
-              type="button"
-              className={`interval-btn ${selectedMonth === null ? 'interval-btn--active' : ''}`}
-              onClick={() => setSelectedMonth(null)}
-            >
-              {t('ledger.fullYear')}
-            </button>
-            <span className="interval-divider" />
-            {months.map((month, idx) => (
-              <button
-                key={month}
-                type="button"
-                className={`month-btn ${selectedMonth === idx ? 'month-btn--active' : ''}`}
-                onClick={() => setSelectedMonth(idx)}
-              >
-                {month}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className="ledger-content">
         <div className="ledger-container">
+          {/* Date Picker Card */}
+          <div className="card card--picker">
+            {/* Date Range Selectors */}
+            <span className="picker-label">{t('ledger.dateRange')}</span>
+            <div className="date-range-row">
+              {/* Start Date */}
+              <DatePicker
+                selected={startDate}
+                onChange={(date: Date | null) => handleDateChange('start', date)}
+                dateFormat="yyyy/MM/dd"
+                locale={dateLocale}
+                className="input input--date"
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+              />
+
+              <span className="date-range-arrow">→</span>
+
+              {/* End Date */}
+              <DatePicker
+                selected={endDate}
+                onChange={(date: Date | null) => handleDateChange('end', date)}
+                dateFormat="yyyy/MM/dd"
+                locale={dateLocale}
+                className="input input--date"
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                minDate={startDate}
+              />
+            </div>
+
+            {/* Quick Filters */}
+            <div className="quick-filters">
+              <button
+                type="button"
+                className={`btn btn--filter ${activeFilter === 'thisMonth' ? 'btn--filter-active' : ''}`}
+                onClick={() => applyQuickFilter('thisMonth')}
+              >
+                {t('ledger.thisMonth')}
+              </button>
+              <button
+                type="button"
+                className={`btn btn--filter ${activeFilter === 'lastMonth' ? 'btn--filter-active' : ''}`}
+                onClick={() => applyQuickFilter('lastMonth')}
+              >
+                {t('ledger.lastMonth')}
+              </button>
+              <button
+                type="button"
+                className={`btn btn--filter ${activeFilter === 'thisYear' ? 'btn--filter-active' : ''}`}
+                onClick={() => applyQuickFilter('thisYear')}
+              >
+                {t('ledger.thisYear')}
+              </button>
+              <button
+                type="button"
+                className={`btn btn--filter ${activeFilter === 'all' ? 'btn--filter-active' : ''}`}
+                onClick={() => applyQuickFilter('all')}
+              >
+                {t('ledger.all')}
+              </button>
+            </div>
+          </div>
+
           {/* Summary Cards */}
           <div className="summary-grid">
             <div className="card card--summary is-income">
@@ -253,8 +346,12 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
           <button
             type="button"
             className="btn btn--danger btn--sm"
-            onClick={() => {
-              if (confirm(t('transaction.deleteConfirm'))) {
+            onClick={async () => {
+              const confirmed = await ask(t('transaction.deleteConfirm'), {
+                title: 'Delete',
+                kind: 'warning',
+              });
+              if (confirmed) {
                 onDelete();
               }
             }}

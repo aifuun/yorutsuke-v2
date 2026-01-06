@@ -168,13 +168,16 @@
     "expense": "Expense"
   },
   "ledger": {
-    "yearly": "Yearly",
-    "interval": "Interval",
-    "fullYear": "Full Year",
-    "annualInflow": "Annual Inflow",
-    "annualOutflow": "Annual Outflow",
-    "latestEntries": "Latest Registry Entries",
-    "totalItems": "Total: {{count}} Items",
+    "dateRange": "Date Range",
+    "year": "",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "thisYear": "This Year",
+    "all": "All",
+    "annualInflow": "Total Inflow",
+    "annualOutflow": "Total Outflow",
+    "latestEntries": "Transactions",
+    "totalItems": "{{count}} items",
     "newEntry": "New Entry"
   },
   "history": {

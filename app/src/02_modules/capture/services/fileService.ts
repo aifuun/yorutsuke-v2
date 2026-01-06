@@ -12,6 +12,7 @@ import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { compressImage, deleteLocalImage } from '../adapters/imageIpc';
 import {
   findImageByMd5,
+  getImageById,
   saveImage,
   updateImageStatus as dbUpdateStatus,
   loadUnfinishedImages,
@@ -56,6 +57,7 @@ function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
     thumbnailPath: row.compressed_path,
     originalSize: row.original_size ?? 0,
     compressedSize: row.compressed_size,
+    md5: row.md5 ?? null,
     createdAt: row.created_at,
     uploadedAt: null,
     processedAt: null,
@@ -103,6 +105,10 @@ class FileService {
       if (existingId) {
         logger.info(EVENTS.IMAGE_DUPLICATE, { imageId: id, traceId, existingId, md5: result.md5 });
 
+        // Get original image's thumbnail for display
+        const originalImage = await getImageById(existingId);
+        const originalThumbnail = originalImage?.compressed_path ?? null;
+
         // Clean up compressed file since it's a duplicate
         try {
           await deleteLocalImage(compressedPath);
@@ -119,7 +125,7 @@ class FileService {
           reason: 'database',
         });
 
-        captureStore.getState().duplicateDetected(id);
+        captureStore.getState().duplicateDetected(id, result.md5, originalThumbnail);
         return false;
       }
 

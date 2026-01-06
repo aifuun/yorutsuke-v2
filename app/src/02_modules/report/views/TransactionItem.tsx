@@ -4,6 +4,7 @@ import type { Transaction, TransactionCategory } from '../../../01_domains/trans
 import type { TransactionId } from '../../../00_kernel/types';
 import { isHighConfidence } from '../../../01_domains/transaction';
 import { useTranslation } from '../../../i18n';
+import { ask } from '@tauri-apps/plugin-dialog';
 
 const CATEGORIES: TransactionCategory[] = [
   'purchase', 'sale', 'shipping', 'packaging', 'fee', 'other',
@@ -86,11 +87,17 @@ export function TransactionItem({
     if (onConfirm) onConfirm(id);
   };
 
-  const handleDelete = (e?: React.MouseEvent) => {
+  const handleDelete = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     closeContextMenu();
-    if (onDelete && confirm(t('transaction.deleteConfirm'))) {
-      onDelete(id);
+    if (onDelete) {
+      const confirmed = await ask(t('transaction.deleteConfirm'), {
+        title: 'Delete',
+        kind: 'warning',
+      });
+      if (confirmed) {
+        onDelete(id);
+      }
     }
   };
 

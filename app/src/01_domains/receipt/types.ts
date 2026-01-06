@@ -23,6 +23,7 @@ export interface ReceiptImage {
   thumbnailPath: string | null;
   originalSize: number;
   compressedSize: number | null;
+  md5: string | null;  // Content hash for duplicate detection
   createdAt: string;
   uploadedAt: string | null;
   processedAt: string | null;

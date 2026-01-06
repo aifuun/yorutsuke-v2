@@ -163,6 +163,7 @@ class CaptureService {
         thumbnailPath: null,
         originalSize: 0,
         compressedSize: null,
+        md5: null,
         createdAt: new Date().toISOString(),
         uploadedAt: null,
         processedAt: null,
