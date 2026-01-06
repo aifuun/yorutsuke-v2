@@ -43,6 +43,12 @@ All core features complete. See [CHANGELOG.md](./CHANGELOG.md) for version histo
 
 ## Backlog
 
+### Cloud Telemetry (#93)
+
+- [ ] Error-only push (daily batch with nightly sync)
+
+See: [TELEMETRY.md](../operations/TELEMETRY.md)
+
 ### Cloud Sync (Deferred)
 
 **Why deferred**:

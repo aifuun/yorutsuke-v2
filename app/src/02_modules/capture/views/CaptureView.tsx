@@ -205,14 +205,16 @@ export function CaptureView() {
                         <StatusDots status={image.status} />
                       </div>
 
-                      {/* Column 3: Status Label + Size */}
+                      {/* Column 3: Status Label + Size/Error */}
                       <div className="queue-item__right">
                         <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
                           {labelInfo.text}
                         </span>
-                        {image.compressedSize && image.compressedSize > 0 && (
+                        {isFailed && image.error ? (
+                          <span className="queue-item__error">{image.error}</span>
+                        ) : image.compressedSize && image.compressedSize > 0 ? (
                           <span className="queue-item__size">{formatSize(image.compressedSize)}</span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );

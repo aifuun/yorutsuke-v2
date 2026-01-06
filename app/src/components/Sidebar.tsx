@@ -38,7 +38,7 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
       </div>
 
       <nav className="nav-group">
-        {visibleNavItems.map(({ view, labelKey }) => (
+        {visibleNavItems.map(({ view, icon: Icon, labelKey }) => (
           <div
             key={view}
             className={`nav-item ${activeView === view ? 'active' : ''}`}
@@ -47,6 +47,7 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onViewChange(view)}
           >
+            <Icon size={18} strokeWidth={2} />
             <span>{t(labelKey)}</span>
           </div>
         ))}

@@ -307,6 +307,15 @@
   color: var(--slate-400);
 }
 
+.queue-item__error {
+  font-size: 10px;
+  color: var(--rose-500);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Status dots (horizontal) */
 .status-dots {
   display: flex;

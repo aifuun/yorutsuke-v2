@@ -21,6 +21,24 @@ import { captureStore } from '../stores/captureStore';
 import type { ImageRow } from '../../../00_kernel/storage';
 
 /**
+ * Simplify Rust error messages for user display
+ */
+function simplifyError(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower.includes('format error') || lower.includes('decoding')) {
+    return 'Invalid image';
+  }
+  if (lower.includes('i/o error') || lower.includes('not found')) {
+    return 'File not found';
+  }
+  if (lower.includes('permission')) {
+    return 'Access denied';
+  }
+  // Fallback: truncate to 20 chars
+  return error.length > 20 ? error.slice(0, 17) + '...' : error;
+}
+
+/**
  * Convert database row to ReceiptImage for queue restoration
  */
 function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
@@ -134,7 +152,8 @@ class FileService {
       logger.info(EVENTS.IMAGE_SAVED, { imageId: id, traceId, intentId, md5: result.md5 });
       return true;
     } catch (e) {
-      logger.error(EVENTS.IMAGE_COMPRESSION_FAILED, { imageId: id, traceId, intentId, error: String(e) });
+      const rawError = String(e);
+      logger.error(EVENTS.IMAGE_COMPRESSION_FAILED, { imageId: id, traceId, intentId, error: rawError });
 
       // Clean up orphaned compressed file if it was created
       if (compressedPath) {
@@ -146,7 +165,9 @@ class FileService {
         }
       }
 
-      captureStore.getState().failure(id, String(e));
+      // Simplify error message for UI display
+      const userError = simplifyError(rawError);
+      captureStore.getState().failure(id, userError);
       return false;
     } finally {
       this.processingIds.delete(id);

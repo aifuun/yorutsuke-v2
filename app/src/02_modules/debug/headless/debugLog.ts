@@ -63,30 +63,11 @@ export function debugLog(
     logs.shift();
   }
 
-  // Also output to console
-  const consoleMsg = `[${tag}] ${message}`;
-  if (level === 'error') {
-    console.error(consoleMsg, data ?? '');
-  } else if (level === 'warn') {
-    console.warn(consoleMsg, data ?? '');
-  } else {
-    console.log(consoleMsg, data ?? '');
-  }
+  // Note: No console output here - logger.ts handles console output
+  // This function is called by logger.ts outputToDebugUI() for Debug panel only
 
   notify();
 }
-
-/**
- * Convenience methods
- */
-export const dlog = {
-  info: (tag: string, message: string, data?: unknown) =>
-    debugLog('info', tag, message, data),
-  warn: (tag: string, message: string, data?: unknown) =>
-    debugLog('warn', tag, message, data),
-  error: (tag: string, message: string, data?: unknown) =>
-    debugLog('error', tag, message, data),
-};
 
 /**
  * Get all logs (returns cached snapshot for useSyncExternalStore)
