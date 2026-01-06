@@ -1,5 +1,8 @@
 // Mock mode configuration for UI development
 // When enabled, API calls return mock data instead of hitting real backends
+import { dlog } from '../../02_modules/debug/headless/debugLog';
+
+const TAG = 'Mock';
 
 /**
  * Initial mock mode is enabled when:
@@ -34,7 +37,7 @@ export const USE_MOCK = INITIAL_MOCK;
 export function setMockEnabled(enabled: boolean): void {
   _mockEnabled = enabled;
   _listeners.forEach(listener => listener());
-  console.log(`[Mock] Mode: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+  dlog.info(TAG, enabled ? 'Enabled' : 'Disabled');
 }
 
 /**
@@ -63,5 +66,5 @@ export function mockDelay(ms?: number): Promise<void> {
 
 // Log mock mode status in development
 if (import.meta.env.DEV) {
-  console.log(`[Mock] Mode: ${INITIAL_MOCK ? 'ENABLED' : 'DISABLED'}`);
+  dlog.info(TAG, INITIAL_MOCK ? 'Enabled (initial)' : 'Disabled (initial)');
 }

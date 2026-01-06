@@ -1,6 +1,7 @@
 // Pillar L: Headless - logic without UI
 // Secret code detection hook for revealing debug menu
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { dlog } from './debugLog';
 
 const SECRET_CODE = '54178###';
 const CODE_TIMEOUT = 2000; // Reset after 2 seconds of inactivity
@@ -36,7 +37,7 @@ export function useSecretCode() {
 
     // Check if code matches
     if (inputRef.current === SECRET_CODE) {
-      console.log('[useSecretCode] Debug menu unlocked!');
+      dlog.info('Debug', 'Menu unlocked via secret code');
       setIsUnlocked(true);
       resetInput();
       return;

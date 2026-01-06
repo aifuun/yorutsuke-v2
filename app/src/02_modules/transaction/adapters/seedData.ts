@@ -5,6 +5,8 @@ import { fetchTransactions, saveTransaction, clearAllTransactions } from './tran
 import { dlog } from '../../debug/headless/debugLog';
 import { logger } from '../../../00_kernel/telemetry';
 
+const TAG = 'Seed';
+
 // =========================================================================
 // Seeded Random Generator (for reproducible mock data)
 // =========================================================================
@@ -247,7 +249,6 @@ export async function seedMockTransactions(
   scenario: SeedScenario = 'default',
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
-  const TAG = 'Seed';
   logger.info('SEED_STARTED', { userId, scenario, force });
   dlog.info(TAG, 'Starting', { userId, scenario, force });
 
@@ -326,10 +327,10 @@ export async function seedMockTransactions(
 export async function clearTransactions(userId: UserId): Promise<{ cleared: boolean; count: number }> {
   try {
     const count = await clearAllTransactions(userId);
-    console.log(`[seedData] Cleared ${count} transactions for ${userId}`);
+    dlog.info(TAG, 'Cleared', { count, userId: userId.slice(0, 8) });
     return { cleared: true, count };
   } catch (e) {
-    console.error('[seedData] Failed to clear:', e);
+    dlog.error(TAG, 'Clear failed', { error: String(e) });
     return { cleared: false, count: 0 };
   }
 }
