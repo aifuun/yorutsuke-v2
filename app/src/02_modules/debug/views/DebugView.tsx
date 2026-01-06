@@ -34,6 +34,14 @@ export function DebugView() {
   const [actionStatus, setActionStatus] = useState<'idle' | 'running'>('idle');
   const [actionResult, setActionResult] = useState<string | null>(null);
 
+  // Sync verbose logging setting with dlog module
+  // Must be before early returns to maintain hooks order
+  useEffect(() => {
+    if (state.status === 'success') {
+      setVerboseLogging(state.settings.debugEnabled);
+    }
+  }, [state]);
+
   // Handle loading state
   if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
     return (
@@ -58,11 +66,6 @@ export function DebugView() {
   }
 
   const currentSettings = state.settings;
-
-  // Sync verbose logging setting with dlog module
-  useEffect(() => {
-    setVerboseLogging(currentSettings.debugEnabled);
-  }, [currentSettings.debugEnabled]);
 
   const handleSeedData = async () => {
     if (!effectiveUserId) {
