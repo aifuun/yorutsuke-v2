@@ -1,6 +1,6 @@
 // Pillar L: View - Debug tools for development
 // Merged into 3 sections: System & Config, Logs, Dev Actions
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
 import { useQuota } from '../../capture/headless/useQuota';
@@ -8,7 +8,7 @@ import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import { resetTodayQuota } from '../../capture/adapters/imageDb';
 import { clearAllData } from '../../../00_kernel/storage/db';
-import { dlog, getLogs, clearLogs, subscribeLogs, type LogEntry } from '../headless/debugLog';
+import { dlog, getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
 import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
@@ -58,6 +58,11 @@ export function DebugView() {
   }
 
   const currentSettings = state.settings;
+
+  // Sync verbose logging setting with dlog module
+  useEffect(() => {
+    setVerboseLogging(currentSettings.debugEnabled);
+  }, [currentSettings.debugEnabled]);
 
   const handleSeedData = async () => {
     if (!effectiveUserId) {

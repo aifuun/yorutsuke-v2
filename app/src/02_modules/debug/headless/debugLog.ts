@@ -13,6 +13,16 @@ const MAX_LOGS = 100;
 const logs: LogEntry[] = [];
 const listeners: Set<() => void> = new Set();
 
+// Verbose logging flag - when false, only warn/error are logged
+let verboseEnabled = false;
+
+/**
+ * Enable/disable verbose logging (info level)
+ */
+export function setVerboseLogging(enabled: boolean) {
+  verboseEnabled = enabled;
+}
+
 // Cached snapshot for useSyncExternalStore
 // Must return same reference unless data changed
 let snapshot: LogEntry[] = [];
@@ -25,6 +35,7 @@ function notify() {
 
 /**
  * Add a log entry
+ * Info-level logs are skipped unless verbose logging is enabled
  */
 export function debugLog(
   level: LogEntry['level'],
@@ -32,6 +43,11 @@ export function debugLog(
   message: string,
   data?: unknown
 ) {
+  // Skip info logs when verbose is disabled
+  if (level === 'info' && !verboseEnabled) {
+    return;
+  }
+
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
