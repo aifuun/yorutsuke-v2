@@ -120,40 +120,27 @@
   margin-left: 4px;
 }
 
-/* Stats Grid */
-.stats-grid {
+/* Stats Row - Two cards side by side */
+.stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-.stat-card {
-  padding: 20px;
+.stats-row .stat {
+  padding: 24px 28px;
 }
 
-.stat-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+/* Plain icon for dashboard stats (no background) */
+.stats-row .stat__icon {
+  width: auto;
+  height: auto;
+  background: none;
+  font-size: 28px;
 }
 
-.stat-icon {
-  font-size: 18px;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--slate-700);
-}
-
-.stat-value.stat-warning {
-  color: var(--amber-600);
-}
-
-.stat-value.stat-success {
-  color: var(--emerald-600);
+.stats-row .stat__value {
+  font-size: 24px;
 }
 
 /* Activity Card */
@@ -263,8 +250,9 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stats-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .hero-amount {

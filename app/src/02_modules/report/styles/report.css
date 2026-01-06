@@ -90,33 +90,6 @@
   margin-bottom: 1.5rem;
 }
 
-.summary-card {
-  padding: 1rem;
-  border-radius: 8px;
-  background: var(--slate-50);
-  border: 1px solid var(--slate-200);
-}
-
-.summary-card .card-label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--slate-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
-}
-
-.summary-card .card-value {
-  display: block;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.summary-card.income .card-value { color: var(--emerald-600); }
-.summary-card.expense .card-value { color: var(--rose-600); }
-.summary-card.net .card-value.positive { color: var(--emerald-600); }
-.summary-card.net .card-value.negative { color: var(--rose-600); }
-
 /* Category Breakdown */
 .category-breakdown {
   margin-bottom: 1.5rem;

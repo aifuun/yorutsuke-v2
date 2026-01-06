@@ -5,8 +5,9 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { useCaptureQueue, useCaptureStats } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
 import { useCaptureActions } from '../hooks/useCaptureActions';
+import { useQuota } from '../hooks/useQuotaState';
 import { captureService } from '../services/captureService';
-import { useQuota } from '../headless/useQuota';
+import { quotaService } from '../services/quotaService';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
@@ -33,7 +34,7 @@ export function CaptureView() {
 
   const { isOnline } = useNetworkStatus();
   const { effectiveUserId, isLoading: userLoading } = useEffectiveUserId();
-  const { quota } = useQuota(effectiveUserId);
+  const { quota } = useQuota();
 
   // New Service-based hooks (MVP0)
   const queue = useCaptureQueue();
@@ -41,10 +42,11 @@ export function CaptureView() {
   const { isDragging, dragHandlers } = useDragState();
   const { retryAllFailed } = useCaptureActions();
 
-  // Set user ID in captureService when it changes
+  // Set user ID in services when it changes
   useEffect(() => {
     if (effectiveUserId) {
       captureService.setUser(effectiveUserId);
+      quotaService.setUser(effectiveUserId);
     }
   }, [effectiveUserId]);
 
@@ -147,23 +149,28 @@ export function CaptureView() {
             </div>
           )}
 
-          {/* Stats Row - Three columns inline */}
-          <div className="premium-card stats-bar">
-            <div className="stats-bar-item">
-              <span className="stats-bar-label">{t('capture.todayQuota')}</span>
-              <span className={`stats-bar-value mono quota-text--${quotaVariant}`}>
-                {quota.used} / {quota.limit}
-              </span>
+          {/* Stats Row */}
+          <div className="premium-card stats-row">
+            <div className={`stat stat--sm ${quotaVariant === 'error' ? 'stat--expense' : quotaVariant === 'warning' ? 'stat--warning' : ''}`}>
+              <div className="stat__icon">🎯</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('capture.todayQuota')}</p>
+                <p className="stat__value">{quota.used}/{quota.limit}</p>
+              </div>
             </div>
-            <div className="stats-bar-sep" />
-            <div className="stats-bar-item">
-              <span className="stats-bar-label">⏳ {t('capture.pending')}</span>
-              <span className="stats-bar-value mono">{pendingCount}</span>
+            <div className="stat stat--sm stat--warning">
+              <div className="stat__icon">⏳</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('capture.pending')}</p>
+                <p className="stat__value">{pendingCount}</p>
+              </div>
             </div>
-            <div className="stats-bar-sep" />
-            <div className="stats-bar-item">
-              <span className="stats-bar-label">✅ {t('capture.uploaded')}</span>
-              <span className="stats-bar-value mono">{uploadedCount}</span>
+            <div className="stat stat--sm stat--income">
+              <div className="stat__icon">✅</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('capture.uploaded')}</p>
+                <p className="stat__value">{uploadedCount}</p>
+              </div>
             </div>
           </div>
         </div>

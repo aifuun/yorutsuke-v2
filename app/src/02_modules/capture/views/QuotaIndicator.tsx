@@ -1,6 +1,6 @@
-// Pillar L: View - renders data from useQuota hook
+// Pillar L: View - renders quota data from quotaStore
 import { useMemo } from 'react';
-import type { QuotaStatus } from '../headless/useQuota';
+import type { QuotaStatus } from '../stores/quotaStore';
 import { useTranslation } from '../../../i18n';
 import './QuotaIndicator.css';
 

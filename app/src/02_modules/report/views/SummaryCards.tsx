@@ -12,23 +12,33 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
 
   return (
     <div className="summary-grid">
-      <div className="summary-card income">
-        <span className="card-label">{t('report.income')}</span>
-        <span className="card-value">¥{totalIncome.toLocaleString()}</span>
+      <div className="premium-card stat stat--income">
+        <div className="stat__icon">📈</div>
+        <div className="stat__content">
+          <p className="stat__label">{t('report.income')}</p>
+          <p className="stat__value">¥{totalIncome.toLocaleString()}</p>
+        </div>
       </div>
-      <div className="summary-card expense">
-        <span className="card-label">{t('report.expense')}</span>
-        <span className="card-value">¥{totalExpense.toLocaleString()}</span>
+      <div className="premium-card stat stat--expense">
+        <div className="stat__icon">📉</div>
+        <div className="stat__content">
+          <p className="stat__label">{t('report.expense')}</p>
+          <p className="stat__value">¥{totalExpense.toLocaleString()}</p>
+        </div>
       </div>
-      <div className="summary-card net">
-        <span className="card-label">{t('report.netProfit')}</span>
-        <span className={`card-value ${netProfit >= 0 ? 'positive' : 'negative'}`}>
-          ¥{netProfit.toLocaleString()}
-        </span>
+      <div className={`premium-card stat ${netProfit >= 0 ? 'stat--income' : 'stat--expense'}`}>
+        <div className="stat__icon">{netProfit >= 0 ? '💰' : '📊'}</div>
+        <div className="stat__content">
+          <p className="stat__label">{t('report.netProfit')}</p>
+          <p className="stat__value">¥{netProfit.toLocaleString()}</p>
+        </div>
       </div>
-      <div className="summary-card count">
-        <span className="card-label">{t('report.transactions')}</span>
-        <span className="card-value">{transactionCount}</span>
+      <div className="premium-card stat">
+        <div className="stat__icon">🧾</div>
+        <div className="stat__content">
+          <p className="stat__label">{t('report.transactions')}</p>
+          <p className="stat__value">{transactionCount}</p>
+        </div>
       </div>
     </div>
   );

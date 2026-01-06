@@ -4,7 +4,7 @@ import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
 import { createDailySummary, createMonthlySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
-import { useQuota } from '../../capture';
+import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { EmptyState } from './EmptyState';
 import '../styles/dashboard.css';
@@ -20,7 +20,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
   const { state, transactions } = useTransactionLogic(userId);
-  const { quota } = useQuota(userId);
+  const { quota } = useQuota();
 
   // Today's summary
   const todaySummary = useMemo(
@@ -122,36 +122,38 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-header">
-                <span className="stat-icon">📈</span>
-                <span className="section-header">{t('dashboard.monthlyIncome')}</span>
+          {/* Quick Stats - Row 1: Pending + Quota */}
+          <div className="stats-row">
+            <div className="premium-card stat stat--warning">
+              <div className="stat__icon">📷</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('dashboard.pending')}</p>
+                <p className="stat__value">{pendingCount}</p>
               </div>
-              <div className="stat-value mono">¥{monthlySummary.income.toLocaleString()}</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-header">
-                <span className="stat-icon">📉</span>
-                <span className="section-header">{t('dashboard.monthlyExpense')}</span>
+            <div className="premium-card stat">
+              <div className="stat__icon">🎯</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('dashboard.quotaRemaining')}</p>
+                <p className="stat__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
               </div>
-              <div className="stat-value mono">¥{monthlySummary.expense.toLocaleString()}</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-header">
-                <span className="stat-icon">📷</span>
-                <span className="section-header">{t('dashboard.pending')}</span>
+          </div>
+
+          {/* Quick Stats - Row 2: Monthly Income + Expense */}
+          <div className="stats-row">
+            <div className="premium-card stat stat--income">
+              <div className="stat__icon">📈</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('dashboard.monthlyIncome')}</p>
+                <p className="stat__value">¥{monthlySummary.income.toLocaleString()}</p>
               </div>
-              <div className="stat-value mono stat-warning">{pendingCount}</div>
             </div>
-            <div className="stat-card">
-              <div className="stat-header">
-                <span className="stat-icon">🎯</span>
-                <span className="section-header">{t('dashboard.quotaRemaining')}</span>
-              </div>
-              <div className="stat-value mono stat-success">
-                {quota ? `${quota.remaining}/${quota.limit}` : '—'}
+            <div className="premium-card stat stat--expense">
+              <div className="stat__icon">📉</div>
+              <div className="stat__content">
+                <p className="stat__label">{t('dashboard.monthlyExpense')}</p>
+                <p className="stat__value">¥{monthlySummary.expense.toLocaleString()}</p>
               </div>
             </div>
           </div>

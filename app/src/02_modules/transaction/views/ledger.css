@@ -188,45 +188,6 @@
   margin-bottom: 40px;
 }
 
-.summary-card {
-  padding: 32px;
-  border-left-width: 8px;
-  border-left-style: solid;
-}
-
-.summary-card--inflow {
-  border-left-color: var(--emerald-500);
-  background: linear-gradient(135deg, rgba(209, 250, 229, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%);
-}
-
-.summary-card--outflow {
-  border-left-color: var(--rose-500);
-  background: linear-gradient(135deg, rgba(255, 228, 230, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%);
-}
-
-.summary-label {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  margin: 0 0 8px 0;
-}
-
-.summary-card--inflow .summary-label {
-  color: var(--emerald-600);
-}
-
-.summary-card--outflow .summary-label {
-  color: var(--rose-600);
-}
-
-.summary-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--slate-800);
-  letter-spacing: -0.02em;
-}
-
 /* Registry Section */
 .registry-section {
   margin-top: 24px;

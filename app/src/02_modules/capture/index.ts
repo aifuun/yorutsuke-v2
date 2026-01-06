@@ -5,6 +5,7 @@
 export { captureService } from './services/captureService';
 export { uploadService } from './services/uploadService';
 export { fileService } from './services/fileService';
+export { quotaService } from './services/quotaService';
 
 // React Hooks (bridge to Service layer)
 export {
@@ -22,16 +23,15 @@ export {
 } from './hooks/useUploadState';
 export { useDragState } from './hooks/useDragState';
 export { useCaptureActions } from './hooks/useCaptureActions';
+export { useQuota, useQuotaState, useQuotaStatus, useQuotaFetchStatus } from './hooks/useQuotaState';
 
 // Stores (for advanced usage)
 export { captureStore } from './stores/captureStore';
 export { uploadStore } from './stores/uploadStore';
+export { quotaStore } from './stores/quotaStore';
 export type { CaptureState, CaptureStore } from './stores/captureStore';
 export type { UploadState, UploadStore, UploadTask } from './stores/uploadStore';
-
-// Quota (still in headless, not migrated in MVP0)
-export { useQuota } from './headless';
-export type { QuotaStatus } from './headless/useQuota';
+export type { QuotaState, QuotaStore, QuotaStatus } from './stores/quotaStore';
 
 // Views
 export { CaptureView, QuotaIndicator } from './views';

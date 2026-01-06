@@ -3,7 +3,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
-import { useQuota } from '../../capture/headless/useQuota';
+import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import { resetTodayQuota } from '../../capture/adapters/imageDb';
@@ -26,7 +26,7 @@ export function DebugView() {
   const { user } = useAuth();
   const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
   const { state, update } = useSettings();
-  const { quota, refresh: refreshQuota } = useQuota(effectiveUserId);
+  const { quota } = useQuota();
   const logs = useLogs();
 
   // Seed data state
@@ -101,9 +101,8 @@ export function DebugView() {
       const count = await resetTodayQuota(effectiveUserId as UserId);
       dlog.info('Debug', 'Quota reset', { count });
       setActionResult(count > 0 ? `Reset ${count} uploads` : 'No uploads today');
-      // Emit event so other views (Capture) can refresh their quota
+      // Emit event so quotaService can refresh
       emit('quota:reset', { count });
-      refreshQuota();
     } catch (e) {
       dlog.error('Debug', 'Quota reset failed', e);
       setActionResult('Error');

@@ -1,3 +1,2 @@
-// Headless hooks that haven't been migrated to Service pattern
-// MVP0: useCaptureLogic, useDragDrop, useUploadQueue migrated to services/
-export * from './useQuota';
+// Headless hooks - All migrated to Service pattern in MVP0
+// This directory is kept for backwards compatibility but is now empty

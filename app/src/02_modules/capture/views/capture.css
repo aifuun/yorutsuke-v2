@@ -307,75 +307,17 @@
   gap: 16px;
 }
 
-.stat-card {
+/* Stats Row - horizontal layout using .stat pattern from styles.css */
+.stats-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-}
-
-.stat-icon {
-  font-size: 28px;
-  flex-shrink: 0;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--slate-400);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--slate-700);
-}
-
-/* Stats Bar (Three columns inline: Quota | Pending | Uploaded) */
-.stats-bar {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  justify-content: space-around;
+  justify-content: space-between;
+  gap: 24px;
   padding: 16px 24px;
-  margin-top: auto;
 }
 
-.stats-bar-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+.stats-row .stat {
   flex: 1;
-  text-align: center;
-}
-
-.stats-bar-label {
-  font-size: 11px;
-  color: var(--slate-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  white-space: nowrap;
-}
-
-.stats-bar-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--slate-700);
-}
-
-.stats-bar-sep {
-  width: 1px;
-  height: 36px;
-  background: var(--slate-200);
-  flex-shrink: 0;
 }
 
 /* Quota text colors */
