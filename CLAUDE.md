@@ -101,7 +101,7 @@ yorutsuke-v2/
 │   ├── architecture/       # ARCHITECTURE, SCHEMA, INTERFACES
 │   ├── design/             # COLOR, TYPOGRAPHY, 00-04 view specs
 │   ├── operations/         # OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL
-│   ├── dev/                # MVP_PLAN, dev notes
+│   ├── dev/                # MVP_PLAN, PROGRAM_PATHS
 │   ├── tests/              # FRONTEND, BACKEND, MOCKING
 │   └── archive/            # Historical docs
 │
@@ -265,13 +265,15 @@ cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
 | **Typography** | `docs/design/TYPOGRAPHY.md` | Font scales, text styles |
 | **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
 | **MVP Plan** | `docs/dev/MVP_PLAN.md` | Current milestone tasks |
+| **Program Paths** | `docs/dev/PROGRAM_PATHS.md` | Code flow traces, FSM diagrams |
 | **Logging** | `docs/operations/LOGGING.md` | Log format, debug commands |
 | **Quota** | `docs/operations/QUOTA.md` | Upload limits, rate limiting |
 
 ---
 @.prot/CHEATSHEET.md
 @.claude/rules/tauri-stack.md
-@docs/design/COLOR.md
 @docs/architecture/ARCHITECTURE.md
+@docs/design/COLOR.md
+@docs/dev/PROGRAM_PATHS.md
 
 <!-- yorutsuke-v2 v0.1.0 -->
