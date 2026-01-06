@@ -13,7 +13,7 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS, MOCKING |
 | `design/` | COLOR (25-color palette), TYPOGRAPHY, view mockups (0-4) |
 | `operations/` | DEPLOYMENT, OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL |
-| `planning/` | MVP_PLAN |
+| `dev/` | MVP_PLAN, dev notes |
 | `tests/` | FRONTEND, BACKEND test scenarios |
 | `archive/` | Historical docs |
 

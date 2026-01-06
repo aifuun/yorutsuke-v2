@@ -16,7 +16,7 @@
 > **MVP0 验收**: Service pattern 迁移完成后，运行 MVP1 场景验证功能不变。
 > 特别关注 #82 (StrictMode 双重监听) 是否修复。
 
-See [MVP_PLAN.md](../planning/MVP_PLAN.md) for detailed test checklists.
+See [MVP_PLAN.md](../dev/MVP_PLAN.md) for detailed test checklists.
 
 ## Documents
 

@@ -363,7 +363,7 @@ export function ProgressBar() {
 ### Migration Note
 
 > **Issue #82**: Being addressed in MVP0.
-> See [MVP_PLAN.md - MVP0](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for refactor plan.
+> See [MVP_PLAN.md - MVP0](../dev/MVP_PLAN.md#mvp0---架构重构-service-pattern) for refactor plan.
 
 ---
 
@@ -493,7 +493,7 @@ app/src/
 > - `services/`: Pure TS classes for orchestration
 > - `stores/`: Zustand vanilla stores for global state
 > - `hooks/`: React hooks that only subscribe to stores
-> - See [MVP_PLAN.md - MVP0](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for migration steps
+> - See [MVP_PLAN.md - MVP0](../dev/MVP_PLAN.md#mvp0---架构重构-service-pattern) for migration steps
 
 ### Infrastructure Layer (infra/)
 
@@ -978,7 +978,7 @@ See [INTERFACES.md](./INTERFACES.md) for full event type definitions.
 - [x] ~~Add request-response pattern to EventBus~~ (#29) - Closed: over-engineering
 
 **P4 - Architecture Refactor**: 🔄 In Progress (MVP0)
-> See [MVP_PLAN.md](../planning/MVP_PLAN.md#mvp0---架构重构-service-pattern) for detailed plan.
+> See [MVP_PLAN.md](../dev/MVP_PLAN.md#mvp0---架构重构-service-pattern) for detailed plan.
 
 - [ ] Refactor `useDragDrop.ts` to Service pattern (#82)
 - [ ] Create `captureService.ts` to replace `useCaptureLogic.ts`

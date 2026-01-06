@@ -101,7 +101,7 @@ yorutsuke-v2/
 │   ├── architecture/       # ARCHITECTURE, SCHEMA, INTERFACES, PROGRAM_PATHS, MOCKING
 │   ├── design/             # UI specs: COLOR, TYPOGRAPHY, view mockups (0-4)
 │   ├── operations/         # DEPLOYMENT, OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL
-│   ├── planning/           # MVP_PLAN
+│   ├── dev/                # MVP_PLAN, dev notes
 │   ├── tests/              # FRONTEND, BACKEND test scenarios
 │   └── archive/            # Historical docs
 │
@@ -264,7 +264,7 @@ cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
 | **Design System** | `docs/design/COLOR.md` | 25-color palette, semantic tokens |
 | **Typography** | `docs/design/TYPOGRAPHY.md` | Font scales, text styles |
 | **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
-| **MVP Plan** | `docs/planning/MVP_PLAN.md` | Current milestone tasks |
+| **MVP Plan** | `docs/dev/MVP_PLAN.md` | Current milestone tasks |
 | **Logging** | `docs/operations/LOGGING.md` | Log format, debug commands |
 | **Quota** | `docs/operations/QUOTA.md` | Upload limits, rate limiting |
 

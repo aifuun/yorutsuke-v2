@@ -193,7 +193,7 @@ npm run tauri dev
 
 - [README.md](../README.md) - Quick start for mock mode
 - [INTERFACES.md](./INTERFACES.md) - API specifications being mocked
-- [MVP_PLAN.md](../planning/MVP_PLAN.md) - Testing phases
+- [MVP_PLAN.md](../dev/MVP_PLAN.md) - Testing phases
 
 ---
 

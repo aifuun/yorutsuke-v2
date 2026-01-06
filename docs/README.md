@@ -48,7 +48,7 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [MVP_PLAN](./planning/MVP_PLAN.md) | Incremental testing | Dev |
+| [MVP_PLAN](./dev/MVP_PLAN.md) | Incremental testing | Dev |
 
 ---
 
@@ -150,7 +150,7 @@ docs/
 ├── tests/                 # Quality
 │   ├── FRONTEND.md
 │   └── BACKEND.md
-├── planning/              # Dev planning
+├── dev/                 # Dev planning
 │   └── MVP_PLAN.md
 └── archive/               # Historical docs
 ```
