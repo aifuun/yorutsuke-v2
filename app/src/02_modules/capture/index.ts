@@ -23,7 +23,7 @@ export {
 } from './hooks/useUploadState';
 export { useDragState } from './hooks/useDragState';
 export { useCaptureActions } from './hooks/useCaptureActions';
-export { useQuota, useQuotaState, useQuotaStatus, useQuotaFetchStatus } from './hooks/useQuotaState';
+export { useQuota, useQuotaState, useQuotaStatus } from './hooks/useQuotaState';
 
 // Stores (for advanced usage)
 export { captureStore } from './stores/captureStore';

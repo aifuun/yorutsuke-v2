@@ -2,7 +2,8 @@
 // Pillar L: Bridge between Service layer and React
 
 import { useStore } from 'zustand';
-import { quotaStore, type QuotaStore, type QuotaState, type QuotaStatus } from '../stores/quotaStore';
+import { useShallow } from 'zustand/react/shallow';
+import { quotaStore, type QuotaStore, type QuotaStatus } from '../stores/quotaStore';
 
 /**
  * Subscribe to full quota state
@@ -13,24 +14,10 @@ export function useQuotaState(): QuotaStore {
 
 /**
  * Subscribe to quota status (computed values)
+ * Uses shallow comparison to prevent infinite re-renders
  */
 export function useQuotaStatus(): QuotaStatus {
-  return useStore(quotaStore, (state) => state.getQuotaStatus());
-}
-
-/**
- * Subscribe to loading/error status
- */
-export function useQuotaFetchStatus(): {
-  isLoading: boolean;
-  isError: boolean;
-  error: string | null;
-} {
-  return useStore(quotaStore, (state: QuotaState) => ({
-    isLoading: state.status === 'loading',
-    isError: state.status === 'error',
-    error: state.status === 'error' ? state.error : null,
-  }));
+  return useStore(quotaStore, useShallow((state) => state.getQuotaStatus()));
 }
 
 /**
@@ -38,13 +25,13 @@ export function useQuotaFetchStatus(): {
  * Returns quota status with loading/error states
  */
 export function useQuota() {
-  const quota = useQuotaStatus();
-  const { isLoading, isError, error } = useQuotaFetchStatus();
+  const state = useStore(quotaStore);
+  const quota = state.getQuotaStatus();
 
   return {
     quota,
-    isLoading,
-    isError,
-    error,
+    isLoading: state.status === 'loading',
+    isError: state.status === 'error',
+    error: state.status === 'error' ? state.error : null,
   };
 }
