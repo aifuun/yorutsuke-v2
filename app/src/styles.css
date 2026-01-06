@@ -507,6 +507,22 @@ body {
   transform: translateX(20px);
 }
 
+/* Toggle Switch Small */
+.toggle-switch--sm {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+}
+
+.toggle-switch--sm::after {
+  width: 16px;
+  height: 16px;
+}
+
+.toggle-switch--sm.toggle-switch--active::after {
+  transform: translateX(16px);
+}
+
 /* Activity Item */
 .activity-item {
   display: flex;

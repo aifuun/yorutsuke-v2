@@ -172,18 +172,6 @@ export function DebugView() {
               </div>
             </div>
 
-            <div className="debug-toggle-row">
-              <div className="debug-toggle-info">
-                <span className="debug-toggle-label">{t('debug.verboseLogging')}</span>
-              </div>
-              <button
-                type="button"
-                className={`toggle-switch ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
-                onClick={() => update('debugEnabled', !currentSettings.debugEnabled)}
-                role="switch"
-                aria-checked={currentSettings.debugEnabled}
-              />
-            </div>
           </div>
 
           {/* Section 2: Dev Actions */}
@@ -259,14 +247,26 @@ export function DebugView() {
           <div className="premium-card debug-card">
             <div className="debug-logs-header">
               <h2 className="section-header">Logs</h2>
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                onClick={clearLogs}
-                disabled={logs.length === 0}
-              >
-                Clear
-              </button>
+              <div className="debug-logs-controls">
+                <label className="debug-verbose-toggle">
+                  <span className="debug-verbose-label">Verbose</span>
+                  <button
+                    type="button"
+                    className={`toggle-switch toggle-switch--sm ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
+                    onClick={() => update('debugEnabled', !currentSettings.debugEnabled)}
+                    role="switch"
+                    aria-checked={currentSettings.debugEnabled}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={clearLogs}
+                  disabled={logs.length === 0}
+                >
+                  Clear
+                </button>
+              </div>
             </div>
             <div className="debug-logs-panel">
               {logs.length === 0 ? (

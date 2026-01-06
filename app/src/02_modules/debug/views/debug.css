@@ -311,6 +311,25 @@
   margin: 0;
 }
 
+.debug-logs-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.debug-verbose-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.debug-verbose-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-500);
+}
+
 .debug-logs-panel {
   background: var(--slate-800);
   border-radius: 8px;
