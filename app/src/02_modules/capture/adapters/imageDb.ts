@@ -162,20 +162,22 @@ export async function resetInterruptedUploads(userId: UserId, traceId: TraceId):
 }
 
 /**
- * Count today's uploaded images for quota calculation
+ * Count uploads within rolling 24-hour window for quota calculation
+ * Uses relative time to avoid timezone complexity
  * Fixes #46: Quota persistence across restart
  */
 export async function countTodayUploads(userId: UserId): Promise<number> {
+  // Rolling 24-hour window - no timezone issues
   const rows = await select<Array<{ count: number }>>(
     `SELECT COUNT(*) as count FROM images
      WHERE user_id = ?
      AND status = 'uploaded'
-     AND DATE(uploaded_at) = DATE('now', 'localtime')`,
+     AND uploaded_at >= datetime('now', '-24 hours')`,
     [String(userId)],
   );
 
   const count = rows[0]?.count ?? 0;
-  logger.debug(EVENTS.QUOTA_CHECKED, { userId, count, phase: 'today_count' });
+  logger.debug(EVENTS.QUOTA_CHECKED, { userId, count, phase: 'rolling_24h_count' });
   return count;
 }
 
@@ -224,12 +226,12 @@ export async function updateImagesUserId(
 export async function resetTodayQuota(userId: UserId): Promise<number> {
   logger.warn(EVENTS.QUOTA_CHECKED, { userId, phase: 'reset_quota_start' });
 
-  // Get count of today's uploads
+  // Get count of uploads in last 24 hours
   const countRows = await select<Array<{ count: number }>>(
     `SELECT COUNT(*) as count FROM images
      WHERE user_id = ?
      AND status = 'uploaded'
-     AND DATE(uploaded_at) = DATE('now', 'localtime')`,
+     AND uploaded_at >= datetime('now', '-24 hours')`,
     [String(userId)],
   );
   const count = countRows[0]?.count ?? 0;
@@ -239,13 +241,13 @@ export async function resetTodayQuota(userId: UserId): Promise<number> {
     return 0;
   }
 
-  // Backdate uploaded_at to yesterday
+  // Backdate uploaded_at to 25 hours ago (outside 24h window)
   await execute(
     `UPDATE images
-     SET uploaded_at = datetime(uploaded_at, '-1 day')
+     SET uploaded_at = datetime(uploaded_at, '-25 hours')
      WHERE user_id = ?
      AND status = 'uploaded'
-     AND DATE(uploaded_at) = DATE('now', 'localtime')`,
+     AND uploaded_at >= datetime('now', '-24 hours')`,
     [String(userId)],
   );
 

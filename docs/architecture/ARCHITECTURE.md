@@ -1057,6 +1057,48 @@ Second drop (same receipt.jpg):
 | `intentId` | Q (Idempotency) | Prevent duplicate operations on retry |
 | `imageId` | A (Nominal) | Type-safe entity identifier |
 
+## Cross-Cutting Concerns
+
+### Time Handling
+
+> Storage and computation use UTC. Display and selection use local timezone.
+
+| Layer | Timezone | Implementation |
+|-------|----------|----------------|
+| **Storage** | UTC | `new Date().toISOString()` |
+| **Computation** | UTC | `datetime('now', '-24 hours')` |
+| **Display** | Local | `toLocaleDateString('sv-SE')` |
+| **Selection** | Local → UTC | User input converted before storage |
+
+#### Rationale
+
+1. **UTC for data**: Consistent, portable, no DST issues
+2. **Local for UI**: Users think in local time
+3. **Clear boundary**: Conversion happens at UI layer only
+
+#### Common Patterns
+
+```typescript
+// ✅ Storage: Always UTC
+const timestamp = new Date().toISOString();
+
+// ✅ Display "today": Local date
+const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+
+// ❌ WRONG: UTC date for display (fails near midnight)
+const today = new Date().toISOString().split('T')[0];
+```
+
+```sql
+-- ✅ Rolling time window (no timezone issues)
+WHERE uploaded_at >= datetime('now', '-24 hours')
+
+-- ✅ Schema DEFAULT (UTC)
+created_at TEXT DEFAULT (datetime('now'))
+```
+
+For implementation details, see `.claude/rules/time-handling.md`.
+
 ## References
 
 - Schema: `./SCHEMA.md`

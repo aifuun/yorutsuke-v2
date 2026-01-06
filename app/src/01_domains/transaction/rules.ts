@@ -89,7 +89,8 @@ export function createMonthlySummary(
   transactions: Transaction[],
   yearMonth?: string, // YYYY-MM format
 ): { income: number; expense: number; net: number; count: number } {
-  const targetMonth = yearMonth || new Date().toISOString().slice(0, 7);
+  // Use local date for current month display
+  const targetMonth = yearMonth || new Date().toLocaleDateString('sv-SE').slice(0, 7);
 
   const monthTransactions = transactions.filter(t => t.date.startsWith(targetMonth));
   const { income, expense } = categorizeByType(monthTransactions);

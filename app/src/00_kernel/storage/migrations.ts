@@ -66,7 +66,7 @@ async function createCoreTables(db: Database): Promise<void> {
       status TEXT DEFAULT 'pending',
       s3_key TEXT,
       ref_count INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+      created_at TEXT DEFAULT (datetime('now'))
     )
   `);
 
@@ -85,7 +85,7 @@ async function createCoreTables(db: Database): Promise<void> {
       image_location TEXT DEFAULT 'both',
       image_deleted_at TEXT,
       s3_key TEXT,
-      synced_at TEXT DEFAULT (datetime('now', 'localtime')),
+      synced_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (image_id) REFERENCES images(id)
     )
   `);
@@ -103,8 +103,8 @@ async function createCoreTables(db: Database): Promise<void> {
       description TEXT,
       merchant TEXT,
       date TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now', 'localtime')),
-      updated_at TEXT DEFAULT (datetime('now', 'localtime')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
       confirmed_at TEXT,
       confidence REAL,
       raw_text TEXT,
@@ -117,7 +117,7 @@ async function createCoreTables(db: Database): Promise<void> {
     CREATE TABLE IF NOT EXISTS morning_report_cache (
       report_date TEXT PRIMARY KEY,
       data TEXT,
-      synced_at TEXT DEFAULT (datetime('now', 'localtime'))
+      synced_at TEXT DEFAULT (datetime('now'))
     )
   `);
 
@@ -127,7 +127,7 @@ async function createCoreTables(db: Database): Promise<void> {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       event_type TEXT NOT NULL,
       event_data TEXT,
-      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+      created_at TEXT DEFAULT (datetime('now'))
     )
   `);
 

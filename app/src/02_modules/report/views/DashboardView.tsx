@@ -16,7 +16,7 @@ interface DashboardViewProps {
 
 export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const { t } = useTranslation();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
   const { state, transactions } = useTransactionLogic(userId);

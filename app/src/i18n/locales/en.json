@@ -235,9 +235,9 @@
     "mockModeHint": "Use mock API responses instead of real backend"
   },
   "capture": {
-    "todayQuota": "Today's Quota",
+    "quota": "Quota",
     "remaining": "{{count}} uploads remaining",
-    "quotaFull": "Daily quota reached",
+    "quotaFull": "Quota reached",
     "dropHere": "Drop receipts here",
     "dropRelease": "Release to upload",
     "supportedFormats": "Supports JPG, PNG, WebP",

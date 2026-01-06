@@ -67,7 +67,7 @@ export function CalendarView({
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
 
   return (
     <div className="calendar-view">

@@ -20,7 +20,7 @@ interface ReportViewProps {
 
 export function ReportView({ userId, date }: ReportViewProps) {
   const { t } = useTranslation();
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
   const {
     state,
     transactions,

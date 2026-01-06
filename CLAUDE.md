@@ -46,6 +46,27 @@ One way > Multiple options
 cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | tail -50
 ```
 
+### Time Handling
+
+**存储和运算用 UTC，显示和选择用本地时区**
+
+| 场景 | 规则 |
+|------|------|
+| Storage | `new Date().toISOString()` (UTC) |
+| Computation | `datetime('now', '-24 hours')` (UTC) |
+| Display | `new Date(utc).toLocaleString()` (Local) |
+| Selection | 本地时间输入 → 转 UTC 存储 |
+
+```typescript
+// ✅ 显示"今天"用本地日期
+const today = new Date().toLocaleDateString('sv-SE');
+
+// ❌ 不要用 UTC 日期显示
+const today = new Date().toISOString().split('T')[0];  // 午夜前后会错
+```
+
+详见 `.claude/rules/time-handling.md`
+
 ---
 
 ## Overview

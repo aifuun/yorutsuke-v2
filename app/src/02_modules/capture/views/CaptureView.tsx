@@ -71,7 +71,7 @@ function StatusDots({ status }: { status: string }) {
 
 export function CaptureView() {
   const { t } = useTranslation();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
   const { isOnline } = useNetworkStatus();
@@ -239,7 +239,7 @@ export function CaptureView() {
           {/* Stats Row */}
           <div className="stats-row">
             <div className={`card card--summary ${quotaVariant === 'error' ? 'is-expense' : quotaVariant === 'warning' ? 'is-warning' : 'is-info'}`}>
-              <p className="card--summary__label">{t('capture.todayQuota')}</p>
+              <p className="card--summary__label">{t('capture.quota')}</p>
               <p className="card--summary__value">{quota.used}/{quota.limit}</p>
             </div>
             <div className="card card--summary is-pending">
