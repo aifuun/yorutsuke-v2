@@ -241,6 +241,16 @@ fn log_get_path() -> String {
     logs_dir.join(format!("{}.jsonl", today)).to_string_lossy().to_string()
 }
 
+/// Get the machine's unique identifier
+/// Uses OS-level machine ID that persists across app reinstalls
+/// - macOS: IOPlatformUUID
+/// - Linux: /etc/machine-id
+/// - Windows: MachineGuid from registry
+#[tauri::command]
+fn get_machine_id() -> Result<String, String> {
+    machine_uid::get().map_err(|e| format!("Failed to get machine ID: {}", e))
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! Welcome to Yorutsuke.", name)

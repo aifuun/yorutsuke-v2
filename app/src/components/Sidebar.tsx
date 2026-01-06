@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Camera, BookOpen, Settings, Wrench } from 'lucide-react';
+import { LayoutDashboard, Camera, BookOpen, Settings, Wrench, User, ChevronRight } from 'lucide-react';
 import type { UserId } from '../00_kernel/types';
 import './Sidebar.css';
 
@@ -22,11 +22,6 @@ const NAV_ITEMS: Array<{ view: ViewType; icon: typeof LayoutDashboard; labelKey:
 
 export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = false }: SidebarProps) {
   const { t } = useTranslation();
-
-  // Generate user initials from userId
-  const userInitials = userId
-    ? userId.toString().slice(0, 2).toUpperCase()
-    : 'GU';
 
   // Filter nav items based on debug unlock status
   const visibleNavItems = NAV_ITEMS.filter(item => !item.debugOnly || isDebugUnlocked);
@@ -54,18 +49,15 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
       </nav>
 
       <div className="sidebar-footer">
-        <div
-          className={`user-card ${activeView === 'profile' ? 'active' : ''}`}
+        <button
+          type="button"
+          className={`user-label ${activeView === 'profile' ? 'active' : ''}`}
           onClick={() => onViewChange('profile')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && onViewChange('profile')}
         >
-          <div className="user-avatar">{userInitials}</div>
-          <span className="user-name">
-            {userId ? userId.toString().slice(0, 12) : t('auth.guest')}
-          </span>
-        </div>
+          <User size={14} />
+          <span>{userId ? userId.toString().slice(0, 16) : t('auth.guest')}</span>
+          <ChevronRight size={14} className="user-label-arrow" />
+        </button>
       </div>
     </aside>
   );

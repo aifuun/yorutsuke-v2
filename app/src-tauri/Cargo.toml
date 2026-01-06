@@ -30,6 +30,9 @@ md5 = "0.7"
 chrono = "0.4"
 dirs = "5"
 
+# Device identification
+machine-uid = "0.5"
+
 [profile.release]
 panic = "abort"
 codegen-units = 1

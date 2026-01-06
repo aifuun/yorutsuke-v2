@@ -126,6 +126,14 @@
     "upgradePlanHint": "Get more features and higher limits",
     "upgrade": "Upgrade"
   },
+  "profile": {
+    "dataExpiresSoon": "Your data will expire soon",
+    "registerToSecure": "Register now to secure your records forever.",
+    "uploadUsage": "Upload Usage",
+    "expiresIn": "Data expires in {{days}} days",
+    "registerToSave": "Register to Save Data",
+    "alreadyHaveAccount": "Already have an account? Login"
+  },
   "auth": {
     "login": "Login",
     "register": "Register",

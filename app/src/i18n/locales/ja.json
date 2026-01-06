@@ -126,6 +126,14 @@
     "upgradePlanHint": "より多くの機能と高い制限を取得",
     "upgrade": "アップグレード"
   },
+  "profile": {
+    "dataExpiresSoon": "データの有効期限が近づいています",
+    "registerToSecure": "今すぐ登録して、データを永久に保護しましょう。",
+    "uploadUsage": "アップロード使用量",
+    "expiresIn": "{{days}}日後にデータが削除されます",
+    "registerToSave": "登録してデータを保存",
+    "alreadyHaveAccount": "アカウントをお持ちですか？ログイン"
+  },
   "auth": {
     "login": "ログイン",
     "register": "登録",
