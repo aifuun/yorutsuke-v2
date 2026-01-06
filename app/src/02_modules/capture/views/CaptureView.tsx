@@ -105,22 +105,18 @@ export function CaptureView() {
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item ${image.status === 'failed' ? 'queue-item--failed' : ''} ${image.status === 'skipped' ? 'queue-item--skipped' : ''}`}
+                      className={`queue-item media ${image.status === 'failed' ? 'queue-item--failed' : ''} ${image.status === 'skipped' ? 'queue-item--skipped' : ''}`}
                     >
-                      <div className="queue-thumbnail">
+                      <div className="media__figure">
                         {image.thumbnailPath ? (
-                          <img
-                            src={convertFileSrc(image.thumbnailPath)}
-                            alt=""
-                            className="queue-thumb-img"
-                          />
+                          <img src={convertFileSrc(image.thumbnailPath)} alt="" />
                         ) : (
-                          <span className="queue-thumb-icon">🧾</span>
+                          <span className="media__icon">🧾</span>
                         )}
                       </div>
-                      <div className="queue-content">
+                      <div className="media__body">
                         <div className="queue-row">
-                          <span className="queue-filename">{image.id.slice(0, 16)}...</span>
+                          <p className="media__title">{image.id.slice(0, 16)}...</p>
                           <span className={`status-badge status-badge--${config.variant}`}>
                             {config.icon} {t(config.label)}
                           </span>
