@@ -335,7 +335,7 @@ body {
   background-size: 24px 24px;
 }
 
-/* Premium Card - Glassmorphism */
+/* Premium Card - Glassmorphism (LEGACY - use .card instead) */
 .premium-card {
   background: var(--bg-panel);
   border: 1px solid var(--slate-200);
@@ -344,7 +344,197 @@ body {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
-/* Stat Card - Smaller variant */
+/* =============================================================================
+ * Card System - Base + Variants
+ * Usage: .card .card--{variant}
+ * ============================================================================= */
+
+/* Base Card */
+.card {
+  background: var(--bg-panel);
+  border: 1px solid var(--slate-200);
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* -----------------------------------------------------------------------------
+ * Card Variant: Stat (Icon + Label + Value)
+ * - Large icon without background, flush to left edge
+ * - Based on Ledger ANNUAL INFLOW style
+ * -------------------------------------------------------------------------- */
+.card--stat {
+  display: flex;
+  align-items: center;
+  padding: 0 24px 0 0;
+  gap: 8px;
+}
+
+.card--stat__icon {
+  width: 64px;
+  height: auto;
+  font-size: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card--stat__content {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.card--stat__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+}
+
+.card--stat__value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--slate-800);
+  font-family: var(--font-mono);
+  margin: 0;
+  line-height: 1;
+}
+
+/* Stat color variants */
+.card--stat.is-income .card--stat__value {
+  color: var(--emerald-600);
+}
+
+.card--stat.is-expense .card--stat__value {
+  color: var(--rose-600);
+}
+
+.card--stat.is-warning .card--stat__value {
+  color: var(--amber-600);
+}
+
+/* Stat size: small */
+.card--stat.is-sm {
+  padding: 0 16px 0 0;
+  gap: 6px;
+}
+
+.card--stat.is-sm .card--stat__icon {
+  width: 48px;
+  font-size: 32px;
+}
+
+.card--stat.is-sm .card--stat__content {
+  padding: 6px 0;
+}
+
+.card--stat.is-sm .card--stat__label {
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.card--stat.is-sm .card--stat__value {
+  font-size: 20px;
+}
+
+/* Responsive: Stat */
+@media (max-width: 768px) {
+  .card--stat__icon {
+    width: 56px;
+    font-size: 36px;
+  }
+
+  .card--stat__content {
+    padding: 6px 0;
+  }
+
+  .card--stat__value {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card--stat__icon {
+    width: 48px;
+    font-size: 32px;
+  }
+
+  .card--stat__label {
+    font-size: 10px;
+  }
+
+  .card--stat__value {
+    font-size: 20px;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * Card Variant: Hero (Large featured content)
+ * -------------------------------------------------------------------------- */
+.card--hero {
+  padding: 40px;
+  text-align: center;
+}
+
+.card--hero__title {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin: 0 0 16px 0;
+}
+
+.card--hero__value {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--slate-800);
+  font-family: var(--font-mono);
+  margin: 0;
+  line-height: 1;
+}
+
+.card--hero__subtitle {
+  font-size: 14px;
+  color: var(--slate-500);
+  margin: 16px 0 0 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * Card Variant: List (Container for item lists)
+ * -------------------------------------------------------------------------- */
+.card--list {
+  padding: 24px;
+}
+
+.card--list__header {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin: 0 0 16px 0;
+}
+
+.card--list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card--list__empty {
+  text-align: center;
+  padding: 24px;
+  color: var(--slate-400);
+  font-size: 14px;
+}
+
+/* Stat Card - Smaller variant (LEGACY) */
 .stat-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--slate-200);

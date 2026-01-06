@@ -132,18 +132,18 @@ export function TransactionView({ userId }: TransactionViewProps) {
         <div className="ledger-container">
           {/* Summary Cards */}
           <div className="summary-grid">
-            <div className="premium-card stat stat--income">
-              <div className="stat__icon">📈</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('ledger.annualInflow')}</p>
-                <p className="stat__value">¥{summary.income.toLocaleString()}</p>
+            <div className="card card--stat is-income">
+              <div className="card--stat__icon">📈</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('ledger.annualInflow')}</p>
+                <p className="card--stat__value">¥{summary.income.toLocaleString()}</p>
               </div>
             </div>
-            <div className="premium-card stat stat--expense">
-              <div className="stat__icon">📉</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('ledger.annualOutflow')}</p>
-                <p className="stat__value">¥{summary.expense.toLocaleString()}</p>
+            <div className="card card--stat is-expense">
+              <div className="card--stat__icon">📉</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('ledger.annualOutflow')}</p>
+                <p className="card--stat__value">¥{summary.expense.toLocaleString()}</p>
               </div>
             </div>
           </div>

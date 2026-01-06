@@ -100,13 +100,13 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
       <div className="dashboard-content">
         <div className="dashboard-container">
           {/* Hero Card - Today's Balance */}
-          <div className="premium-card hero-card">
-            <p className="section-header">{t('dashboard.todayBalance')}</p>
+          <div className="card card--hero hero-card">
+            <p className="card--hero__title">{t('dashboard.todayBalance')}</p>
             <div className="hero-balance">
               <span className={`hero-arrow ${isPositive ? 'positive' : 'negative'}`}>
                 {isPositive ? '↑' : '↓'}
               </span>
-              <span className="hero-amount mono">
+              <span className="card--hero__value">
                 ¥{Math.abs(netBalance).toLocaleString()}
               </span>
             </div>
@@ -124,42 +124,42 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 
           {/* Quick Stats - Row 1: Pending + Quota */}
           <div className="stats-row">
-            <div className="premium-card stat stat--warning">
-              <div className="stat__icon">📷</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('dashboard.pending')}</p>
-                <p className="stat__value">{pendingCount}</p>
+            <div className="card card--stat is-sm is-warning">
+              <div className="card--stat__icon">📷</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('dashboard.pending')}</p>
+                <p className="card--stat__value">{pendingCount}</p>
               </div>
             </div>
-            <div className="premium-card stat">
-              <div className="stat__icon">🎯</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('dashboard.quotaRemaining')}</p>
-                <p className="stat__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
+            <div className="card card--stat is-sm">
+              <div className="card--stat__icon">🎯</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('dashboard.quotaRemaining')}</p>
+                <p className="card--stat__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
               </div>
             </div>
           </div>
 
           {/* Quick Stats - Row 2: Monthly Income + Expense */}
           <div className="stats-row">
-            <div className="premium-card stat stat--income">
-              <div className="stat__icon">📈</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('dashboard.monthlyIncome')}</p>
-                <p className="stat__value">¥{monthlySummary.income.toLocaleString()}</p>
+            <div className="card card--stat is-sm is-income">
+              <div className="card--stat__icon">📈</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('dashboard.monthlyIncome')}</p>
+                <p className="card--stat__value">¥{monthlySummary.income.toLocaleString()}</p>
               </div>
             </div>
-            <div className="premium-card stat stat--expense">
-              <div className="stat__icon">📉</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('dashboard.monthlyExpense')}</p>
-                <p className="stat__value">¥{monthlySummary.expense.toLocaleString()}</p>
+            <div className="card card--stat is-sm is-expense">
+              <div className="card--stat__icon">📉</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('dashboard.monthlyExpense')}</p>
+                <p className="card--stat__value">¥{monthlySummary.expense.toLocaleString()}</p>
               </div>
             </div>
           </div>
 
           {/* Recent Activity */}
-          <div className="premium-card activity-card">
+          <div className="card card--list activity-card">
             <h2 className="section-header">{t('dashboard.recentActivity')}</h2>
             {recentActivity.length === 0 ? (
               <p className="activity-empty">{t('dashboard.noActivity')}</p>

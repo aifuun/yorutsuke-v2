@@ -131,16 +131,26 @@
   padding: 24px 28px;
 }
 
-/* Plain icon for dashboard stats (no background) */
+/* Larger icon with background for dashboard stats */
 .stats-row .stat__icon {
-  width: auto;
-  height: auto;
-  background: none;
-  font-size: 28px;
+  width: 56px;
+  height: 56px;
+  font-size: 26px;
+  border-radius: 14px;
+}
+
+/* Larger content with more spacing */
+.stats-row .stat__content {
+  padding: 8px 0;
+}
+
+.stats-row .stat__label {
+  font-size: 11px;
+  margin-bottom: 4px;
 }
 
 .stats-row .stat__value {
-  font-size: 24px;
+  font-size: 26px;
 }
 
 /* Activity Card */

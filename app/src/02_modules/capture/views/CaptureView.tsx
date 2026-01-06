@@ -84,7 +84,7 @@ export function CaptureView() {
           )}
 
           {/* Drop Zone */}
-          <div className="premium-card drop-card">
+          <div className="card drop-card">
             <div
               className={`drop-zone ${isDragging ? 'drop-zone--dragging' : ''}`}
               {...dragHandlers}
@@ -99,9 +99,9 @@ export function CaptureView() {
 
           {/* Processing Queue */}
           {queue.length > 0 && (
-            <div className="premium-card queue-card">
-              <h2 className="section-header">{t('capture.processingQueue')}</h2>
-              <div className="queue-list">
+            <div className="card card--list queue-card">
+              <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
+              <div className="card--list__items">
                 {[...queue].reverse().map((image) => {
                   const config = STATUS_CONFIG[image.status] || STATUS_CONFIG.pending;
                   return (
@@ -150,26 +150,26 @@ export function CaptureView() {
           )}
 
           {/* Stats Row */}
-          <div className="premium-card stats-row">
-            <div className={`stat stat--sm ${quotaVariant === 'error' ? 'stat--expense' : quotaVariant === 'warning' ? 'stat--warning' : ''}`}>
-              <div className="stat__icon">🎯</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('capture.todayQuota')}</p>
-                <p className="stat__value">{quota.used}/{quota.limit}</p>
+          <div className="stats-row">
+            <div className={`card card--stat is-sm ${quotaVariant === 'error' ? 'is-expense' : quotaVariant === 'warning' ? 'is-warning' : ''}`}>
+              <div className="card--stat__icon">🎯</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('capture.todayQuota')}</p>
+                <p className="card--stat__value">{quota.used}/{quota.limit}</p>
               </div>
             </div>
-            <div className="stat stat--sm stat--warning">
-              <div className="stat__icon">⏳</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('capture.pending')}</p>
-                <p className="stat__value">{pendingCount}</p>
+            <div className="card card--stat is-sm is-warning">
+              <div className="card--stat__icon">⏳</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('capture.pending')}</p>
+                <p className="card--stat__value">{pendingCount}</p>
               </div>
             </div>
-            <div className="stat stat--sm stat--income">
-              <div className="stat__icon">✅</div>
-              <div className="stat__content">
-                <p className="stat__label">{t('capture.uploaded')}</p>
-                <p className="stat__value">{uploadedCount}</p>
+            <div className="card card--stat is-sm is-income">
+              <div className="card--stat__icon">✅</div>
+              <div className="card--stat__content">
+                <p className="card--stat__label">{t('capture.uploaded')}</p>
+                <p className="card--stat__value">{uploadedCount}</p>
               </div>
             </div>
           </div>

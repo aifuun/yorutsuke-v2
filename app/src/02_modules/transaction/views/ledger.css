@@ -184,7 +184,7 @@
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 32px;
+  gap: 24px;
   margin-bottom: 40px;
 }
 
@@ -410,5 +410,21 @@
     justify-content: space-between;
     align-items: center;
     margin-top: 12px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .summary-grid .stat__icon {
+    width: 48px;
+    font-size: 32px;
+  }
+
+  .summary-grid .stat__label {
+    font-size: 10px;
+  }
+
+  .summary-grid .stat__value {
+    font-size: 20px;
   }
 }

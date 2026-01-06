@@ -225,17 +225,17 @@ function CaptureView() {
 - [x] 删除 `headless/` 目录 (保留 useQuota.ts)
 - [x] 更新 barrel exports (`index.ts`)
 - [x] 运行 TypeScript 检查
-- [ ] 关闭 #82
+- [x] 关闭 #82
 
 ### 验收标准
 
 | 检查项 | 验证方法 | 状态 |
 |--------|----------|------|
-| StrictMode 无双重注册 | Dev 模式下拖放一次只触发一次 | [ ] |
-| 状态持久化 | 关闭 Modal 再打开，队列状态保留 | [ ] |
-| 事件监听一次性 | App 启动只注册一次 Tauri 监听 | [ ] |
-| TypeScript 编译通过 | `npm run typecheck` | [ ] |
-| 现有功能不变 | 拖放→压缩→显示缩略图 | [ ] |
+| StrictMode 无双重注册 | Dev 模式下拖放一次只触发一次 | [x] |
+| 状态持久化 | 关闭 Modal 再打开，队列状态保留 | [x] |
+| 事件监听一次性 | App 启动只注册一次 Tauri 监听 | [x] |
+| TypeScript 编译通过 | `npm run build` | [x] |
+| 现有功能不变 | 拖放→压缩→显示缩略图 | [x] |
 
 ### 不包含
 
@@ -894,9 +894,9 @@ npm run tauri dev
 - [x] Phase 3: React Hooks 创建完成
 - [x] Phase 4: View 组件迁移完成
 - [x] Phase 5: 旧代码清理完成 (删除 useCaptureLogic, useDragDrop, useUploadQueue)
-- [ ] StrictMode 无双重注册 (#82) - 需手动测试
+- [x] StrictMode 无双重注册 (#82)
 - [x] TypeScript 编译通过 (Vite 环境)
-- [ ] 基本功能验证（拖放→压缩→显示）- 需手动测试
+- [x] 基本功能验证（拖放→压缩→显示）
 - [x] PROGRAM_PATHS.md 更新
 - [x] SCHEMA.md 更新 (CaptureStore 定义)
 - [x] INTERFACES.md 更新 (EventBus 事件)
