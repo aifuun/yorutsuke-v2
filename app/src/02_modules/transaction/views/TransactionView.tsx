@@ -181,7 +181,7 @@ function LedgerHeader({ title }: { title: string }) {
   return (
     <header className="ledger-header">
       <h1 className="ledger-title">{title}</h1>
-      <button type="button" className="btn-new-entry">
+      <button type="button" className="btn btn--primary">
         + {t('ledger.newEntry')}
       </button>
     </header>
@@ -238,7 +238,7 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
           {!isConfirmed && (
             <button
               type="button"
-              className="action-btn action-btn--confirm"
+              className="btn btn--success btn--sm"
               onClick={onConfirm}
               title={t('transaction.confirm')}
             >
@@ -247,7 +247,7 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
           )}
           <button
             type="button"
-            className="action-btn action-btn--delete"
+            className="btn btn--danger btn--sm"
             onClick={() => {
               if (confirm(t('transaction.deleteConfirm'))) {
                 onDelete();

@@ -190,7 +190,7 @@ export function DebugView() {
               <div className="debug-action-info">
                 <span className="debug-action-label">{t('debug.mockData')}</span>
                 <select
-                  className="debug-select"
+                  className="select select--sm"
                   value={seedScenario}
                   onChange={(e) => setSeedScenario(e.target.value as SeedScenario)}
                   disabled={actionStatus === 'running'}
@@ -202,7 +202,7 @@ export function DebugView() {
               </div>
               <button
                 type="button"
-                className="btn-action btn-action--primary btn-action--sm"
+                className="btn btn--primary btn--sm"
                 onClick={handleSeedData}
                 disabled={actionStatus === 'running' || !effectiveUserId}
               >
@@ -220,7 +220,7 @@ export function DebugView() {
               </div>
               <button
                 type="button"
-                className="btn-action btn-action--warning btn-action--sm"
+                className="btn btn--warning btn--sm"
                 onClick={handleResetQuota}
                 disabled={actionStatus === 'running' || !effectiveUserId}
               >
@@ -235,7 +235,7 @@ export function DebugView() {
               </div>
               <button
                 type="button"
-                className="btn-action btn-action--danger btn-action--sm"
+                className="btn btn--danger btn--sm"
                 onClick={handleClearStorage}
               >
                 Clear
@@ -256,7 +256,7 @@ export function DebugView() {
               <h2 className="section-header">Logs</h2>
               <button
                 type="button"
-                className="btn-action btn-action--ghost btn-action--sm"
+                className="btn btn--ghost btn--sm"
                 onClick={clearLogs}
                 disabled={logs.length === 0}
               >

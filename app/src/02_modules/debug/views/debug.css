@@ -174,17 +174,6 @@
   margin: 4px 0;
 }
 
-.debug-select {
-  padding: 6px 28px 6px 10px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--slate-700);
-  background: var(--bg-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
-  appearance: none;
-  cursor: pointer;
-}
-
 .debug-divider {
   height: 1px;
   background: rgba(148, 163, 184, 0.2);
@@ -219,31 +208,6 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--slate-700);
-}
-
-.seed-select {
-  flex: 1;
-  max-width: 200px;
-  padding: 10px 36px 10px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--slate-700);
-  background: var(--bg-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 14px center;
-  appearance: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.seed-select:hover {
-  border-color: rgba(59, 130, 246, 0.5);
-}
-
-.seed-select:focus {
-  outline: none;
-  border-color: var(--blue-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .seed-actions {

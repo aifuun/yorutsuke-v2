@@ -26,24 +26,6 @@
   letter-spacing: -0.025em;
 }
 
-.btn-new-entry {
-  height: 36px;
-  padding: 0 20px;
-  background: var(--slate-900);
-  color: var(--bg-card);
-  border: none;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
-}
-
-.btn-new-entry:hover {
-  background: var(--blue-500);
-}
-
 /* Time Control Bar */
 .ledger-controls {
   padding: 20px 40px;
@@ -411,35 +393,6 @@
   gap: 8px;
   margin-top: 8px;
   justify-content: flex-end;
-}
-
-.action-btn {
-  padding: 4px 12px;
-  border-radius: 6px;
-  border: none;
-  font-size: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn--confirm {
-  background: var(--blue-100);
-  color: var(--blue-600);
-}
-
-.action-btn--confirm:hover {
-  background: var(--blue-100);
-  box-shadow: inset 0 0 0 1px var(--blue-500);
-}
-
-.action-btn--delete {
-  background: var(--rose-100);
-  color: var(--rose-600);
-}
-
-.action-btn--delete:hover {
-  background: var(--rose-200);
 }
 
 /* Empty State */

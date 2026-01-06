@@ -1,13 +1,197 @@
 # OPERATIONS.md
 
-> Operations guide - Emergency response, cost control, monitoring
+> Deployment, operations, emergency response, cost control, monitoring
 
 ## Overview
 
-**Purpose**: Protect the system and budget from unexpected issues
-**Last Updated**: 2025-12-28
+**Environments**: dev, staging, prod
+**Region**: ap-northeast-1 (Tokyo)
+**Last Updated**: 2025-01
 
 ---
+
+# Part 1: Deployment
+
+## Prerequisites
+
+### Required Tools
+
+```bash
+# Node.js 20+
+node --version  # v20.x.x
+
+# Rust (for Tauri)
+rustc --version  # 1.70+
+
+# AWS CLI v2
+aws --version
+
+# AWS CDK
+npm install -g aws-cdk
+cdk --version  # 2.170+
+```
+
+### AWS Setup
+
+```bash
+# Configure AWS profile
+aws configure --profile dev
+# Enter: Access Key, Secret Key, Region (ap-northeast-1), Output (json)
+
+# Verify access
+aws sts get-caller-identity --profile dev
+```
+
+---
+
+## Local Development
+
+### 1. Clone and Setup
+
+```bash
+git clone git@github.com:aifuun/yorutsuke-v2.git
+cd yorutsuke-v2
+```
+
+### 2. Frontend Setup
+
+```bash
+cd app
+npm install
+
+# Create .env.local (get values from CDK outputs)
+cat > .env.local << EOF
+VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.ap-northeast-1.on.aws
+VITE_LAMBDA_CONFIG_URL=https://xxx.lambda-url.ap-northeast-1.on.aws
+VITE_COGNITO_CLIENT_ID=xxx
+VITE_COGNITO_USER_POOL_ID=ap-northeast-1_xxx
+EOF
+```
+
+### 3. Run Development Server
+
+```bash
+# React only (fast)
+npm run dev
+
+# Full Tauri app (with Rust backend)
+npm run tauri dev
+```
+
+---
+
+## Infrastructure Deployment
+
+### 1. First-time Setup
+
+```bash
+cd infra
+npm install
+
+# Bootstrap CDK (once per account/region)
+cdk bootstrap aws://{ACCOUNT_ID}/ap-northeast-1 --profile dev
+```
+
+### 2. Deploy Stack
+
+```bash
+# Preview changes
+npm run diff
+
+# Deploy
+npm run deploy
+
+# Or with explicit profile
+cdk deploy --profile dev --require-approval broadening
+```
+
+### 3. Get Outputs
+
+```bash
+# After deploy, get Lambda URLs for .env.local
+aws cloudformation describe-stacks \
+  --stack-name YorutsukeStack-dev \
+  --query 'Stacks[0].Outputs' \
+  --profile dev
+```
+
+---
+
+## Desktop App Build
+
+### macOS
+
+```bash
+cd app
+npm run tauri build
+# Output: src-tauri/target/release/bundle/dmg/Yorutsuke_2.1.0_aarch64.dmg
+```
+
+### Windows
+
+```bash
+npm run tauri build
+# Output: src-tauri/target/release/bundle/msi/Yorutsuke_2.1.0_x64_en-US.msi
+```
+
+### Linux
+
+```bash
+npm run tauri build
+# Output: src-tauri/target/release/bundle/appimage/yorutsuke_2.1.0_amd64.AppImage
+```
+
+---
+
+## Environment Configuration
+
+| Environment | Stack Name | S3 Bucket | Cost Limit |
+|-------------|------------|-----------|------------|
+| dev | YorutsukeStack-dev | yorutsuke-images-dev-{account} | ¥1,000/day |
+| staging | YorutsukeStack-staging | yorutsuke-images-staging-{account} | ¥1,000/day |
+| prod | YorutsukeStack-prod | yorutsuke-images-prod-{account} | ¥10,000/day |
+
+---
+
+## Deployment Checklist
+
+### Before Deploy
+
+- [ ] All tests passing
+- [ ] Version bumped in package.json
+- [ ] CHANGELOG.md updated
+- [ ] `cdk diff` reviewed
+- [ ] No secrets in code
+
+### After Deploy
+
+- [ ] Smoke test Lambda URLs
+- [ ] Check CloudWatch for errors
+- [ ] Verify Cognito working
+- [ ] Test S3 upload flow
+
+---
+
+## Rollback
+
+### CDK Rollback
+
+```bash
+# CDK automatically rolls back on failure
+# To manually rollback:
+cdk deploy --rollback --profile dev
+```
+
+### Emergency: Delete Stack
+
+```bash
+# WARNING: This deletes all resources! Only use in dev
+cdk destroy --profile dev
+```
+
+---
+
+# Part 2: Operations
 
 ## Emergency Response
 
@@ -32,30 +216,18 @@ Batch processing active         Batch processing halted
 
 ### Manual Operations
 
-#### 1. Activate Emergency Stop
+#### Activate Emergency Stop
 
 ```bash
-# Via Lambda
 aws lambda invoke \
   --function-name yorutsuke-{env}-emergency \
   --cli-binary-format raw-in-base64-out \
-  --payload '{"action":"activate","reason":"Suspicious activity detected"}' \
+  --payload '{"action":"activate","reason":"Suspicious activity"}' \
   --profile dev \
-  /tmp/response.json && cat /tmp/response.json
-
-# Direct DynamoDB update
-aws dynamodb update-item \
-  --table-name yorutsuke-{env}-control \
-  --key '{"key":{"S":"global_state"}}' \
-  --update-expression 'SET emergency_stop = :v, emergency_reason = :r' \
-  --expression-attribute-values '{
-    ":v": {"BOOL": true},
-    ":r": {"S": "Manual activation"}
-  }' \
-  --profile dev
+  /tmp/response.json
 ```
 
-#### 2. Check Current Status
+#### Check Status
 
 ```bash
 aws dynamodb get-item \
@@ -65,9 +237,7 @@ aws dynamodb get-item \
   --profile dev
 ```
 
-#### 3. Deactivate Emergency Stop
-
-> **IMPORTANT**: Confirm the issue is resolved before deactivating!
+#### Deactivate Emergency Stop
 
 ```bash
 aws lambda invoke \
@@ -91,16 +261,6 @@ aws lambda invoke \
 | Per Image | ¥0.02 max | Nova Lite pricing |
 | S3 Storage | 30 days | Lifecycle auto-delete |
 
-### Cost Breakdown (Estimated)
-
-| Service | Cost/Unit | Daily Max |
-|---------|-----------|-----------|
-| Nova Lite | ¥0.015/image | ¥750 (50 users × 50 images × ¥0.015) |
-| S3 Storage | ¥0.025/GB/month | ¥50 |
-| DynamoDB | Pay-per-request | ¥100 |
-| Lambda | ¥0.20/1M requests | ¥50 |
-| Data Transfer | ¥15/GB | ¥50 |
-
 ### Cost Monitoring
 
 ```bash
@@ -114,36 +274,13 @@ aws cloudwatch get-metric-statistics \
   --period 86400 \
   --statistics Sum \
   --profile dev
-
-# Check S3 bucket size
-aws s3 ls s3://yorutsuke-images-dev-{account} --recursive --summarize \
-  --profile dev | tail -2
 ```
-
-### Cost Optimization
-
-1. **Image Compression**: WebP < 100KB reduces S3/transfer costs
-2. **Batch Processing**: 02:00 JST batch reduces Lambda cold starts
-3. **S3 Lifecycle**: 30-day expiration prevents unbounded storage growth
-4. **Intelligent-Tiering**: Auto-move infrequent access objects
 
 ---
 
 ## Monitoring
 
-### CloudWatch Dashboards
-
-Create dashboard with these widgets:
-
-| Widget | Metrics |
-|--------|---------|
-| Lambda Errors | `AWS/Lambda` Errors by function |
-| Lambda Duration | `AWS/Lambda` Duration P50, P99 |
-| API Latency | `AWS/Lambda` Duration for presign |
-| Batch Success | Custom metric: processed vs failed |
-| Daily Cost | Billing EstimatedCharges |
-
-### Alarms
+### CloudWatch Alarms
 
 | Alarm | Condition | Action |
 |-------|-----------|--------|
@@ -170,89 +307,83 @@ fields @timestamp, @duration, @requestId
 
 ---
 
-## Incident Response Checklist
+## Incident Response
 
 ### When Alert Fires
 
 - [ ] Check CloudWatch for error pattern
 - [ ] Check recent deployments
 - [ ] Activate emergency stop if needed
-- [ ] Notify team in Slack/Discord
-- [ ] Document timeline in incident report
+- [ ] Notify team
+- [ ] Document timeline
 
 ### After Resolution
 
 - [ ] Deactivate emergency stop
 - [ ] Write post-mortem
 - [ ] Create issue for prevention
-- [ ] Update runbook if needed
 
 ---
 
 ## Runbook: Common Issues
 
-### Issue: Batch Processing Failed
+### Batch Processing Failed
 
 ```bash
-# 1. Check batch Lambda logs
+# 1. Check logs
 aws logs tail /aws/lambda/yorutsuke-dev-batch --since 1h --profile dev
 
-# 2. Check DynamoDB for stuck items
+# 2. Check stuck items
 aws dynamodb scan \
   --table-name yorutsuke-transactions-dev \
   --filter-expression "status = :s" \
   --expression-attribute-values '{":s":{"S":"processing"}}' \
   --profile dev
-
-# 3. Manually trigger batch (if safe)
-aws lambda invoke \
-  --function-name yorutsuke-dev-batch \
-  --profile dev \
-  /tmp/batch-response.json
 ```
 
-### Issue: S3 Upload Failing
+### S3 Upload Failing
 
 ```bash
-# 1. Check presign Lambda logs
+# 1. Check presign logs
 aws logs tail /aws/lambda/yorutsuke-dev-presign --since 30m --profile dev
 
-# 2. Verify bucket permissions
-aws s3api get-bucket-policy --bucket yorutsuke-images-dev-{account} --profile dev
-
-# 3. Test presign manually
+# 2. Test presign manually
 curl -X POST https://{presign-url}/ \
   -H "Content-Type: application/json" \
   -d '{"userId":"test","fileName":"test.webp","contentType":"image/webp"}'
 ```
 
-### Issue: High Costs
+### High Costs
 
 ```bash
-# 1. Check which service is expensive
+# Check which service is expensive
 aws ce get-cost-and-usage \
   --time-period Start=$(date -d '7 days ago' +%Y-%m-%d),End=$(date +%Y-%m-%d) \
   --granularity DAILY \
   --metrics BlendedCost \
   --group-by Type=DIMENSION,Key=SERVICE \
   --profile dev
-
-# 2. Activate emergency stop to prevent further charges
-# (See Emergency Response section above)
 ```
 
 ---
 
-## Contacts
+## CI/CD (Future)
 
-| Role | Contact |
-|------|---------|
-| On-call Engineer | (TBD) |
-| AWS Account Owner | (TBD) |
-| Emergency Slack | #yorutsuke-alerts |
+### Release Process
+
+1. Create release branch: `release/v0.2.0`
+2. Update version in `package.json`, `tauri.conf.json`
+3. Update `CHANGELOG.md`
+4. Create PR → Review → Merge
+5. Tag: `git tag v0.2.0 && git push --tags`
+6. Build desktop apps
+7. Create GitHub Release with binaries
+
+---
 
 ## References
 
 - Architecture: `../architecture/ARCHITECTURE.md`
-- Deployment: `./DEPLOYMENT.md`
+- Quota Details: `./QUOTA.md`
+- Logging: `./LOGGING.md`
 - CDK Stack: `infra/lib/yorutsuke-stack.ts`

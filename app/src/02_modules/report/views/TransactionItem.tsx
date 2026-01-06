@@ -193,8 +193,8 @@ export function TransactionItem({
                 </select>
               </div>
               <div className="edit-actions">
-                <button className="btn-save" onClick={handleSave}>{t('common.save')}</button>
-                <button className="btn-cancel" onClick={handleCancel}>{t('common.cancel')}</button>
+                <button type="button" className="btn btn--primary btn--sm" onClick={handleSave}>{t('common.save')}</button>
+                <button type="button" className="btn btn--secondary btn--sm" onClick={handleCancel}>{t('common.cancel')}</button>
               </div>
             </div>
           ) : (
@@ -225,19 +225,20 @@ export function TransactionItem({
               <div className="tx-actions">
                 {onEdit && (
                   <button
-                    className="btn-edit"
+                    type="button"
+                    className="btn btn--secondary btn--sm"
                     onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                   >
                     {t('common.edit')}
                   </button>
                 )}
                 {onConfirm && !confirmedAt && (
-                  <button className="btn-confirm" onClick={handleConfirm}>
+                  <button type="button" className="btn btn--success btn--sm" onClick={handleConfirm}>
                     {t('common.confirm')}
                   </button>
                 )}
                 {onDelete && (
-                  <button className="btn-delete" onClick={handleDelete}>
+                  <button type="button" className="btn btn--danger btn--sm" onClick={handleDelete}>
                     {t('common.delete')}
                   </button>
                 )}

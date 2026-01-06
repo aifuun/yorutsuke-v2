@@ -112,70 +112,6 @@
   color: var(--slate-500);
 }
 
-/* Select Input */
-.setting-select {
-  padding: 8px 32px 8px 12px;
-  border: 1px solid var(--slate-200);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--slate-700);
-  background: var(--bg-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;
-  appearance: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 120px;
-}
-
-.setting-select:hover {
-  border-color: var(--slate-300);
-}
-
-.setting-select:focus {
-  outline: none;
-  border-color: var(--blue-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Action Buttons */
-.btn-action {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn-action--primary {
-  background: var(--blue-500);
-  color: var(--bg-card);
-}
-
-.btn-action--primary:hover {
-  background: var(--blue-600);
-}
-
-.btn-action--dark {
-  background: var(--slate-700);
-  color: var(--bg-card);
-}
-
-.btn-action--dark:hover {
-  background: var(--slate-800);
-}
-
-.btn-action--danger {
-  background: var(--rose-100);
-  color: var(--rose-600);
-}
-
-.btn-action--danger:hover {
-  background: var(--rose-200);
-}
-
 /* Setting Link */
 .setting-link {
   font-size: 13px;
@@ -225,25 +161,6 @@
 .guest-warning__actions {
   display: flex;
   gap: 12px;
-}
-
-.btn-action--warning {
-  background: var(--amber-600);
-  color: var(--bg-card);
-}
-
-.btn-action--warning:hover {
-  background: var(--amber-600);
-}
-
-.btn-action--ghost {
-  background: var(--bg-card);
-  color: var(--amber-800);
-  border: 1px solid var(--amber-300);
-}
-
-.btn-action--ghost:hover {
-  background: var(--amber-100);
 }
 
 /* Profile Card */
@@ -352,7 +269,7 @@
   flex-wrap: wrap;
 }
 
-.seed-controls .setting-select {
+.seed-controls .select {
   min-width: 100px;
 }
 
@@ -379,8 +296,8 @@
     gap: 12px;
   }
 
-  .setting-select,
-  .btn-action {
+  .select,
+  .btn {
     width: 100%;
   }
 }

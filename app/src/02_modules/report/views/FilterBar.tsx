@@ -80,7 +80,7 @@ export function FilterBar({ filters, onChange, onClear }: FilterBarProps) {
         {hasFilters && (
           <button
             type="button"
-            className="btn-clear-filters"
+            className="btn btn--ghost btn--sm"
             onClick={onClear}
           >
             {t('filter.clear')}

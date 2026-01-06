@@ -57,7 +57,7 @@ export function SettingsView() {
                 <p className="setting-hint">{t('settings.themeHint')}</p>
               </div>
               <select
-                className="setting-select"
+                className="select"
                 value={currentSettings.theme}
                 onChange={(e) => update('theme', e.target.value as 'light' | 'dark')}
               >
@@ -73,7 +73,7 @@ export function SettingsView() {
                 <p className="setting-hint">{t('settings.languageHint')}</p>
               </div>
               <select
-                className="setting-select"
+                className="select"
                 value={currentSettings.language}
                 onChange={(e) => handleLanguageChange(e.target.value as 'ja' | 'en')}
               >
@@ -108,7 +108,7 @@ export function SettingsView() {
                 <p className="setting-label">{t('settings.exportData')}</p>
                 <p className="setting-hint">{t('settings.exportDataHint')}</p>
               </div>
-              <button className="btn-action btn-action--primary">
+              <button type="button" className="btn btn--primary">
                 {t('settings.export')}
               </button>
             </div>
