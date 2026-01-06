@@ -8,7 +8,7 @@ import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import { resetTodayQuota } from '../../capture/adapters/imageDb';
 import { clearAllData } from '../../../00_kernel/storage/db';
-import { dlog, getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
+import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
 import { setMockEnabled, subscribeMockMode, getMockSnapshot } from '../../../00_kernel/config/mock';
 import type { UserId } from '../../../00_kernel/types';
@@ -85,10 +85,8 @@ export function DebugView() {
 
     try {
       const result = await seedMockTransactions(effectiveUserId, seedScenario, true);
-      dlog.info('Debug', 'Seed completed', result);
       setActionResult(result.seeded ? `Seeded ${result.count} items` : 'Skipped');
     } catch (e) {
-      dlog.error('Debug', 'Seed failed', e);
       setActionResult('Error');
     }
 
@@ -106,12 +104,10 @@ export function DebugView() {
 
     try {
       const count = await resetTodayQuota(effectiveUserId as UserId);
-      dlog.info('Debug', 'Quota reset', { count });
       setActionResult(count > 0 ? `Reset ${count} uploads` : 'No uploads today');
       // Emit event so quotaService can refresh
       emit('quota:reset', { count });
     } catch (e) {
-      dlog.error('Debug', 'Quota reset failed', e);
       setActionResult('Error');
     }
 
@@ -127,10 +123,8 @@ export function DebugView() {
     setActionResult(null);
 
     try {
-      dlog.info('Debug', 'Clearing all data...');
       const results = await clearAllData();
       const total = Object.values(results).reduce((a, b) => a + b, 0);
-      dlog.info('Debug', 'Data cleared', results);
       setActionResult(`Cleared ${total} rows`);
 
       // Reload after short delay so user sees the result
@@ -138,7 +132,6 @@ export function DebugView() {
         window.location.reload();
       }, 1000);
     } catch (e) {
-      dlog.error('Debug', 'Clear failed', e);
       setActionResult('Error: ' + String(e));
       setActionStatus('idle');
     }

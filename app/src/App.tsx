@@ -11,7 +11,7 @@ import { DebugView, useSecretCode } from './02_modules/debug';
 
 function AppContent() {
   const { userId } = useAppContext();
-  const [activeView, setActiveView] = useState<ViewType>('dashboard');
+  const [activeView, setActiveView] = useState<ViewType>('capture');
   const { isUnlocked: isDebugUnlocked } = useSecretCode();
 
   return (

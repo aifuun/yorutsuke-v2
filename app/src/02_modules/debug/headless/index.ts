@@ -1,2 +1,3 @@
 export { useSecretCode } from './useSecretCode';
-export { dlog, getLogs, clearLogs, subscribeLogs, type LogEntry } from './debugLog';
+export { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from './debugLog';
+// debugLog is exported separately for internal use by logger.ts

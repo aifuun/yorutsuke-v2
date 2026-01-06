@@ -6,9 +6,7 @@ import { useReducer, useCallback, useEffect } from 'react';
 import type { AppSettings } from '../adapters/settingsDb';
 import { loadSettings, saveSetting } from '../adapters/settingsDb';
 import { changeLanguage } from '../../../i18n';
-import { dlog } from '../../debug/headless/debugLog';
-
-const TAG = 'Settings';
+import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 /**
  * Apply theme to DOM by setting data-theme attribute on root element
@@ -88,10 +86,10 @@ export function useSettings(): UseSettingsResult {
       if (settings.theme) {
         applyTheme(settings.theme);
       }
-      dlog.info(TAG, 'Loaded', { language: settings.language, theme: settings.theme });
+      logger.info(EVENTS.SETTINGS_LOADED, { language: settings.language, theme: settings.theme });
       dispatch({ type: 'LOAD_SUCCESS', settings });
     } catch (e) {
-      dlog.error(TAG, 'Load failed', { error: String(e) });
+      logger.error(EVENTS.APP_ERROR, { context: 'settings_load', error: String(e) });
       dispatch({ type: 'ERROR', error: String(e) });
     }
   }, []);
@@ -102,7 +100,7 @@ export function useSettings(): UseSettingsResult {
   ) => {
     // Optimistic update
     dispatch({ type: 'UPDATE', key, value });
-    dlog.info(TAG, 'Updated', { key, value });
+    logger.info(EVENTS.SETTINGS_UPDATED, { key, value });
 
     // Apply theme immediately when changed
     if (key === 'theme') {
@@ -112,7 +110,7 @@ export function useSettings(): UseSettingsResult {
     try {
       await saveSetting(key, value);
     } catch (e) {
-      dlog.error(TAG, 'Save failed', { key, error: String(e) });
+      logger.error(EVENTS.SETTINGS_SAVE_FAILED, { key, error: String(e) });
       // Reload on error to get correct state
       await load();
     }

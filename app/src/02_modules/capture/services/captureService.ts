@@ -7,10 +7,7 @@ import { createIntentId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { dlog } from '../../debug/headless/debugLog';
 import { setupTauriDragListeners } from '../adapters/tauriDragDrop';
-
-const TAG = 'Capture';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
 import { uploadService } from './uploadService';
@@ -137,14 +134,12 @@ class CaptureService {
 
     // Notify UI about rejected files
     if (rejectedPaths.length > 0) {
-      dlog.warn(TAG, 'Files rejected', { count: rejectedPaths.length });
-      logger.info(EVENTS.IMAGE_REJECTED, { count: rejectedPaths.length, paths: rejectedPaths });
+      logger.warn(EVENTS.IMAGE_REJECTED, { count: rejectedPaths.length, paths: rejectedPaths });
       captureStore.getState().setRejection(rejectedPaths.length);
     }
 
     if (items.length === 0) return;
 
-    dlog.info(TAG, 'Files dropped', { count: items.length });
     logger.info(EVENTS.IMAGE_DROPPED, { count: items.length });
 
     // Add each item to queue
@@ -305,7 +300,7 @@ class CaptureService {
     const image = captureStore.getState().queue.find(img => img.id === id);
     if (!image) return;
 
-    dlog.info(TAG, 'Retrying image', { id: id.slice(0, 8) });
+    logger.info(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'retry', imageId: id });
 
     // Reset to pending for reprocessing
     const retryImage: ReceiptImage = {

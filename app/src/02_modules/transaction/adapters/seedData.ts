@@ -2,10 +2,7 @@
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import { TransactionId, UserId } from '../../../00_kernel/types';
 import { fetchTransactions, saveTransaction, clearAllTransactions } from './transactionDb';
-import { dlog } from '../../debug/headless/debugLog';
-import { logger } from '../../../00_kernel/telemetry';
-
-const TAG = 'Seed';
+import { logger, EVENTS } from '../../../00_kernel/telemetry';
 
 // =========================================================================
 // Seeded Random Generator (for reproducible mock data)
@@ -249,31 +246,27 @@ export async function seedMockTransactions(
   scenario: SeedScenario = 'default',
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
-  logger.info('SEED_STARTED', { userId, scenario, force });
-  dlog.info(TAG, 'Starting', { userId, scenario, force });
+  logger.info(EVENTS.SEED_STARTED, { userId: userId.slice(0, 8), scenario, force });
 
   try {
     const existing = await fetchTransactions(userId);
-    logger.info('SEED_EXISTING', { count: existing.length });
-    dlog.info(TAG, `Found ${existing.length} existing transactions`);
+    logger.debug(EVENTS.SEED_STARTED, { phase: 'existing', count: existing.length });
 
     if (existing.length > 0 && !force) {
-      dlog.warn(TAG, 'Skipping - data exists, use force to overwrite');
+      logger.warn(EVENTS.SEED_STARTED, { phase: 'skip', reason: 'data_exists' });
       return { seeded: false, count: 0 };
     }
 
     // Clear existing data when force=true
     if (force && existing.length > 0) {
-      dlog.info(TAG, 'Clearing existing transactions...');
       const cleared = await clearAllTransactions(userId);
-      dlog.info(TAG, `Cleared ${cleared} transactions`);
+      logger.info(EVENTS.SEED_CLEARED, { count: cleared });
     }
 
     const config = SCENARIO_CONFIG[scenario];
-    dlog.info(TAG, 'Config loaded', config);
 
     if (config.daySpan === 0) {
-      dlog.info(TAG, 'Empty scenario, no transactions to create');
+      logger.info(EVENTS.SEED_COMPLETED, { count: 0, reason: 'empty_scenario' });
       return { seeded: true, count: 0 };
     }
 
@@ -292,8 +285,6 @@ export async function seedMockTransactions(
         random
       );
 
-      dlog.info(TAG, `Day -${daysAgo}: creating ${txCount} transactions`);
-
       for (let i = 0; i < txCount; i++) {
         const forceType: TransactionType | undefined =
           random() < config.incomeRatio ? 'income' : 'expense';
@@ -311,12 +302,10 @@ export async function seedMockTransactions(
       }
     }
 
-    logger.info('SEED_COMPLETED', { count: totalCount });
-    dlog.info(TAG, `Complete! Created ${totalCount} transactions`);
+    logger.info(EVENTS.SEED_COMPLETED, { count: totalCount });
     return { seeded: true, count: totalCount };
   } catch (e) {
-    logger.error('SEED_FAILED', { error: String(e) });
-    dlog.error(TAG, 'Failed to seed', e);
+    logger.error(EVENTS.SEED_FAILED, { error: String(e) });
     return { seeded: false, count: 0 };
   }
 }
@@ -327,10 +316,10 @@ export async function seedMockTransactions(
 export async function clearTransactions(userId: UserId): Promise<{ cleared: boolean; count: number }> {
   try {
     const count = await clearAllTransactions(userId);
-    dlog.info(TAG, 'Cleared', { count, userId: userId.slice(0, 8) });
+    logger.info(EVENTS.SEED_CLEARED, { count, userId: userId.slice(0, 8) });
     return { cleared: true, count };
   } catch (e) {
-    dlog.error(TAG, 'Clear failed', { error: String(e) });
+    logger.error(EVENTS.SEED_FAILED, { context: 'clear', error: String(e) });
     return { cleared: false, count: 0 };
   }
 }

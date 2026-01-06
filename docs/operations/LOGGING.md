@@ -4,103 +4,91 @@
 
 ## Overview
 
-Yorutsuke uses a **dual logging system** designed for different purposes:
-
-| System | Purpose | Visibility | Persistence |
-|--------|---------|------------|-------------|
-| `dlog` | User debugging | Debug UI panel + console | Memory only |
-| `logger` | Telemetry/analytics | Console (JSON) | File (~/.yorutsuke/logs/) |
-
-## Logging Strategy
-
-### When to Use Which
-
-| Scenario | Use | Reason |
-|----------|-----|--------|
-| User-facing operations (upload, retry, quota) | `dlog` | User can see in Debug panel |
-| System events (auth, circuit breaker) | `logger` | Structured for analysis |
-| Errors user should know about | `dlog.error` | Always visible (no Verbose needed) |
-| Performance metrics | `logger` | Machine-parseable |
-| State transitions | Both | Debug visibility + analytics |
-
-### Decision Tree
+Yorutsuke uses a **unified logging system** with multiple output targets:
 
 ```
-Is this useful for user debugging?
-├─ YES → Use dlog
-│   └─ Is it an error/warning? → dlog.error/warn (always visible)
-│   └─ Is it informational? → dlog.info (requires Verbose)
-└─ NO → Is this for telemetry/analytics?
-    └─ YES → Use logger
-    └─ NO → Don't log
+logger.info(EVENTS.UPLOAD_STARTED, { imageId, size })
+    │
+    ├──► Console (JSON)
+    ├──► Debug UI Panel (human-readable)
+    └──► Local File (~/.yorutsuke/logs/)
 ```
 
-## Debug Log System (dlog)
+| Output | Format | Persistence | Purpose |
+|--------|--------|-------------|---------|
+| Console | JSON | Session | Development debugging |
+| Debug UI | Human-readable | Memory (100 entries) | Real-time monitoring |
+| File | JSON Lines | 7 days | Post-mortem analysis |
 
-### Purpose
-Real-time debugging visible in the app's Debug panel.
+## Usage
 
-### Levels
-
-| Level | Verbose OFF | Verbose ON | Use Case |
-|-------|-------------|------------|----------|
-| `error` | ✅ Visible | ✅ Visible | Failures, exceptions |
-| `warn` | ✅ Visible | ✅ Visible | Quota exceeded, retries exhausted |
-| `info` | ❌ Hidden | ✅ Visible | Normal operations |
-
-### Usage
+### Basic Logging
 
 ```typescript
-import { dlog } from '@/02_modules/debug/headless/debugLog';
+import { logger, EVENTS } from '@/00_kernel/telemetry/logger';
 
-const TAG = 'Upload';
+// Info level - normal operations
+logger.info(EVENTS.UPLOAD_STARTED, { imageId: 'img-001', size: 1024 });
 
-// Always visible
-dlog.error(TAG, 'Upload failed', { id, error });
-dlog.warn(TAG, 'Quota exceeded', { used, limit });
+// Warn level - recoverable issues
+logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { used: 50, limit: 50 });
 
-// Requires Verbose mode
-dlog.info(TAG, 'Starting upload', { id });
-dlog.info(TAG, 'Upload success', { id, key });
+// Error level - failures
+logger.error(EVENTS.UPLOAD_FAILED, { imageId: 'img-001', error: 'timeout' });
+
+// Debug level - verbose (DEV only)
+logger.debug(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'polling' });
 ```
 
-### Output
-- Debug UI panel (in-app)
-- Browser console (with `[Tag] Message` format)
+### State Transitions
 
-### Coverage Requirements
+```typescript
+import { logStateTransition } from '@/00_kernel/telemetry/logger';
 
-All user-facing modules MUST use dlog:
-- `capture/` - drop, compress, upload, retry
-- `transaction/` - CRUD operations
-- `settings/` - preference changes
-- `auth/` - login/logout (summary only)
-
-## Telemetry System (logger)
-
-### Architecture
-
+logStateTransition({
+  entity: 'UploadQueue',
+  entityId: 'queue-main',
+  from: 'idle',
+  to: 'processing',
+  taskCount: 5
+});
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      Frontend (React)                        │
-│  logger.info(EVENTS.UPLOAD_STARTED, { imageId, traceId })   │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-            ┌─────────────┴─────────────┐
-            │                           │
-            ▼                           ▼
-    ┌───────────────┐          ┌────────────────┐
-    │   Console     │          │  Tauri IPC     │
-    │   (always)    │          │  log_write     │
-    └───────────────┘          └───────┬────────┘
-                                       │
-                                       ▼
-                          ┌────────────────────────┐
-                          │     Local File         │
-                          │ ~/.yorutsuke/logs/     │
-                          │ YYYY-MM-DD.jsonl       │
-                          └────────────────────────┘
+
+## Log Levels
+
+| Level | Debug UI | Console | File | Use Case |
+|-------|----------|---------|------|----------|
+| `debug` | Verbose ON | DEV only | DEV only | Internal details |
+| `info` | Verbose ON | Always | Always | Normal operations |
+| `warn` | Always | Always | Always | Recoverable issues |
+| `error` | Always | Always | Always | Failures |
+
+### Debug UI Visibility
+
+- `warn` and `error` are **always visible** in Debug panel
+- `info` and `debug` require **Verbose mode ON**
+
+## Event Naming Convention
+
+### Format: `NOUN_VERB` or `NOUN_VERB_RESULT`
+
+```typescript
+// ✅ GOOD: Semantic event names
+logger.info(EVENTS.UPLOAD_STARTED, { imageId });
+logger.info(EVENTS.UPLOAD_COMPLETED, { imageId, s3Key });
+logger.error(EVENTS.UPLOAD_FAILED, { imageId, error });
+
+// ❌ BAD: Prose-style descriptions
+logger.info('Starting upload...', { imageId });
+logger.info('[Upload] Complete', { imageId });
 ```
+
+### Rules
+
+1. **Use UPPERCASE_SNAKE_CASE**
+2. **Noun first**: What entity is affected
+3. **Verb second**: What happened to it
+4. **Result optional**: SUCCESS/FAILED/COMPLETED for outcomes
 
 ## Log Entry Structure
 
@@ -117,38 +105,9 @@ interface LogEntry {
 }
 ```
 
-Example:
+Example output:
 ```json
 {"timestamp":"2025-01-04T12:34:56.789Z","level":"info","event":"UPLOAD_STARTED","traceId":"trace-abc123","userId":"device-xyz789","imageId":"img-001","size":102400}
-```
-
-## Event Naming Convention
-
-### Format: `NOUN_VERB` or `NOUN_VERB_RESULT`
-
-| Pattern | Example | Use Case |
-|---------|---------|----------|
-| `NOUN_VERB` | `UPLOAD_STARTED` | Operation started |
-| `NOUN_VERB_RESULT` | `AUTH_LOGIN_FAILED` | Operation with outcome |
-| `STATE_TRANSITION` | `STATE_TRANSITION` | FSM state change (with `from`/`to`) |
-
-### Rules
-
-1. **Use UPPERCASE_SNAKE_CASE**
-2. **Noun first**: What entity is affected
-3. **Verb second**: What happened to it
-4. **Result optional**: SUCCESS/FAILED/COMPLETED for outcomes
-
-### Anti-patterns
-
-```typescript
-// ❌ BAD: Prose-style descriptions
-logger.info('[Identity] Generated new Device ID', { deviceId });
-logger.info('[CircuitBreaker] Closed - service recovered');
-
-// ✅ GOOD: Semantic event names
-logger.info(EVENTS.DEVICE_ID_GENERATED, { deviceId });
-logger.info(EVENTS.CIRCUIT_CLOSED);
 ```
 
 ## Event Catalog
@@ -156,15 +115,18 @@ logger.info(EVENTS.CIRCUIT_CLOSED);
 ### Upload Lifecycle
 | Event | Description | Data |
 |-------|-------------|------|
+| `UPLOAD_ENQUEUED` | Added to queue | `imageId`, `intentId` |
 | `UPLOAD_STARTED` | Upload initiated | `imageId`, `size` |
 | `UPLOAD_COMPLETED` | Upload successful | `imageId`, `s3Key` |
 | `UPLOAD_FAILED` | Upload failed | `imageId`, `error`, `errorType` |
-| `UPLOAD_QUEUE_RESUMED` | Queue resumed | `pendingCount` |
+| `UPLOAD_QUEUE_RESUMED` | Queue resumed | `reason` |
 | `UPLOAD_QUEUE_PAUSED` | Queue paused | `reason` |
 
 ### Image Processing
 | Event | Description | Data |
 |-------|-------------|------|
+| `IMAGE_DROPPED` | Files dropped | `count` |
+| `IMAGE_REJECTED` | Invalid files | `count`, `paths` |
 | `IMAGE_COMPRESSED` | Compression done | `imageId`, `originalSize`, `compressedSize` |
 | `IMAGE_COMPRESSION_FAILED` | Compression failed | `imageId`, `error` |
 | `IMAGE_SAVED` | Saved to database | `imageId`, `md5` |
@@ -174,6 +136,7 @@ logger.info(EVENTS.CIRCUIT_CLOSED);
 | Event | Description | Data |
 |-------|-------------|------|
 | `QUOTA_CHECKED` | Quota verified | `used`, `limit`, `remaining` |
+| `QUOTA_REFRESHED` | Quota fetched | `trigger` |
 | `QUOTA_LIMIT_REACHED` | Limit exceeded | `used`, `limit` |
 
 ### Authentication
@@ -185,38 +148,26 @@ logger.info(EVENTS.CIRCUIT_CLOSED);
 | `AUTH_LOGOUT` | User logged out | - |
 | `AUTH_TOKEN_REFRESHED` | Token refreshed | - |
 
-### Identity
+### Settings
 | Event | Description | Data |
 |-------|-------------|------|
-| `DEVICE_ID_GENERATED` | New device ID | `deviceId` |
-| `DEVICE_ID_LOADED` | Existing device ID loaded | `deviceId` |
-
-### Transaction
-| Event | Description | Data |
-|-------|-------------|------|
-| `TRANSACTION_CREATED` | Transaction created | `transactionId`, `amount` |
-| `TRANSACTION_CONFIRMED` | User confirmed | `transactionId` |
-| `TRANSACTION_DELETED` | Transaction deleted | `transactionId` |
-
-### Report
-| Event | Description | Data |
-|-------|-------------|------|
-| `REPORT_LOADED` | Report fetched | `date`, `count` |
-| `REPORT_LOAD_FAILED` | Report fetch failed | `date`, `error` |
+| `SETTINGS_LOADED` | Settings loaded | `language`, `theme` |
+| `SETTINGS_UPDATED` | Setting changed | `key`, `value` |
 
 ### System
 | Event | Description | Data |
 |-------|-------------|------|
 | `APP_STARTED` | Application started | `version` |
+| `APP_INITIALIZED` | App ready | `userId` |
 | `APP_ERROR` | Unhandled error | `error`, `stack` |
+| `SERVICE_INITIALIZED` | Service ready | `service` |
+
+### Circuit Breaker
+| Event | Description | Data |
+|-------|-------------|------|
 | `CIRCUIT_OPENED` | Circuit breaker opened | `failures`, `threshold` |
 | `CIRCUIT_CLOSED` | Circuit breaker closed | - |
 | `CIRCUIT_HALF_OPEN` | Circuit testing | - |
-
-### Network
-| Event | Description | Data |
-|-------|-------------|------|
-| `NETWORK_STATUS_CHANGED` | Online/offline change | `online` |
 
 ### Database
 | Event | Description | Data |
@@ -236,7 +187,6 @@ logger.info(EVENTS.CIRCUIT_CLOSED);
 ~/.yorutsuke/logs/
 ├── 2025-01-04.jsonl    # Today's logs
 ├── 2025-01-03.jsonl    # Yesterday
-├── 2025-01-02.jsonl
 └── ...                 # 7 days retained
 ```
 
@@ -252,67 +202,10 @@ One JSON object per line for easy parsing:
 - Automatic cleanup of files older than 7 days
 - Cleanup runs on app startup
 
-### Tauri Command
-```rust
-#[tauri::command]
-fn log_write(entry: LogEntry) -> Result<(), String>
-```
-
-## Usage Examples
-
-### Basic Logging
-```typescript
-import { logger, EVENTS } from '@/00_kernel/telemetry/logger';
-
-// Info level
-logger.info(EVENTS.UPLOAD_STARTED, { imageId: 'img-001', size: 1024 });
-
-// Error with details
-logger.error(EVENTS.UPLOAD_FAILED, {
-  imageId: 'img-001',
-  error: 'Network timeout',
-  errorType: 'network'
-});
-```
-
-### State Transitions
-```typescript
-import { logStateTransition } from '@/00_kernel/telemetry/logger';
-
-logStateTransition({
-  entity: 'UploadQueue',
-  entityId: 'queue-main',
-  from: 'idle',
-  to: 'processing',
-  taskCount: 5
-});
-```
-
-### With TraceId Context
-```typescript
-// TraceId is automatically injected from TraceProvider context
-// No need to pass explicitly
-logger.info(EVENTS.IMAGE_COMPRESSED, {
-  imageId: 'img-001',
-  originalSize: 2048000,
-  compressedSize: 512000
-});
-// Output includes traceId from context
-```
-
-## Log Levels
-
-| Level | Console | File | Use Case |
-|-------|---------|------|----------|
-| `debug` | DEV only | DEV only | Verbose debugging |
-| `info` | Always | Always | Normal operations |
-| `warn` | Always | Always | Recoverable issues |
-| `error` | Always | Always | Failures requiring attention |
-
 ## Viewing Logs
 
-### During Development
-Logs appear in browser DevTools console as JSON strings.
+### Debug UI Panel
+In-app Debug tab shows real-time logs with human-readable format.
 
 ### From Log Files
 ```bash
@@ -324,16 +217,19 @@ cat ~/.yorutsuke/logs/2025-01-04.jsonl | jq 'select(.event == "UPLOAD_FAILED")'
 
 # Filter by traceId
 cat ~/.yorutsuke/logs/2025-01-04.jsonl | jq 'select(.traceId == "trace-abc123")'
+
+# Count events
+cat ~/.yorutsuke/logs/2025-01-04.jsonl | jq -s 'group_by(.event) | map({event: .[0].event, count: length})'
 ```
 
 ## Implementation Files
 
 | File | Purpose |
 |------|---------|
-| `app/src/00_kernel/telemetry/logger.ts` | Frontend logger + EVENTS |
+| `app/src/00_kernel/telemetry/logger.ts` | Logger + EVENTS + Debug UI bridge |
 | `app/src/00_kernel/telemetry/traceContext.tsx` | TraceId context provider |
+| `app/src/02_modules/debug/headless/debugLog.ts` | Debug UI log store |
 | `app/src-tauri/src/logging.rs` | Tauri log_write command |
-| `infra/lambda/shared/logger.mjs` | Lambda logger (mirrors frontend) |
 
 ## Related Pillars
 

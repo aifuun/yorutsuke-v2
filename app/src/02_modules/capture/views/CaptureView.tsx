@@ -134,27 +134,6 @@ export function CaptureView() {
             </div>
           )}
 
-          {/* Rejection Banner */}
-          {rejection && (
-            <div className="info-banner info-banner--warning">
-              <span className="banner-icon">⚠️</span>
-              <div className="banner-content">
-                <p className="banner-title">
-                  {t('capture.rejected', { count: rejection.count })}
-                </p>
-                <p className="banner-text">{t('capture.rejectedHint')}</p>
-              </div>
-              <button
-                type="button"
-                className="banner-dismiss"
-                onClick={clearRejection}
-                aria-label="Dismiss"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
           {/* Drop Zone */}
           <div className="card drop-card">
             <div
@@ -167,6 +146,27 @@ export function CaptureView() {
               </p>
               <p className="drop-hint">{t('capture.supportedFormats')}</p>
             </div>
+
+            {/* Rejection Banner - inside drop card */}
+            {rejection && (
+              <div className="drop-rejection">
+                <span className="drop-rejection__icon">⚠️</span>
+                <div className="drop-rejection__content">
+                  <span className="drop-rejection__title">
+                    {t('capture.rejected', { count: rejection.count })}
+                  </span>
+                  <span className="drop-rejection__hint">{t('capture.rejectedHint')}</span>
+                </div>
+                <button
+                  type="button"
+                  className="drop-rejection__dismiss"
+                  onClick={clearRejection}
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Processing Queue */}

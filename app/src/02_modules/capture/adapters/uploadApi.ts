@@ -3,9 +3,7 @@
 import { z } from 'zod';
 import type { UserId, IntentId } from '../../../00_kernel/types';
 import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
-import { dlog } from '../../debug/headless/debugLog';
-
-const TAG = 'API';
+import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
 
@@ -56,7 +54,7 @@ export async function getPresignedUrl(
   // Mock mode for UI development
   if (USE_MOCK) {
     await mockDelay(100);
-    dlog.info(TAG, 'Mock presign', { fileName });
+    logger.debug(EVENTS.UPLOAD_STARTED, { phase: 'mock_presign', fileName });
     return createMockPresign(userId, fileName);
   }
 
@@ -102,7 +100,7 @@ export async function uploadToS3(
   // Mock mode for UI development
   if (USE_MOCK || presignedUrl.includes('mock-s3.local')) {
     await mockDelay(500); // Simulate upload time
-    dlog.info(TAG, 'Mock S3 upload', { size: file.size });
+    logger.debug(EVENTS.UPLOAD_COMPLETED, { phase: 'mock_s3', size: file.size });
     return;
   }
 

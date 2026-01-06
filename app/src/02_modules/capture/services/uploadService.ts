@@ -8,10 +8,7 @@ import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/type
 import { emit } from '../../../00_kernel/eventBus';
 import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/network';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { dlog } from '../../debug/headless/debugLog';
 import { canUpload } from '../../../01_domains/receipt';
-
-const TAG = 'Upload';
 
 // Polling interval (1 second) - rate limit is enforced separately by canUpload()
 const UPLOAD_POLL_INTERVAL_MS = 1000;
@@ -79,8 +76,7 @@ class UploadService {
    * Add file to upload queue
    */
   enqueue(id: ImageId, filePath: string, intentId: IntentId, traceId: TraceId): void {
-    dlog.info(TAG, 'Enqueued', { id: id.slice(0, 8) });
-    logger.debug(EVENTS.UPLOAD_ENQUEUED, { imageId: id, intentId, traceId });
+    logger.info(EVENTS.UPLOAD_ENQUEUED, { imageId: id, intentId, traceId });
     uploadStore.getState().enqueue({ id, intentId, traceId, filePath });
     this.startPolling();
   }
@@ -141,7 +137,6 @@ class UploadService {
     if (!quotaCheck.allowed) {
       if (quotaCheck.type === 'quota_exceeded') {
         // Daily quota exceeded - stop polling
-        dlog.warn(TAG, 'Quota exceeded', { used: quota.used, limit: quota.limit });
         logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { reason: quotaCheck.reason, used: quota.used, limit: quota.limit });
         uploadStore.getState().pause('quota');
         this.stopPolling();
@@ -172,7 +167,7 @@ class UploadService {
 
     uploadStore.getState().startUpload(id);
     captureStore.getState().startUpload(id);
-    dlog.info(TAG, 'Starting upload', { id: id.slice(0, 8) });
+    logger.info(EVENTS.UPLOAD_STARTED, { imageId: id });
 
     try {
       // Get presigned URL
@@ -200,7 +195,6 @@ class UploadService {
       // Emit success event
       emit('upload:complete', { id, traceId, s3Key: key });
 
-      dlog.info(TAG, 'Upload success', { id: id.slice(0, 8), key });
       logger.info(EVENTS.UPLOAD_COMPLETED, { imageId: id, traceId, s3Key: key });
     } catch (e) {
       const error = String(e);
@@ -211,8 +205,6 @@ class UploadService {
 
       uploadStore.getState().uploadFailure(id, error, errorType);
       captureStore.getState().failure(id, error);
-
-      dlog.error(TAG, 'Upload failed', { id: id.slice(0, 8), error: errorType, willRetry });
 
       // Emit failure event
       emit('upload:failed', {
@@ -240,7 +232,7 @@ class UploadService {
    * Retry a failed upload
    */
   retry(id: ImageId): void {
-    dlog.info(TAG, 'Retrying', { id: id.slice(0, 8) });
+    logger.info(EVENTS.UPLOAD_QUEUE_RESUMED, { reason: 'retry', imageId: id });
     uploadStore.getState().retry(id);
     this.startPolling();
   }
@@ -250,7 +242,7 @@ class UploadService {
    */
   retryAllFailed(): void {
     const failedCount = uploadStore.getState().tasks.filter(t => t.status === 'failed').length;
-    dlog.info(TAG, 'Retrying all failed', { count: failedCount });
+    logger.info(EVENTS.UPLOAD_QUEUE_RESUMED, { reason: 'retry_all', count: failedCount });
     uploadStore.getState().resetAllFailed();
     this.startPolling();
   }

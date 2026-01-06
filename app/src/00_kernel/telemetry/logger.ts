@@ -1,8 +1,10 @@
 // Pillar R: Semantic Observability - structured JSON logs
 // All logs are machine-readable with semantic event names
+// Outputs to: Console (JSON) + Debug UI (human-readable) + File (JSON Lines)
 
 import { invoke } from '@tauri-apps/api/core';
 import type { ContextProvider } from './traceContext';
+import { debugLog } from '../../02_modules/debug/headless/debugLog';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -89,6 +91,23 @@ export const EVENTS = {
   TRANSACTION_CONFIRMED: 'TRANSACTION_CONFIRMED',
   TRANSACTION_DELETED: 'TRANSACTION_DELETED',
 
+  // Settings
+  SETTINGS_LOADED: 'SETTINGS_LOADED',
+  SETTINGS_UPDATED: 'SETTINGS_UPDATED',
+  SETTINGS_SAVE_FAILED: 'SETTINGS_SAVE_FAILED',
+
+  // Seed Data
+  SEED_STARTED: 'SEED_STARTED',
+  SEED_COMPLETED: 'SEED_COMPLETED',
+  SEED_FAILED: 'SEED_FAILED',
+  SEED_CLEARED: 'SEED_CLEARED',
+
+  // Mock Mode
+  MOCK_MODE_CHANGED: 'MOCK_MODE_CHANGED',
+
+  // Debug
+  DEBUG_MENU_UNLOCKED: 'DEBUG_MENU_UNLOCKED',
+
   // Report
   REPORT_LOADED: 'REPORT_LOADED',
   REPORT_LOAD_FAILED: 'REPORT_LOAD_FAILED',
@@ -169,6 +188,42 @@ function persistLog(entry: LogEntry): void {
 }
 
 /**
+ * Extract tag from event name for Debug UI display.
+ * UPLOAD_STARTED -> Upload
+ * IMAGE_COMPRESSION_FAILED -> Image
+ */
+function extractTag(event: string): string {
+  const parts = event.split('_');
+  if (parts.length === 0) return 'Log';
+  // Capitalize first letter, lowercase rest
+  const noun = parts[0];
+  return noun.charAt(0).toUpperCase() + noun.slice(1).toLowerCase();
+}
+
+/**
+ * Format event name for human-readable display.
+ * UPLOAD_STARTED -> Started
+ * IMAGE_COMPRESSION_FAILED -> Compression failed
+ */
+function formatEventMessage(event: string): string {
+  const parts = event.split('_');
+  if (parts.length <= 1) return event;
+  // Remove noun prefix, join rest with spaces, capitalize first
+  const rest = parts.slice(1).join(' ').toLowerCase();
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
+/**
+ * Output to Debug UI panel.
+ */
+function outputToDebugUI(level: LogLevel, event: string, data?: Record<string, unknown>): void {
+  const tag = extractTag(event);
+  const message = formatEventMessage(event);
+  const debugLevel = level === 'debug' ? 'info' : level;
+  debugLog(debugLevel, tag, message, data);
+}
+
+/**
  * Semantic logger with traceId support.
  *
  * Usage:
@@ -182,6 +237,7 @@ export const logger = {
     if (import.meta.env.DEV) {
       const entry = createLogEntry('debug', event, data);
       console.debug(JSON.stringify(entry));
+      outputToDebugUI('debug', event, data);
       persistLog(entry);
     }
   },
@@ -189,18 +245,21 @@ export const logger = {
   info: (event: string, data?: Record<string, unknown>) => {
     const entry = createLogEntry('info', event, data);
     console.info(JSON.stringify(entry));
+    outputToDebugUI('info', event, data);
     persistLog(entry);
   },
 
   warn: (event: string, data?: Record<string, unknown>) => {
     const entry = createLogEntry('warn', event, data);
     console.warn(JSON.stringify(entry));
+    outputToDebugUI('warn', event, data);
     persistLog(entry);
   },
 
   error: (event: string, data?: Record<string, unknown>) => {
     const entry = createLogEntry('error', event, data);
     console.error(JSON.stringify(entry));
+    outputToDebugUI('error', event, data);
     persistLog(entry);
   },
 };
