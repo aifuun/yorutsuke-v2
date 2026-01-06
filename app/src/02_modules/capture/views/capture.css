@@ -22,13 +22,13 @@
 .capture-title {
   font-size: 18px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
   letter-spacing: -0.025em;
 }
 
 .capture-date {
   font-size: 14px;
-  color: #64748B;
+  color: var(--slate-500);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -53,7 +53,7 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #64748B;
+  color: var(--slate-500);
 }
 
 /* Quota Card */
@@ -81,12 +81,12 @@
 .quota-value {
   font-size: 14px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
 }
 
 .quota-remaining {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
   margin-top: 8px;
 }
 
@@ -97,7 +97,7 @@
 
 .drop-zone {
   padding: 48px 32px;
-  border: 2px dashed #CBD5E1;
+  border: 2px dashed var(--slate-300);
   border-radius: 16px;
   background: rgba(248, 250, 252, 0.5);
   text-align: center;
@@ -106,13 +106,13 @@
 }
 
 .drop-zone:hover {
-  border-color: #94A3B8;
+  border-color: var(--slate-400);
   background: rgba(248, 250, 252, 0.8);
 }
 
 .drop-zone--dragging {
   border-style: solid;
-  border-color: #3B82F6;
+  border-color: var(--blue-500);
   background: rgba(239, 246, 255, 0.8);
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -130,13 +130,13 @@
 .drop-title {
   font-size: 18px;
   font-weight: 600;
-  color: #475569;
+  color: var(--slate-600);
   margin-bottom: 8px;
 }
 
 .drop-hint {
   font-size: 14px;
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 /* Queue Card */
@@ -160,25 +160,25 @@
   gap: 16px;
   padding: 16px;
   background: rgba(255, 255, 255, 0.7);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--slate-200);
   border-radius: 12px;
   transition: all 0.2s;
 }
 
 .queue-item--failed {
   background: rgba(254, 242, 242, 0.5);
-  border-color: #FECACA;
+  border-color: var(--rose-200);
   cursor: pointer;
 }
 
 .queue-item--failed:hover {
   background: rgba(254, 242, 242, 0.9);
-  border-color: #FCA5A5;
+  border-color: var(--rose-400);
 }
 
 .queue-item--skipped {
   background: rgba(241, 245, 249, 0.5);
-  border-color: #CBD5E1;
+  border-color: var(--slate-300);
   opacity: 0.7;
 }
 
@@ -186,7 +186,7 @@
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: #F1F5F9;
+  background: var(--slate-100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -220,7 +220,7 @@
 .queue-filename {
   font-size: 14px;
   font-weight: 600;
-  color: #334155;
+  color: var(--slate-700);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -228,7 +228,7 @@
 
 .queue-error {
   font-size: 12px;
-  color: #DC2626;
+  color: var(--rose-600);
   margin-top: 4px;
 }
 
@@ -261,19 +261,19 @@
 }
 
 .queue-action--retry {
-  color: #F43F5E;
+  color: var(--rose-500);
 }
 
 .queue-action--retry:hover {
-  color: #E11D48;
+  color: var(--rose-600);
 }
 
 .queue-action--clear {
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 .queue-action--clear:hover {
-  color: #64748B;
+  color: var(--slate-500);
 }
 
 /* Info Banner */
@@ -286,13 +286,13 @@
 }
 
 .info-banner--warning {
-  background: #FEF3C7;
-  border: 1px solid #FCD34D;
+  background: var(--amber-100);
+  border: 1px solid var(--amber-300);
 }
 
 .info-banner--info {
-  background: #DBEAFE;
-  border: 1px solid #93C5FD;
+  background: var(--blue-100);
+  border: 1px solid var(--blue-200);
 }
 
 .info-banner .banner-icon {
@@ -311,11 +311,11 @@
 }
 
 .info-banner--warning .banner-title {
-  color: #92400E;
+  color: var(--amber-800);
 }
 
 .info-banner--info .banner-title {
-  color: #1E40AF;
+  color: var(--blue-700);
 }
 
 .info-banner .banner-text {
@@ -324,11 +324,11 @@
 }
 
 .info-banner--warning .banner-text {
-  color: #B45309;
+  color: var(--amber-600);
 }
 
 .info-banner--info .banner-text {
-  color: #3B82F6;
+  color: var(--blue-500);
 }
 
 /* Stats Row */
@@ -358,7 +358,7 @@
 
 .stat-label {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -366,7 +366,7 @@
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
 }
 
 /* Stats Bar (Three columns inline: Quota | Pending | Uploaded) */
@@ -390,7 +390,7 @@
 
 .stats-bar-label {
   font-size: 11px;
-  color: #64748B;
+  color: var(--slate-500);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -399,27 +399,27 @@
 .stats-bar-value {
   font-size: 20px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
 }
 
 .stats-bar-sep {
   width: 1px;
   height: 36px;
-  background: #E2E8F0;
+  background: var(--slate-200);
   flex-shrink: 0;
 }
 
 /* Quota text colors */
 .quota-text--success {
-  color: #166534;
+  color: var(--emerald-600);
 }
 
 .quota-text--warning {
-  color: #92400E;
+  color: var(--amber-800);
 }
 
 .quota-text--error {
-  color: #DC2626;
+  color: var(--rose-600);
 }
 
 /* Responsive */

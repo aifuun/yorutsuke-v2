@@ -117,7 +117,14 @@
     "seedError": "生成に失敗しました",
     "preferences": "設定",
     "logout": "ログアウト",
-    "logoutConfirm": "ログアウトしますか？"
+    "logoutConfirm": "ログアウトしますか？",
+    "profile": "プロフィール",
+    "subscription": "サブスクリプション",
+    "currentPlan": "現在のプラン",
+    "currentPlanHint": "有効なサブスクリプションプラン",
+    "upgradePlan": "プランをアップグレード",
+    "upgradePlanHint": "より多くの機能と高い制限を取得",
+    "upgrade": "アップグレード"
   },
   "auth": {
     "login": "ログイン",

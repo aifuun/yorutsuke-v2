@@ -22,20 +22,20 @@
 .dashboard-title {
   font-size: 18px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
   letter-spacing: -0.025em;
 }
 
 .dashboard-date {
   font-size: 14px;
-  color: #64748B;
+  color: var(--slate-500);
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .date-separator {
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 .dashboard-content {
@@ -58,7 +58,7 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #64748B;
+  color: var(--slate-500);
 }
 
 /* Hero Card */
@@ -84,17 +84,17 @@
 }
 
 .hero-arrow.positive {
-  color: #10B981;
+  color: var(--emerald-500);
 }
 
 .hero-arrow.negative {
-  color: #F43F5E;
+  color: var(--rose-500);
 }
 
 .hero-amount {
   font-size: 48px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--slate-800);
   letter-spacing: -0.025em;
 }
 
@@ -106,17 +106,17 @@
 }
 
 .hero-income .hero-value {
-  color: #059669;
+  color: var(--emerald-600);
   font-weight: 600;
 }
 
 .hero-expense .hero-value {
-  color: #DC2626;
+  color: var(--rose-600);
   font-weight: 600;
 }
 
 .hero-label {
-  color: #94A3B8;
+  color: var(--slate-400);
   margin-left: 4px;
 }
 
@@ -145,15 +145,15 @@
 .stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
 }
 
 .stat-value.stat-warning {
-  color: #D97706;
+  color: var(--amber-600);
 }
 
 .stat-value.stat-success {
-  color: #059669;
+  color: var(--emerald-600);
 }
 
 /* Activity Card */
@@ -196,11 +196,11 @@
 }
 
 .activity-icon.bg-emerald-100 {
-  background: #D1FAE5;
+  background: var(--emerald-100);
 }
 
 .activity-icon.bg-blue-100 {
-  background: #DBEAFE;
+  background: var(--blue-100);
 }
 
 .activity-icon.bg-purple-100 {
@@ -208,7 +208,7 @@
 }
 
 .activity-icon.bg-amber-100 {
-  background: #FEF3C7;
+  background: var(--amber-100);
 }
 
 .activity-content {
@@ -219,21 +219,21 @@
 .activity-title {
   font-size: 14px;
   font-weight: 600;
-  color: #334155;
+  color: var(--slate-700);
 }
 
 .activity-subtitle {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 .activity-time {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 .activity-empty {
-  color: #94A3B8;
+  color: var(--slate-400);
   font-size: 14px;
   text-align: center;
   padding: 24px;
@@ -247,7 +247,7 @@
 .activity-link {
   font-size: 12px;
   font-weight: 600;
-  color: #3B82F6;
+  color: var(--blue-500);
   text-decoration: none;
   transition: color 0.2s;
   /* Reset button styles */
@@ -258,7 +258,7 @@
 }
 
 .activity-link:hover {
-  color: #2563EB;
+  color: var(--blue-600);
 }
 
 /* Responsive */

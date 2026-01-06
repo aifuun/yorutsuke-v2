@@ -1,6 +1,5 @@
 // Pillar L: View - renders data from headless hook
 import { useSettings } from '../headless';
-import { useAuth } from '../../auth';
 import { useTranslation, changeLanguage } from '../../../i18n';
 import '../styles/settings.css';
 
@@ -10,7 +9,6 @@ const APP_VERSION = '0.1.0';
 export function SettingsView() {
   const { t } = useTranslation();
   const { state, update } = useSettings();
-  const { user, logout } = useAuth();
 
   // Handle all states (Pillar D: FSM)
   if (state.status === 'loading' || state.status === 'idle') {
@@ -40,12 +38,6 @@ export function SettingsView() {
   const handleLanguageChange = (lang: 'ja' | 'en') => {
     changeLanguage(lang);
     update('language', lang);
-  };
-
-  const handleLogout = async () => {
-    if (confirm(t('settings.logoutConfirm'))) {
-      await logout();
-    }
   };
 
   return (
@@ -106,22 +98,9 @@ export function SettingsView() {
             </div>
           </div>
 
-          {/* Section 2: Account & Data */}
+          {/* Section 2: Data */}
           <div className="premium-card settings-card">
-            <h2 className="section-header">{t('settings.account')}</h2>
-
-            {/* Account Info */}
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{user?.email || t('auth.guest')}</p>
-                <p className="setting-hint">
-                  {user?.tier || 'Free'} {t('settings.plan')} • 30 images/day
-                </p>
-              </div>
-              <button className="btn-action btn-action--dark" onClick={handleLogout}>
-                {t('settings.logout')}
-              </button>
-            </div>
+            <h2 className="section-header">{t('settings.data')}</h2>
 
             {/* Export Data */}
             <div className="setting-row">
@@ -133,33 +112,7 @@ export function SettingsView() {
                 {t('settings.export')}
               </button>
             </div>
-
-            {/* Clear Cache */}
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.clearCache')}</p>
-                <p className="setting-hint">{t('settings.clearCacheHint')}</p>
-              </div>
-              <button className="btn-action btn-action--danger">
-                {t('settings.clear')}
-              </button>
-            </div>
           </div>
-
-          {/* Guest Mode Warning */}
-          {!user?.email && (
-            <div className="guest-warning">
-              <div className="guest-warning__icon">👤</div>
-              <div className="guest-warning__content">
-                <p className="guest-warning__title">{t('auth.guestMode')}</p>
-                <p className="guest-warning__text">{t('auth.guestWarning')}</p>
-                <div className="guest-warning__actions">
-                  <button className="btn-action btn-action--warning">{t('auth.registerNow')}</button>
-                  <button className="btn-action btn-action--ghost">{t('auth.login')}</button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Section 3: About */}
           <div className="premium-card settings-card">
@@ -170,22 +123,6 @@ export function SettingsView() {
                 <p className="setting-label">{t('settings.version')}</p>
               </div>
               <span className="setting-value mono">{APP_VERSION}</span>
-            </div>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.licenses')}</p>
-                <p className="setting-hint">{t('settings.licensesHint')}</p>
-              </div>
-              <a href="#" className="setting-link">{t('settings.view')} →</a>
-            </div>
-
-            <div className="setting-row">
-              <div className="setting-info">
-                <p className="setting-label">{t('settings.feedback')}</p>
-                <p className="setting-hint">{t('settings.feedbackHint')}</p>
-              </div>
-              <a href="https://github.com" className="setting-link">GitHub →</a>
             </div>
           </div>
         </div>

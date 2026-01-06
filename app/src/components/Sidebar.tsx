@@ -3,7 +3,7 @@ import { LayoutDashboard, Camera, BookOpen, Settings, Wrench } from 'lucide-reac
 import type { UserId } from '../00_kernel/types';
 import './Sidebar.css';
 
-export type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'debug';
+export type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
 
 interface SidebarProps {
   activeView: ViewType;
@@ -53,7 +53,13 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
       </nav>
 
       <div className="sidebar-footer">
-        <div className="user-card">
+        <div
+          className={`user-card ${activeView === 'profile' ? 'active' : ''}`}
+          onClick={() => onViewChange('profile')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && onViewChange('profile')}
+        >
           <div className="user-avatar">{userInitials}</div>
           <span className="user-name">
             {userId ? userId.toString().slice(0, 12) : t('auth.guest')}

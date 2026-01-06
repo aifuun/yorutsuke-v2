@@ -22,13 +22,13 @@
 .settings-title {
   font-size: 18px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
   letter-spacing: -0.025em;
 }
 
 .settings-version {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
   background: rgba(148, 163, 184, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
@@ -54,11 +54,11 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #64748B;
+  color: var(--slate-500);
 }
 
 .settings-error {
-  color: #DC2626;
+  color: var(--rose-600);
 }
 
 /* Settings Cards */
@@ -97,30 +97,30 @@
 .setting-label {
   font-size: 14px;
   font-weight: 600;
-  color: #334155;
+  color: var(--slate-700);
   margin: 0;
 }
 
 .setting-hint {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
   margin: 4px 0 0 0;
 }
 
 .setting-value {
   font-size: 14px;
-  color: #64748B;
+  color: var(--slate-500);
 }
 
 /* Select Input */
 .setting-select {
   padding: 8px 32px 8px 12px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--slate-200);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #334155;
-  background: #FFFFFF url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: var(--slate-700);
+  background: var(--bg-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;
   appearance: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -128,12 +128,12 @@
 }
 
 .setting-select:hover {
-  border-color: #CBD5E1;
+  border-color: var(--slate-300);
 }
 
 .setting-select:focus {
   outline: none;
-  border-color: #3B82F6;
+  border-color: var(--blue-500);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -150,43 +150,43 @@
 }
 
 .btn-action--primary {
-  background: #3B82F6;
-  color: #FFFFFF;
+  background: var(--blue-500);
+  color: var(--bg-card);
 }
 
 .btn-action--primary:hover {
-  background: #2563EB;
+  background: var(--blue-600);
 }
 
 .btn-action--dark {
-  background: #334155;
-  color: #FFFFFF;
+  background: var(--slate-700);
+  color: var(--bg-card);
 }
 
 .btn-action--dark:hover {
-  background: #1E293B;
+  background: var(--slate-800);
 }
 
 .btn-action--danger {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: var(--rose-100);
+  color: var(--rose-600);
 }
 
 .btn-action--danger:hover {
-  background: #FECACA;
+  background: var(--rose-200);
 }
 
 /* Setting Link */
 .setting-link {
   font-size: 13px;
   font-weight: 600;
-  color: #3B82F6;
+  color: var(--blue-500);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .setting-link:hover {
-  color: #2563EB;
+  color: var(--blue-600);
 }
 
 /* Guest Warning Banner */
@@ -195,8 +195,8 @@
   align-items: flex-start;
   gap: 16px;
   padding: 24px;
-  background: #FEF3C7;
-  border: 1px solid #FCD34D;
+  background: var(--amber-100);
+  border: 1px solid var(--amber-300);
   border-radius: 20px;
 }
 
@@ -212,13 +212,13 @@
 .guest-warning__title {
   font-size: 16px;
   font-weight: 600;
-  color: #92400E;
+  color: var(--amber-800);
   margin: 0 0 8px 0;
 }
 
 .guest-warning__text {
   font-size: 14px;
-  color: #B45309;
+  color: var(--amber-600);
   margin: 0 0 16px 0;
 }
 
@@ -228,22 +228,69 @@
 }
 
 .btn-action--warning {
-  background: #D97706;
-  color: #FFFFFF;
+  background: var(--amber-600);
+  color: var(--bg-card);
 }
 
 .btn-action--warning:hover {
-  background: #B45309;
+  background: var(--amber-600);
 }
 
 .btn-action--ghost {
-  background: #FFFFFF;
-  color: #92400E;
-  border: 1px solid #FCD34D;
+  background: var(--bg-card);
+  color: var(--amber-800);
+  border: 1px solid var(--amber-300);
 }
 
 .btn-action--ghost:hover {
-  background: #FEF3C7;
+  background: var(--amber-100);
+}
+
+/* Profile Card */
+.profile-card {
+  text-align: center;
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue-500), #8B5CF6);
+  color: var(--bg-card);
+  font-size: 32px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-info {
+  text-align: center;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--slate-700);
+  margin: 0 0 4px 0;
+}
+
+.profile-tier {
+  font-size: 14px;
+  color: var(--slate-500);
+  margin: 0;
+}
+
+.btn-full {
+  width: 100%;
 }
 
 /* Debug Section */
@@ -265,7 +312,7 @@
 .debug-panel {
   margin-top: 16px;
   padding: 16px;
-  background: #1E293B;
+  background: var(--slate-800);
   border-radius: 12px;
 }
 
@@ -288,13 +335,13 @@
 
 .debug-panel__label {
   font-size: 12px;
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 .debug-panel__value {
   font-size: 12px;
   font-family: var(--font-mono);
-  color: #60A5FA;
+  color: var(--blue-500);
 }
 
 /* Seed Controls (Dev Tool) */

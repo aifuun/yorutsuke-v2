@@ -117,7 +117,14 @@
     "seedError": "Failed to seed data",
     "preferences": "Preferences",
     "logout": "Logout",
-    "logoutConfirm": "Are you sure you want to logout?"
+    "logoutConfirm": "Are you sure you want to logout?",
+    "profile": "Profile",
+    "subscription": "Subscription",
+    "currentPlan": "Current Plan",
+    "currentPlanHint": "Your active subscription tier",
+    "upgradePlan": "Upgrade Plan",
+    "upgradePlanHint": "Get more features and higher limits",
+    "upgrade": "Upgrade"
   },
   "auth": {
     "login": "Login",

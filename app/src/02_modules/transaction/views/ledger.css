@@ -22,15 +22,15 @@
 .ledger-title {
   font-size: 18px;
   font-weight: 700;
-  color: #334155;
+  color: var(--slate-700);
   letter-spacing: -0.025em;
 }
 
 .btn-new-entry {
   height: 36px;
   padding: 0 20px;
-  background: #0F172A;
-  color: #FFFFFF;
+  background: var(--slate-900);
+  color: var(--bg-card);
   border: none;
   border-radius: 12px;
   font-size: 11px;
@@ -41,7 +41,7 @@
 }
 
 .btn-new-entry:hover {
-  background: #3B82F6;
+  background: var(--blue-500);
 }
 
 /* Time Control Bar */
@@ -67,7 +67,7 @@
 .control-label {
   font-size: 9px;
   font-weight: 800;
-  color: #94A3B8;
+  color: var(--slate-400);
   text-transform: uppercase;
   letter-spacing: 0.2em;
   min-width: 60px;
@@ -86,18 +86,18 @@
   border: none;
   font-size: 12px;
   font-weight: 700;
-  color: #94A3B8;
+  color: var(--slate-400);
   cursor: pointer;
   padding: 4px 0;
   transition: color 0.2s;
 }
 
 .year-btn:hover {
-  color: #334155;
+  color: var(--slate-700);
 }
 
 .year-btn--active {
-  color: #0F172A;
+  color: var(--slate-900);
   font-weight: 900;
 }
 
@@ -108,9 +108,9 @@
   transform: translateX(-50%);
   width: 4px;
   height: 4px;
-  background: #3B82F6;
+  background: var(--blue-500);
   border-radius: 50%;
-  box-shadow: 0 0 8px #3B82F6;
+  box-shadow: 0 0 8px var(--blue-500);
 }
 
 /* Interval Selector */
@@ -130,7 +130,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #64748B;
+  color: var(--slate-500);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -140,14 +140,14 @@
 }
 
 .interval-btn--active {
-  background: #1E293B;
-  color: #FFFFFF;
+  background: var(--slate-800);
+  color: var(--bg-card);
 }
 
 .interval-divider {
   width: 1px;
   height: 12px;
-  background: #CBD5E1;
+  background: var(--slate-300);
   margin: 0 8px;
 }
 
@@ -158,7 +158,7 @@
   border: none;
   font-size: 10px;
   font-weight: 600;
-  color: #94A3B8;
+  color: var(--slate-400);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -168,8 +168,8 @@
 }
 
 .month-btn--active {
-  background: #FFFFFF;
-  color: #334155;
+  background: var(--bg-card);
+  color: var(--slate-700);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -191,11 +191,11 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #64748B;
+  color: var(--slate-500);
 }
 
 .ledger-error {
-  color: #DC2626;
+  color: var(--rose-600);
 }
 
 /* Summary Grid */
@@ -213,12 +213,12 @@
 }
 
 .summary-card--inflow {
-  border-left-color: #34D399;
+  border-left-color: var(--emerald-400);
   background: linear-gradient(135deg, rgba(209, 250, 229, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%);
 }
 
 .summary-card--outflow {
-  border-left-color: #FB7185;
+  border-left-color: var(--rose-400);
   background: linear-gradient(135deg, rgba(255, 228, 230, 0.5) 0%, rgba(255, 255, 255, 0.5) 100%);
 }
 
@@ -231,17 +231,17 @@
 }
 
 .summary-card--inflow .summary-label {
-  color: #059669;
+  color: var(--emerald-600);
 }
 
 .summary-card--outflow .summary-label {
-  color: #E11D48;
+  color: var(--rose-600);
 }
 
 .summary-value {
   font-size: 28px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--slate-800);
   letter-spacing: -0.02em;
 }
 
@@ -261,7 +261,7 @@
 .registry-title {
   font-size: 10px;
   font-weight: 800;
-  color: #94A3B8;
+  color: var(--slate-400);
   text-transform: uppercase;
   letter-spacing: 0.3em;
   margin: 0;
@@ -270,7 +270,7 @@
 .registry-count {
   font-size: 9px;
   font-weight: 600;
-  color: #CBD5E1;
+  color: var(--slate-300);
 }
 
 /* Transaction List */
@@ -284,7 +284,7 @@
 .glass-card {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--slate-200);
   border-radius: 24px;
   transition: all 0.25s ease;
 }
@@ -311,8 +311,8 @@
   width: 48px;
   height: 48px;
   border-radius: 16px;
-  background: #F1F5F9;
-  border: 1px solid #E2E8F0;
+  background: var(--slate-100);
+  border: 1px solid var(--slate-200);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -324,7 +324,7 @@
 .date-month {
   font-size: 9px;
   font-weight: 700;
-  color: #94A3B8;
+  color: var(--slate-400);
   text-transform: uppercase;
   line-height: 1;
 }
@@ -332,7 +332,7 @@
 .date-day {
   font-size: 18px;
   font-weight: 900;
-  color: #334155;
+  color: var(--slate-700);
   line-height: 1;
   margin-top: 2px;
 }
@@ -346,7 +346,7 @@
 .transaction-title {
   font-size: 14px;
   font-weight: 700;
-  color: #1E293B;
+  color: var(--slate-800);
   margin: 0;
   letter-spacing: -0.01em;
 }
@@ -366,13 +366,13 @@
 }
 
 .tag--category {
-  background: #F1F5F9;
-  color: #64748B;
+  background: var(--slate-100);
+  color: var(--slate-500);
 }
 
 .tag--pending {
-  background: #FEF3C7;
-  color: #D97706;
+  background: var(--amber-100);
+  color: var(--amber-600);
   font-style: italic;
 }
 
@@ -390,17 +390,17 @@
 }
 
 .amount--income {
-  color: #10B981;
+  color: var(--emerald-500);
 }
 
 .amount--expense {
-  color: #F43F5E;
+  color: var(--rose-500);
 }
 
 .account-label {
   font-size: 9px;
   font-weight: 800;
-  color: #CBD5E1;
+  color: var(--slate-300);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-top: 4px;
@@ -424,21 +424,21 @@
 }
 
 .action-btn--confirm {
-  background: #DBEAFE;
-  color: #2563EB;
+  background: var(--blue-100);
+  color: var(--blue-600);
 }
 
 .action-btn--confirm:hover {
-  background: #BFDBFE;
+  background: var(--blue-200);
 }
 
 .action-btn--delete {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: var(--rose-100);
+  color: var(--rose-600);
 }
 
 .action-btn--delete:hover {
-  background: #FECACA;
+  background: var(--rose-200);
 }
 
 /* Empty State */
@@ -450,13 +450,13 @@
 .empty-title {
   font-size: 16px;
   font-weight: 600;
-  color: #64748B;
+  color: var(--slate-500);
   margin: 0 0 8px 0;
 }
 
 .empty-message {
   font-size: 14px;
-  color: #94A3B8;
+  color: var(--slate-400);
   margin: 0;
 }
 

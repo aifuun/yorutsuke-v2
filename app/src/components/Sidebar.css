@@ -1,6 +1,6 @@
 .sidebar {
   width: 256px;
-  background-color: #0F172A;
+  background-color: var(--slate-900);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
@@ -13,7 +13,7 @@
   font-size: 18px;
   font-weight: 700;
   font-style: italic;
-  color: #FFFFFF;
+  color: var(--text-inverse);
   letter-spacing: -0.025em;
 }
 
@@ -29,7 +29,7 @@
   margin: 0 16px;
   padding: 14px 20px;
   border-radius: 12px;
-  color: #64748B;
+  color: var(--slate-500);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -42,17 +42,17 @@
 
 .nav-item:hover {
   background-color: rgba(255, 255, 255, 0.03);
-  color: #F1F5F9;
+  color: var(--slate-100);
 }
 
 .nav-item:focus-visible {
-  outline: 2px solid #3B82F6;
+  outline: 2px solid var(--blue-500);
   outline-offset: -2px;
 }
 
 .nav-item.active {
   background-color: rgba(59, 130, 246, 0.1);
-  color: #3B82F6;
+  color: var(--blue-500);
 }
 
 .nav-item.active::before {
@@ -62,7 +62,7 @@
   top: 25%;
   height: 50%;
   width: 4px;
-  background: #3B82F6;
+  background: var(--blue-500);
   border-radius: 0 4px 4px 0;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
@@ -86,18 +86,18 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #1E293B;
+  background: var(--slate-800);
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   font-weight: 700;
-  color: #94A3B8;
+  color: var(--slate-400);
 }
 
 .user-name {
   font-size: 12px;
   font-weight: 700;
-  color: #E2E8F0;
+  color: var(--slate-200);
 }
