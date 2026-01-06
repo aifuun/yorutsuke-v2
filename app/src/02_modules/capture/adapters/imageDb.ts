@@ -185,7 +185,7 @@ export async function countTodayUploads(userId: UserId): Promise<number> {
  * Update user_id for all images belonging to a guest user
  * Used when guest data is claimed on registration (#50)
  *
- * @param oldUserId - Guest user ID (guest-{deviceId})
+ * @param oldUserId - Guest user ID (device-{machineId})
  * @param newUserId - New registered user ID
  * @returns Number of images updated
  */

@@ -199,7 +199,7 @@ export function useAuth(): UseAuthResult {
       // Handle guest data claim (#50)
       // When a guest registers and logs in, backend claims their device data
       if (data.dataClaimed && data.dataClaimed > 0) {
-        const oldUserId = UserId(`guest-${deviceId}`);
+        const oldUserId = deviceId; // device-{machineId} format
         const newUserId = user.id;
 
         logger.info(EVENTS.AUTH_GUEST_DATA_CLAIMED, {

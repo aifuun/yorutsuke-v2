@@ -35,132 +35,73 @@ export function UserProfileView() {
 
       <div className="settings-content">
         <div className="settings-container">
-          {/* Account Card */}
-          <div className="card card--settings">
-            <h2 className="card--settings__header">{t('settings.account')}</h2>
-
-            {/* Identity Row */}
-            <div className="setting-row">
-              <div className="setting-row__info">
-                <div className="profile-avatar">
-                  {isGuest ? <User size={20} /> : user.email?.charAt(0).toUpperCase()}
-                </div>
+          {/* Single Profile Card */}
+          <div className="card card--settings card--profile">
+            {/* Identity Header */}
+            <div className="profile-header">
+              <div className="profile-header__avatar">
+                {isGuest ? <User size={24} /> : user.email?.charAt(0).toUpperCase()}
               </div>
-              <div className="setting-row__control">
-                <div className="profile-meta">
-                  <span className="profile-meta__name">
-                    {isGuest ? t('auth.guest') : user?.email}
-                  </span>
-                  <span className="profile-meta__badge">
-                    <Crown size={10} />
-                    {user?.tier || 'Free'}
-                  </span>
-                </div>
+              <div className="profile-header__info">
+                <span className="profile-header__mode">
+                  {isGuest ? t('auth.guestMode') : user?.email}
+                </span>
+                <span className="profile-header__plan">
+                  <Crown size={12} />
+                  {user?.tier || 'Free'} Plan
+                </span>
               </div>
             </div>
 
-            {/* Usage Row */}
-            <div className="setting-row setting-row--stacked">
-              <div className="setting-row__info">
-                <p className="setting-row__label">{t('profile.uploadUsage')}</p>
+            {/* Usage Section */}
+            <div className="profile-usage">
+              <div className="profile-usage__header">
+                <span className="profile-usage__label">{t('profile.uploadUsage')}</span>
+                <span className="profile-usage__count">{QUOTA_USED} / {QUOTA_LIMIT}</span>
               </div>
-              <div className="setting-row__control setting-row__control--full">
-                <div className="usage-bar">
-                  <div className="usage-bar__header">
-                    <span className="usage-bar__count">{QUOTA_USED} / {QUOTA_LIMIT}</span>
-                  </div>
-                  <div className="usage-bar__track">
-                    <div className="usage-bar__fill" style={{ width: `${quotaPercent}%` }} />
-                  </div>
-                </div>
+              <div className="profile-usage__track">
+                <div className="profile-usage__fill" style={{ width: `${quotaPercent}%` }} />
               </div>
             </div>
 
-            {/* Warning Row (Guest only) */}
+            {/* Warning Box (Guest only) */}
             {isGuest && (
-              <div className="setting-row setting-row--warning">
-                <AlertTriangle size={16} className="setting-row__icon" />
-                <div className="setting-row__info">
-                  <p className="setting-row__label">{t('profile.dataExpiresSoon')}</p>
-                  <p className="setting-row__hint">
+              <div className="profile-warning">
+                <AlertTriangle size={18} className="profile-warning__icon" />
+                <div className="profile-warning__text">
+                  <p className="profile-warning__title">
                     {t('profile.expiresIn', { days: DAYS_REMAINING })}
                   </p>
+                  <p className="profile-warning__hint">{t('profile.registerToSecure')}</p>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Actions Card */}
-          <div className="card card--settings">
-            <h2 className="card--settings__header">
-              {isGuest ? t('profile.registerToSave') : t('settings.subscription')}
-            </h2>
-
-            {isGuest ? (
-              <>
-                <div className="setting-row">
-                  <div className="setting-row__info">
-                    <p className="setting-row__label">{t('auth.register')}</p>
-                    <p className="setting-row__hint">{t('profile.registerToSecure')}</p>
-                  </div>
-                  <div className="setting-row__control">
-                    <button type="button" className="btn btn--primary">
-                      <UserPlus size={16} />
-                      {t('auth.registerNow')}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="setting-row">
-                  <div className="setting-row__info">
-                    <p className="setting-row__label">{t('auth.login')}</p>
-                    <p className="setting-row__hint">{t('profile.alreadyHaveAccount')}</p>
-                  </div>
-                  <div className="setting-row__control">
-                    <button type="button" className="btn btn--secondary">
-                      <LogIn size={16} />
-                      {t('auth.login')}
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="setting-row">
-                  <div className="setting-row__info">
-                    <p className="setting-row__label">{t('settings.currentPlan')}</p>
-                    <p className="setting-row__hint">{t('settings.currentPlanHint')}</p>
-                  </div>
-                  <div className="setting-row__control">
-                    <span className="setting-row__value">{user?.tier || 'Free'}</span>
-                  </div>
-                </div>
-
-                <div className="setting-row">
-                  <div className="setting-row__info">
-                    <p className="setting-row__label">{t('settings.upgradePlan')}</p>
-                    <p className="setting-row__hint">{t('settings.upgradePlanHint')}</p>
-                  </div>
-                  <div className="setting-row__control">
-                    <button type="button" className="btn btn--primary">
-                      {t('settings.upgrade')}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="setting-row">
-                  <div className="setting-row__info">
-                    <p className="setting-row__label">{t('settings.logout')}</p>
-                  </div>
-                  <div className="setting-row__control">
-                    <button type="button" className="btn btn--danger" onClick={handleLogout}>
-                      <LogOut size={16} />
-                      {t('settings.logout')}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+            {/* Action Buttons */}
+            <div className="profile-actions">
+              {isGuest ? (
+                <>
+                  <button type="button" className="btn btn--primary btn--lg">
+                    <UserPlus size={18} />
+                    {t('profile.registerToSave')}
+                  </button>
+                  <button type="button" className="btn btn--ghost">
+                    <LogIn size={16} />
+                    {t('profile.alreadyHaveAccount')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="btn btn--primary btn--lg">
+                    {t('settings.upgrade')}
+                  </button>
+                  <button type="button" className="btn btn--ghost btn--danger-text" onClick={handleLogout}>
+                    <LogOut size={16} />
+                    {t('settings.logout')}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

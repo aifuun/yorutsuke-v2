@@ -190,8 +190,8 @@ export interface AppEvents {
    */
   'auth:dataClaimed': {
     count: number;
-    oldUserId: string;  // guest-{deviceId}
-    newUserId: string;  // actual userId
+    oldUserId: string;  // device-{machineId}
+    newUserId: string;  // user-{cognitoSub}
   };
 
   // =========================================================================

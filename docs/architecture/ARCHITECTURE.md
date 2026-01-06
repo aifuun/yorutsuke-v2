@@ -1099,6 +1099,60 @@ created_at TEXT DEFAULT (datetime('now'))
 
 For implementation details, see `.claude/rules/time-handling.md`.
 
+### Device ID
+
+> Unique machine identifier for guest user identification. Stable across app reinstalls.
+
+#### Generation
+
+Uses OS-level machine ID via `machine-uid` Rust crate:
+
+| Platform | Source | Stability |
+|----------|--------|-----------|
+| **macOS** | `IOPlatformUUID` | Until OS reinstall |
+| **Linux** | `/etc/machine-id` | Until OS reinstall |
+| **Windows** | `MachineGuid` (Registry) | Until OS reinstall |
+
+#### Flow
+
+```
+┌─────────────────┐     IPC      ┌─────────────────┐
+│  Frontend       │ ──────────►  │  Rust Backend   │
+│  getDeviceId()  │              │  get_machine_id │
+└─────────────────┘              └─────────────────┘
+         │                                │
+         │                                │ machine_uid::get()
+         ▼                                ▼
+   "device-{machineId}"           OS Machine ID
+```
+
+#### User ID Format
+
+| Type | Format | Example |
+|------|--------|---------|
+| Guest | `device-{machineId}` | `device-bd9bafc9-0e39-430c-...` |
+| Authenticated | `user-{cognitoSub}` | `user-abc123-def456-...` |
+
+```typescript
+// Check user type
+const isGuest = userId.startsWith('device-');
+const isAuthenticated = userId.startsWith('user-');
+```
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src-tauri/src/lib.rs` | `get_machine_id` IPC command |
+| `src/00_kernel/identity/deviceId.ts` | Frontend wrapper with caching |
+
+#### Why Not Random UUID?
+
+| Approach | Delete DB | Reinstall App | Reinstall OS |
+|----------|-----------|---------------|--------------|
+| Random UUID in SQLite | ❌ Lost | ❌ Lost | ❌ Lost |
+| **machine-uid** | ✅ Stable | ✅ Stable | ❌ Lost |
+
 ## References
 
 - Schema: `./SCHEMA.md`

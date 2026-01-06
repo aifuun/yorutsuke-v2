@@ -1,42 +1,51 @@
 // Device ID for guest user identification
-// Generated once on first launch, persisted in SQLite
+// Uses OS-level machine ID via Rust IPC for stability across app reinstalls
 
-import { getSetting, setSetting } from '../storage/db';
+import { invoke } from '@tauri-apps/api/core';
 import { logger, EVENTS } from '../telemetry';
 import type { UserId as UserIdType } from '../types';
 import { UserId } from '../types';
 
-const DEVICE_ID_KEY = 'device_id';
+// Cache the device ID to avoid repeated IPC calls
+let cachedDeviceId: UserIdType | null = null;
 
 /**
- * Get or create a unique Device ID for this installation
+ * Get the unique Device ID for this machine
  * Used to identify guest users who haven't logged in
  *
- * - Generated once on first launch
- * - Persisted in SQLite settings table
- * - Format: "device-{uuid}" to distinguish from account IDs
+ * Uses OS-level machine ID (via machine-uid crate):
+ * - macOS: IOPlatformUUID
+ * - Linux: /etc/machine-id
+ * - Windows: MachineGuid from registry
+ *
+ * Benefits:
+ * - Persists across app reinstalls
+ * - Persists across database resets
+ * - Stable until OS reinstall
  *
  * @returns Device ID as a branded UserId type
  */
 export async function getDeviceId(): Promise<UserIdType> {
+  // Return cached value if available
+  if (cachedDeviceId) {
+    return cachedDeviceId;
+  }
+
   try {
-    // Try to get existing device ID
-    let deviceId = await getSetting(DEVICE_ID_KEY);
+    // Get machine ID from Rust backend
+    const machineId = await invoke<string>('get_machine_id');
+    const deviceId = `device-${machineId}`;
 
-    if (!deviceId) {
-      // Generate new UUID
-      deviceId = `device-${crypto.randomUUID()}`;
-      await setSetting(DEVICE_ID_KEY, deviceId);
-      logger.info(EVENTS.DEVICE_ID_GENERATED, { deviceId });
-    } else {
-      logger.debug(EVENTS.DEVICE_ID_LOADED, { deviceId });
-    }
+    cachedDeviceId = UserId(deviceId);
+    logger.info(EVENTS.DEVICE_ID_LOADED, { deviceId: deviceId.slice(0, 20) + '...' });
 
-    return UserId(deviceId);
+    return cachedDeviceId;
   } catch (error) {
     // Fallback: generate ephemeral ID (won't persist across restarts)
-    logger.warn('device_id_persist_failed', { error: String(error) });
-    return UserId(`ephemeral-${crypto.randomUUID()}`);
+    logger.warn('device_id_ipc_failed', { error: String(error) });
+    const ephemeralId = UserId(`ephemeral-${crypto.randomUUID()}`);
+    cachedDeviceId = ephemeralId;
+    return ephemeralId;
   }
 }
 

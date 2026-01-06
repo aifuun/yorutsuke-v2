@@ -270,7 +270,8 @@ pub fn run() {
             delete_file,
             log_write,
             log_cleanup,
-            log_get_path
+            log_get_path,
+            get_machine_id
         ])
         .setup(|_app| {
             // DevTools can be opened manually with Cmd+Option+I (macOS) or F12 (Windows/Linux)

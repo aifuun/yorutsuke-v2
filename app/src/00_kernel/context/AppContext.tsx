@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { UserId as UserIdType } from '../types';
-import { UserId } from '../types';
 import { getDeviceId } from '../identity';
 import { initDb } from '../storage/db';
 import { logger, EVENTS } from '../telemetry';
@@ -25,13 +24,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Ensure database is initialized first
         await initDb();
 
-        // Get or create device ID, use guest-{deviceId} format for consistency
-        // This matches useEffectiveUserId() format
+        // Get device ID - used directly as guest userId
+        // Format: device-{machineId} (stable across app reinstalls)
         const deviceId = await getDeviceId();
-        const guestUserId = UserId(`guest-${deviceId}`);
-        setUserId(guestUserId);
+        setUserId(deviceId);
 
-        logger.info(EVENTS.APP_INITIALIZED, { userId: guestUserId, isGuest: true });
+        logger.info(EVENTS.APP_INITIALIZED, { userId: deviceId, isGuest: true });
       } catch (error) {
         logger.error(EVENTS.APP_ERROR, { context: 'init', error: String(error) });
       } finally {
@@ -42,9 +40,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     init();
   }, []);
 
-  // TODO: Replace with authenticated userId when user logs in
-  // Guest IDs use format: guest-{deviceId} (e.g., guest-device-xxx)
-  const isGuest = userId !== null && userId.startsWith('guest-');
+  // Guest IDs use format: device-{machineId}
+  // Authenticated IDs use format: user-{cognitoSub}
+  const isGuest = userId !== null && userId.startsWith('device-');
   const isAuthenticated = userId !== null && !isGuest;
 
   const value: AppContextValue = {

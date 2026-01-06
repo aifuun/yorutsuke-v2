@@ -98,27 +98,17 @@ export async function clearAuthData(): Promise<void> {
   logger.info(EVENTS.AUTH_DATA_CLEARED, {});
 }
 
-/**
- * Get or create device ID for device binding
- */
-export async function getDeviceId(): Promise<string> {
-  let deviceId = await getSetting(AUTH_STORAGE_KEYS.deviceId);
-
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    await setSetting(AUTH_STORAGE_KEYS.deviceId, deviceId);
-    logger.info(EVENTS.DEVICE_ID_GENERATED, { deviceId });
-  }
-
-  return deviceId;
-}
+// Re-export from kernel for backwards compatibility
+// Device ID now uses machine-uid (stable across app reinstalls)
+export { getDeviceId } from '../../../00_kernel/identity/deviceId';
 
 /**
  * Get guest user ID for unauthenticated users
- * Format: "guest-{deviceId}" - persists across sessions
+ * Format: "device-{machineId}" - stable across app reinstalls
  * Used when user hasn't logged in yet
+ * @deprecated Use getDeviceId() directly - they return the same value
  */
 export async function getGuestId(): Promise<string> {
-  const deviceId = await getDeviceId();
-  return `guest-${deviceId}`;
+  const { getDeviceId } = await import('../../../00_kernel/identity/deviceId');
+  return getDeviceId();
 }
