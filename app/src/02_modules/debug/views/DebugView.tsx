@@ -187,8 +187,8 @@ export function DebugView() {
 
             {/* Seed Data */}
             <div className="debug-action-row">
-              <div className="debug-action-info">
-                <span className="debug-action-label">{t('debug.mockData')}</span>
+              <span className="debug-action-label">{t('debug.mockData')}</span>
+              <div className="debug-action-controls">
                 <select
                   className="select select--sm"
                   value={seedScenario}
@@ -199,15 +199,15 @@ export function DebugView() {
                     <option key={scenario} value={scenario}>{scenario}</option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  className="btn btn--primary btn--sm"
+                  onClick={handleSeedData}
+                  disabled={actionStatus === 'running' || !effectiveUserId}
+                >
+                  Seed
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn--primary btn--sm"
-                onClick={handleSeedData}
-                disabled={actionStatus === 'running' || !effectiveUserId}
-              >
-                Seed
-              </button>
             </div>
 
             <div className="debug-divider" />

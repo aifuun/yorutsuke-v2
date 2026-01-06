@@ -13,7 +13,7 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES |
 | `design/` | COLOR, TYPOGRAPHY, 00-04 view specs |
 | `operations/` | OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL |
-| `dev/` | MVP_PLAN, dev notes |
+| `dev/` | MVP_PLAN, PROGRAM_PATHS, dev notes |
 | `tests/` | FRONTEND, BACKEND, MOCKING |
 | `archive/` | Historical docs |
 

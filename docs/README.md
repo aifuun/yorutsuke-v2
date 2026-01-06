@@ -137,8 +137,7 @@ docs/
 ├── architecture/          # How it works
 │   ├── ARCHITECTURE.md
 │   ├── SCHEMA.md
-│   ├── INTERFACES.md
-│   └── PROGRAM_PATHS.md
+│   └── INTERFACES.md
 ├── design/                # Look & feel
 │   └── *.md               # UI mockups
 ├── operations/            # Run & maintain
@@ -150,8 +149,9 @@ docs/
 ├── tests/                 # Quality
 │   ├── FRONTEND.md
 │   └── BACKEND.md
-├── dev/                 # Dev planning
-│   └── MVP_PLAN.md
+├── dev/                   # Dev planning & reference
+│   ├── MVP_PLAN.md
+│   └── PROGRAM_PATHS.md
 └── archive/               # Historical docs
 ```
 

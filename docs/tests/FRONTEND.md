@@ -8,7 +8,7 @@
 >
 > **See also**:
 > - [BACKEND.md](./BACKEND.md) - Lambda, Batch Processing tests
-> - [../operations/PROGRAM_PATHS.md](../operations/PROGRAM_PATHS.md) - Detailed code flow traces
+> - [../dev/PROGRAM_PATHS.md](../dev/PROGRAM_PATHS.md) - Detailed code flow traces
 > - [../dev/MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP testing phases
 
 ## Architecture Context
