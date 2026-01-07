@@ -192,9 +192,9 @@ export function CaptureView() {
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
+                      className={`queue-item queue-item--2col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
                     >
-                      {/* Column 1: Thumbnail + MD5/ID */}
+                      {/* Left: Thumbnail + MD5/ID */}
                       <div className="queue-item__left">
                         <div className="queue-item__thumb">
                           {image.thumbnailPath ? (
@@ -206,13 +206,9 @@ export function CaptureView() {
                         <p className="queue-item__id">{image.md5 ? image.md5.slice(0, 8) : image.id.slice(0, 8)}...</p>
                       </div>
 
-                      {/* Column 2: Status Pipeline (dots) */}
-                      <div className="queue-item__center">
-                        <StatusDots status={image.status} />
-                      </div>
-
-                      {/* Column 3: Status Label + Size/Error */}
+                      {/* Right: Status Dots + Label + Size/Error */}
                       <div className="queue-item__right">
+                        <StatusDots status={image.status} />
                         <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
                           {labelInfo.text}
                         </span>
