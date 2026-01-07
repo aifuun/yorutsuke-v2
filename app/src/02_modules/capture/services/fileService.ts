@@ -15,6 +15,7 @@ import {
   getImageById,
   saveImage,
   updateImageStatus as dbUpdateStatus,
+  deleteImageRecord,
   loadUnfinishedImages,
   resetInterruptedUploads,
 } from '../adapters/imageDb';
@@ -117,6 +118,9 @@ class FileService {
           // Ignore cleanup errors
         }
 
+        // Delete pending record from DB (no need to keep duplicate)
+        await deleteImageRecord(id, traceId);
+
         // Emit duplicate event
         emit('image:duplicate', {
           id,
@@ -173,6 +177,10 @@ class FileService {
 
       // Simplify error message for UI display
       const userError = simplifyError(rawError);
+
+      // Update DB status to 'failed' to prevent retry loop on restart
+      await dbUpdateStatus(id, 'failed', traceId, { error: userError });
+
       captureStore.getState().failure(id, userError);
       return false;
     } finally {

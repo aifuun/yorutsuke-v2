@@ -32,8 +32,8 @@ function getStatusIndex(status: string): number {
 
 // Status label mapping
 const STATUS_LABELS: Record<string, { text: string; hint?: string }> = {
-  pending: { text: 'Pending' },
-  compressed: { text: 'Ready' },
+  pending: { text: 'Compressing' },
+  compressed: { text: 'To Upload' },
   uploading: { text: 'Uploading' },
   uploaded: { text: 'Uploaded' },
   failed: { text: 'Failed' },

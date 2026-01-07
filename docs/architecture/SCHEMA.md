@@ -66,33 +66,81 @@
 
 ### images
 
-Receipt images with status FSM.
+Receipt images with status FSM. Schema version: v4.
 
 ```sql
 CREATE TABLE images (
+  -- Core fields
   id TEXT PRIMARY KEY,              -- ImageId (UUID)
-  user_id TEXT NOT NULL,            -- UserId
-  status TEXT NOT NULL DEFAULT 'pending',
-                                    -- 'pending'|'compressed'|'uploading'|'uploaded'|'processed'|'failed'
-  local_path TEXT NOT NULL,         -- /tmp/yorutsuke/{uuid}.webp
-  s3_key TEXT,                      -- uploads/{userId}/{date}/{uuid}.webp
-  original_size INTEGER NOT NULL,   -- bytes
-  compressed_size INTEGER,          -- bytes
-  thumbnail_path TEXT,              -- thumbnail for UI
-  created_at TEXT NOT NULL,         -- ISO 8601
-  uploaded_at TEXT,                 -- ISO 8601
-  processed_at TEXT                 -- ISO 8601
+  user_id TEXT,                     -- UserId (v3)
+  status TEXT DEFAULT 'pending',    -- FSM state (see below)
+
+  -- File paths
+  original_path TEXT NOT NULL,      -- Source file path
+  compressed_path TEXT,             -- WebP output path
+  s3_key TEXT,                      -- uploads/{userId}/{uuid}.webp
+
+  -- Image metadata
+  original_size INTEGER,            -- bytes (before compression)
+  compressed_size INTEGER,          -- bytes (after compression)
+  width INTEGER,                    -- pixels
+  height INTEGER,                   -- pixels
+  md5 TEXT,                         -- MD5 hash for duplicate detection
+
+  -- Timestamps
+  created_at TEXT DEFAULT (datetime('now')),
+  uploaded_at TEXT,                 -- ISO 8601 (when uploaded to S3)
+
+  -- Observability (Pillar N, Q)
+  trace_id TEXT,                    -- Request correlation (v2)
+  intent_id TEXT,                   -- Idempotency key (v2)
+
+  -- Error handling
+  error TEXT,                       -- Error message for failed status (v4)
+
+  -- Reference counting (future use)
+  ref_count INTEGER DEFAULT 1
 );
 
+-- Indexes
 CREATE INDEX idx_images_status ON images(status);
 CREATE INDEX idx_images_user_id ON images(user_id);
+CREATE INDEX idx_images_md5 ON images(md5);
+CREATE INDEX idx_images_trace_id ON images(trace_id);
+CREATE INDEX idx_images_intent_id ON images(intent_id);
 ```
 
 **Status FSM**:
 ```
-pending → compressed → uploading → uploaded → processed
-    ↘ failed ← (any state can fail)
+                    ┌─────────────────────────────────────┐
+                    │                                     │
+                    ▼                                     │
+pending ──────► compressed ──────► uploading ──────► uploaded
+    │               │                   │
+    │               │                   │
+    ▼               ▼                   ▼
+  failed          skipped           (retry as compressed)
+  (compression)   (duplicate)
+
+States:
+- pending:    Dropped, waiting for compression
+- compressed: Ready for upload
+- uploading:  Upload in progress (transient, reset to compressed on restart)
+- uploaded:   Successfully uploaded to S3
+- failed:     Compression failed (with error message)
+- skipped:    Duplicate detected (record deleted from DB)
 ```
+
+**State Persistence Rules**:
+| Operation | DB Action | Notes |
+|-----------|-----------|-------|
+| Drop image | INSERT pending | Immediate persistence for crash recovery |
+| Compress success | UPDATE compressed | With md5, size, path |
+| Compress fail | UPDATE failed | With error message |
+| Duplicate found | DELETE | No need to keep duplicate record |
+| Upload success | UPDATE uploaded | With s3_key, uploaded_at |
+| User remove | DELETE | Sync memory and DB |
+| User retry | UPDATE pending | Reset error, allow reprocessing |
 
 ### transactions
 

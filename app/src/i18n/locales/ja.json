@@ -258,7 +258,7 @@
     "rejectedLimitHint": "一度に最大50ファイルまで",
     "processingQueue": "処理キュー",
     "pending": "待機中",
-    "uploaded": "アップロード済",
+    "uploaded": "今回",
     "offline": "オフライン",
     "offlineHint": "キューは一時停止中。接続回復で再開します。",
     "tapToRetry": "タップしてリトライ",

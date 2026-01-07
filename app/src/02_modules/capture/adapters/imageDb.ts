@@ -33,9 +33,32 @@ export async function findImageByMd5(
 }
 
 /**
- * Save image metadata to database
+ * Save pending image immediately when dropped
+ * This ensures queue survives app restart
+ */
+export async function savePendingImage(
+  id: ImageIdType,
+  userId: UserId,
+  traceId: TraceId,
+  intentId: IntentId,
+  originalPath: string,
+): Promise<void> {
+  logger.debug(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, status: 'pending', phase: 'start' });
+
+  await execute(
+    `INSERT INTO images (
+      id, user_id, trace_id, intent_id, original_path, status
+    ) VALUES (?, ?, ?, ?, ?, 'pending')`,
+    [String(id), String(userId), String(traceId), String(intentId), originalPath],
+  );
+
+  logger.info(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, status: 'pending' });
+}
+
+/**
+ * Update image after compression completes
+ * Row was created by savePendingImage(), now we update with compression results
  * Pillar N: traceId for observability
- * Pillar Q: intentId for idempotency
  */
 export async function saveImage(
   id: ImageIdType,
@@ -57,16 +80,17 @@ export async function saveImage(
   logger.debug(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, intentId, status: data.status, phase: 'start' });
 
   await execute(
-    `INSERT INTO images (
-      id, user_id, trace_id, intent_id, original_path, compressed_path, original_size, compressed_size,
-      width, height, md5, status, s3_key
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `UPDATE images SET
+      compressed_path = ?,
+      original_size = ?,
+      compressed_size = ?,
+      width = ?,
+      height = ?,
+      md5 = ?,
+      status = ?,
+      s3_key = ?
+    WHERE id = ?`,
     [
-      String(id),
-      String(userId),
-      String(traceId),
-      String(intentId),
-      data.originalPath,
       data.compressedPath,
       data.originalSize,
       data.compressedSize,
@@ -75,6 +99,7 @@ export async function saveImage(
       data.md5,
       data.status,
       data.s3Key,
+      String(id),
     ],
   );
 
@@ -118,6 +143,19 @@ export async function getImageById(id: ImageIdType): Promise<ImageRow | null> {
     [String(id)],
   );
   return rows[0] || null;
+}
+
+/**
+ * Delete image record from database
+ * Used when duplicate detected - no need to keep the record
+ */
+export async function deleteImageRecord(
+  id: ImageIdType,
+  traceId: TraceId,
+): Promise<void> {
+  logger.debug(EVENTS.IMAGE_CLEANUP, { imageId: id, traceId, phase: 'db_delete' });
+  await execute('DELETE FROM images WHERE id = ?', [String(id)]);
+  logger.info(EVENTS.IMAGE_CLEANUP, { imageId: id, traceId, phase: 'db_deleted' });
 }
 
 /**

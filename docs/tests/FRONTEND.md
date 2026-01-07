@@ -539,10 +539,17 @@
 ## Test Environment Setup
 
 ### Mock Mode
-```bash
-# Enable mock mode for UI testing
-VITE_USE_MOCK=true npm run dev
-```
+
+Mock mode is controlled via Debug panel:
+1. Start app: `npm run tauri dev`
+2. Type `debug` anywhere to unlock Debug panel
+3. Navigate to Debug tab → Mock Mode dropdown
+4. Select mode:
+   - **Off (Real API)**: Use real backend
+   - **Online (Mock API)**: Return fake data
+   - **Offline (Network Fail)**: Simulate network failure
+
+Setting persists to SQLite. See [MOCKING.md](MOCKING.md) for implementation details.
 
 ### Network Simulation
 - Use browser DevTools → Network → Throttling

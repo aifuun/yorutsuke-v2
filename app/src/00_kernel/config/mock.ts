@@ -15,11 +15,10 @@ export type MockMode = 'off' | 'online' | 'offline';
 const MOCK_MODE_KEY = 'mock_mode';
 
 /**
- * Default mock mode after fresh installation is 'off'.
- * Can be overridden by VITE_USE_MOCK=true for development.
+ * Default mock mode is always 'off'.
+ * Developers can change it via Debug panel, which persists to DB.
  */
-const DEFAULT_MODE: MockMode =
-  import.meta.env.VITE_USE_MOCK === 'true' ? 'online' : 'off';
+const DEFAULT_MODE: MockMode = 'off';
 
 // Runtime mock state
 let _mockMode: MockMode = DEFAULT_MODE;
@@ -54,18 +53,27 @@ export function getMockMode(): MockMode {
 }
 
 /**
- * @deprecated Use isMockEnabled() for reactive checks.
- * This constant is set at module load time and doesn't respond to runtime changes.
+ * @deprecated Always false. Use isMockingOnline() for runtime checks.
  */
-export const USE_MOCK = DEFAULT_MODE !== 'off';
+export const USE_MOCK = false;
 
 /**
  * Load mock mode from database on app start
  * Call this during app initialization after DB is ready
+ *
+ * NOTE: In production builds, mock mode is always 'off' and DB is not read.
+ * This ensures end users cannot accidentally enable mock mode.
  */
 export async function loadMockMode(): Promise<void> {
   if (_initialized) return;
 
+  // Production: always 'off', skip DB read
+  if (import.meta.env.PROD) {
+    _initialized = true;
+    return;
+  }
+
+  // Development: load from DB
   try {
     const saved = await getSetting(MOCK_MODE_KEY);
     if (saved && isValidMockMode(saved)) {

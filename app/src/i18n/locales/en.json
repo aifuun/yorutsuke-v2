@@ -258,7 +258,7 @@
     "rejectedLimitHint": "Maximum 50 files at once",
     "processingQueue": "Processing Queue",
     "pending": "Pending",
-    "uploaded": "Uploaded",
+    "uploaded": "Session",
     "offline": "Offline",
     "offlineHint": "Queue paused. Will resume when connected.",
     "tapToRetry": "Tap to retry",

@@ -8,6 +8,8 @@
 
 Mock mode enables UI development and testing without AWS backend dependencies.
 
+> **Note**: Mock mode is controlled via the Debug panel, which is **developer-only** and hidden in release builds. See [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) for details.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        App Layer                             │
@@ -47,43 +49,47 @@ Debug → Mock Mode → [Off (Real API) / Online (Mock API) / Offline (Network F
 
 ### Centralized Configuration
 
-**Decision**: Single source of truth for mock state with runtime toggle.
+**Decision**: Single source of truth for mock state with runtime toggle and persistence.
 
 ```typescript
 // 00_kernel/config/mock.ts
 export type MockMode = 'off' | 'online' | 'offline';
 
-// Initial mode based on environment
-const INITIAL_MODE: MockMode =
-  import.meta.env.VITE_USE_MOCK === 'true'
-    ? 'online'
-    : HAS_REAL_BACKEND
-      ? 'off'
-      : 'online';
+// Default mode is always 'off'
+const DEFAULT_MODE: MockMode = 'off';
 
 // Runtime state
-let _mockMode: MockMode = INITIAL_MODE;
+let _mockMode: MockMode = DEFAULT_MODE;
 
 // Check functions
-export function isMockEnabled(): boolean {
+export function isMockingOnline(): boolean {
   return _mockMode === 'online';
 }
 
-export function isOfflineEnabled(): boolean {
+export function isMockingOffline(): boolean {
   return _mockMode === 'offline';
 }
 
-// Runtime toggle
+// Load from DB on startup
+export async function loadMockMode(): Promise<void> {
+  const saved = await getSetting('mock_mode');
+  if (saved) _mockMode = saved;
+}
+
+// Set and persist to DB
 export function setMockMode(mode: MockMode): void {
   _mockMode = mode;
+  setSetting('mock_mode', mode);  // Persist
   // ... notify listeners
 }
 ```
 
-**Trigger conditions for initial mode**:
-1. Explicit: `VITE_USE_MOCK=true` → starts in `'online'` mode
-2. No Lambda URLs configured → starts in `'online'` mode (fallback)
-3. Lambda URLs configured → starts in `'off'` mode
+**Initialization flow**:
+1. App starts with `DEFAULT_MODE = 'off'`
+2. **Production**: `loadMockMode()` skips DB read, stays `'off'`
+3. **Development**: `loadMockMode()` reads saved value from SQLite
+
+**Production Safety**: In production builds (`import.meta.env.PROD`), mock mode is always `'off'` and DB is never read. This ensures end users cannot accidentally enable mock mode, even if a value was persisted during development.
 
 ### Per-Adapter Mocking
 
@@ -126,7 +132,7 @@ export function mockDelay(ms?: number): Promise<void> {
 
 ```typescript
 // adapters/someApi.ts
-import { isMockEnabled, mockDelay } from '00_kernel/config/mock';
+import { isMockingOnline, isMockingOffline, mockDelay } from '00_kernel/config/mock';
 
 // 1. Define mock data generator
 function createMockData(): SomeResponse {
@@ -136,36 +142,40 @@ function createMockData(): SomeResponse {
   };
 }
 
-// 2. Check isMockEnabled() at function start (runtime check)
+// 2. Check modes at function start (order matters!)
 export async function fetchSomething(id: string): Promise<SomeResponse> {
-  if (isMockEnabled()) {
+  // First: check offline mode (throws error)
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw new Error('Network error: offline mode');
+  }
+
+  // Second: check online mock mode (returns mock data)
+  if (isMockingOnline()) {
     await mockDelay();
     console.log('[Mock] fetchSomething:', id);
     return createMockData();
   }
 
-  // Real implementation
+  // Third: real API call
   const response = await fetch(`${API_URL}/something/${id}`);
   return SomeResponseSchema.parse(await response.json());
 }
 ```
 
-### Offline Mode in Services
+### Check Order Pattern
 
-For services that need to test network failure scenarios:
+All adapters should follow this order:
 
 ```typescript
-// services/uploadService.ts
-import { isOfflineEnabled } from '00_kernel/config/mock';
+// 1. Offline first (simulate network failure)
+if (isMockingOffline()) throw new Error('Network error');
 
-async function processUpload(file: File): Promise<void> {
-  // Check offline mode BEFORE network operations
-  if (isOfflineEnabled()) {
-    throw new Error('Offline mode enabled (debug)');
-  }
+// 2. Online mock (return fake data)
+if (isMockingOnline()) return mockData;
 
-  // Proceed with upload...
-}
+// 3. Real API call
+return await realApiCall();
 ```
 
 ### Mock Data Guidelines
@@ -214,34 +224,24 @@ async function processUpload(file: File): Promise<void> {
 
 ## Usage
 
-### Enable Mock Mode (Development)
+### Enable Mock Mode (Debug Panel)
 
-```bash
-cd app
-
-# Option 1: Explicit
-echo "VITE_USE_MOCK=true" > .env.local
-npm run tauri dev
-
-# Option 2: Implicit (no Lambda URLs)
-echo "" > .env.local
-npm run tauri dev
-```
-
-### Runtime Toggle (Debug Tab)
-
-1. Open app → Debug tab
-2. Find "Mock Mode" dropdown
-3. Select mode:
+1. Start the app: `npm run tauri dev`
+2. Type `debug` anywhere to unlock Debug panel
+3. Navigate to Debug tab in sidebar
+4. Find "Mock Mode" dropdown
+5. Select mode:
    - **Off (Real API)**: Use real backend
    - **Online (Mock API)**: Use mock responses
    - **Offline (Network Fail)**: Simulate network failure
 
+The setting is **persisted** - it will be restored on next app start.
+
 ### Verify Mock Mode Active
 
-1. **Console**: Look for `[Mock] Mode: ENABLED` at startup
-2. **UI**: Orange banner at top: "MOCK MODE - Data is simulated"
-3. **Logs**: API calls prefixed with `[Mock]`
+1. **UI Banner**: Orange/red banner at top shows current mode
+2. **Debug Panel**: Check "Mock Mode" dropdown value
+3. **Logs**: API calls show mock behavior in Debug logs
 
 ### Test Session Recovery (SC-501)
 
@@ -251,17 +251,14 @@ npm run tauri dev
 4. Close app (Cmd+Q)
 5. Reopen → queue should restore with pending item
 
-### Disable Mock Mode
+### Use Real Backend
 
-```bash
-# Configure real Lambda URLs
-cat > .env.local << EOF
-VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.ap-northeast-1.on.aws
-VITE_LAMBDA_QUOTA_URL=https://yyy.lambda-url.ap-northeast-1.on.aws
-EOF
-
-npm run tauri dev
-```
+1. Configure Lambda URLs in `.env.local`:
+   ```bash
+   VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.ap-northeast-1.on.aws
+   VITE_LAMBDA_QUOTA_URL=https://yyy.lambda-url.ap-northeast-1.on.aws
+   ```
+2. Set Mock Mode to **"Off (Real API)"** in Debug panel
 
 ---
 
@@ -275,11 +272,14 @@ type MockMode = 'off' | 'online' | 'offline';
 
 // Read state
 function getMockMode(): MockMode;
-function isMockEnabled(): boolean;      // true when 'online'
-function isOfflineEnabled(): boolean;   // true when 'offline'
+function isMockingOnline(): boolean;    // true when 'online'
+function isMockingOffline(): boolean;   // true when 'offline'
 
-// Write state
+// Write state (persists to DB)
 function setMockMode(mode: MockMode): void;
+
+// Initialize (call on app start)
+function loadMockMode(): Promise<void>;
 
 // React integration
 function subscribeMockMode(listener: () => void): () => void;
@@ -288,19 +288,20 @@ function getMockSnapshot(): MockMode;  // for useSyncExternalStore
 // Utility
 function mockDelay(ms?: number): Promise<void>;
 
-// Legacy (deprecated)
-const USE_MOCK: boolean;  // Use isMockEnabled() instead
-function setMockEnabled(enabled: boolean): void;  // Use setMockMode() instead
+// Legacy (deprecated - do not use)
+const USE_MOCK = false;                     // Always false, use isMockingOnline()
+const isMockEnabled = isMockingOnline;      // Alias, use isMockingOnline()
+const isOfflineEnabled = isMockingOffline;  // Alias, use isMockingOffline()
 ```
 
 ---
 
 ## References
 
-- [README.md](../README.md) - Quick start for mock mode
+- [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) - Debug panel documentation
 - [INTERFACES.md](../architecture/INTERFACES.md) - API specifications being mocked
-- [MVP_PLAN.md](../dev/MVP_PLAN.md) - Testing phases
+- [MVP_PLAN.md](../planning/MVP_PLAN.md) - Testing phases
 
 ---
 
-*Last updated: 2026-01-07*
+*Last updated: 2025-01*

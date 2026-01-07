@@ -60,8 +60,8 @@ export type QuotaMockScenario =
   | 'pro-tier';     // Pro tier user
 
 const TIER_LIMITS: Record<UserTier, number> = {
-  guest: 10,
-  free: 30,
+  guest: 30,
+  free: 50,
   basic: 100,
   pro: 500,
 };

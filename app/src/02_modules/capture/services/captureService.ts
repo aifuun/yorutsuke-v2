@@ -3,12 +3,13 @@
 // Registers Tauri drag-drop listeners at app startup
 
 import type { ImageId, UserId } from '../../../00_kernel/types';
-import { createIntentId } from '../../../00_kernel/types';
+import { createIntentId, createTraceId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import { MAX_DROP_COUNT } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { setupTauriDragListeners } from '../adapters/tauriDragDrop';
+import { savePendingImage, deleteImageRecord, updateImageStatus } from '../adapters/imageDb';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
 import { uploadService } from './uploadService';
@@ -130,7 +131,7 @@ class CaptureService {
   /**
    * Handle dropped files from Tauri
    */
-  private handleDrop(items: DroppedItem[], rejectedPaths: string[]): void {
+  private async handleDrop(items: DroppedItem[], rejectedPaths: string[]): Promise<void> {
     this.setDragState('idle');
 
     // Notify UI about rejected files
@@ -182,6 +183,9 @@ class CaptureService {
         uploadedAt: null,
         processedAt: null,
       };
+
+      // Save to DB immediately for session recovery (IO first, then store)
+      await savePendingImage(image.id, this.userId, image.traceId, image.intentId, image.localPath);
 
       captureStore.getState().addImage(image);
 
@@ -301,31 +305,44 @@ class CaptureService {
   }
 
   /**
-   * Remove image from queue
+   * Remove image from queue and database
    */
-  removeImage(id: ImageId): void {
+  async removeImage(id: ImageId): Promise<void> {
+    const traceId = createTraceId();
+    logger.info(EVENTS.IMAGE_CLEANUP, { imageId: id, traceId, phase: 'remove_start' });
+
+    // Delete from DB first (IO before store update)
+    await deleteImageRecord(id, traceId);
+
+    // Then remove from memory stores
     captureStore.getState().removeImage(id);
     uploadService.remove(id);
+
+    logger.info(EVENTS.IMAGE_CLEANUP, { imageId: id, traceId, phase: 'remove_complete' });
   }
 
   /**
    * Retry a failed image
    */
-  retryImage(id: ImageId): void {
+  async retryImage(id: ImageId): Promise<void> {
     const image = captureStore.getState().queue.find(img => img.id === id);
     if (!image) return;
 
-    logger.info(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'retry', imageId: id });
+    const traceId = createTraceId();
+    logger.info(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'retry', imageId: id, traceId });
 
-    // Reset to pending for reprocessing
-    const retryImage: ReceiptImage = {
+    // Update DB first to 'pending' (IO before store update)
+    await updateImageStatus(id, 'pending', traceId, { error: null });
+
+    // Reset to pending for reprocessing in store
+    const retryImageData: ReceiptImage = {
       ...image,
       status: 'pending',
       error: undefined,
     };
 
     captureStore.getState().removeImage(id);
-    captureStore.getState().addImage(retryImage);
+    captureStore.getState().addImage(retryImageData);
     this.startProcessingPolling();
   }
 

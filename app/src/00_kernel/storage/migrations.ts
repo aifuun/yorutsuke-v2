@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 /**
  * Run all migrations on database
@@ -35,6 +35,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 3) {
     await migration_v3(db);
     await setVersion(db, 3);
+  }
+
+  if (version < 4) {
+    await migration_v4(db);
+    await setVersion(db, 4);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -203,6 +208,19 @@ async function migration_v3(db: Database): Promise<void> {
   await safeAddColumn(db, 'images', 'uploaded_at', 'TEXT');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 3, phase: 'complete' });
+}
+
+/**
+ * Migration v4: Add error column to images table
+ * Fixes state inconsistency: failed status persists with error message
+ */
+async function migration_v4(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 4, name: 'add_error_column', phase: 'start' });
+
+  // Add error column for storing failure reason
+  await safeAddColumn(db, 'images', 'error', 'TEXT');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 4, phase: 'complete' });
 }
 
 // ============================================================================

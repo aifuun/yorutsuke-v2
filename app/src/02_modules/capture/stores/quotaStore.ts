@@ -5,6 +5,7 @@ import { createStore } from 'zustand/vanilla';
 import type { QuotaResponse, UserTier, GuestExpirationInfo } from '../adapters/quotaApi';
 
 // Default values for offline/guest mode
+// Must match TIER_LIMITS.guest in quotaApi.ts
 const DEFAULTS = {
   limit: 30,
   tier: 'guest' as UserTier,
