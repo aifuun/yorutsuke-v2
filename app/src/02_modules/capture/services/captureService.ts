@@ -2,13 +2,15 @@
 // Pillar L: Pure orchestration, no React dependencies
 // Registers Tauri drag-drop listeners at app startup
 
-import type { ImageId, UserId } from '../../../00_kernel/types';
-import { createIntentId, createTraceId } from '../../../00_kernel/types';
+import { ImageId, UserId, createIntentId, createTraceId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import { MAX_DROP_COUNT } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { open } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
+import { join, tempDir } from '@tauri-apps/api/path';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { setupTauriDragListeners, pathsToDroppedItems, filterByExtension } from '../adapters/tauriDragDrop';
 import { savePendingImage, deleteImageRecord, updateImageStatus } from '../adapters/imageDb';
 import { captureStore } from '../stores/captureStore';
@@ -29,6 +31,7 @@ class CaptureService {
   private userId: UserId | null = null;
   private cleanupTauri: (() => void) | null = null;
   private cleanupAuthSubscription: (() => void) | null = null;
+  private cleanupPasteListener: (() => void) | null = null;
   private processingTimer: ReturnType<typeof setInterval> | null = null;
 
   /**
@@ -82,6 +85,11 @@ class CaptureService {
       // Auto-enqueue compressed images for upload
       this.enqueueCompressedImages(state.queue);
     });
+
+    // Setup global paste listener
+    const pasteHandler = (e: ClipboardEvent) => this.handlePaste(e);
+    document.addEventListener('paste', pasteHandler);
+    this.cleanupPasteListener = () => document.removeEventListener('paste', pasteHandler);
 
     logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'CaptureService' });
   }
@@ -306,6 +314,66 @@ class CaptureService {
   }
 
   /**
+   * Handle clipboard paste events
+   * SC-007: Paste screenshot
+   * SC-008: Paste single image file
+   * SC-009: Paste multiple image files
+   */
+  private async handlePaste(event: ClipboardEvent): Promise<void> {
+    // Skip if focused on input/textarea (don't break standard paste)
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+
+    const items = event.clipboardData?.items;
+    if (!items || items.length === 0) return;
+
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) imageFiles.push(file);
+      }
+    }
+
+    if (imageFiles.length === 0) return;
+
+    logger.info(EVENTS.IMAGE_DROPPED, { count: imageFiles.length, source: 'paste' });
+
+    try {
+      const tDir = await tempDir();
+      const droppedItems: DroppedItem[] = [];
+
+      for (const file of imageFiles) {
+        const id = ImageId(crypto.randomUUID());
+        const traceId = createTraceId();
+        const ext = file.name.split('.').pop() || 'png';
+        const tempPath = await join(tDir, `paste-${id}.${ext}`);
+
+        // Write file to temp directory so Rust can access it by path
+        const buffer = await file.arrayBuffer();
+        await writeFile(tempPath, new Uint8Array(buffer));
+
+        droppedItems.push({
+          id,
+          traceId,
+          name: file.name || `pasted-image-${id}.${ext}`,
+          preview: convertFileSrc(tempPath),
+          localPath: tempPath,
+        });
+      }
+
+      if (droppedItems.length > 0) {
+        this.handleDrop(droppedItems, []);
+      }
+    } catch (e) {
+      logger.error(EVENTS.APP_ERROR, { context: 'handle_paste', error: String(e) });
+    }
+  }
+
+  /**
    * Remove image from queue and database
    */
   async removeImage(id: ImageId): Promise<void> {
@@ -403,6 +471,7 @@ class CaptureService {
     this.stopProcessingPolling();
     this.cleanupTauri?.();
     this.cleanupAuthSubscription?.();
+    this.cleanupPasteListener?.();
     uploadService.destroy();
     this.initialized = false;
     dragStateListeners.clear();

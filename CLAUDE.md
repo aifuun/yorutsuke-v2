@@ -24,15 +24,6 @@ Local-first AI accounting assistant for second-hand business users. Drag receipt
 3. **Check checklists** - Use `.prot/checklists/` before and after coding
 4. **Avoid generic factories** - Use explicit functions (e.g., `parseUser` not `createParser`)
 
-### When in Doubt
-
-```
-Readable code > Shorter code
-Explicit types > Inferred types
-Copy-paste > Abstraction
-One way > Multiple options
-```
-
 ### Debugging Rules
 
 **遇到 Bug / 问题时，必须先检查日志！**
@@ -48,24 +39,7 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | tail -50
 
 ### Time Handling
 
-**存储和运算用 UTC，显示和选择用本地时区**
-
-| 场景 | 规则 |
-|------|------|
-| Storage | `new Date().toISOString()` (UTC) |
-| Computation | `datetime('now', '-24 hours')` (UTC) |
-| Display | `new Date(utc).toLocaleString()` (Local) |
-| Selection | 本地时间输入 → 转 UTC 存储 |
-
-```typescript
-// ✅ 显示"今天"用本地日期
-const today = new Date().toLocaleDateString('sv-SE');
-
-// ❌ 不要用 UTC 日期显示
-const today = new Date().toISOString().split('T')[0];  // 午夜前后会错
-```
-
-详见 `.claude/rules/time-handling.md`
+**存储和运算用 UTC，显示和选择用本地时区** → 详见 `.claude/rules/time-handling.md`
 
 ---
 
@@ -107,53 +81,20 @@ Receipt Drop  →  Local SQLite  →  S3 Upload  →  Nova Lite OCR  →  Mornin
 
 ```
 yorutsuke-v2/
-├── app/                    # Tauri desktop application
-│   ├── src/                # React frontend
-│   │   ├── 00_kernel/      # EventBus, Logger, Context
-│   │   ├── 01_domains/     # Pure business logic
-│   │   │   ├── receipt/    # Receipt entity & rules
-│   │   │   └── transaction/# Transaction entity & rules
-│   │   ├── 02_modules/     # Feature modules
-│   │   │   ├── capture/    # Image capture & upload
-│   │   │   ├── report/     # Morning report
-│   │   │   ├── transaction/# Transaction management
-│   │   │   └── settings/   # User settings
-│   │   └── 03_migrations/  # Data upcasters
-│   └── src-tauri/          # Rust backend
-│       └── src/            # IPC commands
-│
-├── infra/                  # AWS CDK
-│   ├── lib/                # Stack definitions
-│   ├── lambda/             # Lambda functions
-│   │   ├── presign/        # S3 presigned URLs
-│   │   ├── batch/          # Nightly batch trigger
-│   │   └── batch-process/  # Nova Lite OCR
-│   └── bin/
-│
+├── app/src/                # React frontend
+│   ├── 00_kernel/          # EventBus, Logger, Context, Types
+│   ├── 01_domains/         # Pure business logic (receipt/, transaction/)
+│   ├── 02_modules/         # Feature modules
+│   │   ├── capture/        # Image capture & upload (T2)
+│   │   ├── report/         # Morning report (T1)
+│   │   ├── transaction/    # Transaction management (T2)
+│   │   └── settings/       # User settings
+│   └── 03_migrations/      # Data upcasters
+├── app/src-tauri/          # Rust backend (IPC commands)
+├── infra/                  # AWS CDK (lib/, lambda/)
 ├── docs/                   # Source of Truth
-│   ├── product/            # REQUIREMENTS, ROADMAP, CHANGELOG
-│   ├── architecture/       # System architecture (see README.md for index)
-│   │   ├── README.md       # Navigation index
-│   │   ├── LAYERS.md       # Four-layer architecture
-│   │   ├── PATTERNS.md     # State patterns (Zustand/EventBus)
-│   │   ├── FLOWS.md        # Data flow diagrams
-│   │   ├── SCHEMA.md       # Entity definitions
-│   │   ├── INTERFACES.md   # IPC/API contracts
-│   │   └── ADR/            # Architecture Decision Records
-│   ├── design/             # COLOR, TYPOGRAPHY, 00-04 view specs
-│   ├── operations/         # OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL
-│   ├── dev/                # MVP_PLAN, MVPX_*.md, PROGRAM_PATHS
-│   ├── tests/              # FRONTEND, BACKEND, MOCKING
-│   └── archive/            # Historical docs
-│
-├── .claude/                # Claude Code config
-│   ├── commands/
-│   ├── workflow/
-│   └── rules/
-│
-└── .prot/                  # AI_DEV_PROT v15 assets
-    ├── CHEATSHEET.md
-    └── pillar-{a-r}/
+├── .claude/                # Claude Code config (commands/, rules/)
+└── .prot/                  # AI_DEV_PROT v15 (CHEATSHEET.md)
 ```
 
 ## Commands
@@ -177,23 +118,7 @@ cd app && npm test             # Run tests
 
 ## Test Assets
 
-测试图片目录：`/private/tmp/yorutsuke-test/`
-
-```bash
-# 重新生成测试图片 (5 个 8-bit JPEG, ~1.5MB each)
-rm -rf /private/tmp/yorutsuke-test/* && mkdir -p /private/tmp/yorutsuke-test
-magick -size 2400x2400 plasma:red-orange -depth 8 -quality 92 /private/tmp/yorutsuke-test/receipt1.jpg
-magick -size 2400x2400 plasma:blue-cyan -depth 8 -quality 92 /private/tmp/yorutsuke-test/receipt2.jpg
-magick -size 2400x2400 plasma:green-yellow -depth 8 -quality 92 /private/tmp/yorutsuke-test/receipt3.jpg
-magick -size 2400x2400 plasma:purple-pink -depth 8 -quality 92 /private/tmp/yorutsuke-test/receipt4.jpg
-magick -size 2400x2400 plasma:gray-white -depth 8 -quality 92 /private/tmp/yorutsuke-test/receipt5.jpg
-```
-
-| File | Format | Size | Notes |
-|------|--------|------|-------|
-| `receipt1-5.jpg` | JPEG 8-bit | ~1.5MB | 2400x2400, plasma textures |
-
-**注意**: Rust `image` crate 只支持 8-bit JPEG，12-bit JPEG 会报错。
+测试图片：`/private/tmp/yorutsuke-test/` → 详见 `docs/tests/TEST_ASSETS.md`
 
 ## Workflow
 
@@ -253,6 +178,7 @@ magick -size 2400x2400 plasma:gray-white -depth 8 -quality 92 /private/tmp/yorut
 - Use Branded Types for IDs (Pillar A)
 - Validate all Lambda responses with Zod (Pillar B)
 - Separate UI from logic (Pillar L: Headless)
+- Use Service Pattern for global listeners (not React hooks) → `docs/architecture/PATTERNS.md`
 - Add Intent-ID for batch operations (Pillar Q)
 
 **MUST NOT**:
@@ -282,21 +208,10 @@ magick -size 2400x2400 plasma:gray-white -depth 8 -quality 92 /private/tmp/yorut
 
 ## Logging
 
-| Item | Location |
-|------|----------|
-| **Log files** | `~/.yorutsuke/logs/YYYY-MM-DD.jsonl` |
-| **Documentation** | `docs/operations/LOGGING.md` |
-| **Frontend logger** | `app/src/00_kernel/telemetry/logger.ts` |
+日志位置：`~/.yorutsuke/logs/YYYY-MM-DD.jsonl` → 详见 `docs/operations/LOGGING.md`
 
 ```bash
-# View today's logs
-cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .
-
-# Filter by event
-cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.event == "UPLOAD_FAILED")'
-
-# Filter by traceId
-cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
+cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .  # View today's logs
 ```
 
 ## Memory & Context
@@ -305,42 +220,17 @@ cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
 - **Long-term memory**: `.claude/MEMORY.md` (write in English only)
 - **Workflow guide**: `.claude/WORKFLOW.md`
 
-## Architecture Layers
-
-| Layer | Directory | Purpose |
-|-------|-----------|---------|
-| **CC** | `.claude/` | Commands, workflows, behavior rules |
-| **AI** | `.prot/` | Protocol, templates, code patterns |
-| **Dev** | `docs/` | Project documentation |
-
----
-
 ## Key Documentation
 
 | Category | File | Description |
 |----------|------|-------------|
-| **Architecture Index** | `docs/architecture/README.md` | Navigation to all architecture docs |
-| **Layers** | `docs/architecture/LAYERS.md` | Four-layer architecture (React/Service/Adapter/Tauri) |
-| **Patterns** | `docs/architecture/PATTERNS.md` | Zustand vs EventBus, Writer/Observer |
-| **Flows** | `docs/architecture/FLOWS.md` | Data flow diagrams (Capture/Batch/Report) |
-| **Schema** | `docs/architecture/SCHEMA.md` | Entity definitions, database schema |
-| **Interfaces** | `docs/architecture/INTERFACES.md` | IPC commands, API contracts |
-| **ADRs** | `docs/architecture/ADR/` | Architecture Decision Records |
-| **Design System** | `docs/design/COLOR.md` | 25-color palette, semantic tokens |
-| **Typography** | `docs/design/TYPOGRAPHY.md` | Font scales, text styles |
+| **Architecture** | `docs/architecture/README.md` | Index → LAYERS, PATTERNS, FLOWS, SCHEMA, ADR |
 | **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
-| **MVP Plan** | `docs/dev/MVP_PLAN.md` | Roadmap & Phase Index |
-| **MVP1 (Active)** | `docs/dev/MVP1_LOCAL.md` | Local capture testing scenarios |
-| **Program Paths** | `docs/dev/PROGRAM_PATHS.md` | Code flow traces, FSM diagrams |
-| **Logging** | `docs/operations/LOGGING.md` | Log format, debug commands |
-| **Quota** | `docs/operations/QUOTA.md` | Upload limits, rate limiting |
+| **MVP Plan** | `docs/dev/MVP_PLAN.md` | Roadmap & current phase |
+| **Design** | `docs/design/` | COLOR.md, TYPOGRAPHY.md |
+| **Operations** | `docs/operations/` | LOGGING.md, QUOTA.md |
 
 ---
 @.prot/CHEATSHEET.md
-@.claude/rules/tauri-stack.md
-@docs/architecture/README.md
-@docs/architecture/LAYERS.md
-@docs/design/COLOR.md
-@docs/dev/PROGRAM_PATHS.md
 
 <!-- yorutsuke-v2 v0.1.0 -->

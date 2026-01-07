@@ -17,7 +17,7 @@
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [**Architecture Guide**](./architecture/README.md) | **Start Here** - System design & patterns | Dev |
-| [SCHEMA](./architecture/SCHEMA.md) | Data model reference | Dev |
+| [SCHEMA](./architecture/SCHEMA.md) | Data model reference ([MODELS](./architecture/MODELS.md), [STORES](./architecture/STORES.md)) | Dev |
 | [INTERFACES](./architecture/INTERFACES.md) | API specifications | Dev |
 
 ### Design (Look & Feel)
@@ -40,7 +40,7 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [tests/](./tests/) | Test scenarios | Dev, QA |
+| [tests/](./tests/) | Test scenarios ([FRONTEND](./tests/frontend/README.md), [BACKEND](./tests/BACKEND.md)) | Dev, QA |
 
 ### Planning
 
@@ -134,7 +134,10 @@ docs/
 │   └── CHANGELOG.md
 ├── architecture/          # How it works
 │   ├── README.md           # Architecture Index
-│   ├── SCHEMA.md
+│   ├── SCHEMA.md           # DB tables
+│   ├── MODELS.md           # Row vs Domain mapping
+│   ├── STORES.md           # Zustand stores
+│   ├── STORAGE.md          # Disk structure
 │   └── INTERFACES.md
 ├── design/                # Look & feel
 │   └── *.md               # UI mockups
@@ -145,16 +148,22 @@ docs/
 │   ├── QUOTA.md
 │   └── LOGGING.md
 ├── tests/                 # Quality
-│   ├── FRONTEND.md
-│   └── BACKEND.md
+│   ├── FRONTEND.md        # Index redirect
+│   ├── BACKEND.md
+│   └── frontend/
+│       ├── README.md      # Test Index
+│       ├── CAPTURE.md
+│       ├── ...md
 ├── dev/                   # Dev planning & reference
 │   ├── MVP_PLAN.md        # Roadmap Index
-│   ├── MVP0_REFACTOR.md   # Done
+│   ├── MVP0_REFACTOR.md
 │   ├── MVP1_LOCAL.md      # Active
-│   ├── MVP2_UPLOAD.md
-│   ├── MVP3_BATCH.md
-│   ├── MVP4_AUTH.md
-│   └── PROGRAM_PATHS.md
+│   ├── ...md
+│   ├── PROGRAM_PATHS.md   # Index redirect
+│   └── paths/
+│       ├── README.md      # Path Index
+│       ├── CAPTURE.md
+│       └── SESSIONS.md
 ├── archive/               # Historical docs
 ```
 

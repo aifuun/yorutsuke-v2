@@ -15,6 +15,9 @@
 | [PATTERNS.md](./PATTERNS.md) | Core patterns: Service, State, Events | Writing new code |
 | [FLOWS.md](./FLOWS.md) | Data flow diagrams | Debugging, feature planning |
 | [SCHEMA.md](./SCHEMA.md) | Data model (entities, tables) | Database work |
+| [MODELS.md](./MODELS.md) | Row vs Domain mappings | Type safety at boundaries |
+| [STORES.md](./STORES.md) | Zustand runtime state | State management |
+| [STORAGE.md](./STORAGE.md) | Local disk usage strategy | Files & persistence |
 | [INTERFACES.md](./INTERFACES.md) | API specifications (IPC, REST) | Integration work |
 | [PROGRAM_PATHS.md](./PROGRAM_PATHS.md) | Directory structure | Finding files |
 | [ADR/](./ADR/) | Architecture Decision Records | Understanding past decisions |
@@ -57,8 +60,11 @@ docs/architecture/
 ├── PATTERNS.md         # Core patterns ✅
 ├── FLOWS.md            # Data flows ✅
 ├── SCHEMA.md           # Data model
+├── MODELS.md           # Row vs Domain mapping
+├── STORES.md           # Zustand stores
+├── STORAGE.md          # Disk structure
 ├── INTERFACES.md       # API specs
-├── PROGRAM_PATHS.md    # Directory structure
+├── PROGRAM_PATHS.md    # Directory structure (Redirect)
 └── ADR/                # Decision records ✅
     ├── README.md       # ADR index
     ├── 001-service-pattern.md
