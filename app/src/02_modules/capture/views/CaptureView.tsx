@@ -192,9 +192,9 @@ export function CaptureView() {
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item queue-item--2col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
+                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
                     >
-                      {/* Left: Thumbnail + MD5/ID */}
+                      {/* Column 1: Thumbnail + MD5/ID */}
                       <div className="queue-item__left">
                         <div className="queue-item__thumb">
                           {image.thumbnailPath ? (
@@ -206,9 +206,8 @@ export function CaptureView() {
                         <p className="queue-item__id">{image.md5 ? image.md5.slice(0, 8) : image.id.slice(0, 8)}...</p>
                       </div>
 
-                      {/* Right: Status Dots + Label + Size/Error */}
-                      <div className="queue-item__right">
-                        <StatusDots status={image.status} />
+                      {/* Column 2: Status Label + Size/Error */}
+                      <div className="queue-item__center">
                         <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
                           {labelInfo.text}
                         </span>
@@ -217,6 +216,11 @@ export function CaptureView() {
                         ) : image.compressedSize && image.compressedSize > 0 ? (
                           <span className="queue-item__size">{formatSize(image.compressedSize)}</span>
                         ) : null}
+                      </div>
+
+                      {/* Column 3: Status Dots (fixed right) */}
+                      <div className="queue-item__right">
+                        <StatusDots status={image.status} />
                       </div>
                     </div>
                   );
