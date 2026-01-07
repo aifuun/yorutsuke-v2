@@ -52,9 +52,9 @@ React 展示 (Display)
 ```
 docs/architecture/
 ├── README.md           # This file (navigation)
-├── LAYERS.md           # Four-layer architecture
-├── PATTERNS.md         # Core patterns (TODO: Phase 2)
-├── FLOWS.md            # Data flows (TODO: Phase 2)
+├── LAYERS.md           # Four-layer architecture ✅
+├── PATTERNS.md         # Core patterns ✅
+├── FLOWS.md            # Data flows ✅
 ├── SCHEMA.md           # Data model
 ├── INTERFACES.md       # API specs
 ├── PROGRAM_PATHS.md    # Directory structure

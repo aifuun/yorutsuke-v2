@@ -5,10 +5,11 @@
 > ⚠️ **REFACTORING IN PROGRESS** (#94)
 >
 > This document is being split into smaller, focused files:
-> - [README.md](./README.md) - Navigation index
+> - [README.md](./README.md) - Navigation index ✅
 > - [LAYERS.md](./LAYERS.md) - Four-layer architecture ✅
-> - [PATTERNS.md](./PATTERNS.md) - Core patterns (TODO)
-> - [FLOWS.md](./FLOWS.md) - Data flows (TODO)
+> - [PATTERNS.md](./PATTERNS.md) - Core patterns ✅
+> - [FLOWS.md](./FLOWS.md) - Data flows ✅
+> - ADR/ - Decision records (TODO: Phase 3)
 >
 > This file will be deprecated once migration is complete.
 
