@@ -384,60 +384,7 @@
   100% { transform: translateX(200%); }
 }
 
-/* Info Banner */
-.info-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-}
-
-.info-banner--warning {
-  background: var(--amber-100);
-  border: 1px solid var(--amber-300);
-}
-
-.info-banner--info {
-  background: var(--bg-info);
-  border: 1px solid var(--blue-100);
-}
-
-.info-banner .banner-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.info-banner .banner-content {
-  flex: 1;
-}
-
-.info-banner .banner-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 2px 0;
-}
-
-.info-banner--warning .banner-title {
-  color: var(--amber-800);
-}
-
-.info-banner--info .banner-title {
-  color: var(--blue-600);
-}
-
-.info-banner .banner-text {
-  font-size: 12px;
-  margin: 0;
-}
-
-.info-banner--warning .banner-text {
-  color: var(--amber-600);
-}
-
-.info-banner--info .banner-text {
-  color: var(--blue-500);
-}
+/* Info Banner - now in styles.css, only capture-specific overrides here */
 
 .banner-dismiss {
   background: none;

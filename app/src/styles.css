@@ -916,6 +916,58 @@ body {
   border: 1px solid var(--emerald-100);
 }
 
+.info-banner .banner-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.info-banner .banner-content {
+  flex: 1;
+}
+
+.info-banner .banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+}
+
+.info-banner--warning .banner-title {
+  color: var(--amber-800);
+}
+
+.info-banner--info .banner-title {
+  color: var(--blue-600);
+}
+
+.info-banner--error .banner-title {
+  color: var(--rose-600);
+}
+
+.info-banner--success .banner-title {
+  color: var(--emerald-600);
+}
+
+.info-banner .banner-text {
+  font-size: 12px;
+  margin: 0;
+}
+
+.info-banner--warning .banner-text {
+  color: var(--amber-600);
+}
+
+.info-banner--info .banner-text {
+  color: var(--blue-500);
+}
+
+.info-banner--error .banner-text {
+  color: var(--rose-500);
+}
+
+.info-banner--success .banner-text {
+  color: var(--emerald-500);
+}
+
 /* Toggle Switch */
 .toggle-switch {
   position: relative;

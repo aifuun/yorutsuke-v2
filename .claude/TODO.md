@@ -4,7 +4,7 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 ## Current Issue: None
 
-Last completed: #85 - fileService.selectFiles() for file picker
+Last completed: #87 - CSS Design System Consolidation
 
 ## Milestones
 
@@ -106,6 +106,8 @@ Now tracked as GitHub Issues:
 ## Recently Completed
 
 <!-- Format: Task (date) -->
+- #87 CSS Design System Consolidation (2026-01-07)
+- #85 File picker implementation (2026-01-07)
 - Reviewed docs/operations for consistency with architecture (2026-01-05)
 - Fixed seed data bug: FK constraint + userId mismatch (2026-01-05)
 - Reorganized test docs to `docs/tests/` with BACKEND.md (2026-01-05)

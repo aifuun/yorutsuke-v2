@@ -58,7 +58,7 @@
 .filter-group select,
 .filter-group input[type="date"] {
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--slate-300);
   border-radius: 6px;
   font-size: 0.875rem;
   background: #fff;
@@ -337,8 +337,8 @@
   justify-content: center;
   padding: 3rem 1.5rem;
   text-align: center;
-  background: #f9fafb;
-  border: 1px dashed #d1d5db;
+  background: var(--slate-50);
+  border: 1px dashed var(--slate-300);
   border-radius: 12px;
   margin: 1rem 0;
 }
@@ -381,8 +381,8 @@
 
 /* Variant: First Use */
 .empty-state--first-use {
-  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-  border-color: #93c5fd;
+  background: linear-gradient(135deg, var(--blue-100) 0%, var(--emerald-100) 100%);
+  border-color: var(--blue-100);
 }
 
 /* Variant: No Results */
@@ -442,7 +442,7 @@
 .edit-row select {
   flex: 1;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--slate-300);
   border-radius: 6px;
   font-size: 0.875rem;
 }

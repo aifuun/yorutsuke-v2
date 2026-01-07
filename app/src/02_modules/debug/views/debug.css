@@ -211,23 +211,4 @@
   .debug-content {
     padding: 24px;
   }
-
-  .seed-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
-  .seed-select {
-    max-width: none;
-  }
-
-  .seed-actions {
-    flex-direction: column;
-  }
-
-  .seed-actions .btn-action {
-    width: 100%;
-    justify-content: center;
-  }
 }
