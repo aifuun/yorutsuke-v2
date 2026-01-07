@@ -36,15 +36,15 @@
 
 /* Color coding by level */
 .quota-indicator--ok .quota-indicator__value {
-  color: var(--success, #22c55e);
+  color: var(--emerald-600);
 }
 
 .quota-indicator--warning .quota-indicator__value {
-  color: var(--warning, #f59e0b);
+  color: var(--amber-600);
 }
 
 .quota-indicator--critical .quota-indicator__value {
-  color: var(--error, #ef4444);
+  color: var(--rose-600);
 }
 
 .quota-indicator__status {
@@ -54,15 +54,15 @@
 }
 
 .quota-indicator__status--limit {
-  color: var(--error, #ef4444);
+  color: var(--rose-600);
   font-weight: 500;
 }
 
 /* Guest expiration warning */
 .quota-indicator__expiration-warning {
   font-size: 10px;
-  color: var(--warning, #f59e0b);
-  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--amber-600);
+  background-color: var(--amber-100);
   padding: 4px 6px;
   border-radius: 4px;
   margin-bottom: 6px;
@@ -84,13 +84,13 @@
 }
 
 .quota-indicator--ok .quota-indicator__bar-fill {
-  background-color: var(--success, #22c55e);
+  background-color: var(--emerald-500);
 }
 
 .quota-indicator--warning .quota-indicator__bar-fill {
-  background-color: var(--warning, #f59e0b);
+  background-color: var(--amber-500);
 }
 
 .quota-indicator--critical .quota-indicator__bar-fill {
-  background-color: var(--error, #ef4444);
+  background-color: var(--rose-500);
 }

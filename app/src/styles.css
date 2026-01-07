@@ -564,18 +564,18 @@ body {
   color: var(--blue-600);
 }
 
-/* Summary: Pending variant (brown) - for Pending items */
+/* Summary: Pending variant - for Pending items */
 .card--summary.is-pending {
-  border-left-color: #A1887F;
-  background: linear-gradient(135deg, rgba(215, 204, 200, 0.3) 0%, rgba(255, 255, 255, 0.3) 100%);
+  border-left-color: var(--slate-400);
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.2) 0%, rgba(255, 255, 255, 0.3) 100%);
 }
 
 .card--summary.is-pending .card--summary__label {
-  color: #6D4C41;
+  color: var(--slate-600);
 }
 
 .card--summary.is-pending .card--summary__value {
-  color: #5D4037;
+  color: var(--slate-700);
 }
 
 /* Responsive: Summary */
