@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useCaptureQueue, useCaptureStats, useRejection } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
-import { useCaptureActions } from '../hooks/useCaptureActions';
 import { useQuota } from '../hooks/useQuotaState';
 import { captureService } from '../services/captureService';
 import { quotaService } from '../services/quotaService';
@@ -82,7 +81,6 @@ export function CaptureView() {
   const queue = useCaptureQueue();
   const { pendingCount, uploadedCount } = useCaptureStats();
   const { isDragging, dragHandlers } = useDragState();
-  const { retryAllFailed } = useCaptureActions();
   const { rejection, clearRejection } = useRejection();
 
   // Auto-clear rejection after 5 seconds
@@ -227,18 +225,6 @@ export function CaptureView() {
                 })}
               </div>
 
-              {/* Queue Actions */}
-              <div className="queue-actions">
-                {queue.some(img => img.status === 'failed') && (
-                  <button
-                    type="button"
-                    className="queue-action queue-action--retry"
-                    onClick={retryAllFailed}
-                  >
-                    {t('capture.retryAll')}
-                  </button>
-                )}
-              </div>
             </div>
           )}
 

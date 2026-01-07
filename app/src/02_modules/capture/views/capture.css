@@ -379,39 +379,6 @@
   100% { transform: translateX(200%); }
 }
 
-/* Queue Actions */
-.queue-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 24px;
-}
-
-.queue-action {
-  background: none;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.queue-action--retry {
-  color: var(--rose-500);
-}
-
-.queue-action--retry:hover {
-  color: var(--rose-600);
-}
-
-.queue-action--clear {
-  color: var(--slate-400);
-}
-
-.queue-action--clear:hover {
-  color: var(--slate-500);
-}
-
 /* Info Banner */
 .info-banner {
   display: flex;
