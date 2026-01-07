@@ -16,11 +16,9 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [README](./architecture/ARCHITECTURE.md) | Document index & status | Dev |
-| [ARCHITECTURE](./architecture/ARCHITECTURE.md) | System design | Dev |
-| [SCHEMA](./architecture/SCHEMA.md) | Data model | Dev |
-| [INTERFACES](./architecture/INTERFACES.md) | IPC & API | Dev |
-| [PROGRAM_PATHS](./dev/PROGRAM_PATHS.md) | Code flow traces | Dev |
+| [**Architecture Guide**](./architecture/README.md) | **Start Here** - System design & patterns | Dev |
+| [SCHEMA](./architecture/SCHEMA.md) | Data model reference | Dev |
+| [INTERFACES](./architecture/INTERFACES.md) | API specifications | Dev |
 
 ### Design (Look & Feel)
 
@@ -48,7 +46,7 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [MVP_PLAN](./dev/MVP_PLAN.md) | Incremental testing | Dev |
+| [MVP PLAN](./dev/MVP_PLAN.md) | **Roadmap Index** - Phase navigation | Dev |
 
 ---
 
@@ -108,7 +106,7 @@ npm run tauri dev
 ### For New Developers
 
 1. **product/REQUIREMENTS.md** - Understand the product
-2. **architecture/ARCHITECTURE.md** - Understand the system
+2. **architecture/README.md** - Understand the system
 3. **architecture/SCHEMA.md** - Understand the data
 4. **architecture/INTERFACES.md** - Understand the APIs
 
@@ -135,7 +133,7 @@ docs/
 │   ├── ROADMAP.md
 │   └── CHANGELOG.md
 ├── architecture/          # How it works
-│   ├── ARCHITECTURE.md
+│   ├── README.md           # Architecture Index
 │   ├── SCHEMA.md
 │   └── INTERFACES.md
 ├── design/                # Look & feel
@@ -150,9 +148,14 @@ docs/
 │   ├── FRONTEND.md
 │   └── BACKEND.md
 ├── dev/                   # Dev planning & reference
-│   ├── MVP_PLAN.md
+│   ├── MVP_PLAN.md        # Roadmap Index
+│   ├── MVP0_REFACTOR.md   # Done
+│   ├── MVP1_LOCAL.md      # Active
+│   ├── MVP2_UPLOAD.md
+│   ├── MVP3_BATCH.md
+│   ├── MVP4_AUTH.md
 │   └── PROGRAM_PATHS.md
-└── archive/               # Historical docs
+├── archive/               # Historical docs
 ```
 
 ## Conventions

@@ -383,7 +383,7 @@ aws ce get-cost-and-usage \
 
 ## References
 
-- Architecture: `../architecture/ARCHITECTURE.md`
+- Architecture: `../architecture/README.md`
 - Quota Details: `./QUOTA.md`
 - Logging: `./LOGGING.md`
 - CDK Stack: `infra/lib/yorutsuke-stack.ts`

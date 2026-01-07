@@ -9,7 +9,7 @@
 > **See also**:
 > - [BACKEND.md](./BACKEND.md) - Lambda, Batch Processing tests
 > - [../dev/PROGRAM_PATHS.md](../dev/PROGRAM_PATHS.md) - Detailed code flow traces
-> - [../dev/MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP testing phases
+> - [../dev/MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP Roadmap Index
 
 ## Architecture Context
 
@@ -24,7 +24,7 @@
 > | Store | `uploadStore.ts` | Upload queue state |
 > | Hook | `useCaptureState.ts` | React bridge to stores |
 >
-> See [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) for details.
+> See [architecture/README.md](../architecture/README.md) for details.
 
 ### ID Strategy
 

@@ -300,7 +300,7 @@ const isOfflineEnabled = isMockingOffline;  // Alias, use isMockingOffline()
 
 - [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) - Debug panel documentation
 - [INTERFACES.md](../architecture/INTERFACES.md) - API specifications being mocked
-- [MVP_PLAN.md](../planning/MVP_PLAN.md) - Testing phases
+- [MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP Roadmap Index
 
 ---
 

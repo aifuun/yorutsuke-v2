@@ -8,7 +8,7 @@
 > **See also**:
 > - [FRONTEND.md](./FRONTEND.md) - Client application tests
 > - [../architecture/INTERFACES.md](../architecture/INTERFACES.md) - API specifications
-> - [../dev/MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP testing phases
+> - [../dev/MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP Roadmap Index
 
 ## MVP Coverage
 

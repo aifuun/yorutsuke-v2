@@ -49,7 +49,7 @@ T3 Saga      │ Distributed writes, $$$    │ View → Saga → [Adapters]
 ## Schema-First Workflow (Pillar B)
 
 ```
-1. SCHEMA.md     → Define entity in docs/architecture/
+1. SCHEMA.md     → docs/architecture/SCHEMA.md (human-readable)
 2. schema.ts     → Create Zod types in 01_domains/
 3. service.ts    → Write business logic in 02_modules/
 4. *.test.ts     → Tests as usage documentation
