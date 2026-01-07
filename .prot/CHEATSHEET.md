@@ -16,7 +16,7 @@ T3 Saga      │ Distributed writes, $$$    │ View → Saga → [Adapters]
 | ID | Name | Rule | Check |
 |----|------|------|-------|
 | A | Nominal Typing | No primitives for IDs | `UserId = string & {...}` |
-| B | Airlock | Validate + upcast at boundary | Schema.parse() |
+| B | Airlock | **Schema-First** + validate at boundary | Schema → Code → Test |
 | C | Mocking | Generate from schema | zod-mock, faker |
 | D | FSM | No boolean flags | `'idle'\|'loading'\|'error'` |
 
@@ -30,7 +30,7 @@ T3 Saga      │ Distributed writes, $$$    │ View → Saga → [Adapters]
 ### Q3: Structure & Boundaries
 | ID | Name | Rule | Check |
 |----|------|------|-------|
-| G | Traceability | `@trigger/@listen` comments | AI can follow |
+| G | Traceability | `@trigger/@listen/@ai-intent` | AI can follow + understand why |
 | H | Policy | Auth separate from flow | `Policy.assert()` |
 | I | Firewalls | No deep imports | `import from '../index'` |
 | J | Locality | State near usage | No global pollution |
@@ -45,6 +45,22 @@ T3 Saga      │ Distributed writes, $$$    │ View → Saga → [Adapters]
 | O | Async | Long ops → 202 + poll | Job-ID pattern |
 | P | Circuit | Fail fast on errors | Safe mode fallback |
 | R | Observability | JSON semantic logs | `{saga,from,to,traceId}` |
+
+## Schema-First Workflow (Pillar B)
+
+```
+1. SCHEMA.md     → Define entity in docs/architecture/
+2. schema.ts     → Create Zod types in 01_domains/
+3. service.ts    → Write business logic in 02_modules/
+4. *.test.ts     → Tests as usage documentation
+```
+
+**AI-Intent Comments**: Add `// @ai-intent: reason` to explain "why" for complex decisions.
+
+```typescript
+// @ai-intent: prevent race condition with optimistic locking
+if (entity.version !== cmd.expectedVersion) throw new StaleDataError();
+```
 
 ## Key Concepts (AI Reference)
 

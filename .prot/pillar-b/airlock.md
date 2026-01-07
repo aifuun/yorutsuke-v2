@@ -19,6 +19,41 @@ The Domain layer should **NEVER** contain legacy handling logic like `if (data.o
 
 ## Implementation (TypeScript + Zod)
 
+### Principle: Schema-First Development
+
+> **Always define Zod schemas BEFORE writing any implementation code.**
+> The Schema is the contract; the Code is just the fulfillment.
+
+#### Why Schema-First?
+
+| Approach | AI Accuracy | Maintenance |
+|----------|-------------|-------------|
+| Code-First | Low - AI guesses structure | Schema drifts from reality |
+| Schema-First | **High** - AI has explicit contract | Schema IS the source of truth |
+
+#### Schema-First Workflow
+
+```
+1. Define Schema    → docs/architecture/SCHEMA.md (human-readable)
+2. Create Zod Types → src/01_domains/{entity}/schema.ts
+3. Write Service    → src/02_modules/{module}/services/*.ts
+4. Write Tests      → tests/ (as usage documentation)
+```
+
+#### AI-Intent Comments (Pillar G Enhancement)
+
+For complex schemas, add intent comments to help AI understand "why":
+
+```typescript
+// @ai-intent: separate address to enable future multi-address support
+const UserSchema = z.object({
+  id: UserIdSchema,
+  // @ai-intent: email is immutable after registration (used as login identifier)
+  email: z.string().email(),
+  profile: ProfileSchema,
+});
+```
+
 ### Schema Definition
 
 ```typescript
