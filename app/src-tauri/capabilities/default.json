@@ -17,10 +17,17 @@
     "dialog:allow-open",
     "dialog:allow-save",
     "fs:default",
-    "fs:allow-write-file",
-    "fs:allow-read-file",
     "fs:allow-exists",
-    "fs:allow-remove-file",
+    "fs:allow-remove",
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        { "path": "$TEMP/**" },
+        { "path": "$HOME/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA/**" }
+      ]
+    },
     {
       "identifier": "fs:allow-read",
       "allow": [

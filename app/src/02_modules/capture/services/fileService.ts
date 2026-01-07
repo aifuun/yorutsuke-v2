@@ -56,6 +56,7 @@ function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
     localPath: row.original_path,
     s3Key: row.s3_key,
     thumbnailPath: row.compressed_path,
+    originalName: row.original_name ?? null,
     originalSize: row.original_size ?? 0,
     compressedSize: row.compressed_size,
     md5: row.md5 ?? null,

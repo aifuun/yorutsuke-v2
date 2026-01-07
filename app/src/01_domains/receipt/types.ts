@@ -21,6 +21,7 @@ export interface ReceiptImage {
   localPath: string;
   s3Key: string | null;
   thumbnailPath: string | null;
+  originalName: string | null;  // Original filename from drop
   originalSize: number;
   compressedSize: number | null;
   md5: string | null;  // Content hash for duplicate detection

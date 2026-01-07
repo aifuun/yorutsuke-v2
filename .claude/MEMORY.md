@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-07] Architecture documentation refactored (#94), all 3 phases complete
-- **Next Steps**: Continue MVP1 test scenarios (SC-001 onwards)
+- **Last Progress**: [2026-01-07] Refactored monolithic docs into modular sub-documents; fixed Debug/Clear All Data freeze; updated Tauri FS permissions.
+- **Next Steps**: Begin MVP1 end-to-end testing and proceed to MVP2 (S3 Upload).
 - **Blockers**: None
 
 ## Architecture Decisions
@@ -15,21 +15,18 @@ Record important decisions with context.
 ### [2026-01-07] Architecture Documentation Refactoring (#94)
 - **Decision**: Split monolithic ARCHITECTURE.md into atomic, focused documents
 - **Trigger**: 1000+ line document was hard for AI to process and maintain
-- **New Structure**:
-  ```
   docs/architecture/
   ├── README.md           # Navigation index
-  ├── LAYERS.md           # Four-layer architecture (React/Service/Adapter/Tauri)
-  ├── PATTERNS.md         # State patterns (Zustand vs EventBus, Writer/Observer)
-  ├── FLOWS.md            # Data flow diagrams (Capture/Batch/Report)
-  ├── SCHEMA.md           # Data model
-  ├── INTERFACES.md       # API specs
-  ├── PROGRAM_PATHS.md    # Directory structure
-  ├── ARCHITECTURE.md     # Deprecated (reference only)
+  ├── LAYERS.md           # Four-layer architecture
+  ├── PATTERNS.md         # State patterns
+  ├── FLOWS.md            # Data flow diagrams
+  ├── MODELS.md           # Domain vs Storage models
+  ├── STORES.md           # Zustand runtime state
+  ├── STORAGE.md          # Local vs Cloud storage
+  ├── SCHEMA.md           # Database table definitions
   └── ADR/                # Architecture Decision Records
-      ├── 001-service-pattern.md
-      └── 002-strictmode-fix.md
   ```
+- **Doc Modularization**: Also split `docs/tests/FRONTEND.md` and `docs/dev/PROGRAM_PATHS.md` into module-specific sub-documents for easier maintenance.
 - **Benefits**:
   - AI can read single focused document instead of scanning 1000+ lines
   - Easier to maintain and update specific sections
@@ -138,8 +135,24 @@ Problems encountered and their solutions.
   uploadStore.uploadSuccess(id);     // Then notify UI
   ```
 - **Prevention**: Added `.claude/rules/service-layer.md` with IO-First Pattern
-- **Key Insight**: Zustand `subscribe()` callbacks run synchronously, not on next tick
+- **Key Insight**: Zustand `subscribe()` callbacks run synchronously, not on next tick.
 
+### [2026-01-07] Debug "Clear All Data" Freeze
+- **Problem**: App became unresponsive after clicking "Clear All Data" in Debug panel.
+- **Root Cause**:
+  1. `clearAllData` was deleting the `settings` table, including `schema_version`.
+  2. Post-reload, the App ran all migrations again (locking the DB).
+  3. Race conditions between background service polling and DB deletion.
+- **Solution**:
+  1. Modified `clearAllData` to exclude `settings` table (preserving schema_version and preferences).
+  2. Improved deletion order for child tables (transactions, etc.) to satisfy foreign keys.
+  3. Optimized `DebugView` to explicitly stop services (`captureService.destroy()`) and clear memory stores before reloading.
+- **Prevention**: Use `DELETE` on specific tables instead of broad wipes; ensure services are stopped before data resets.
+
+### [2026-01-07] Paste Interaction Permission Error
+- **Problem**: Pasteurizing images from clipboard failed with `fs.write_file not allowed`.
+- **Solution**: Updated `app/src-tauri/capabilities/default.json` to include `fs:allow-write-file`, `fs:allow-read-file`, `fs:allow-exists`, and `fs:allow-remove-file`.
+- **Knowledge**: High-level permission IDs like `fs:default` in Tauri 2.0 don't always cover specific write operations; explicit granular permissions are safer.
 ### [2026-01-03] Capture Pipeline Core Bugs (#45-49)
 - **#45 FAILURE blocks processing**: FSM entered 'error' state and never returned to 'idle'
   - Fix: Changed FAILURE reducer to return 'idle', store error per-image

@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 /**
  * Run all migrations on database
@@ -40,6 +40,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 4) {
     await migration_v4(db);
     await setVersion(db, 4);
+  }
+
+  if (version < 5) {
+    await migration_v5(db);
+    await setVersion(db, 5);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -221,6 +226,19 @@ async function migration_v4(db: Database): Promise<void> {
   await safeAddColumn(db, 'images', 'error', 'TEXT');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 4, phase: 'complete' });
+}
+
+/**
+ * Migration v5: Add original_name column to images table
+ * Stores the original filename from drag-drop/paste for UI display
+ */
+async function migration_v5(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 5, name: 'add_original_name', phase: 'start' });
+
+  // Add original_name column for filename display
+  await safeAddColumn(db, 'images', 'original_name', 'TEXT');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 5, phase: 'complete' });
 }
 
 // ============================================================================

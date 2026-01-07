@@ -185,6 +185,7 @@ class CaptureService {
         localPath: item.localPath,
         s3Key: null,
         thumbnailPath: null,
+        originalName: item.name,
         originalSize: 0,
         compressedSize: null,
         md5: null,
@@ -194,7 +195,7 @@ class CaptureService {
       };
 
       // Save to DB immediately for session recovery (IO first, then store)
-      await savePendingImage(image.id, this.userId, image.traceId, image.intentId, image.localPath);
+      await savePendingImage(image.id, this.userId, image.traceId, image.intentId, image.localPath, image.originalName);
 
       captureStore.getState().addImage(image);
 

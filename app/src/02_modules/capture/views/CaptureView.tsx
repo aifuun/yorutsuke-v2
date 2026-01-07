@@ -19,6 +19,20 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+// Truncate filename for display (max 20 chars)
+function truncateFilename(name: string | null, maxLen = 20): string {
+  if (!name) return '';
+  if (name.length <= maxLen) return name;
+  // Keep extension visible: "verylongfilena...jpg"
+  const ext = name.lastIndexOf('.');
+  if (ext > 0 && name.length - ext <= 5) {
+    const extPart = name.slice(ext);
+    const basePart = name.slice(0, maxLen - extPart.length - 3);
+    return `${basePart}...${extPart}`;
+  }
+  return name.slice(0, maxLen - 3) + '...';
+}
+
 // Status pipeline configuration (matches ImageStatus from types.ts)
 // Order: pending → compressed → uploading → uploaded
 const STATUS_PIPELINE = ['pending', 'compressed', 'uploading', 'uploaded'] as const;
@@ -199,7 +213,7 @@ export function CaptureView() {
                       key={image.id}
                       className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
                     >
-                      {/* Column 1: Thumbnail + MD5/ID */}
+                      {/* Column 1: Thumbnail + Filename + MD5/ID */}
                       <div className="queue-item__left">
                         <div className="queue-item__thumb">
                           {image.thumbnailPath ? (
@@ -208,7 +222,14 @@ export function CaptureView() {
                             <span className="queue-item__icon">🧾</span>
                           )}
                         </div>
-                        <p className="queue-item__id">{image.md5 ? image.md5.slice(0, 8) : image.id.slice(0, 8)}...</p>
+                        <div className="queue-item__info">
+                          {image.originalName && (
+                            <p className="queue-item__name" title={image.originalName}>
+                              {truncateFilename(image.originalName)}
+                            </p>
+                          )}
+                          <p className="queue-item__id">{image.md5 ? image.md5.slice(0, 8) : image.id.slice(0, 8)}...</p>
+                        </div>
                       </div>
 
                       {/* Column 2: Status Label + Size/Error */}

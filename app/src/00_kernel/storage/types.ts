@@ -26,6 +26,7 @@ export interface ImageRow {
   trace_id: string | null; // TraceId for observability (Pillar N)
   intent_id: string | null; // IntentId for idempotency (Pillar Q)
   original_path: string;
+  original_name: string | null;  // Original filename from drop
   compressed_path: string | null;
   original_size: number | null;
   compressed_size: number | null;

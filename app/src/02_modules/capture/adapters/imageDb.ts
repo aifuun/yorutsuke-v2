@@ -42,14 +42,15 @@ export async function savePendingImage(
   traceId: TraceId,
   intentId: IntentId,
   originalPath: string,
+  originalName: string | null,
 ): Promise<void> {
   logger.debug(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, status: 'pending', phase: 'start' });
 
   await execute(
     `INSERT INTO images (
-      id, user_id, trace_id, intent_id, original_path, status
-    ) VALUES (?, ?, ?, ?, ?, 'pending')`,
-    [String(id), String(userId), String(traceId), String(intentId), originalPath],
+      id, user_id, trace_id, intent_id, original_path, original_name, status
+    ) VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+    [String(id), String(userId), String(traceId), String(intentId), originalPath, originalName],
   );
 
   logger.info(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, status: 'pending' });
