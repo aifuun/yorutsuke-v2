@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import type { UserId as UserIdType } from '../types';
 import { getDeviceId } from '../identity';
 import { initDb } from '../storage/db';
+import { loadMockMode } from '../config/mock';
 import { logger, EVENTS } from '../telemetry';
 
 interface AppContextValue {
@@ -23,6 +24,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         // Ensure database is initialized first
         await initDb();
+
+        // Load persisted mock mode from database
+        await loadMockMode();
 
         // Get device ID - used directly as guest userId
         // Format: device-{machineId} (stable across app reinstalls)

@@ -8,8 +8,11 @@ import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
 // FSM State (from useCaptureLogic reducer)
 export type CaptureStatus = 'idle' | 'processing' | 'uploading';
 
+export type RejectionReason = 'format' | 'limit';
+
 export interface RejectionInfo {
   count: number;
+  reason: RejectionReason;
   timestamp: number;
 }
 
@@ -40,7 +43,7 @@ export interface CaptureActions {
   failure: (id: ImageId, error: string) => void;
 
   // Rejection notification
-  setRejection: (count: number) => void;
+  setRejection: (count: number, reason?: RejectionReason) => void;
   clearRejection: () => void;
 
   // Direct state access for service layer
@@ -141,8 +144,8 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
   })),
 
   // Rejection notification
-  setRejection: (count) => set({
-    rejection: { count, timestamp: Date.now() },
+  setRejection: (count, reason = 'format') => set({
+    rejection: { count, reason, timestamp: Date.now() },
   }),
   clearRejection: () => set({ rejection: null }),
 

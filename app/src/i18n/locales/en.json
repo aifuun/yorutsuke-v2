@@ -240,7 +240,10 @@
     "clearLocalStorage": "Clear Storage",
     "clearCacheConfirm": "This will clear all local data and reload the app. Continue?",
     "mockMode": "Mock Mode",
-    "mockModeHint": "Use mock API responses instead of real backend"
+    "mockModeHint": "Control API behavior for testing",
+    "mockOff": "Off (Real API)",
+    "mockOnline": "Online (Mock API)",
+    "mockOffline": "Offline (Network Fail)"
   },
   "capture": {
     "quota": "Quota",
@@ -251,6 +254,8 @@
     "supportedFormats": "Supports JPG, PNG, WebP",
     "rejected": "{{count}} file(s) rejected",
     "rejectedHint": "Only JPG, PNG, and WebP images are supported",
+    "rejectedLimit": "{{count}} file(s) rejected",
+    "rejectedLimitHint": "Maximum 50 files at once",
     "processingQueue": "Processing Queue",
     "pending": "Pending",
     "uploaded": "Uploaded",

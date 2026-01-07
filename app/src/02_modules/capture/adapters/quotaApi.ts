@@ -1,7 +1,7 @@
 // Pillar B: Airlock - validate all API responses with Zod
 import { z } from 'zod';
 import type { UserId } from '../../../00_kernel/types';
-import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
+import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
 import { countTodayUploads } from './imageDb';
 
 const QUOTA_URL = import.meta.env.VITE_LAMBDA_QUOTA_URL;
@@ -78,8 +78,14 @@ const TIER_LIMITS: Record<UserTier, number> = {
  * 3. Only the Lambda call is skipped, not the data
  */
 export async function fetchQuota(userId: UserId): Promise<QuotaResponse> {
-  // Mock mode - query local DB for accurate count (not fully mocked)
-  if (USE_MOCK) {
+  // Mocking offline - simulate network failure
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw new Error('Network error: offline mode');
+  }
+
+  // Mocking online - query local DB for accurate count (not fully mocked)
+  if (isMockingOnline()) {
     await mockDelay();
     // Real count from local database, not hardcoded
     const used = await countTodayUploads(userId);

@@ -4,7 +4,7 @@ import type { UserId } from '../../../00_kernel/types';
 import { TransactionId, ImageId, UserId as UserIdConstructor } from '../../../00_kernel/types';
 import type { Transaction, DailySummary } from '../../../01_domains/transaction';
 import { createMockReportData, createMockReportHistory } from './mockData';
-import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
+import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
 
 const CONFIG_URL = import.meta.env.VITE_LAMBDA_CONFIG_URL;
 
@@ -81,8 +81,14 @@ export async function fetchMorningReport(
   userId: UserId,
   date: string,
 ): Promise<MorningReportResponse> {
-  // Mock mode for UI development
-  if (USE_MOCK) {
+  // Mocking offline - simulate network failure
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw new Error('Network error: offline mode');
+  }
+
+  // Mocking online - return mock data
+  if (isMockingOnline()) {
     await mockDelay(300);
     return createMockReportData(date);
   }
@@ -112,8 +118,14 @@ export async function fetchReportHistory(
   userId: UserId,
   limit: number = 7,
 ): Promise<MorningReportResponse[]> {
-  // Mock mode for UI development
-  if (USE_MOCK) {
+  // Mocking offline - simulate network failure
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw new Error('Network error: offline mode');
+  }
+
+  // Mocking online - return mock data
+  if (isMockingOnline()) {
     await mockDelay(300);
     return createMockReportHistory(limit);
   }

@@ -1,5 +1,5 @@
 // Pillar L: View - Debug tools for development
-// Merged into 3 sections: System & Config, Logs, Dev Actions
+// 3 sections: Dev Actions, System & Config, Logs
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
@@ -11,7 +11,7 @@ import { clearAllData } from '../../../00_kernel/storage/db';
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { setMockEnabled, subscribeMockMode, getMockSnapshot } from '../../../00_kernel/config/mock';
+import { setMockMode, subscribeMockMode, getMockSnapshot, type MockMode } from '../../../00_kernel/config/mock';
 import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
 
@@ -24,7 +24,7 @@ function useLogs(): LogEntry[] {
 }
 
 // Hook to subscribe to mock mode
-function useMockMode(): boolean {
+function useMockMode(): MockMode {
   return useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 }
 
@@ -35,7 +35,7 @@ export function DebugView() {
   const { state, update } = useSettings();
   const { quota } = useQuota();
   const logs = useLogs();
-  const mockEnabled = useMockMode();
+  const mockMode = useMockMode();
 
   // Seed data state
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
@@ -149,39 +149,7 @@ export function DebugView() {
 
       <div className="debug-content">
         <div className="debug-container">
-          {/* Section 1: System & Config */}
-          <div className="card card--settings">
-            <h2 className="card--settings__header">{t('debug.systemInfo')}</h2>
-
-            <div className="debug-grid">
-              <div className="debug-grid-item">
-                <span className="debug-label">User</span>
-                <span className="debug-value mono">{user?.id || 'guest'}</span>
-              </div>
-              <div className="debug-grid-item">
-                <span className="debug-label">Tier</span>
-                <span className="debug-value">{user?.tier || 'free'}</span>
-              </div>
-              <div className="debug-grid-item">
-                <span className="debug-label">Quota</span>
-                <span className="debug-value mono">{quota.used} / {quota.limit}</span>
-              </div>
-              <div className="debug-grid-item">
-                <span className="debug-label">Theme</span>
-                <span className="debug-value">{currentSettings.theme}</span>
-              </div>
-              <div className="debug-grid-item">
-                <span className="debug-label">Lang</span>
-                <span className="debug-value">{currentSettings.language}</span>
-              </div>
-              <div className="debug-grid-item">
-                <span className="debug-label">DB</span>
-                <span className="debug-value mono">v3</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Dev Actions */}
+          {/* Section 1: Dev Actions */}
           <div className="card card--settings">
             <h2 className="card--settings__header">{t('debug.devActions')}</h2>
 
@@ -212,20 +180,22 @@ export function DebugView() {
               </div>
             </div>
 
-            {/* Mock Mode Toggle */}
+            {/* Mock Mode Dropdown */}
             <div className="setting-row">
               <div className="setting-row__info">
                 <p className="setting-row__label">{t('debug.mockMode')}</p>
                 <p className="setting-row__hint">{t('debug.mockModeHint')}</p>
               </div>
               <div className="setting-row__control">
-                <button
-                  type="button"
-                  className={`toggle-switch toggle-switch--sm ${mockEnabled ? 'toggle-switch--active' : ''}`}
-                  onClick={() => setMockEnabled(!mockEnabled)}
-                  role="switch"
-                  aria-checked={mockEnabled}
-                />
+                <select
+                  className="select select--sm"
+                  value={mockMode}
+                  onChange={(e) => setMockMode(e.target.value as MockMode)}
+                >
+                  <option value="off">{t('debug.mockOff')}</option>
+                  <option value="online">{t('debug.mockOnline')}</option>
+                  <option value="offline">{t('debug.mockOffline')}</option>
+                </select>
               </div>
             </div>
 
@@ -269,6 +239,38 @@ export function DebugView() {
                 {actionResult}
               </div>
             )}
+          </div>
+
+          {/* Section 2: System & Config */}
+          <div className="card card--settings">
+            <h2 className="card--settings__header">{t('debug.systemInfo')}</h2>
+
+            <div className="debug-grid">
+              <div className="debug-grid-item">
+                <span className="debug-label">User</span>
+                <span className="debug-value mono">{user?.id || 'guest'}</span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">Tier</span>
+                <span className="debug-value">{user?.tier || 'free'}</span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">Quota</span>
+                <span className="debug-value mono">{quota.used} / {quota.limit}</span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">Theme</span>
+                <span className="debug-value">{currentSettings.theme}</span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">Lang</span>
+                <span className="debug-value">{currentSettings.language}</span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">DB</span>
+                <span className="debug-value mono">v3</span>
+              </div>
+            </div>
           </div>
 
           {/* Section 3: Logs */}

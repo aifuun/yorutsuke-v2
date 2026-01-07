@@ -153,9 +153,15 @@ export function CaptureView() {
                 <span className="drop-rejection__icon">⚠️</span>
                 <div className="drop-rejection__content">
                   <span className="drop-rejection__title">
-                    {t('capture.rejected', { count: rejection.count })}
+                    {rejection.reason === 'limit'
+                      ? t('capture.rejectedLimit', { count: rejection.count })
+                      : t('capture.rejected', { count: rejection.count })}
                   </span>
-                  <span className="drop-rejection__hint">{t('capture.rejectedHint')}</span>
+                  <span className="drop-rejection__hint">
+                    {rejection.reason === 'limit'
+                      ? t('capture.rejectedLimitHint')
+                      : t('capture.rejectedHint')}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -175,7 +181,7 @@ export function CaptureView() {
               <div className="queue-header">
                 <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
                 {queue.some(img => img.status === 'uploaded') && (
-                  <span className="queue-header__hint">AI processing at 02:00</span>
+                  <span className="queue-header__hint">AI processing later</span>
                 )}
               </div>
               <div className="card--list__items">

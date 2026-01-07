@@ -7,6 +7,7 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/types';
 import { emit } from '../../../00_kernel/eventBus';
 import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/network';
+import { isMockingOffline } from '../../../00_kernel/config/mock';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { canUpload } from '../../../01_domains/receipt';
 
@@ -170,6 +171,11 @@ class UploadService {
     logger.info(EVENTS.UPLOAD_STARTED, { imageId: id });
 
     try {
+      // Check mocking offline mode (debug feature)
+      if (isMockingOffline()) {
+        throw new Error('Offline');
+      }
+
       // Get presigned URL
       const { url, key } = await getPresignedUrl(this.userId, `${id}.webp`, intentId);
 

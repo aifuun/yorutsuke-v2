@@ -25,6 +25,9 @@ export const MAX_IMAGE_SIZE_MB = 10;
 export const TARGET_WEBP_QUALITY = 80;
 export const MAX_DIMENSION = 2048;
 
+// Drop limit - prevent accidental bulk drops
+export const MAX_DROP_COUNT = 50;
+
 export function shouldCompress(originalSizeBytes: number): boolean {
   return originalSizeBytes > 100 * 1024; // Compress if > 100KB
 }

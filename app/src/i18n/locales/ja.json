@@ -240,7 +240,10 @@
     "clearLocalStorage": "ストレージをクリア",
     "clearCacheConfirm": "すべてのローカルデータをクリアしてアプリを再読み込みしますか？",
     "mockMode": "モックモード",
-    "mockModeHint": "実際のバックエンドの代わりにモックAPIを使用"
+    "mockModeHint": "テスト用のAPI動作を制御",
+    "mockOff": "オフ（実API）",
+    "mockOnline": "オンライン（モックAPI）",
+    "mockOffline": "オフライン（通信失敗）"
   },
   "capture": {
     "quota": "配額",
@@ -251,6 +254,8 @@
     "supportedFormats": "JPG, PNG, WebP対応",
     "rejected": "{{count}}ファイルが拒否されました",
     "rejectedHint": "JPG、PNG、WebP画像のみ対応しています",
+    "rejectedLimit": "{{count}}ファイルが拒否されました",
+    "rejectedLimitHint": "一度に最大50ファイルまで",
     "processingQueue": "処理キュー",
     "pending": "待機中",
     "uploaded": "アップロード済",

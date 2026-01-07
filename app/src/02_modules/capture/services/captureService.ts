@@ -5,6 +5,7 @@
 import type { ImageId, UserId } from '../../../00_kernel/types';
 import { createIntentId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
+import { MAX_DROP_COUNT } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { setupTauriDragListeners } from '../adapters/tauriDragDrop';
@@ -140,10 +141,23 @@ class CaptureService {
 
     if (items.length === 0) return;
 
-    logger.info(EVENTS.IMAGE_DROPPED, { count: items.length });
+    // Apply drop limit to prevent accidental bulk drops
+    let acceptedItems = items;
+    if (items.length > MAX_DROP_COUNT) {
+      logger.warn(EVENTS.IMAGE_REJECTED, {
+        reason: 'drop_limit_exceeded',
+        dropped: items.length,
+        accepted: MAX_DROP_COUNT,
+      });
+      acceptedItems = items.slice(0, MAX_DROP_COUNT);
+      // Add excess count to rejection notification
+      captureStore.getState().setRejection(items.length - MAX_DROP_COUNT, 'limit');
+    }
+
+    logger.info(EVENTS.IMAGE_DROPPED, { count: acceptedItems.length });
 
     // Add each item to queue
-    for (const item of items) {
+    for (const item of acceptedItems) {
       if (!this.userId) {
         logger.warn(EVENTS.IMAGE_PROCESSING_SKIPPED, { imageId: item.id, reason: 'no_user_id' });
         continue;

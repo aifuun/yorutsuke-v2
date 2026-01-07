@@ -2,7 +2,7 @@
 // Pillar Q: Intent-ID for idempotency
 import { z } from 'zod';
 import type { UserId, IntentId } from '../../../00_kernel/types';
-import { USE_MOCK, mockDelay } from '../../../00_kernel/config/mock';
+import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
@@ -51,8 +51,14 @@ export async function getPresignedUrl(
   intentId: IntentId,  // Pillar Q: Idempotency key
   contentType: string = 'image/webp',
 ): Promise<PresignResponse> {
-  // Mock mode for UI development
-  if (USE_MOCK) {
+  // Mocking offline - simulate network failure
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw new Error('Network error: offline mode');
+  }
+
+  // Mocking online - return mock presign URL
+  if (isMockingOnline()) {
     await mockDelay(100);
     logger.debug(EVENTS.UPLOAD_STARTED, { phase: 'mock_presign', fileName });
     return createMockPresign(userId, fileName);
@@ -97,8 +103,14 @@ export async function uploadToS3(
   file: Blob,
   contentType: string = 'image/webp',
 ): Promise<void> {
-  // Mock mode for UI development
-  if (USE_MOCK || presignedUrl.includes('mock-s3.local')) {
+  // Mocking offline - simulate network failure
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw new Error('Network error: offline mode');
+  }
+
+  // Mocking online - simulate successful upload
+  if (isMockingOnline() || presignedUrl.includes('mock-s3.local')) {
     await mockDelay(500); // Simulate upload time
     logger.debug(EVENTS.UPLOAD_COMPLETED, { phase: 'mock_s3', size: file.size });
     return;

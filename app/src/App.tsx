@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
-import { USE_MOCK } from './00_kernel/config/mock';
+import { subscribeMockMode, getMockSnapshot } from './00_kernel/config/mock';
 import { Sidebar, type ViewType } from './components/Sidebar';
 import { DashboardView } from './02_modules/report';
 import { CaptureView } from './02_modules/capture';
@@ -13,12 +13,13 @@ function AppContent() {
   const { userId } = useAppContext();
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const { isUnlocked: isDebugUnlocked } = useSecretCode();
+  const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
   return (
     <div className="app-shell">
-      {USE_MOCK && (
+      {mockMode !== 'off' && (
         <div className="mock-banner">
-          MOCK MODE - Data is simulated
+          {mockMode === 'online' ? 'MOCK MODE - Data is simulated' : 'OFFLINE MODE - Network disabled'}
         </div>
       )}
       <div className="app-body">

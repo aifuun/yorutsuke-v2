@@ -6,7 +6,7 @@
 
 ## Overview
 
-Mock mode enables UI development without AWS backend dependencies.
+Mock mode enables UI development and testing without AWS backend dependencies.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -15,34 +15,75 @@ Mock mode enables UI development without AWS backend dependencies.
 │  React Components → Services → Adapters                     │
 │                                    ↓                        │
 │                          ┌─────────────────┐                │
-│                          │   USE_MOCK ?    │                │
+│                          │   MockMode ?    │                │
 │                          └────────┬────────┘                │
 │                                   │                         │
-│                    ┌──────────────┴──────────────┐          │
-│                    ↓                             ↓          │
-│             Mock Response                  Real API         │
-│             (local data)                   (Lambda/S3)      │
+│                    ┌──────────────┼──────────────┐          │
+│                    ↓              ↓              ↓          │
+│                  'off'       'online'       'offline'       │
+│                Real API     Mock Data     Network Fail      │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Mock Modes
+
+| Mode | Value | Behavior | Use Case |
+|------|-------|----------|----------|
+| **Off** | `'off'` | Real API calls | Production, integration testing |
+| **Online** | `'online'` | Mock API responses | UI development |
+| **Offline** | `'offline'` | Simulated network failure | Session recovery testing |
+
+### Runtime Toggle
+
+Mock mode can be changed at runtime via Debug tab:
+
+```
+Debug → Mock Mode → [Off (Real API) / Online (Mock API) / Offline (Network Fail)]
+```
+
+---
 
 ## Design Decisions
 
 ### Centralized Configuration
 
-**Decision**: Single source of truth for mock state.
+**Decision**: Single source of truth for mock state with runtime toggle.
 
 ```typescript
 // 00_kernel/config/mock.ts
-export const USE_MOCK =
-  import.meta.env.VITE_USE_MOCK === 'true' ||
-  (!import.meta.env.VITE_LAMBDA_PRESIGN_URL &&
-   !import.meta.env.VITE_LAMBDA_QUOTA_URL &&
-   !import.meta.env.VITE_LAMBDA_CONFIG_URL);
+export type MockMode = 'off' | 'online' | 'offline';
+
+// Initial mode based on environment
+const INITIAL_MODE: MockMode =
+  import.meta.env.VITE_USE_MOCK === 'true'
+    ? 'online'
+    : HAS_REAL_BACKEND
+      ? 'off'
+      : 'online';
+
+// Runtime state
+let _mockMode: MockMode = INITIAL_MODE;
+
+// Check functions
+export function isMockEnabled(): boolean {
+  return _mockMode === 'online';
+}
+
+export function isOfflineEnabled(): boolean {
+  return _mockMode === 'offline';
+}
+
+// Runtime toggle
+export function setMockMode(mode: MockMode): void {
+  _mockMode = mode;
+  // ... notify listeners
+}
 ```
 
-**Trigger conditions**:
-1. Explicit: `VITE_USE_MOCK=true` in `.env.local`
-2. Implicit: No Lambda URLs configured (fallback for new developers)
+**Trigger conditions for initial mode**:
+1. Explicit: `VITE_USE_MOCK=true` → starts in `'online'` mode
+2. No Lambda URLs configured → starts in `'online'` mode (fallback)
+3. Lambda URLs configured → starts in `'off'` mode
 
 ### Per-Adapter Mocking
 
@@ -85,7 +126,7 @@ export function mockDelay(ms?: number): Promise<void> {
 
 ```typescript
 // adapters/someApi.ts
-import { USE_MOCK, mockDelay } from '00_kernel/config/mock';
+import { isMockEnabled, mockDelay } from '00_kernel/config/mock';
 
 // 1. Define mock data generator
 function createMockData(): SomeResponse {
@@ -95,9 +136,9 @@ function createMockData(): SomeResponse {
   };
 }
 
-// 2. Check USE_MOCK at function start
+// 2. Check isMockEnabled() at function start (runtime check)
 export async function fetchSomething(id: string): Promise<SomeResponse> {
-  if (USE_MOCK) {
+  if (isMockEnabled()) {
     await mockDelay();
     console.log('[Mock] fetchSomething:', id);
     return createMockData();
@@ -106,6 +147,24 @@ export async function fetchSomething(id: string): Promise<SomeResponse> {
   // Real implementation
   const response = await fetch(`${API_URL}/something/${id}`);
   return SomeResponseSchema.parse(await response.json());
+}
+```
+
+### Offline Mode in Services
+
+For services that need to test network failure scenarios:
+
+```typescript
+// services/uploadService.ts
+import { isOfflineEnabled } from '00_kernel/config/mock';
+
+async function processUpload(file: File): Promise<void> {
+  // Check offline mode BEFORE network operations
+  if (isOfflineEnabled()) {
+    throw new Error('Offline mode enabled (debug)');
+  }
+
+  // Proceed with upload...
 }
 ```
 
@@ -125,7 +184,7 @@ export async function fetchSomething(id: string): Promise<SomeResponse> {
 | Adapter | Mock Status | Mock Behavior |
 |---------|-------------|---------------|
 | `uploadApi.ts` | ✅ Complete | Fake presign URL, simulated S3 upload |
-| `quotaApi.ts` | ✅ Complete | Random usage (0-10), fixed limits |
+| `quotaApi.ts` | ✅ Complete | Queries local DB (real count), mock tier |
 | `reportApi.ts` | ✅ Complete | 8 random transactions |
 | `authApi.ts` | ⚠️ Partial | Guest mode only |
 | `imageIpc.ts` | ❌ None | Uses real Rust IPC (local) |
@@ -155,7 +214,7 @@ export async function fetchSomething(id: string): Promise<SomeResponse> {
 
 ## Usage
 
-### Enable Mock Mode
+### Enable Mock Mode (Development)
 
 ```bash
 cd app
@@ -169,11 +228,28 @@ echo "" > .env.local
 npm run tauri dev
 ```
 
+### Runtime Toggle (Debug Tab)
+
+1. Open app → Debug tab
+2. Find "Mock Mode" dropdown
+3. Select mode:
+   - **Off (Real API)**: Use real backend
+   - **Online (Mock API)**: Use mock responses
+   - **Offline (Network Fail)**: Simulate network failure
+
 ### Verify Mock Mode Active
 
 1. **Console**: Look for `[Mock] Mode: ENABLED` at startup
 2. **UI**: Orange banner at top: "MOCK MODE - Data is simulated"
 3. **Logs**: API calls prefixed with `[Mock]`
+
+### Test Session Recovery (SC-501)
+
+1. Set Mock Mode to **"Offline (Network Fail)"**
+2. Drop a receipt image
+3. Image compresses → upload fails → stays in queue
+4. Close app (Cmd+Q)
+5. Reopen → queue should restore with pending item
 
 ### Disable Mock Mode
 
@@ -189,12 +265,42 @@ npm run tauri dev
 
 ---
 
+## API Reference
+
+```typescript
+// 00_kernel/config/mock.ts
+
+// Types
+type MockMode = 'off' | 'online' | 'offline';
+
+// Read state
+function getMockMode(): MockMode;
+function isMockEnabled(): boolean;      // true when 'online'
+function isOfflineEnabled(): boolean;   // true when 'offline'
+
+// Write state
+function setMockMode(mode: MockMode): void;
+
+// React integration
+function subscribeMockMode(listener: () => void): () => void;
+function getMockSnapshot(): MockMode;  // for useSyncExternalStore
+
+// Utility
+function mockDelay(ms?: number): Promise<void>;
+
+// Legacy (deprecated)
+const USE_MOCK: boolean;  // Use isMockEnabled() instead
+function setMockEnabled(enabled: boolean): void;  // Use setMockMode() instead
+```
+
+---
+
 ## References
 
 - [README.md](../README.md) - Quick start for mock mode
-- [INTERFACES.md](./INTERFACES.md) - API specifications being mocked
+- [INTERFACES.md](../architecture/INTERFACES.md) - API specifications being mocked
 - [MVP_PLAN.md](../dev/MVP_PLAN.md) - Testing phases
 
 ---
 
-*Last updated: 2026-01-05*
+*Last updated: 2026-01-07*

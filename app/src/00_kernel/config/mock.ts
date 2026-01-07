@@ -1,41 +1,108 @@
-// Mock mode configuration for UI development
-// When enabled, API calls return mock data instead of hitting real backends
+// Mock mode configuration for UI development and testing
+// Three modes: off (real API), online (mock API), offline (simulate network failure)
+// Persisted in SQLite settings table
 import { logger, EVENTS } from '../telemetry/logger';
+import { getSetting, setSetting } from '../storage/db';
 
 /**
- * Initial mock mode is enabled when:
- * 1. VITE_USE_MOCK=true (explicit), or
- * 2. No Lambda URLs are configured (implicit)
+ * Mock mode states:
+ * - 'off': Real API calls (production mode)
+ * - 'online': Mock API responses (UI development)
+ * - 'offline': Simulate network failure (test session recovery)
  */
-const INITIAL_MOCK =
-  import.meta.env.VITE_USE_MOCK === 'true' ||
-  (!import.meta.env.VITE_LAMBDA_PRESIGN_URL &&
-   !import.meta.env.VITE_LAMBDA_QUOTA_URL &&
-   !import.meta.env.VITE_LAMBDA_CONFIG_URL);
+export type MockMode = 'off' | 'online' | 'offline';
+
+const MOCK_MODE_KEY = 'mock_mode';
+
+/**
+ * Default mock mode after fresh installation is 'off'.
+ * Can be overridden by VITE_USE_MOCK=true for development.
+ */
+const DEFAULT_MODE: MockMode =
+  import.meta.env.VITE_USE_MOCK === 'true' ? 'online' : 'off';
 
 // Runtime mock state
-let _mockEnabled = INITIAL_MOCK;
+let _mockMode: MockMode = DEFAULT_MODE;
+let _initialized = false;
 const _listeners = new Set<() => void>();
 
 /**
- * Check if mock mode is currently enabled
+ * Check if mocking online mode (API returns mock data, no real calls)
  */
-export function isMockEnabled(): boolean {
-  return _mockEnabled;
+export function isMockingOnline(): boolean {
+  return _mockMode === 'online';
 }
 
 /**
- * For backwards compatibility - use isMockEnabled() for reactive checks
+ * Check if mocking offline mode (simulates network failure)
  */
-export const USE_MOCK = INITIAL_MOCK;
+export function isMockingOffline(): boolean {
+  return _mockMode === 'offline';
+}
+
+// Deprecated aliases for backwards compatibility
+/** @deprecated Use isMockingOnline() instead */
+export const isMockEnabled = isMockingOnline;
+/** @deprecated Use isMockingOffline() instead */
+export const isOfflineEnabled = isMockingOffline;
 
 /**
- * Toggle mock mode at runtime
+ * Get current mock mode
+ */
+export function getMockMode(): MockMode {
+  return _mockMode;
+}
+
+/**
+ * @deprecated Use isMockEnabled() for reactive checks.
+ * This constant is set at module load time and doesn't respond to runtime changes.
+ */
+export const USE_MOCK = DEFAULT_MODE !== 'off';
+
+/**
+ * Load mock mode from database on app start
+ * Call this during app initialization after DB is ready
+ */
+export async function loadMockMode(): Promise<void> {
+  if (_initialized) return;
+
+  try {
+    const saved = await getSetting(MOCK_MODE_KEY);
+    if (saved && isValidMockMode(saved)) {
+      _mockMode = saved;
+      _listeners.forEach(listener => listener());
+      logger.info(EVENTS.MOCK_MODE_CHANGED, { mode: saved, source: 'db' });
+    }
+    _initialized = true;
+  } catch (error) {
+    logger.warn('mock_mode_load_failed', { error: String(error) });
+  }
+}
+
+function isValidMockMode(value: string): value is MockMode {
+  return value === 'off' || value === 'online' || value === 'offline';
+}
+
+/**
+ * Set mock mode at runtime and persist to database
+ */
+export function setMockMode(mode: MockMode): void {
+  _mockMode = mode;
+  _listeners.forEach(listener => listener());
+  logger.info(EVENTS.MOCK_MODE_CHANGED, { mode });
+
+  // Persist to database (fire and forget)
+  setSetting(MOCK_MODE_KEY, mode).catch(error => {
+    logger.warn('mock_mode_save_failed', { error: String(error) });
+  });
+}
+
+/**
+ * Toggle mock mode at runtime (legacy, use setMockMode instead)
+ * @deprecated Use setMockMode() instead
  */
 export function setMockEnabled(enabled: boolean): void {
-  _mockEnabled = enabled;
-  _listeners.forEach(listener => listener());
-  logger.info(EVENTS.MOCK_MODE_CHANGED, { enabled });
+  setMockMode(enabled ? 'online' : 'off');
 }
 
 /**
@@ -47,10 +114,10 @@ export function subscribeMockMode(listener: () => void): () => void {
 }
 
 /**
- * Get current mock state (for useSyncExternalStore)
+ * Get current mock mode (for useSyncExternalStore)
  */
-export function getMockSnapshot(): boolean {
-  return _mockEnabled;
+export function getMockSnapshot(): MockMode {
+  return _mockMode;
 }
 
 /**
@@ -64,5 +131,5 @@ export function mockDelay(ms?: number): Promise<void> {
 
 // Log mock mode status in development
 if (import.meta.env.DEV) {
-  logger.info(EVENTS.MOCK_MODE_CHANGED, { enabled: INITIAL_MOCK, initial: true });
+  logger.info(EVENTS.MOCK_MODE_CHANGED, { mode: DEFAULT_MODE, initial: true });
 }
