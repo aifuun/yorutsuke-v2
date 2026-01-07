@@ -1,3 +1,8 @@
+---
+paths:
+  - "app/src-tauri/**"
+  - "infra/**"
+---
 # Tauri + React + AWS CDK Stack Rules
 
 ## Tauri (src-tauri/)
@@ -17,26 +22,7 @@
 - Use allowlist for file/network access
 - Never expose sensitive Rust APIs directly
 
-## React Frontend (src/)
-
-> Module structure: see `.prot/STRUCTURE.md`
-
-### Headless Hooks
-```typescript
-// GOOD: Returns data + functions
-function useCartLogic() {
-  const [state, dispatch] = useReducer(reducer, 'idle');
-  const addItem = (id: ItemId) => { ... };
-  return { state, addItem };
-}
-
-// BAD: Returns JSX
-function useCart() {
-  return <div>Cart</div>; // FORBIDDEN in headless/
-}
-```
-
-### Tauri IPC
+### Tauri IPC (Frontend)
 ```typescript
 // adapters/fileIpc.ts
 import { invoke } from '@tauri-apps/api/tauri';

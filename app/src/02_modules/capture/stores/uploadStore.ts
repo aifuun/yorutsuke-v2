@@ -57,6 +57,7 @@ export interface UploadActions {
   getTasks: () => UploadTask[];
   getStatus: () => QueueStatus;
   getIdleTasks: () => UploadTask[];
+  clearTasks: () => void;
 }
 
 export type UploadStore = UploadState & UploadActions;
@@ -80,25 +81,25 @@ export function classifyError(error: string): UploadErrorType {
 
   // Network errors - auto-retry
   if (errorLower.includes('fetch') ||
-      errorLower.includes('network') ||
-      errorLower.includes('timeout') ||
-      errorLower.includes('econnrefused')) {
+    errorLower.includes('network') ||
+    errorLower.includes('timeout') ||
+    errorLower.includes('econnrefused')) {
     return 'network';
   }
 
   // Quota/auth errors - no retry
   if (errorLower.includes('429') ||
-      errorLower.includes('limit') ||
-      errorLower.includes('quota') ||
-      errorLower.includes('403')) {
+    errorLower.includes('limit') ||
+    errorLower.includes('quota') ||
+    errorLower.includes('403')) {
     return 'quota';
   }
 
   // Server errors - auto-retry
   if (errorLower.includes('500') ||
-      errorLower.includes('502') ||
-      errorLower.includes('503') ||
-      errorLower.includes('504')) {
+    errorLower.includes('502') ||
+    errorLower.includes('503') ||
+    errorLower.includes('504')) {
     return 'server';
   }
 
@@ -209,4 +210,10 @@ export const uploadStore = createStore<UploadStore>((set, get) => ({
   getTasks: () => get().tasks,
   getStatus: () => get().status,
   getIdleTasks: () => get().tasks.filter(t => t.status === 'idle'),
+  clearTasks: () => set({
+    status: 'idle',
+    tasks: [],
+    currentId: null,
+    pauseReason: null,
+  }),
 }));

@@ -7,11 +7,14 @@ import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction/adapters/seedData';
 import { resetTodayQuota } from '../../capture/adapters/imageDb';
-import { clearAllData } from '../../../00_kernel/storage/db';
+import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { setMockMode, subscribeMockMode, getMockSnapshot, type MockMode } from '../../../00_kernel/config/mock';
+import { captureService } from '../../capture/services/captureService';
+import { captureStore } from '../../capture/stores/captureStore';
+import { uploadStore } from '../../capture/stores/uploadStore';
 import type { UserId } from '../../../00_kernel/types';
 import './debug.css';
 
@@ -115,9 +118,9 @@ export function DebugView() {
     setActionStatus('idle');
   };
 
-  const handleClearStorage = async () => {
-    const confirmed = await ask(t('debug.clearCacheConfirm'), {
-      title: 'Clear Storage',
+  const handleClearBusinessData = async () => {
+    const confirmed = await ask(t('debug.clearBusinessDataConfirm'), {
+      title: 'Clear Business Data',
       kind: 'warning',
     });
 
@@ -126,17 +129,54 @@ export function DebugView() {
     }
 
     setActionStatus('running');
-    setActionResult(null);
+    setActionResult('Clearing data...');
 
     try {
-      const results = await clearAllData();
-      const total = Object.values(results).reduce((a, b) => a + b, 0);
-      setActionResult(`Cleared ${total} rows`);
+      // 1. Stop background services to prevent race conditions
+      captureService.destroy();
 
-      // Reload after short delay so user sees the result
+      // 2. Clear DB business tables (preserves settings)
+      const results = await clearBusinessData();
+
+      // 3. Clear memory stores
+      captureStore.getState().clearQueue();
+      uploadStore.getState().clearTasks();
+
+      const total = Object.values(results).reduce((a, b) => a + b, 0);
+      setActionResult(`Cleared ${total} rows. Restarting...`);
+
+      // 4. Reload to reinitialize
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 1500);
+    } catch (e) {
+      setActionResult('Error: ' + String(e));
+      setActionStatus('idle');
+      captureService.init();
+    }
+  };
+
+  const handleClearSettings = async () => {
+    const confirmed = await ask(t('debug.clearSettingsConfirm'), {
+      title: 'Clear Settings',
+      kind: 'warning',
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionStatus('running');
+    setActionResult('Clearing settings...');
+
+    try {
+      const count = await clearSettings();
+      setActionResult(`Cleared ${count} settings. Restarting...`);
+
+      // Reload to apply default settings
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (e) {
       setActionResult('Error: ' + String(e));
       setActionStatus('idle');
@@ -219,16 +259,34 @@ export function DebugView() {
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.clearLocalStorage')}</p>
-                <p className="setting-row__hint">{t('settings.clearCacheHint')}</p>
+                <p className="setting-row__label">{t('debug.clearBusinessData')}</p>
+                <p className="setting-row__hint">{t('debug.clearBusinessDataHint')}</p>
               </div>
               <div className="setting-row__control">
                 <button
                   type="button"
                   className="btn btn--danger btn--sm"
-                  onClick={handleClearStorage}
+                  onClick={handleClearBusinessData}
+                  disabled={actionStatus === 'running'}
                 >
                   Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-row setting-row--danger">
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('debug.clearSettings')}</p>
+                <p className="setting-row__hint">{t('debug.clearSettingsHint')}</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--warning btn--sm"
+                  onClick={handleClearSettings}
+                  disabled={actionStatus === 'running'}
+                >
+                  Reset
                 </button>
               </div>
             </div>

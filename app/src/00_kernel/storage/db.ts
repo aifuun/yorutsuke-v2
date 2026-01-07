@@ -186,29 +186,50 @@ export async function setSchemaVersion(version: number): Promise<void> {
 }
 
 /**
- * Clear all user data from database (for debug/reset)
- * Preserves schema version and settings structure
+ * Clear business data from database (images, transactions, caches)
+ * Preserves settings (language, theme, mock mode, etc.)
  * Returns count of deleted rows per table
  */
-export async function clearAllData(): Promise<Record<string, number>> {
+export async function clearBusinessData(): Promise<Record<string, number>> {
   const database = await getDb();
   const results: Record<string, number> = {};
 
-  // Tables to clear (order matters for foreign keys)
-  const tables = ['images', 'transactions', 'settings'];
+  // Business data tables (order matters for foreign keys: delete children first)
+  const tables = ['transactions', 'transactions_cache', 'morning_report_cache', 'analytics', 'images'];
 
-  // Delete from each table individually (no transaction needed for simple deletes)
   for (const table of tables) {
     try {
       const result = await database.execute(`DELETE FROM ${table}`);
       results[table] = result.rowsAffected ?? 0;
     } catch (error) {
-      // Table might not exist, that's ok
+      // Table might not exist yet, that's ok
       logger.debug('db_clear_table_skip', { table, error: String(error) });
       results[table] = 0;
     }
   }
 
-  logger.info('db_data_cleared', results);
+  logger.info('db_business_data_cleared', results);
   return results;
+}
+
+/**
+ * Clear settings from database (language, theme, mock mode, etc.)
+ * Preserves schema_version for migrations
+ * Returns count of deleted settings
+ */
+export async function clearSettings(): Promise<number> {
+  const database = await getDb();
+
+  try {
+    // Keep schema_version, clear everything else
+    const result = await database.execute(
+      `DELETE FROM settings WHERE key != 'schema_version'`
+    );
+    const count = result.rowsAffected ?? 0;
+    logger.info('db_settings_cleared', { count });
+    return count;
+  } catch (error) {
+    logger.debug('db_clear_settings_skip', { error: String(error) });
+    return 0;
+  }
 }

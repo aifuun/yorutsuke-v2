@@ -1,9 +1,7 @@
----
-paths: "**/workflows/*.ts"
----
 # Saga/Workflow Rules
 
-> Workflows = T3 operations (distributed writes, payments). High risk, high protection.
+> T3 operations (distributed writes, payments). High risk, high protection.
+> Apply when: Creating `*Saga.ts` files or implementing batch/payment flows.
 
 ## Quick Check
 

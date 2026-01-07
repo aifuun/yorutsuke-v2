@@ -64,5 +64,6 @@ await updateImagesUserId(oldUserId, newUserId);
 
 ## References
 
-- Architecture: `docs/architecture/ARCHITECTURE.md#device-id`
+- Architecture: `docs/architecture/README.md`
+- Data Model: `docs/architecture/SCHEMA.md`
 - Implementation: `app/src/00_kernel/identity/deviceId.ts`

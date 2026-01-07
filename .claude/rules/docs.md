@@ -10,11 +10,11 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | Directory | Contents |
 |-----------|----------|
 | `product/` | REQUIREMENTS, ROADMAP, CHANGELOG |
-| `architecture/` | ARCHITECTURE, SCHEMA, INTERFACES |
+| `architecture/` | Index, LAYERS, PATTERNS, SCHEMA, MODELS, STORES, STORAGE |
 | `design/` | COLOR, TYPOGRAPHY, 00-04 view specs |
 | `operations/` | OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL |
-| `dev/` | MVP_PLAN, PROGRAM_PATHS, dev notes |
-| `tests/` | FRONTEND, BACKEND, MOCKING |
+| `dev/` | MVP_PLAN, MVPX_*.md, paths/ |
+| `tests/` | frontend/, BACKEND, MOCKING |
 | `archive/` | Historical docs |
 
 ## Core Documents (Required)
@@ -22,8 +22,9 @@ Files in `docs/` are **Source of Truth**. Read before coding.
 | Document | Purpose | Content |
 |----------|---------|---------|
 | `product/REQUIREMENTS.md` | What to build | Features, specs, acceptance criteria |
-| `architecture/ARCHITECTURE.md` | How to organize | Modules, tech stack, data flow |
-| `architecture/SCHEMA.md` | Data model | Entities, relationships, constraints |
+| `architecture/README.md` | How to organize | Architecture Index, Layers, Patterns |
+| `architecture/SCHEMA.md` | Data model | Database tables and cloud schemas |
+| `architecture/STORES.md` | Runtime state | Zustand store definitions |
 
 ## Tauri Desktop App
 
