@@ -11,7 +11,7 @@ import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db'
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless/debugLog';
 import { emit } from '../../../00_kernel/eventBus';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { setMockMode, subscribeMockMode, getMockSnapshot, type MockMode } from '../../../00_kernel/config/mock';
+import { setMockMode, subscribeMockMode, getMockSnapshot, isSlowUpload, setSlowUpload, type MockMode } from '../../../00_kernel/config/mock';
 import { captureService } from '../../capture/services/captureService';
 import { captureStore } from '../../capture/stores/captureStore';
 import { uploadStore } from '../../capture/stores/uploadStore';
@@ -44,6 +44,7 @@ export function DebugView() {
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
   const [actionStatus, setActionStatus] = useState<'idle' | 'running'>('idle');
   const [actionResult, setActionResult] = useState<string | null>(null);
+  const [slowUpload, setSlowUploadState] = useState(isSlowUpload);
 
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
@@ -52,6 +53,11 @@ export function DebugView() {
       setVerboseLogging(state.settings.debugEnabled);
     }
   }, [state]);
+
+  // Sync slow upload state after DB load (race condition fix)
+  useEffect(() => {
+    setSlowUploadState(isSlowUpload());
+  }, []);
 
   // Handle loading state
   if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
@@ -183,6 +189,12 @@ export function DebugView() {
     }
   };
 
+  const handleSlowUploadToggle = () => {
+    const newValue = !slowUpload;
+    setSlowUploadState(newValue);
+    setSlowUpload(newValue);
+  };
+
   return (
     <div className="debug">
       <DebugHeader title={t('debug.title')} version={APP_VERSION} />
@@ -236,6 +248,24 @@ export function DebugView() {
                   <option value="online">{t('debug.mockOnline')}</option>
                   <option value="offline">{t('debug.mockOffline')}</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Slow Upload Toggle (for SC-503 testing) */}
+            <div className="setting-row">
+              <div className="setting-row__info">
+                <p className="setting-row__label">{t('debug.slowUpload')}</p>
+                <p className="setting-row__hint">{t('debug.slowUploadHint')}</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className={`toggle-switch toggle-switch--sm ${slowUpload ? 'toggle-switch--active' : ''}`}
+                  onClick={handleSlowUploadToggle}
+                  role="switch"
+                  aria-checked={slowUpload}
+                  disabled={mockMode === 'off'}
+                />
               </div>
             </div>
 

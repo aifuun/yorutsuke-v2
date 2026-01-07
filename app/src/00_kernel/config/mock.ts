@@ -13,6 +13,7 @@ import { getSetting, setSetting } from '../storage/db';
 export type MockMode = 'off' | 'online' | 'offline';
 
 const MOCK_MODE_KEY = 'mock_mode';
+const SLOW_UPLOAD_KEY = 'slow_upload';
 
 /**
  * Default mock mode is always 'off'.
@@ -22,6 +23,7 @@ const DEFAULT_MODE: MockMode = 'off';
 
 // Runtime mock state
 let _mockMode: MockMode = DEFAULT_MODE;
+let _slowUpload = false; // For testing SC-503: simulate slow upload
 let _initialized = false;
 const _listeners = new Set<() => void>();
 
@@ -37,6 +39,27 @@ export function isMockingOnline(): boolean {
  */
 export function isMockingOffline(): boolean {
   return _mockMode === 'offline';
+}
+
+/**
+ * Check if slow upload mode is enabled (for SC-503 testing)
+ */
+export function isSlowUpload(): boolean {
+  return _slowUpload;
+}
+
+/**
+ * Set slow upload mode (for testing force-close during upload)
+ * Persists to SQLite for survival across reloads
+ */
+export function setSlowUpload(enabled: boolean): void {
+  _slowUpload = enabled;
+  logger.info('slow_upload_changed', { enabled });
+
+  // Persist to database (fire and forget)
+  setSetting(SLOW_UPLOAD_KEY, enabled ? 'true' : 'false').catch(error => {
+    logger.warn('slow_upload_save_failed', { error: String(error) });
+  });
 }
 
 // Deprecated aliases for backwards compatibility
@@ -58,7 +81,7 @@ export function getMockMode(): MockMode {
 export const USE_MOCK = false;
 
 /**
- * Load mock mode from database on app start
+ * Load mock mode and slow upload from database on app start
  * Call this during app initialization after DB is ready
  *
  * NOTE: In production builds, mock mode is always 'off' and DB is not read.
@@ -75,12 +98,19 @@ export async function loadMockMode(): Promise<void> {
 
   // Development: load from DB
   try {
-    const saved = await getSetting(MOCK_MODE_KEY);
-    if (saved && isValidMockMode(saved)) {
-      _mockMode = saved;
+    const savedMode = await getSetting(MOCK_MODE_KEY);
+    if (savedMode && isValidMockMode(savedMode)) {
+      _mockMode = savedMode;
       _listeners.forEach(listener => listener());
-      logger.info(EVENTS.MOCK_MODE_CHANGED, { mode: saved, source: 'db' });
+      logger.info(EVENTS.MOCK_MODE_CHANGED, { mode: savedMode, source: 'db' });
     }
+
+    const savedSlowUpload = await getSetting(SLOW_UPLOAD_KEY);
+    if (savedSlowUpload === 'true') {
+      _slowUpload = true;
+      logger.info('slow_upload_loaded', { enabled: true, source: 'db' });
+    }
+
     _initialized = true;
   } catch (error) {
     logger.warn('mock_mode_load_failed', { error: String(error) });

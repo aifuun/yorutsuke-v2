@@ -2,7 +2,7 @@
 // Pillar Q: Intent-ID for idempotency
 import { z } from 'zod';
 import type { UserId, IntentId } from '../../../00_kernel/types';
-import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
+import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
@@ -111,8 +111,10 @@ export async function uploadToS3(
 
   // Mocking online - simulate successful upload
   if (isMockingOnline() || presignedUrl.includes('mock-s3.local')) {
-    await mockDelay(500); // Simulate upload time
-    logger.debug(EVENTS.UPLOAD_COMPLETED, { phase: 'mock_s3', size: file.size });
+    // SC-503: Use 3s delay when slow upload enabled for force-close testing
+    const uploadDelay = isSlowUpload() ? 3000 : 500;
+    await mockDelay(uploadDelay);
+    logger.debug(EVENTS.UPLOAD_COMPLETED, { phase: 'mock_s3', size: file.size, slowMode: isSlowUpload() });
     return;
   }
 

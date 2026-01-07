@@ -247,7 +247,9 @@
     "mockModeHint": "Control API behavior for testing",
     "mockOff": "Off (Real API)",
     "mockOnline": "Online (Mock API)",
-    "mockOffline": "Offline (Network Fail)"
+    "mockOffline": "Offline (Network Fail)",
+    "slowUpload": "Slow Upload",
+    "slowUploadHint": "3s delay for testing force-close (SC-503)"
   },
   "capture": {
     "quota": "Quota",

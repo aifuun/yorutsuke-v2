@@ -247,7 +247,9 @@
     "mockModeHint": "テスト用のAPI動作を制御",
     "mockOff": "オフ（実API）",
     "mockOnline": "オンライン（モックAPI）",
-    "mockOffline": "オフライン（通信失敗）"
+    "mockOffline": "オフライン（通信失敗）",
+    "slowUpload": "低速アップロード",
+    "slowUploadHint": "強制終了テスト用3秒遅延（SC-503）"
   },
   "capture": {
     "quota": "配額",
