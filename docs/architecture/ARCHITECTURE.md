@@ -2,16 +2,16 @@
 
 > System architecture - How to organize
 
-> ⚠️ **REFACTORING IN PROGRESS** (#94)
+> ⚠️ **DEPRECATED** - See [README.md](./README.md) for navigation
 >
-> This document is being split into smaller, focused files:
+> This document has been split into smaller, focused files (#94):
 > - [README.md](./README.md) - Navigation index ✅
 > - [LAYERS.md](./LAYERS.md) - Four-layer architecture ✅
 > - [PATTERNS.md](./PATTERNS.md) - Core patterns ✅
 > - [FLOWS.md](./FLOWS.md) - Data flows ✅
-> - ADR/ - Decision records (TODO: Phase 3)
+> - [ADR/](./ADR/) - Decision records ✅
 >
-> This file will be deprecated once migration is complete.
+> Content below is kept for reference during transition.
 
 ## Overview
 

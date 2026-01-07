@@ -17,6 +17,7 @@
 | [SCHEMA.md](./SCHEMA.md) | Data model (entities, tables) | Database work |
 | [INTERFACES.md](./INTERFACES.md) | API specifications (IPC, REST) | Integration work |
 | [PROGRAM_PATHS.md](./PROGRAM_PATHS.md) | Directory structure | Finding files |
+| [ADR/](./ADR/) | Architecture Decision Records | Understanding past decisions |
 
 ## Quick Reference
 
@@ -58,7 +59,10 @@ docs/architecture/
 ├── SCHEMA.md           # Data model
 ├── INTERFACES.md       # API specs
 ├── PROGRAM_PATHS.md    # Directory structure
-└── ADR/                # Decision records (TODO: Phase 3)
+└── ADR/                # Decision records ✅
+    ├── README.md       # ADR index
+    ├── 001-service-pattern.md
+    └── 002-strictmode-fix.md
 ```
 
 ## Related
