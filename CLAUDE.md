@@ -132,7 +132,14 @@ yorutsuke-v2/
 │
 ├── docs/                   # Source of Truth
 │   ├── product/            # REQUIREMENTS, ROADMAP, CHANGELOG
-│   ├── architecture/       # ARCHITECTURE, SCHEMA, INTERFACES
+│   ├── architecture/       # System architecture (see README.md for index)
+│   │   ├── README.md       # Navigation index
+│   │   ├── LAYERS.md       # Four-layer architecture
+│   │   ├── PATTERNS.md     # State patterns (Zustand/EventBus)
+│   │   ├── FLOWS.md        # Data flow diagrams
+│   │   ├── SCHEMA.md       # Entity definitions
+│   │   ├── INTERFACES.md   # IPC/API contracts
+│   │   └── ADR/            # Architecture Decision Records
 │   ├── design/             # COLOR, TYPOGRAPHY, 00-04 view specs
 │   ├── operations/         # OPERATIONS, QUOTA, LOGGING, ADMIN_PANEL
 │   ├── dev/                # MVP_PLAN, PROGRAM_PATHS
@@ -312,9 +319,13 @@ cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
 
 | Category | File | Description |
 |----------|------|-------------|
-| **Architecture** | `docs/architecture/ARCHITECTURE.md` | System design, layers, data flow |
+| **Architecture Index** | `docs/architecture/README.md` | Navigation to all architecture docs |
+| **Layers** | `docs/architecture/LAYERS.md` | Four-layer architecture (React/Service/Adapter/Tauri) |
+| **Patterns** | `docs/architecture/PATTERNS.md` | Zustand vs EventBus, Writer/Observer |
+| **Flows** | `docs/architecture/FLOWS.md` | Data flow diagrams (Capture/Batch/Report) |
 | **Schema** | `docs/architecture/SCHEMA.md` | Entity definitions, database schema |
 | **Interfaces** | `docs/architecture/INTERFACES.md` | IPC commands, API contracts |
+| **ADRs** | `docs/architecture/ADR/` | Architecture Decision Records |
 | **Design System** | `docs/design/COLOR.md` | 25-color palette, semantic tokens |
 | **Typography** | `docs/design/TYPOGRAPHY.md` | Font scales, text styles |
 | **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
@@ -326,7 +337,8 @@ cat ~/.yorutsuke/logs/*.jsonl | jq 'select(.traceId == "trace-xxx")'
 ---
 @.prot/CHEATSHEET.md
 @.claude/rules/tauri-stack.md
-@docs/architecture/ARCHITECTURE.md
+@docs/architecture/README.md
+@docs/architecture/LAYERS.md
 @docs/design/COLOR.md
 @docs/dev/PROGRAM_PATHS.md
 

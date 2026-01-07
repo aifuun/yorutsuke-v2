@@ -4,13 +4,37 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-06] MVP1 testing started, fixed SQLite lock bug in uploadService
+- **Last Progress**: [2026-01-07] Architecture documentation refactored (#94), all 3 phases complete
 - **Next Steps**: Continue MVP1 test scenarios (SC-001 onwards)
 - **Blockers**: None
 
 ## Architecture Decisions
 
 Record important decisions with context.
+
+### [2026-01-07] Architecture Documentation Refactoring (#94)
+- **Decision**: Split monolithic ARCHITECTURE.md into atomic, focused documents
+- **Trigger**: 1000+ line document was hard for AI to process and maintain
+- **New Structure**:
+  ```
+  docs/architecture/
+  ├── README.md           # Navigation index
+  ├── LAYERS.md           # Four-layer architecture (React/Service/Adapter/Tauri)
+  ├── PATTERNS.md         # State patterns (Zustand vs EventBus, Writer/Observer)
+  ├── FLOWS.md            # Data flow diagrams (Capture/Batch/Report)
+  ├── SCHEMA.md           # Data model
+  ├── INTERFACES.md       # API specs
+  ├── PROGRAM_PATHS.md    # Directory structure
+  ├── ARCHITECTURE.md     # Deprecated (reference only)
+  └── ADR/                # Architecture Decision Records
+      ├── 001-service-pattern.md
+      └── 002-strictmode-fix.md
+  ```
+- **Benefits**:
+  - AI can read single focused document instead of scanning 1000+ lines
+  - Easier to maintain and update specific sections
+  - ADRs capture "why" for key decisions
+- **Issue**: #94
 
 ### [2026-01-05] React = Dumb Display, Logic in Backend (#82)
 - **Decision**: React should only subscribe to events and render; all orchestration logic belongs in pure modules
