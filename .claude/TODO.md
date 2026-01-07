@@ -4,7 +4,7 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 ## Current Issue: None
 
-Last completed: #78 - Logging System Optimization
+Last completed: #85 - fileService.selectFiles() for file picker
 
 ## Milestones
 

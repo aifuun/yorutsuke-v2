@@ -27,7 +27,7 @@ export interface TauriDragListeners {
 /**
  * Filter paths by allowed extensions
  */
-function filterByExtension(
+export function filterByExtension(
   paths: string[],
   allowedExtensions: readonly string[]
 ): { accepted: string[]; rejected: string[] } {
@@ -50,7 +50,7 @@ function filterByExtension(
  * Convert file paths to DroppedItem objects
  * Pillar N: TraceId assigned here at drop time
  */
-function pathsToDroppedItems(paths: string[]): DroppedItem[] {
+export function pathsToDroppedItems(paths: string[]): DroppedItem[] {
   return paths.map((path) => {
     const traceId = createTraceId();
     const id = ImageId(crypto.randomUUID());

@@ -252,6 +252,7 @@
     "dropHere": "Drop receipts here",
     "dropRelease": "Release to upload",
     "supportedFormats": "Supports JPG, PNG, WebP",
+    "selectFiles": "or select files",
     "rejected": "{{count}} file(s) rejected",
     "rejectedHint": "Only JPG, PNG, and WebP images are supported",
     "rejectedLimit": "{{count}} file(s) rejected",

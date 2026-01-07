@@ -143,6 +143,13 @@ export function CaptureView() {
                 {isDragging ? t('capture.dropRelease') : t('capture.dropHere')}
               </p>
               <p className="drop-hint">{t('capture.supportedFormats')}</p>
+              <button
+                type="button"
+                className="btn btn--secondary drop-select-btn"
+                onClick={() => captureService.selectFiles()}
+              >
+                {t('capture.selectFiles')}
+              </button>
             </div>
 
             {/* Rejection Banner - inside drop card */}

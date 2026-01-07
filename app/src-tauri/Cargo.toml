@@ -33,6 +33,11 @@ dirs = "5"
 # Device identification
 machine-uid = "0.5"
 
+# Optimize dependencies in dev mode for acceptable image processing speed
+# Without this, Lanczos3 resize takes ~8s per image instead of <1s
+[profile.dev.package."*"]
+opt-level = 2
+
 [profile.release]
 panic = "abort"
 codegen-units = 1

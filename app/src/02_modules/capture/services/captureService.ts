@@ -8,7 +8,8 @@ import type { ReceiptImage } from '../../../01_domains/receipt';
 import { MAX_DROP_COUNT } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { setupTauriDragListeners } from '../adapters/tauriDragDrop';
+import { open } from '@tauri-apps/plugin-dialog';
+import { setupTauriDragListeners, pathsToDroppedItems, filterByExtension } from '../adapters/tauriDragDrop';
 import { savePendingImage, deleteImageRecord, updateImageStatus } from '../adapters/imageDb';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
@@ -358,6 +359,41 @@ class CaptureService {
    */
   retryAllFailed(): void {
     uploadService.retryAllFailed();
+  }
+
+  /**
+   * Open file picker to select images
+   * Alternative to drag-drop for accessibility and mobile
+   */
+  async selectFiles(): Promise<void> {
+    try {
+      const selected = await open({
+        multiple: true,
+        filters: [{
+          name: 'Images',
+          extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+        }],
+      });
+
+      if (!selected) return;
+
+      // Normalize to array (single selection returns string)
+      const paths = Array.isArray(selected) ? selected : [selected];
+
+      if (paths.length === 0) return;
+
+      // Filter by allowed extensions (double-check)
+      const { accepted, rejected } = filterByExtension(paths, ALLOWED_EXTENSIONS);
+
+      // Convert to DroppedItem format and process
+      const items = pathsToDroppedItems(accepted);
+
+      logger.info(EVENTS.IMAGE_DROPPED, { count: items.length, source: 'file_picker' });
+
+      this.handleDrop(items, rejected);
+    } catch (e) {
+      logger.error(EVENTS.APP_ERROR, { context: 'file_picker', error: String(e) });
+    }
   }
 
   /**

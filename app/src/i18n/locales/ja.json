@@ -252,6 +252,7 @@
     "dropHere": "レシートをここにドロップ",
     "dropRelease": "放してアップロード",
     "supportedFormats": "JPG, PNG, WebP対応",
+    "selectFiles": "またはファイルを選択",
     "rejected": "{{count}}ファイルが拒否されました",
     "rejectedHint": "JPG、PNG、WebP画像のみ対応しています",
     "rejectedLimit": "{{count}}ファイルが拒否されました",

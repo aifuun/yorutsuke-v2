@@ -139,6 +139,11 @@
   color: var(--slate-400);
 }
 
+.drop-select-btn {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
 /* Drop Rejection - inline warning below drop zone */
 .drop-rejection {
   display: flex;
