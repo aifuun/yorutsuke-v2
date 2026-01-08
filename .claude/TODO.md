@@ -2,22 +2,16 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Issue: #97 - instant-processor Lambda [MVP3]
+## Current Issue: None
 
-**关联 MVP**: MVP3 - 批处理混合触发 (Instant 模式)
-**优先级**: P1
-**预估**: T2 (中等)
-**开始时间**: 2026-01-08
+MVP3 Admin Config API (#101) completed.
 
-### 子任务进度
-- [x] 创建 `infra/lambda/instant-processor/index.ts` 基础框架 ✅
-- [x] 实现 Bedrock (Nova Lite/Haiku) OCR 解析逻辑 ✅
-- [x] 实现 DynamoDB 交易记录写入 (Schema 符合 Pillar A) ✅
-- [x] 配置 S3 ObjectCreated 触发器 (CDK 更新) ✅
-- [x] 处理幂等性 (使用从 S3 路径提取的 ImageId) ✅
-- [x] 验证端到端流程 (S3 -> AI -> DB) ✅
+**Next Available**: 
+- #98 batch-counter Lambda (if pursuing full multi-mode)
+- #102 Admin Panel UI (for batch config interface)
+- Frontend integration for MVP3
 
-Last completed: #97 - instant-processor Lambda
+Last completed: #101 - Admin Config API
 
 | Version | Phase | Status |
 |---------|-------|--------|
