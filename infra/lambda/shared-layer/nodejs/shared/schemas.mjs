@@ -1,0 +1,48 @@
+import { z } from 'zod';
+
+/**
+ * AI OCR Result Schema (Pillar B: Airlock)
+ * Consistent with transaction domain requirements
+ */
+export const OcrResultSchema = z.object({
+    amount: z.number(),
+    type: z.enum(['income', 'expense']),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
+    merchant: z.string().min(1),
+    category: z.enum(['sale', 'purchase', 'shipping', 'packaging', 'fee', 'other']),
+    description: z.string().optional().default(''),
+});
+
+/**
+ * DynamoDB Transaction Schema
+ */
+export const TransactionSchema = z.object({
+    userId: z.string(),
+    transactionId: z.string(),
+    imageId: z.string().optional(),
+    amount: z.number(),
+    type: z.enum(['income', 'expense']),
+    date: z.string(),
+    merchant: z.string(),
+    category: z.string(),
+    description: z.string(),
+    status: z.enum(['unconfirmed', 'confirmed', 'deleted']),
+    aiProcessed: z.boolean().default(true),
+    version: z.number().default(1),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    confirmedAt: z.string().nullable().default(null),
+    isGuest: z.boolean().optional(),
+    ttl: z.number().optional(),
+});
+/**
+ * Admin Batch Configuration Schema
+ */
+export const BatchConfigSchema = z.object({
+    processingMode: z.enum(['instant', 'batch', 'hybrid']),
+    imageThreshold: z.number().min(100).max(500),
+    timeoutMinutes: z.number().min(30).max(480),
+    modelId: z.string().default('amazon.nova-lite-v1:0'),
+    updatedAt: z.string(),
+    updatedBy: z.string(),
+});

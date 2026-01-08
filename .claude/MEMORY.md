@@ -4,8 +4,8 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-08] Completed MVP2 (S3 Upload integration & Network resilience); started MVP3 (Hybrid Batch processing); implemented instant-processor Lambda.
-- **Next Steps**: Implement Admin Config API (#101) and remaining Batch Lambdas for MVP3.
+- **Last Progress**: [2026-01-08] Completed MVP2 and Issue #101 (Admin Config API). Integrated dynamic model configuration for instant-processor.
+- **Next Steps**: Implement remaining Batch processing Lambdas for MVP3.
 - **Blockers**: None
 
 ## Architecture Decisions
@@ -116,11 +116,20 @@ Record important decisions with context.
 
 Problems encountered and their solutions.
 
+### [2026-01-08] Admin Config API Implementation (#101)
+- **Problem**: Need a way for admin to switch AI models and processing modes without redeploying code.
+- **Solution**: 
+  - Created `ControlTable` (DynamoDB) for settings.
+  - Implemented `batch-config` Lambda with a public URL + CORS.
+  - Updated `instant-processor` to dynamically fetch `modelId`.
+- **Incident**: CDK deployment failed initially due to bootstrap version mismatch (needed v30) and resource collision (ControlTable already in AdminStack).
+- **Fix**: Ran `cdk bootstrap` and used `Table.fromTableName` in main stack to shared the existing resource.
+
 ### [2026-01-06] SQLite "database is locked" Error
 - **Problem**: Upload shows success briefly, then fails with "database is locked"
 - **Root Cause**: Store updates trigger synchronous subscriptions that start new DB writes
   ```typescript
-  // ❌ Wrong order - store update triggers subscription before DB write completes
+  // ❌ Wrong order - store update triggers subscription → new DB operation
   uploadStore.uploadSuccess(id);     // Triggers subscription → new DB operation
   await fileService.updateStatus();  // Conflicts with above → lock error
   ```

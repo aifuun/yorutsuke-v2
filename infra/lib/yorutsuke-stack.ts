@@ -88,6 +88,9 @@ export class YorutsukeStack extends cdk.Stack {
           : cdk.RemovalPolicy.DESTROY,
     });
 
+    // DynamoDB Table for Admin Control/Config (Physical table managed by AdminStack)
+    const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", `yorutsuke-control-${env}`);
+
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, "UserPool", {
       userPoolName: `yorutsuke-users-${env}`,
@@ -273,6 +276,31 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // Lambda for admin batch config
+    const batchConfigLambda = new lambda.Function(this, "BatchConfigLambda", {
+      functionName: `yorutsuke-batch-config-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/admin/batch-config"),
+      layers: [sharedLayer],
+      environment: {
+        CONTROL_TABLE_NAME: controlTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    controlTable.grantReadWriteData(batchConfigLambda);
+
+    // Lambda Function URL for batch config
+    const batchConfigUrl = batchConfigLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],
+      },
+    });
+
     // Lambda for batch processing (OCR)
     const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
       functionName: `yorutsuke-batch-process-${env}`,
@@ -298,6 +326,8 @@ export class YorutsukeStack extends cdk.Stack {
       layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
+        BUCKET_NAME: imageBucket.bucketName,
+        CONTROL_TABLE_NAME: controlTable.tableName,
       },
       timeout: cdk.Duration.minutes(2),
       memorySize: 512,
@@ -311,12 +341,13 @@ export class YorutsukeStack extends cdk.Stack {
     );
 
     // Grant permissions for instant processor
-    imageBucket.grantRead(instantProcessLambda);
+    imageBucket.grantReadWrite(instantProcessLambda);
     transactionsTable.grantWriteData(instantProcessLambda);
+    controlTable.grantReadData(instantProcessLambda);
     instantProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
-        resources: ["arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"],
+        resources: ["arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0"],
       })
     );
 
@@ -523,6 +554,11 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "EmergencyStopParamName", {
       value: emergencyStopParam.parameterName,
       exportName: `${id}-EmergencyStopParam`,
+    });
+
+    new cdk.CfnOutput(this, "BatchConfigUrl", {
+      value: batchConfigUrl.url,
+      exportName: `${id}-BatchConfigUrl`,
     });
   }
 }
