@@ -18,14 +18,14 @@
 **Yorutsuke** - AI Accounting Assistant for Second-hand Business
 **Yorutsuke** - 二手业务 AI 记账助手
 
-A local-first desktop application that automates bookkeeping for Mercari/Yahoo Auctions sellers. Users drag receipt images into the app, AI processes them overnight, and morning reports show transaction summaries.
+A local-first desktop application that automates bookkeeping for Mercari/Yahoo Auctions sellers. Users drag receipt images into the app, AI processes them automatically, and reports show transaction summaries.
 
-本地优先的桌面应用，为 Mercari/Yahoo Auctions 卖家自动化记账。用户将收据图片拖入应用，AI 在夜间处理，早晨生成交易摘要报告。
+本地优先的桌面应用，为 Mercari/Yahoo Auctions 卖家自动化记账。用户将收据图片拖入应用，AI 自动处理，生成交易摘要报告。
 
 **Core Flow / 核心流程**:
 ```
-Receipt Drop → Local Compress → S3 Upload → Nightly AI (02:00) → Morning Report
-收据拖放 → 本地压缩 → S3 上传 → 夜间 AI (02:00) → 早间报告
+Receipt Drop → Local Compress → S3 Upload → AI Processing → Report
+收据拖放 → 本地压缩 → S3 上传 → AI 处理 → 报告
 ```
 
 **Target Users / 目标用户**: Budget-conscious second-hand computer sellers / 注重成本的二手电脑卖家

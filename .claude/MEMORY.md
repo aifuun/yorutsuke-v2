@@ -4,13 +4,23 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-07] Refactored monolithic docs into modular sub-documents; fixed Debug/Clear All Data freeze; updated Tauri FS permissions.
-- **Next Steps**: Begin MVP1 end-to-end testing and proceed to MVP2 (S3 Upload).
+- **Last Progress**: [2026-01-08] Completed MVP2 (S3 Upload integration & Network resilience); started MVP3 (Hybrid Batch processing); implemented instant-processor Lambda.
+- **Next Steps**: Implement Admin Config API (#101) and remaining Batch Lambdas for MVP3.
 - **Blockers**: None
 
 ## Architecture Decisions
 
 Record important decisions with context.
+
+### [2026-01-08] Hybrid Batch Cloud Processing (#96)
+- **Decision**: Use a three-mode processing strategy (Instant, Batch, Hybrid) for Cloud OCR.
+- **Trigger**: AWS Bedrock Batch Inference offers 50% discount but requires a minimum of 100 records and is asynchronous.
+- **Strategy**: 
+  - **Instant-Mode**: Real-time processing via On-Demand API (fast but full price).
+  - **Batch-Mode**: Collective processing via Batch API (slow but 50% off).
+  - **Hybrid-Mode**: Auto-switch to Instant-Mode if batch threshold (100) isn't met by report time (02:00).
+- **Impact**: Balanced UX (Morning reports always ready) with optimized operational cost.
+- **Issue**: #96
 
 ### [2026-01-07] Architecture Documentation Refactoring (#94)
 - **Decision**: Split monolithic ARCHITECTURE.md into atomic, focused documents

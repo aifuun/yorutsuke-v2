@@ -34,15 +34,20 @@
 
 ---
 
-### US-002: Nightly AI Processing
+### US-002: Intelligent Processing (Multi-Mode)
 **As a** seller
-**I want** receipts processed overnight by AI
-**So that** I don't wait for processing during work hours
+**I want** receipts processed automatically by AI
+**So that** I get results efficiently based on current business scale
 
 **Acceptance Criteria**:
-- [x] Batch processing at 02:00 JST (#15 batch-process Lambda)
+- [x] Three processing modes: Instant (On-Demand), Batch (50% off), Hybrid
+- [x] MVP3 default: Instant mode (each image processed immediately, no minimum)
 - [x] AI extracts: amount, merchant, category, date (Nova Lite OCR)
-- [x] Results available in morning report (#8, #16)
+- [x] Admin can configure via Admin Panel:
+  - `processingMode`: instant / batch / hybrid (default: instant)
+  - `imageThreshold`: 100-500 (Batch/Hybrid only, AWS requires min 100)
+  - `timeoutMinutes`: 30-480 (Hybrid only, fallback to On-Demand)
+  - `modelId`: Nova Lite / Nova Pro / Claude Haiku
 
 ---
 

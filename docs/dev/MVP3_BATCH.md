@@ -1,12 +1,66 @@
-# MVP3 - 夜间处理 (Batch + Report)
+# MVP3 - 智能批处理 (Multi-Mode + Admin Config)
 
-> **目标**: 验证完整 AI 处理流程
+> **目标**: 验证完整 AI 处理流程 + 可配置处理模式
+
+## 变更概述 (2026-01-08)
+
+| 项目 | 旧 | 新 |
+|------|-----|-----|
+| 处理模式 | 固定 Batch | **三种模式可选 (Instant/Batch/Hybrid)** |
+| 触发条件 | 02:00 JST 每日一次 | **模式依赖 (见下方)** |
+| API 类型 | ON_DEMAND | **Instant=On-Demand, Batch=Batch Inference (50% 折扣)** |
+| Admin 配置 | 无 | **支持模式/阈值/间隔/LLM 选择** |
+
+## ⚠️ AWS Batch Inference 限制
+
+> **重要**: AWS Bedrock Batch Inference 要求 **最少 100 条记录** 才能创建 Job。
+> 这决定了我们的处理模式设计。
+
+| 限制 | 值 | 影响 |
+|------|-----|------|
+| 最小记录数 | 100 | Batch 模式阈值必须 >= 100 |
+| 折扣 | 50% | Batch 比 On-Demand 便宜一半 |
+
+## 处理模式 (Processing Mode)
+
+### 三种模式对比
+
+| 模式 | API | 最小张数 | 触发条件 | 成本 | 适用场景 |
+|------|-----|----------|----------|------|----------|
+| **Instant** | On-Demand | 1 | 每张立即处理 | 全价 | 初期/低量用户 |
+| **Batch Only** | Batch | 100 | >= 100 张时触发 | **5折** | 高量用户 |
+| **Hybrid** | 混合 | 1 | >= 100 用 Batch, 超时用 On-Demand | 混合 | 中量用户 |
+
+### MVP3 初期策略
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  MVP3 默认: Instant 模式                                     │
+│                                                             │
+│  理由:                                                       │
+│  1. 用户少，简化实现                                          │
+│  2. 无 100 张最低限制                                         │
+│  3. 快速验证 OCR 准确度                                       │
+│  4. 用户增长后再切换 Batch/Hybrid                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 模式切换时机建议
+
+| 阶段 | 日均图片量 | 推荐模式 |
+|------|-----------|----------|
+| 初期 | < 50 张/天 | Instant |
+| 增长期 | 50-200 张/天 | Hybrid |
+| 成熟期 | > 200 张/天 | Batch Only |
+
+---
 
 ### 功能范围
 
 | 功能 | 说明 | 状态 |
 |------|------|------|
-| 批处理触发 | 02:00 JST 自动运行 | [ ] |
+| **处理模式** | Instant / Batch Only / Hybrid (Admin 可选) | [ ] |
+| **Admin 配置** | 模式/阈值/间隔/LLM 可在 Admin Panel 配置 | [ ] |
 | Nova Lite OCR | AI 提取金额/商户/分类 | [ ] |
 | 晨报展示 | 昨日收支汇总 | [ ] |
 | 交易列表 | 显示 AI 提取的交易 | [ ] |
@@ -14,20 +68,133 @@
 | 历史日历 | 按日期查看历史 | [ ] |
 | 分类统计 | 按分类汇总 | [ ] |
 
+### 处理架构 (按模式)
+
+#### Instant 模式 (MVP3 默认)
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                      Instant Mode (On-Demand)                  │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  S3 ObjectCreated                                             │
+│       ↓                                                       │
+│  ┌──────────────────────────┐                                │
+│  │ instant-processor Lambda │                                │
+│  │ - Read image from S3     │                                │
+│  │ - Call Bedrock On-Demand │                                │
+│  │ - Write to transactions  │                                │
+│  │ - Move to processed/     │                                │
+│  └──────────────────────────┘                                │
+│                                                               │
+│  ⏱️ 延迟: ~5-10 秒/张                                          │
+│  💰 成本: 全价                                                 │
+└───────────────────────────────────────────────────────────────┘
+```
+
+#### Batch Only 模式
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                      Batch Only Mode                           │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  S3 ObjectCreated                                             │
+│       ↓                                                       │
+│  ┌──────────────────────────┐                                │
+│  │ batch-counter Lambda     │                                │
+│  │ - Count pending images   │                                │
+│  │ - if count >= threshold  │  (100-500, Admin 配置)          │
+│  │   → invoke orchestrator  │                                │
+│  └──────────────┬───────────┘                                │
+│                 ▼                                             │
+│  ┌──────────────────────────┐                                │
+│  │ batch-orchestrator Lambda│                                │
+│  │ - Prepare manifest.jsonl │  (必须 >= 100 条)               │
+│  │ - CreateModelInvocationJob│                               │
+│  └──────────────┬───────────┘                                │
+│                 ▼                                             │
+│  ┌──────────────────────────┐                                │
+│  │ Bedrock Batch Inference  │  50% 折扣                       │
+│  └──────────────┬───────────┘                                │
+│                 ▼                                             │
+│  ┌──────────────────────────┐                                │
+│  │ batch-result-handler     │                                │
+│  └──────────────────────────┘                                │
+│                                                               │
+│  ⏱️ 延迟: 累积到阈值后处理                                      │
+│  💰 成本: 5折                                                  │
+└───────────────────────────────────────────────────────────────┘
+```
+
+#### Hybrid 模式
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                      Hybrid Mode                               │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  Trigger A: Image Count          Trigger B: Timeout           │
+│  ┌────────────────────┐        ┌────────────────────┐        │
+│  │ S3 ObjectCreated   │        │ EventBridge        │        │
+│  │ ↓                  │        │ (configurable)     │        │
+│  │ batch-counter      │        │ ↓                  │        │
+│  │ if count >= 100    │        │ batch-counter      │        │
+│  └─────────┬──────────┘        └─────────┬──────────┘        │
+│            │                             │                    │
+│            ▼                             ▼                    │
+│  ┌────────────────────┐        ┌────────────────────┐        │
+│  │ count >= 100?      │        │ count > 0 && < 100?│        │
+│  │ → Batch Inference  │        │ → On-Demand        │        │
+│  │   (5折)            │        │   (全价, 保证处理)  │        │
+│  └────────────────────┘        └────────────────────┘        │
+│                                                               │
+│  💡 满 100 打折，不满 100 超时后全价处理，保证报告生成            │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### Admin 可配置项
+
+| 配置项 | 默认值 | 范围 | 适用模式 | 说明 |
+|--------|--------|------|----------|------|
+| `processingMode` | `instant` | instant/batch/hybrid | 全局 | 处理模式 |
+| `imageThreshold` | 100 | 100-500 | Batch/Hybrid | 累计触发张数 (AWS 要求 >= 100) |
+| `timeoutMinutes` | 120 | 30-480 | Hybrid | 超时降级时间 (分钟) |
+| `modelId` | `amazon.nova-lite-v1:0` | 见下方 | 全局 | LLM 选择 |
+
+**处理模式说明**:
+
+| 模式 | `imageThreshold` | `timeoutMinutes` |
+|------|------------------|------------------|
+| `instant` | ❌ 不使用 | ❌ 不使用 |
+| `batch` | ✅ 必须 >= 100 | ❌ 不使用 |
+| `hybrid` | ✅ 必须 >= 100 | ✅ 超时后降级到 On-Demand |
+
+**可用 LLM**:
+- `amazon.nova-lite-v1:0` - 推荐, 低成本
+- `amazon.nova-pro-v1:0` - 高精度
+- `anthropic.claude-3-haiku-20240307-v1:0` - 备选
+
 ### 测试场景
 
 从 [FRONTEND.md](../tests/FRONTEND.md) 和 [BACKEND.md](../tests/BACKEND.md) 选取：
 
-#### Backend: Batch Processing (SB-2xx)
+#### Backend: Processing Mode (SB-2xx)
 | ID | 场景 | 预期 |
 |----|------|------|
-| SB-200 | 定时触发 | EventBridge 02:00 JST 触发 |
-| SB-201 | 手动触发 | Lambda 直接调用成功 |
-| SB-202 | 空队列 | 无 pending 图片时跳过 |
+| SB-200 | **Instant 模式** | 上传后立即 On-Demand 处理 |
+| SB-201 | **Batch 模式 - 阈值触发** | 上传第 100 张时触发 Batch Job |
+| SB-202 | **Batch 模式 - 不足阈值** | 上传 50 张，等待，不触发 |
+| SB-203 | **Hybrid - 满足阈值** | >= 100 张时用 Batch (5折) |
+| SB-204 | **Hybrid - 超时降级** | < 100 张 + 超时 → On-Demand (全价) |
+| SB-205 | **Config 读取** | Lambda 从 DynamoDB 读取当前模式 |
+| SB-206 | **模式切换** | Admin 切换模式后下次处理生效 |
+| SB-207 | **阈值校验** | 设置 < 100 时 API 返回 400 |
 | SB-210 | 清晰收据 | 提取商户、金额、分类 |
 | SB-211 | 模糊收据 | 低置信度 (<0.7) |
 | SB-220 | 创建交易 | OCR 结果写入 DynamoDB |
 | SB-221 | 去重 | 同图不创建重复交易 |
+| SB-222 | 手动触发 | Admin Panel 手动触发成功 |
 
 #### Frontend: Dashboard (SC-9xx)
 | ID | 场景 | 预期 |
@@ -101,10 +268,23 @@ aws lambda invoke \
 
 ### 依赖
 
-- Lambda: `presign`, `batch`, `batch-process`
-- S3: `yorutsuke-images-dev`
-- DynamoDB: `yorutsuke-transactions-dev` (只读，AI 写入)
-- Bedrock: Nova Lite
+**Lambda Functions** (按模式):
+
+| Lambda | Instant | Batch | Hybrid | 说明 |
+|--------|---------|-------|--------|------|
+| `presign` | ✅ | ✅ | ✅ | S3 上传签名 |
+| `instant-processor` | ✅ | ❌ | ✅ | On-Demand 处理 (新增) |
+| `batch-counter` | ❌ | ✅ | ✅ | 图片计数 + 阈值检测 (新增) |
+| `batch-orchestrator` | ❌ | ✅ | ✅ | Batch Job 编排 (新增) |
+| `batch-result-handler` | ❌ | ✅ | ✅ | 结果处理 (新增) |
+| `admin/batch-config` | ✅ | ✅ | ✅ | Admin 配置 API (新增) |
+
+**AWS Resources**:
+- S3: `yorutsuke-images-dev` (uploads/, processed/, batch-input/, batch-output/)
+- DynamoDB: `yorutsuke-transactions-dev` (AI 写入)
+- DynamoDB: `yorutsuke-control-dev` (batch_config 存储)
+- DynamoDB: `yorutsuke-batch-jobs-dev` (Job 状态跟踪, 新增)
+- Bedrock: Nova Lite (Cross-region Inference Profile, Batch API)
 
 ---
 

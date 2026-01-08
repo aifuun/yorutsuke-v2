@@ -49,8 +49,8 @@
 │  │   (Auth)    │  │  (Presign)  │  │  (Images)   │  │   (Transactions)    │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 │                          │                  ▲                ▲              │
-│                          │ 02:00 JST        │                │              │
-│                          ▼                  │ Presigned PUT  │              │
+│                          │ Hybrid Trigger   │                │              │
+│                          ▼ (configurable)   │ Presigned PUT  │              │
 │                   ┌─────────────┐           │ (from Tauri)   │              │
 │                   │   Lambda    │───────────┴────────────────┘              │
 │                   │   (Batch)   │                                            │
@@ -124,37 +124,102 @@ React: User drops image
 
 ---
 
-## Flow 2: Nightly Batch (02:00 JST)
+## Flow 2: AI Processing (Multi-Mode)
 
-Scheduled AI processing of uploaded receipts.
+AI processing with three configurable modes via Admin Panel.
+
+### Mode Selection
+
+| Mode | API | Min Images | Trigger | Cost |
+|------|-----|------------|---------|------|
+| **Instant** | On-Demand | 1 | Each upload | Full price |
+| **Batch** | Batch Inference | 100 | Count threshold | **50% off** |
+| **Hybrid** | Mixed | 1 | Count OR timeout | Mixed |
+
+> **MVP3 Default**: `instant` mode (simplest, no minimum constraint)
+
+### Instant Mode Flow (Default)
 
 ```
-EventBridge trigger
+S3 ObjectCreated
       │
       ▼
-┌─────────────────┐
-│ Lambda: Batch   │
-│ - Check limits  │  ¥1,000/day, 50/user
-└─────────────────┘
-      │
-      ▼
-┌─────────────────┐
-│ Scan S3 bucket  │  Today's uploads
-└─────────────────┘
-      │
-      ▼
-┌─────────────────┐
-│ Bedrock: OCR    │  Nova Lite Vision
-│ ~¥0.015/image   │
-└─────────────────┘
-      │
-      ▼
-┌─────────────────┐
-│ DynamoDB: Write │  transactions table
-└─────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│               instant-processor Lambda                   │
+│  1. Read config (mode check)                            │
+│  2. If mode === 'instant':                              │
+│     → Call Bedrock On-Demand API                        │
+│     → Write transaction to DynamoDB                     │
+│     → Move image to processed/                          │
+└─────────────────────────────────────────────────────────┘
 ```
 
-> Note: Batch flow runs entirely in AWS, no client Service layer involved.
+### Batch Mode Flow
+
+```
+S3 ObjectCreated
+      │
+      ▼
+┌─────────────────────────────────────────────────────────┐
+│                    batch-counter Lambda                  │
+│  1. Read config (mode, imageThreshold)                  │
+│  2. Count images in uploads/ prefix                     │
+│  3. If count >= threshold (min 100):                    │
+│     → Invoke batch-orchestrator                         │
+│  4. Else: wait for more uploads                         │
+└─────────────────────────────────────────────────────────┘
+      │ (when threshold met)
+      ▼
+┌─────────────────────────────────────────────────────────┐
+│                 batch-orchestrator Lambda                │
+│  1. Prepare manifest.jsonl (>= 100 records required)    │
+│  2. Call Bedrock CreateModelInvocationJob API           │
+│  3. Record Job ID to DynamoDB                           │
+└─────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────┐
+│               Bedrock Batch Inference                    │
+│  Nova Lite Vision (50% discount vs ON_DEMAND)           │
+└─────────────────────────────────────────────────────────┘
+      │
+      ▼ (S3 output event)
+┌─────────────────────────────────────────────────────────┐
+│               batch-result-handler Lambda                │
+│  1. Parse Batch Inference output JSONL                  │
+│  2. Write transactions to DynamoDB                      │
+│  3. Move images from uploads/ to processed/             │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Hybrid Mode Flow
+
+```
+Trigger A: S3 ObjectCreated          Trigger B: EventBridge (timeout)
+      │                                    │
+      ▼                                    ▼
+┌─────────────────────────────────────────────────────────┐
+│                    batch-counter Lambda                  │
+│  1. Read config (mode, imageThreshold, timeoutMinutes)  │
+│  2. Count images in uploads/ prefix                     │
+└─────────────────────────────────────────────────────────┘
+      │
+      ├─── count >= 100 ───► Batch Inference (50% off)
+      │
+      └─── count > 0 && timeout ───► On-Demand (full price)
+                                     (保证处理，不等待)
+```
+
+**Admin Configurable** (via Admin Panel → Processing Settings):
+
+| Config | Default | Range | Used By |
+|--------|---------|-------|---------|
+| `mode` | instant | instant/batch/hybrid | All |
+| `imageThreshold` | 100 | 100-500 | Batch/Hybrid |
+| `timeoutMinutes` | 120 | 30-480 | Hybrid only |
+| `modelId` | Nova Lite | Nova Lite/Pro, Claude Haiku | All |
+
+> Note: Processing runs entirely in AWS. Client only uploads images.
 
 ---
 

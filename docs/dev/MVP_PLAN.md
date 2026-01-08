@@ -11,7 +11,7 @@ We follow a strictly incremental validation path. Each MVP builds upon the previ
 
 ```
 MVP0 (Refactor) → MVP1 (Local) → MVP2 (Upload) → MVP3 (Batch) → MVP3.5 (Sync) → MVP4 (Auth)
-   架构重构          纯本地         上传云端        夜间处理        确认回写        完整认证
+   架构重构          纯本地         上传云端        AI处理         确认回写        完整认证
 ```
 
 ## Phase Index
@@ -19,9 +19,9 @@ MVP0 (Refactor) → MVP1 (Local) → MVP2 (Upload) → MVP3 (Batch) → MVP3.5 (
 | Phase | Type | Goal | Document | Status |
 |-------|------|------|----------|--------|
 | **MVP0** | Refactor | headless hooks → Service pattern | [MVP0_REFACTOR.md](./MVP0_REFACTOR.md) | ✅ Done |
-| **MVP1** | Feature | Local capture, compression, queue | [MVP1_LOCAL.md](./MVP1_LOCAL.md) | 🔄 Active |
-| **MVP2** | Feature | S3 upload, network handling | [MVP2_UPLOAD.md](./MVP2_UPLOAD.md) | ⏳ Pending |
-| **MVP3** | Feature | Batch AI, Report, Transactions | [MVP3_BATCH.md](./MVP3_BATCH.md) | ⏳ Pending |
+| **MVP1** | Feature | Local capture, compression, queue | [MVP1_LOCAL.md](./MVP1_LOCAL.md) | ✅ Done |
+| **MVP2** | Feature | S3 upload, network handling | [MVP2_UPLOAD.md](./MVP2_UPLOAD.md) | ✅ Done |
+| **MVP3** | Feature | Multi-Mode AI (Instant default), Admin Config | [MVP3_BATCH.md](./MVP3_BATCH.md) | 🔄 Active |
 | **MVP3.5**| Feature | Cloud Sync (Confirmation) | [MVP3_BATCH.md](./MVP3_BATCH.md#mvp35---确认回写-cloud-sync) | ⏳ Pending |
 | **MVP4** | Feature | Auth, Tiers, Migration | [MVP4_AUTH.md](./MVP4_AUTH.md) | ⏳ Pending |
 

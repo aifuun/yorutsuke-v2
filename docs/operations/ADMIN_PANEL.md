@@ -46,7 +46,7 @@ System overview with key metrics:
 │  └─────────────┘  └─────────────┘  └─────────────┘         │
 │                                                            │
 │  System Status: ● Normal                                   │
-│  Last Batch: 02:00 JST (Success)                          │
+│  Last Batch: 10:30 JST (Success, 15 images)               │
 │                                                            │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -58,7 +58,7 @@ Emergency controls for system operation:
 | Control | Description | Use Case |
 |---------|-------------|----------|
 | Pause Uploads | Stop accepting new uploads | Cost overrun |
-| Pause Batch | Skip nightly processing | LLM issues |
+| Pause Batch | Skip batch processing | LLM issues |
 | Emergency Stop | Halt all operations | Critical issue |
 
 ```
@@ -97,6 +97,71 @@ Batch processing status and history:
 | Processed | Images processed |
 | Failed | Error count |
 | Status | Success/Failed |
+
+### Batch Settings (NEW)
+
+Configure processing mode, triggers, and LLM model:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  Processing Settings                                        │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  Processing Mode                                           │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │ ● Instant (On-Demand)         ← MVP3 推荐            │ │
+│  │   每张上传后立即处理，无最低限制                       │ │
+│  │                                                       │ │
+│  │ ○ Batch Only (50% Discount)                          │ │
+│  │   累积 >= 100 张后批处理，最省钱                       │ │
+│  │                                                       │ │
+│  │ ○ Hybrid                                              │ │
+│  │   >= 100 张用 Batch，超时用 On-Demand                 │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                            │
+│  Batch/Hybrid Settings (仅 Batch/Hybrid 模式显示)          │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │ Image Threshold: [100   ] images  (range: 100-500)  │ │
+│  │ Timeout:         [120   ] minutes (range: 30-480)   │ │
+│  │                  ↑ 仅 Hybrid 模式使用                 │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                            │
+│  ⚠️ AWS Batch Inference 要求最少 100 条记录               │
+│                                                            │
+│  LLM Model                                                 │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │ ● Nova Lite (Recommended - Low Cost)                 │ │
+│  │ ○ Nova Pro (Higher Accuracy)                         │ │
+│  │ ○ Claude 3 Haiku (Alternative)                       │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                            │
+│  Current Config                                            │
+│  Mode: Instant | Last updated: 2026-01-08 by admin        │
+│                                                            │
+│  [Save Changes]                                            │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+| Setting | Default | Range | Applies To | Description |
+|---------|---------|-------|------------|-------------|
+| `processingMode` | instant | instant/batch/hybrid | All | Processing mode selection |
+| `imageThreshold` | 100 | 100-500 | Batch/Hybrid | Trigger batch when N images (AWS min: 100) |
+| `timeoutMinutes` | 120 | 30-480 | Hybrid only | Fallback to On-Demand after M minutes |
+| `modelId` | Nova Lite | See list | All | LLM for OCR processing |
+
+**Processing Modes**:
+
+| Mode | API | Min Images | Cost | Use Case |
+|------|-----|------------|------|----------|
+| `instant` | On-Demand | 1 | Full price | Early stage, low volume |
+| `batch` | Batch Inference | 100 | **50% off** | High volume, cost-sensitive |
+| `hybrid` | Mixed | 1 | Mixed | Balanced cost & latency |
+
+**Available Models**:
+- `amazon.nova-lite-v1:0` - Recommended, low cost
+- `amazon.nova-pro-v1:0` - Higher accuracy
+- `anthropic.claude-3-haiku-20240307-v1:0` - Alternative
 
 ---
 

@@ -541,12 +541,75 @@ Get app configuration.
 interface ConfigResponse {
   quotaLimit: number;        // 50
   uploadIntervalMs: number;  // 2000
-  batchTime: string;         // '02:00'
+  processingConfig: {
+    mode: 'instant' | 'batch' | 'hybrid';  // default: 'instant'
+    imageThreshold: number;  // default: 100 (range: 100-500, Batch/Hybrid only)
+    timeoutMinutes: number;  // default: 120 (range: 30-480, Hybrid only)
+    modelId: string;         // default: 'amazon.nova-lite-v1:0'
+  };
   maintenanceMode: boolean;
   version: {
     minimum: string;
     latest: string;
   };
+}
+```
+
+**Processing Mode Details**:
+| Mode | imageThreshold | timeoutMinutes | Description |
+|------|----------------|----------------|-------------|
+| `instant` | ignored | ignored | On-Demand, process immediately |
+| `batch` | used (min 100) | ignored | Batch Inference, 50% discount |
+| `hybrid` | used (min 100) | used | Batch when >= threshold, On-Demand on timeout |
+
+---
+
+### GET /batch/config (Admin API)
+
+Get processing configuration.
+
+**Response**:
+```typescript
+interface ProcessingConfigResponse {
+  mode: 'instant' | 'batch' | 'hybrid';
+  imageThreshold: number;   // 100-500 (only used in batch/hybrid mode)
+  timeoutMinutes: number;   // 30-480 (only used in hybrid mode)
+  modelId: string;
+  updatedAt: string;        // ISO 8601
+  updatedBy: string;        // admin email
+}
+```
+
+---
+
+### PUT /batch/config (Admin API)
+
+Update processing configuration.
+
+**Request**:
+```typescript
+interface ProcessingConfigRequest {
+  mode?: 'instant' | 'batch' | 'hybrid';
+  imageThreshold?: number;  // 100-500 (required if mode is batch/hybrid)
+  timeoutMinutes?: number;  // 30-480 (required if mode is hybrid)
+  modelId?: string;         // valid model ID
+}
+```
+
+**Validation Rules**:
+- If `mode` is `batch` or `hybrid`, `imageThreshold` must be >= 100
+- If `mode` is `hybrid`, `timeoutMinutes` is required
+- Returns 400 if `imageThreshold` < 100 for batch/hybrid mode
+
+**Response**:
+```typescript
+interface ProcessingConfigResponse {
+  mode: 'instant' | 'batch' | 'hybrid';
+  imageThreshold: number;
+  timeoutMinutes: number;
+  modelId: string;
+  updatedAt: string;
+  updatedBy: string;
 }
 ```
 

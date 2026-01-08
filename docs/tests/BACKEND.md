@@ -57,15 +57,27 @@
 
 ---
 
-## 2. Batch Processing (02:00 JST)
+## 2. AI Processing (Multi-Mode)
 
-### 2.1 Trigger & Scheduling
+> **Modes**: Instant (On-Demand), Batch (50% off), Hybrid (mixed)
+> Configuration via Admin Panel stored in DynamoDB `yorutsuke-control-{env}`
+>
+> ⚠️ **AWS Batch Inference requires minimum 100 records per job**
+
+### 2.1 Processing Modes
 
 | ID | Scenario | Input | Expected Result | Status |
 |----|----------|-------|-----------------|--------|
-| SB-200 | Scheduled trigger | EventBridge 02:00 JST | Lambda invoked | [ ] |
-| SB-201 | Manual trigger | Manual invocation | Same processing | [ ] |
-| SB-202 | No pending images | Empty queue | Skip gracefully, log | [ ] |
+| SB-200 | **Instant mode** | mode=instant, upload 1 image | On-Demand process immediately | [ ] |
+| SB-201 | **Batch mode - threshold met** | mode=batch, upload 100th image | Batch Job created | [ ] |
+| SB-202 | **Batch mode - below threshold** | mode=batch, upload 50 images | No processing, wait for more | [ ] |
+| SB-203 | **Hybrid - threshold met** | mode=hybrid, upload 100th image | Batch Inference (50% off) | [ ] |
+| SB-204 | **Hybrid - timeout fallback** | mode=hybrid, 50 images + timeout | On-Demand processing (full price) | [ ] |
+| SB-205 | **Config read** | Any mode | Lambda reads config from DynamoDB | [ ] |
+| SB-206 | **Mode switch** | Change mode in Admin Panel | Next processing uses new mode | [ ] |
+| SB-207 | **Threshold validation** | Set imageThreshold < 100 | API returns 400 Bad Request | [ ] |
+| SB-208 | Manual trigger | Admin Panel manual invoke | Process based on current mode | [ ] |
+| SB-209 | No pending images | Empty queue | Skip gracefully, log | [ ] |
 
 ### 2.2 Nova Lite OCR
 

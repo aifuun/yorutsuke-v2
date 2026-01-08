@@ -10,6 +10,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cw_actions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as sns from "aws-cdk-lib/aws-sns";
+import * as s3_notifications from "aws-cdk-lib/aws-s3-notifications";
 import { Construct } from "constructs";
 
 export class YorutsukeStack extends cdk.Stack {
@@ -287,6 +288,37 @@ export class YorutsukeStack extends cdk.Stack {
       timeout: cdk.Duration.minutes(5),
       memorySize: 512,
     });
+
+    // Lambda for instant processing (On-Demand OCR)
+    const instantProcessLambda = new lambda.Function(this, "InstantProcessLambda", {
+      functionName: `yorutsuke-instant-processor-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/instant-processor"),
+      layers: [sharedLayer],
+      environment: {
+        TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
+      },
+      timeout: cdk.Duration.minutes(2),
+      memorySize: 512,
+    });
+
+    // S3 Trigger for instant processing
+    imageBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3_notifications.LambdaDestination(instantProcessLambda),
+      { prefix: "uploads/" }
+    );
+
+    // Grant permissions for instant processor
+    imageBucket.grantRead(instantProcessLambda);
+    transactionsTable.grantWriteData(instantProcessLambda);
+    instantProcessLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: ["arn:aws:bedrock:*::foundation-model/anthropic.claude-3-haiku-20240307-v1:0"],
+      })
+    );
 
     // Grant permissions
     imageBucket.grantReadWrite(batchProcessLambda);

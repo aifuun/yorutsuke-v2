@@ -2,11 +2,22 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Issue: None
+## Current Issue: #97 - instant-processor Lambda [MVP3]
 
-MVP2 云端上传验证已完成，等待下一个任务。
+**关联 MVP**: MVP3 - 批处理混合触发 (Instant 模式)
+**优先级**: P1
+**预估**: T2 (中等)
+**开始时间**: 2026-01-08
 
-## Milestones
+### 子任务进度
+- [x] 创建 `infra/lambda/instant-processor/index.ts` 基础框架 ✅
+- [x] 实现 Bedrock (Nova Lite/Haiku) OCR 解析逻辑 ✅
+- [x] 实现 DynamoDB 交易记录写入 (Schema 符合 Pillar A) ✅
+- [x] 配置 S3 ObjectCreated 触发器 (CDK 更新) ✅
+- [x] 处理幂等性 (使用从 S3 路径提取的 ImageId) ✅
+- [x] 验证端到端流程 (S3 -> AI -> DB) ✅
+
+Last completed: #97 - instant-processor Lambda
 
 | Version | Phase | Status |
 |---------|-------|--------|
@@ -14,6 +25,7 @@ MVP2 云端上传验证已完成，等待下一个任务。
 | v1.0.0 | Phase 4 (Backend) | ✅ Complete |
 | MVP1 | Local Only | ✅ Verified 2026-01-07 |
 | MVP2 | Cloud Upload | ✅ Verified 2026-01-08 |
+| MVP3 | Hybrid Batch | 🔄 Active |
 
 ## Backlog
 
@@ -24,6 +36,12 @@ MVP2 云端上传验证已完成，等待下一个任务。
 
 ## Recently Completed
 
+- MVP3 Multi-Mode 架构文档更新 (2026-01-08)
+  - 三种处理模式: Instant/Batch/Hybrid
+  - imageThreshold 范围改为 100-500 (AWS 要求)
+  - MVP3 默认 Instant 模式
+- #96 MVP3 文档更新阶段完成 (2026-01-08)
+- MVP3 Issue 创建 + 文档规格更新 (2026-01-08)
 - #101 Presigned URL 真实集成 + SC-300~303 通过 (2026-01-08)
 - Queue 3-column layout fix + MVP1 verified (2026-01-07)
 - #87 CSS Design System Consolidation (2026-01-07)
