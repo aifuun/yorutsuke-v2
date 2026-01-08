@@ -5,7 +5,9 @@
 import { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { StatCard } from '../components/StatCard';
+import { ProcessingSettings } from '../components/ProcessingSettings';
 import { api, endpoints } from '../api/client';
+import { BatchConfig } from '../types/batch';
 
 interface BatchStatus {
   pendingImages: {
@@ -27,19 +29,24 @@ interface BatchStatus {
 
 export function Batch() {
   const [status, setStatus] = useState<BatchStatus | null>(null);
+  const [config, setConfig] = useState<BatchConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await api.get<BatchStatus>(endpoints.batch);
-      setStatus(data);
+      const [statusData, configData] = await Promise.all([
+        api.get<BatchStatus>(endpoints.batch),
+        api.get<BatchConfig>(endpoints.batchConfig)
+      ]);
+      setStatus(statusData);
+      setConfig(configData);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch batch status');
+      setError(e instanceof Error ? e.message : 'Failed to fetch batch data');
     } finally {
       setIsLoading(false);
     }
@@ -51,8 +58,8 @@ export function Batch() {
     try {
       await api.post(endpoints.batch, { action: 'trigger' });
       setShowConfirm(false);
-      // Wait a moment then refresh status
-      setTimeout(fetchStatus, 2000);
+      // Wait a moment then refresh data
+      setTimeout(fetchData, 2000);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to trigger batch');
     } finally {
@@ -61,7 +68,7 @@ export function Batch() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    fetchData();
   }, []);
 
   return (
@@ -76,7 +83,7 @@ export function Batch() {
             </p>
           </div>
           <button
-            onClick={fetchStatus}
+            onClick={fetchData}
             disabled={isLoading}
             className="px-4 py-2 text-sm bg-app-surface border border-app-border rounded-lg
                        hover:bg-app-border transition-colors disabled:opacity-50"
@@ -118,6 +125,14 @@ export function Batch() {
                 color={status.lastResult?.failed && status.lastResult.failed > 0 ? 'red' : 'green'}
               />
             </div>
+
+            {/* Processing Settings */}
+            {config && (
+              <ProcessingSettings
+                config={config}
+                onSave={(newConfig) => setConfig(newConfig)}
+              />
+            )}
 
             {/* Schedule Info */}
             <div className="bg-app-surface border border-app-border rounded-lg p-6 mb-8">
@@ -208,8 +223,9 @@ export function Batch() {
           <h3 className="text-sm font-medium text-app-text mb-2">About Batch Processing</h3>
           <ul className="text-sm text-app-text-secondary space-y-1 list-disc list-inside">
             <li>Runs automatically every day at 02:00 JST (17:00 UTC)</li>
-            <li>Processes images in the S3 uploads/ folder</li>
-            <li>Uses Amazon Nova Lite for OCR (~¥0.015/image)</li>
+            <li>In <b>Batch Mode</b>, processing is deferred until threshold (100) is met</li>
+            <li>In <b>Hybrid Mode</b>, deferred images are processed via Instant if threshold not met by report time</li>
+            <li>Processing mode and LLM models can be configured above</li>
             <li>Results are written to the transactions table</li>
           </ul>
         </div>

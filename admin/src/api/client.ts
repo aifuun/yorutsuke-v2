@@ -84,4 +84,5 @@ export const endpoints = {
   control: '/control',
   costs: '/costs',
   batch: '/batch',
+  batchConfig: '/batch-config',
 };

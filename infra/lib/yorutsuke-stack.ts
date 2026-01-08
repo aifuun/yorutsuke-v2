@@ -347,7 +347,7 @@ export class YorutsukeStack extends cdk.Stack {
     instantProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
-        resources: ["arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0"],
+        resources: ["arn:aws:bedrock:*::foundation-model/*"],
       })
     );
 
@@ -359,7 +359,7 @@ export class YorutsukeStack extends cdk.Stack {
     batchProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["bedrock:InvokeModel"],
-        resources: ["arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0"],
+        resources: ["arn:aws:bedrock:*::foundation-model/*"],
       })
     );
 
