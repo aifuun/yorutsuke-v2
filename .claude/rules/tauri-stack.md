@@ -22,6 +22,23 @@ paths:
 - Use allowlist for file/network access
 - Never expose sensitive Rust APIs directly
 
+### HTTP Requests (CRITICAL)
+
+**MUST use Tauri HTTP plugin for external requests:**
+
+```typescript
+// ❌ WRONG: Native fetch doesn't work in Tauri 2
+const response = await fetch(url, { ... });
+
+// ✅ CORRECT: Use Tauri HTTP plugin
+import { fetch } from '@tauri-apps/plugin-http';
+const response = await fetch(url, { ... });
+```
+
+- Native browser `fetch` fails with "TypeError: Load failed"
+- Request never reaches server (blocked client-side)
+- Configure URL scope in `capabilities/default.json`
+
 ### Tauri IPC (Frontend)
 ```typescript
 // adapters/fileIpc.ts

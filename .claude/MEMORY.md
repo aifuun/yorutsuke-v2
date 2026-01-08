@@ -102,20 +102,6 @@ Record important decisions with context.
   - User Pool: `ap-northeast-1_INc3k2PPP`
   - Admin user: `admin@yorutsuke.local`
 
-### [2025-01-01] Control Strategy Review
-- **Analysis**: Reviewed runtime control flow for race conditions
-- **Issues Found**:
-  1. `processingRef` + FSM state dual tracking → potential race
-  2. No explicit SQLite transactions → data integrity risk
-  3. Stale closure in quota check → over-quota possible
-  4. `emitSync` naming misleading → doesn't wait for handlers
-- **Decisions**:
-  - P1: Add `withTransaction()` wrapper for SQLite atomicity
-  - P1: Remove `processingRef`, use FSM `currentId` as single source
-  - P2: Single quota checkpoint (remove redundant checks)
-  - P3: Add Intent-ID for idempotency (Pillar Q)
-- **Documentation**: Updated `docs/ARCHITECTURE.md` with Control Strategy section
-
 ## Solved Issues
 
 Problems encountered and their solutions.
@@ -153,6 +139,22 @@ Problems encountered and their solutions.
 - **Problem**: Pasteurizing images from clipboard failed with `fs.write_file not allowed`.
 - **Solution**: Updated `app/src-tauri/capabilities/default.json` to include `fs:allow-write-file`, `fs:allow-read-file`, `fs:allow-exists`, and `fs:allow-remove-file`.
 - **Knowledge**: High-level permission IDs like `fs:default` in Tauri 2.0 don't always cover specific write operations; explicit granular permissions are safer.
+### [2026-01-07] Tauri 2 HTTP Fetch "Load failed"
+- **Problem**: External HTTP requests (Lambda API calls) failed with "TypeError: Load failed"
+- **Symptom**: Request never reached AWS Lambda (server logs empty), error was client-side
+- **Root Cause**: Tauri 2 security model blocks native browser `fetch` for external URLs
+- **Solution**: Import `fetch` from `@tauri-apps/plugin-http` instead of using native fetch
+  ```typescript
+  // ❌ Wrong
+  const response = await fetch(url, { ... });
+
+  // ✅ Correct
+  import { fetch } from '@tauri-apps/plugin-http';
+  const response = await fetch(url, { ... });
+  ```
+- **Files Fixed**: `quotaApi.ts`, `uploadApi.ts`
+- **Prevention**: Added rule to `.claude/rules/tauri-stack.md`
+
 ### [2026-01-03] Capture Pipeline Core Bugs (#45-49)
 - **#45 FAILURE blocks processing**: FSM entered 'error' state and never returned to 'idle'
   - Fix: Changed FAILURE reducer to return 'idle', store error per-image
@@ -176,43 +178,6 @@ Problems encountered and their solutions.
 - **Problem**: Settings showed 'ja' but UI displayed in English
 - **Root Cause**: i18n initialized before settings loaded from SQLite
 - **Solution**: Call `changeLanguage()` in useSettings after loading settings
-
-### [2025-12-29] Image Drop Delay Issue
-- **Problem**: In original project, dropped images took several seconds to appear in queue list
-- **Root Cause**: `useImageQueue`'s async `loadHistory()` called `setItems(historyItems)` which overwrote newly added images
-- **Solution**: When implementing View layer, use one of:
-  1. Separate `historyItems` and `pendingItems` state, merge for display
-  2. Use `useReducer` to ensure LOAD_HISTORY and ADD_PENDING are atomic
-- **Prevention**: Avoid async initialization overwriting real-time state; history loading should append, not replace
-
-### [2025-12-29] #5 Image Compression Strategy
-- **Decision**: Grayscale + WebP 75% + max 1024px
-- **Why Grayscale**: Reduces file size ~60% while maintaining OCR quality (receipts are mostly text)
-- **MD5 Timing**: Calculate hash AFTER compression (on WebP bytes), not on original file
-  - Same original image compressed twice = same hash (deterministic)
-  - Deduplication works even if user re-drops the same image
-- **Output Path**: Use temp dir (`std::env::temp_dir().join("yorutsuke-v2")`) for compressed files
-
-### [2025-12-29] #6 Upload Queue FSM Design
-- **State Machine**: `idle | processing | paused` (not boolean flags)
-- **Error Classification**: Critical for retry logic
-  - `network/server` → auto-retry with exponential backoff (1s, 2s, 4s)
-  - `quota/unknown` → no retry, pause queue
-- **Double Processing Prevention**: Use `processingRef: Set<string>` to track in-flight tasks
-  - Problem: useEffect can trigger multiple times before state updates
-  - Solution: Track processing tasks in a ref, not in state
-- **Retry Cleanup**: Only remove from processingRef AFTER backoff delay, not immediately
-
-### [2025-12-29] #7 Auth Flow Learnings
-- **Three-Step Flow**: register → verify (email code) → login
-  - After register: stay logged out (wait for verification)
-  - After verify: stay logged out (user must login explicitly)
-  - This avoids auto-login with unverified accounts
-- **Device Binding**: Generate deviceId once, store in SQLite, send with every login
-  - Enables: "Logged in from new device" notifications
-  - Enables: Device-specific session revocation
-- **Token Refresh Failure**: Auto-logout user (don't leave in broken authenticated state)
-- **Initial State**: Start with `status: 'loading'` to check stored tokens on mount
 
 ## References
 

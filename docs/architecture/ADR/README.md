@@ -15,6 +15,9 @@ An Architecture Decision Record captures a single decision along with its contex
 |----|-------|--------|------|
 | [001](./001-service-pattern.md) | Service Layer Pattern | Accepted | 2025-01 |
 | [002](./002-strictmode-fix.md) | React StrictMode Fix | Accepted | 2025-01 |
+| [003](./003-image-compression.md) | Image Compression Strategy | Accepted | 2025-12 |
+| [004](./004-upload-queue-fsm.md) | Upload Queue FSM | Accepted | 2025-12 |
+| [005](./005-traceid-intentid.md) | TraceId vs IntentId | Accepted | 2026-01 |
 
 ## ADR Template
 

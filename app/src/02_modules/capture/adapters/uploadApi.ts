@@ -1,6 +1,7 @@
 // Pillar B: Airlock - validate all API responses with Zod
 // Pillar Q: Intent-ID for idempotency
 import { z } from 'zod';
+import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId, IntentId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';

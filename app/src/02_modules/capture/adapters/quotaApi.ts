@@ -1,5 +1,6 @@
 // Pillar B: Airlock - validate all API responses with Zod
 import { z } from 'zod';
+import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
 import { countTodayUploads } from './imageDb';

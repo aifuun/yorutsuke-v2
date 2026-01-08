@@ -113,12 +113,21 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // Lambda Layer for shared code
+    const sharedLayer = new lambda.LayerVersion(this, "SharedLayer", {
+      layerVersionName: `yorutsuke-shared-${env}`,
+      code: lambda.Code.fromAsset("lambda/shared-layer"),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      description: "Shared utilities for Yorutsuke Lambdas",
+    });
+
     // Lambda for presigned URLs
     const presignLambda = new lambda.Function(this, "PresignLambda", {
       functionName: `yorutsuke-presign-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/presign"),
+      layers: [sharedLayer],
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
         QUOTAS_TABLE_NAME: quotasTable.tableName,
@@ -148,6 +157,7 @@ export class YorutsukeStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/quota"),
+      layers: [sharedLayer],
       environment: {
         QUOTAS_TABLE_NAME: quotasTable.tableName,
         QUOTA_LIMIT: "50",
@@ -184,6 +194,7 @@ export class YorutsukeStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/config"),
+      layers: [sharedLayer],
       environment: {
         QUOTA_LIMIT: "50",
         UPLOAD_INTERVAL_MS: "2000",
@@ -213,6 +224,7 @@ export class YorutsukeStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/transactions"),
+      layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
       },
@@ -241,6 +253,7 @@ export class YorutsukeStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/report"),
+      layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
       },
@@ -265,6 +278,7 @@ export class YorutsukeStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/batch-process"),
+      layers: [sharedLayer],
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,

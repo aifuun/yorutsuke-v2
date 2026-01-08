@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { logger, EVENTS, initContext } from "../shared/logger.mjs";
+import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});

@@ -1,5 +1,5 @@
 import { DynamoDBClient, GetItemCommand, UpdateItemCommand } from "@aws-sdk/client-dynamodb";
-import { logger, EVENTS, initContext } from "../shared/logger.mjs";
+import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 
 const ddb = new DynamoDBClient({});
 const TABLE_NAME = process.env.QUOTAS_TABLE_NAME;

@@ -3,7 +3,7 @@ import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { randomUUID } from "crypto";
-import { logger, EVENTS, setContext } from "../shared/logger.mjs";
+import { logger, EVENTS, setContext } from "/opt/nodejs/shared/logger.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
