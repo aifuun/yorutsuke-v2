@@ -14,9 +14,10 @@ Master index for all `.claude` directory contents. This directory contains confi
 │   ├── MEMORY.md (key decisions & context)
 │   └── TODO.md (current session tasks)
 │
-├── 📑 Session Context
+├── 📑 Session Context & Inbox
 │   ├── INBOX.md (quick notes, ideas, feedback)
-│   └── OPEN-QUESTIONS-CLARIFIED.md (Q&A log)
+│   └── inbox/ (detailed Q&A, issue investigations)
+│       └── OPEN-QUESTIONS-CLARIFIED.md (problem resolution logs)
 │
 ├── 📊 Plans (Feature/Issue Planning)
 │   ├── README.md (plans directory guide)
@@ -98,7 +99,7 @@ Master index for all `.claude` directory contents. This directory contains confi
 
 **Remember why we made a decision**
 → Read: [MEMORY.md](MEMORY.md) (decision log)  
-→ Also check: [OPEN-QUESTIONS-CLARIFIED.md](OPEN-QUESTIONS-CLARIFIED.md) (Q&A)
+→ Also check: [inbox/OPEN-QUESTIONS-CLARIFIED.md](inbox/OPEN-QUESTIONS-CLARIFIED.md) (problem resolution)
 
 **Quick reference for entire workflow**
 → Visual: [workflow/quick-reference.md](workflow/quick-reference.md) (one-pager)  
@@ -115,7 +116,7 @@ Master index for all `.claude` directory contents. This directory contains confi
 | `TODO.md` | Current session tasks, blockers, next steps | Daily |
 | `INBOX.md` | Quick notes, ideas, feedback | As needed |
 | `MEMORY.md` | Key decisions, important context, learnings | Weekly |
-| `OPEN-QUESTIONS-CLARIFIED.md` | Q&A log, clarifications from user | As needed |
+| `inbox/OPEN-QUESTIONS-CLARIFIED.md` | Problem resolution logs, investigation notes | Per feature |
 
 ### Planning
 
