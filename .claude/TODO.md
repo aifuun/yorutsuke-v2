@@ -2,11 +2,13 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Issue: #102
-- [ ] Admin Panel UI for Batch Config
+## Current Issue: None
 
-Last completed: #97 - instant-processor Lambda (Nova Lite)
+MVP3 Instant 模式核心功能完成。
+
+Last completed: #102 - Admin Panel Batch Settings
 Last completed: #101 - Admin Config API
+Last completed: #97 - instant-processor Lambda
 
 | Version | Phase | Status |
 |---------|-------|--------|

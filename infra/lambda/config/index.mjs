@@ -5,7 +5,7 @@ const ssm = new SSMClient({});
 // Static config from environment variables
 const QUOTA_LIMIT = parseInt(process.env.QUOTA_LIMIT || "50");
 const UPLOAD_INTERVAL_MS = parseInt(process.env.UPLOAD_INTERVAL_MS || "10000");
-const BATCH_TIME = process.env.BATCH_TIME || "02:00";
+const BATCH_TIME = process.env.BATCH_TIME || "02:00"; // Default fallback time (configurable processing modes preferred)
 const MIN_VERSION = process.env.MIN_VERSION || "1.0.0";
 const LATEST_VERSION = process.env.LATEST_VERSION || "1.1.0";
 

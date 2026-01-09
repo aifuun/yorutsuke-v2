@@ -1,6 +1,6 @@
 # Yorutsuke v2 (夜付け)
 
-Local-first AI accounting assistant for second-hand business users. Drag receipts → nightly AI batch processing → morning reports.
+Local-first AI accounting assistant for second-hand business users. Drag receipts → configurable AI processing (instant/batch/hybrid) → transaction reports.
 
 > "你只管赚钱，记账交给电脑里的 AI"
 
@@ -84,12 +84,14 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | tail -50
 ## Core Flow
 
 ```
-日間採集 (Day)        夜間処理 (02:00 JST)     朝報告 (Morning)
-───────────────────────────────────────────────────────────────
-Receipt Drop  →  Local SQLite  →  S3 Upload  →  Nova Lite OCR  →  Morning Report
-     ↓              ↓                                                    ↓
-  WebP圧縮      Queue管理                                          Transaction確認
+日間採集 (Day)          処理 (Configurable)         結果確認
+──────────────────────────────────────────────────────────────────────────────────
+Receipt Drop  →  Local SQLite  →  S3 Upload  →  Nova Lite OCR  →  Transaction Result
+     ↓              ↓              ↓                                    ↓
+  WebP圧縮      Queue管理   Instant/Batch/Hybrid                  確認/編集
 ```
+
+**処理方式**: Admin で設定可能（即座処理/バッチ/ハイブリッド）
 
 ## Project Structure
 
@@ -209,7 +211,7 @@ cd app && npm test             # Run tests
 | DynamoDB | `yorutsuke-transactions-{env}` | Transaction records |
 | Cognito | `yorutsuke-users-{env}` | User authentication |
 | Lambda | `yorutsuke-presign-{env}` | S3 upload URLs |
-| Lambda | `yorutsuke-batch-{env}` | Nightly batch (02:00 JST) |
+| Lambda | `yorutsuke-batch-{env}` | Batch Processing (configurable mode) |
 | Bedrock | Nova Lite | Receipt OCR (~¥0.015/image) |
 
 ## Cost Controls

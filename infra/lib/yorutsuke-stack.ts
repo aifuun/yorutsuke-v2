@@ -202,7 +202,7 @@ export class YorutsukeStack extends cdk.Stack {
       environment: {
         QUOTA_LIMIT: "50",
         UPLOAD_INTERVAL_MS: "2000",
-        BATCH_TIME: "02:00",
+        BATCH_TIME: "02:00", // Default time; can be overridden by batch config
         MIN_VERSION: "1.0.0",
         LATEST_VERSION: "1.1.0",
         MAINTENANCE_MODE_PARAM: maintenanceModeParam.parameterName,
@@ -272,32 +272,6 @@ export class YorutsukeStack extends cdk.Stack {
       cors: {
         allowedOrigins: ["*"],
         allowedMethods: [lambda.HttpMethod.POST],
-        allowedHeaders: ["*"],
-      },
-    });
-
-    // Lambda for admin batch config
-    const batchConfigLambda = new lambda.Function(this, "BatchConfigLambda", {
-      functionName: `yorutsuke-batch-config-${env}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/batch-config"),
-      layers: [sharedLayer],
-      environment: {
-        CONTROL_TABLE_NAME: controlTable.tableName,
-      },
-      timeout: cdk.Duration.seconds(10),
-    });
-
-    controlTable.grantReadWriteData(batchConfigLambda);
-
-    // Lambda Function URL for batch config
-    const batchConfigUrl = batchConfigLambda.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowedOrigins: ["*"],
-        allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.POST],
-        allowedHeaders: ["*"],
       },
     });
 
@@ -363,12 +337,14 @@ export class YorutsukeStack extends cdk.Stack {
       })
     );
 
-    // EventBridge Rule: Run at 02:00 JST (17:00 UTC previous day)
+    // EventBridge Rule: Fallback schedule at 02:00 JST (17:00 UTC previous day)
+    // Note: With configurable processing modes, this is only used for Batch/Hybrid modes
+    // when automatic S3 triggers are not sufficient
     const batchRule = new events.Rule(this, "BatchProcessRule", {
       ruleName: `yorutsuke-batch-process-${env}`,
       schedule: events.Schedule.cron({
         minute: "0",
-        hour: "17", // 02:00 JST = 17:00 UTC (previous day)
+        hour: "17", // 02:00 JST = 17:00 UTC (previous day) - fallback only
       }),
       enabled: env === "prod", // Only enable in production
     });
@@ -554,11 +530,6 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "EmergencyStopParamName", {
       value: emergencyStopParam.parameterName,
       exportName: `${id}-EmergencyStopParam`,
-    });
-
-    new cdk.CfnOutput(this, "BatchConfigUrl", {
-      value: batchConfigUrl.url,
-      exportName: `${id}-BatchConfigUrl`,
     });
   }
 }

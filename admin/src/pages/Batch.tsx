@@ -7,7 +7,7 @@ import { Layout } from '../components/Layout';
 import { StatCard } from '../components/StatCard';
 import { ProcessingSettings } from '../components/ProcessingSettings';
 import { api, endpoints } from '../api/client';
-import { BatchConfig } from '../types/batch';
+import type { BatchConfig } from '../types/batch';
 
 interface BatchStatus {
   pendingImages: {
@@ -220,13 +220,13 @@ export function Batch() {
 
         {/* Info Box */}
         <div className="mt-6 p-4 bg-app-surface border border-app-border rounded-lg">
-          <h3 className="text-sm font-medium text-app-text mb-2">About Batch Processing</h3>
+          <h3 className="text-sm font-medium text-app-text mb-2">About Processing Modes</h3>
           <ul className="text-sm text-app-text-secondary space-y-1 list-disc list-inside">
-            <li>Runs automatically every day at 02:00 JST (17:00 UTC)</li>
-            <li>In <b>Batch Mode</b>, processing is deferred until threshold (100) is met</li>
-            <li>In <b>Hybrid Mode</b>, deferred images are processed via Instant if threshold not met by report time</li>
+            <li><b>Instant Mode</b>: Process each receipt immediately after upload (~5-10 sec, full price)</li>
+            <li><b>Batch Only Mode</b>: Accumulate images, process when threshold (≥100) is reached (50% discount)</li>
+            <li><b>Hybrid Mode</b>: Use Batch if threshold met, fallback to Instant if timeout expires</li>
             <li>Processing mode and LLM models can be configured above</li>
-            <li>Results are written to the transactions table</li>
+            <li>You can manually trigger processing at any time using the button above</li>
           </ul>
         </div>
       </div>

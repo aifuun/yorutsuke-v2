@@ -137,7 +137,7 @@ export async function handler(event) {
           pendingImages,
           lastResult,
           recentLogs: recentLogs.slice(0, 20), // Return only last 20
-          scheduledTime: "02:00 JST",
+          scheduledTime: "Depends on processing mode (Instant: immediate, Batch/Hybrid: on trigger)",
           lambdaName: BATCH_LAMBDA_NAME,
         }),
       };

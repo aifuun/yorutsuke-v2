@@ -14,8 +14,8 @@ Yorutsuke uses a **tiered telemetry strategy** to balance observability needs wi
 │  Tier 1: Error Push (Daily Batch) ← PLANNED                     │
 │  └─ error level → nightly batch → S3                            │
 │                                                                  │
-│  Tier 2: Daily Summary (Nightly Batch)                          │
-│  └─ local aggregate → 02:00 JST upload → S3 + Athena            │
+│  Tier 2: Daily Summary (Configurable Batch)                     │
+│  └─ local aggregate → upload during batch → S3 + Athena         │
 │                                                                  │
 │  Tier 3: Full Logs (On-demand)                                  │
 │  └─ user-initiated upload → Support debugging                   │
@@ -36,7 +36,7 @@ Yorutsuke uses a **tiered telemetry strategy** to balance observability needs wi
 
 ### Tier 1: Error Push (Daily Batch) — PLANNED
 
-Collect error-level logs locally, upload summary during nightly batch (02:00 JST).
+Collect error-level logs locally, upload summary during batch processing (timing configurable).
 
 ```typescript
 // telemetryService.ts
@@ -53,8 +53,8 @@ interface ErrorSummary {
 
 class TelemetryService {
   /**
-   * Called during nightly batch (02:00 JST)
-   * Extracts errors from today's logs and uploads summary
+   * Called during batch processing
+   * Extracts errors from today's logs and uploads summary (timing configurable)
    */
   async uploadErrorSummary(userId: UserId): Promise<void> {
     const logs = await this.readTodayLogs();
@@ -98,7 +98,7 @@ interface DailySummary {
 
 class TelemetryService {
   /**
-   * Called during nightly batch (02:00 JST)
+   * Called during batch processing (timing configurable)
    * Aggregates today's logs into a summary for upload
    */
   async uploadDailySummary(userId: UserId): Promise<void> {

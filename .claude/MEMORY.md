@@ -18,7 +18,7 @@ Record important decisions with context.
 - **Strategy**: 
   - **Instant-Mode**: Real-time processing via On-Demand API (fast but full price).
   - **Batch-Mode**: Collective processing via Batch API (slow but 50% off).
-  - **Hybrid-Mode**: Auto-switch to Instant-Mode if batch threshold (100) isn't met by report time (02:00).
+  - **Hybrid-Mode**: Auto-switch to Instant-Mode if batch threshold (100) isn't met by configured timeout.
 - **Impact**: Balanced UX (Morning reports always ready) with optimized operational cost.
 - **Issue**: #96
 

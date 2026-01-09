@@ -7,7 +7,7 @@
 | 项目 | 旧 | 新 |
 |------|-----|-----|
 | 处理模式 | 固定 Batch | **三种模式可选 (Instant/Batch/Hybrid)** |
-| 触发条件 | 02:00 JST 每日一次 | **模式依赖 (见下方)** |
+| 触发条件 | 固定时间 (02:00 JST) | **模式依赖 + 手动触发 (见下方)** |
 | API 类型 | ON_DEMAND | **Instant=On-Demand, Batch=Batch Inference (50% 折扣)** |
 | Admin 配置 | 无 | **支持模式/阈值/间隔/LLM 选择** |
 

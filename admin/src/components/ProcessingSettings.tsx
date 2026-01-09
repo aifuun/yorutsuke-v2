@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { BatchConfig } from '../types/batch';
 import { AVAILABLE_MODELS } from '../types/batch';
 import { api, endpoints } from '../api/client';

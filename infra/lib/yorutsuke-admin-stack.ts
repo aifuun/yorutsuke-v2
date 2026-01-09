@@ -24,6 +24,16 @@ export class YorutsukeAdminStack extends cdk.Stack {
     const env = this.node.tryGetContext("env") || "dev";
 
     // ========================================
+    // Lambda Layer for shared code
+    // ========================================
+    const sharedLayer = new lambda.LayerVersion(this, "AdminSharedLayer", {
+      layerVersionName: `yorutsuke-admin-shared-${env}`,
+      code: lambda.Code.fromAsset("lambda/shared-layer"),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
+      description: "Shared utilities for Yorutsuke Admin Lambdas",
+    });
+
+    // ========================================
     // DynamoDB: Control Table (emergency stop state)
     // ========================================
     const controlTable = new dynamodb.Table(this, "ControlTable", {
@@ -74,6 +84,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/admin/stats"),
+      layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
         TRANSACTIONS_TABLE_NAME: props.transactionsTableName,
@@ -118,6 +129,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/admin/control"),
+      layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
       },
@@ -134,6 +146,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/admin/costs"),
+      layers: [sharedLayer],
       environment: {
         // No specific env vars needed
       },
@@ -156,6 +169,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/admin/batch-config"),
+      layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
       },
@@ -172,6 +186,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/admin/batch"),
+      layers: [sharedLayer],
       environment: {
         BATCH_PROCESS_LAMBDA_NAME: props.batchProcessLambdaName,
         IMAGE_BUCKET_NAME: props.imageBucketName,
