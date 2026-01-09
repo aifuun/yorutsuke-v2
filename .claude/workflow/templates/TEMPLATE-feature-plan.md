@@ -6,6 +6,10 @@
 **Target Date**: [YYYY-MM-DD]  
 **Estimated Hours**: [8h | 16h | 32h | etc.]  
 
+> **Where to use**: Step 2 of two-step planning (planning-feature.md)  
+> **When**: Before developing a specific feature  
+> **File location**: `plans/active/#[number]-feature-name.md`
+
 ---
 
 ## 📋 Overview

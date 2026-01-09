@@ -6,6 +6,10 @@
 **Triage Date**: [YYYY-MM-DD]  
 **Triage Status**: [Needs Clarification | Ready for Planning | Duplicate | Won't Fix | Invalid]
 
+> **Where to use**: GitHub issue evaluation  
+> **When**: When a new issue needs assessment before planning  
+> **File location**: `plans/active/#[number]-issue.md`
+
 ---
 
 ## 🔍 Triage Analysis
