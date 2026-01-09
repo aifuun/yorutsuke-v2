@@ -12,6 +12,32 @@ Update at session end, read at session start.
 
 Record important decisions with context.
 
+### [2026-01-09] Claude Code Commands Optimization (#105)
+- **Decision**: Comprehensive restructuring of .claude/commands/ directory for consistency, maintainability, and AI effectiveness
+- **Trigger**: 19 command files had inconsistent formats, duplicate content, and no metadata structure
+- **Four-Phase Approach**:
+  1. **Standardization**: Created command-template.md; added YAML frontmatter to all 17 commands
+  2. **Consolidation**: Merged save→sync, diff→status; extracted 3 shared patterns (git-workflow, pillar-reference, command-template)
+  3. **Streamline**: Reduced next.md (-43%), scaffold.md (-49%), tier.md (-40%); moved examples to separate files
+  4. **Enhancements**: Added parameter docs, command chaining, context-aware approve.md, Related sections to all commands
+- **Results**:
+  - 19 files → 17 files (-11%)
+  - 100% standardized with YAML frontmatter
+  - Git workflow duplication: 9 copies → 3 references (-89%)
+  - Created `.claude/patterns/` for shared content
+  - All commands now have cross-references (Related sections)
+- **Key Patterns**:
+  - **Command Chaining**: Commands suggest next logical step (*issue close → *sync, *cdk diff → *approve)
+  - **Context-Aware Approve**: Detects previous command and executes appropriate action
+  - **Minimal Frontmatter**: Only name, category, requires, aliases (no verbose metadata)
+  - **@-References**: Consistent path references to patterns/templates/rules
+- **Backward Compatibility**: Preserved aliases (*save → *sync --ask --memory, *diff → *status --diff)
+- **Files**:
+  - All 17 commands in `.claude/commands/`
+  - `.claude/patterns/` (command-template, git-workflow, pillar-reference)
+  - `.claude/workflow/examples/next-command.md`
+- **Issue**: #105
+
 ### [2026-01-09] Workflow Documentation Restructure
 - **Decision**: Reorganized workflow documentation into layered structure with Two-Step Planning methodology
 - **Trigger**: Need for clearer planning process and better separation between strategic (MVP) and tactical (Feature) planning
