@@ -15,7 +15,7 @@ Master index for all `.claude` directory contents. This directory contains confi
 │   └── TODO.md (current session tasks)
 │
 ├── 📑 Session Context & Inbox
-│   ├── INBOX.md (quick notes, ideas, feedback)
+│   ├── QUICK-NOTES.md (capture quick ideas, not disruptive)
 │   └── inbox/ (detailed Q&A, issue investigations)
 │       └── OPEN-QUESTIONS-CLARIFIED.md (problem resolution logs)
 │
@@ -93,6 +93,9 @@ Master index for all `.claude` directory contents. This directory contains confi
 → Quick overview: [workflow/architecture.md](workflow/architecture.md) (3 layers)  
 → Deep dive: [workflow/architecture-core.md](workflow/architecture-core.md)
 
+**Add quick notes or ideas**
+→ Write in: [QUICK-NOTES.md](QUICK-NOTES.md) (capture ideas without interrupting)
+
 **Check what I should be working on**
 → Read: [TODO.md](TODO.md) (current session tasks)  
 → See also: [MEMORY.md](MEMORY.md) (key context)
@@ -114,7 +117,7 @@ Master index for all `.claude` directory contents. This directory contains confi
 | File | Purpose | Frequency |
 |------|---------|-----------|
 | `TODO.md` | Current session tasks, blockers, next steps | Daily |
-| `INBOX.md` | Quick notes, ideas, feedback | As needed |
+| `QUICK-NOTES.md` | Quick capture of ideas without disruption | As needed |
 | `MEMORY.md` | Key decisions, important context, learnings | Weekly |
 | `inbox/OPEN-QUESTIONS-CLARIFIED.md` | Problem resolution logs, investigation notes | Per feature |
 
@@ -181,6 +184,7 @@ Phase D: Release
 ## ✅ Maintenance Checklist
 
 **Weekly**:
+- [ ] Process `QUICK-NOTES.md`: convert to Issues, add to TODO, or archive
 - [ ] Review and update `TODO.md` with new tasks
 - [ ] Update `MEMORY.md` with key decisions from the week
 - [ ] Archive completed plans from `plans/active/` → `plans/archive/`
