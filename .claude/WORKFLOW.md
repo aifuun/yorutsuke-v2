@@ -25,7 +25,7 @@
 ### Phase B: Planning (Feature Development) ⭐ Most Important
 **When**: Planning new features or releases  
 **Main guide**: `@workflow/planning.md` (Two-step process)  
-**Plan templates**: `@plans/TEMPLATE-feature-plan.md` (use for Step 2)  
+**Plan templates**: `@workflow/templates/` (feature plan & issue triage templates)  
 **Plan storage**: `@plans/active/` (current features), `@plans/archive/` (completed)  
 **Architecture**: `@workflow/architecture.md` (MVP → Issues → TODO flow)  
 **Quick ref**: `@workflow/quick-reference.md` (one-pager with visuals)  

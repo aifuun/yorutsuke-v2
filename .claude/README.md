@@ -21,8 +21,6 @@ Master index for all `.claude` directory contents. This directory contains confi
 │
 ├── 📊 Plans (Feature/Issue Planning)
 │   ├── README.md (plans directory guide)
-│   ├── TEMPLATE-feature-plan.md (use for new features)
-│   ├── TEMPLATE-issue-triage.md (use for issue triage)
 │   ├── active/ (current development plans)
 │   │   └── plan.md (current MVP/sprint plans)
 │   ├── backlog/ (future features)
@@ -32,19 +30,20 @@ Master index for all `.claude` directory contents. This directory contains confi
 │       ├── batch-result-handler-PLAN.md
 │       └── IMPLEMENTATION-COMPLETE-#99.md
 │
-├── 🔄 Workflow (Process Guides)
-│   ├── README.md (workflow overview)
+├── 🔄 Workflow (Process Guides & Templates)
 │   ├── planning.md (two-step planning index)
 │   ├── planning-mvp.md (MVP-level decomposition, 40 min)
 │   ├── planning-feature.md (Feature-level planning, 1-2h)
 │   ├── planning-reference.md (Complete Steps 0-8)
 │   ├── feature-development.md (4-phase lifecycle)
-│   ├── development.md (Phase C guidance)
-│   ├── docs.md (Phase A guidance)
-│   ├── release.md (Phase D guidance)
+│   ├── development.md, docs.md, release.md
 │   ├── architecture.md (3-layer architecture index)
 │   ├── architecture-core.md (deep dive)
-│   └── quick-reference.md (visual one-pager)
+│   ├── quick-reference.md (visual one-pager)
+│   └── templates/ (planning templates)
+│       ├── README.md (template guide)
+│       ├── TEMPLATE-feature-plan.md (use for features)
+│       └── TEMPLATE-issue-triage.md (use for issues)
 │
 ├── ⚙️ Configuration
 │   ├── settings.json (shared settings)
@@ -70,11 +69,13 @@ Master index for all `.claude` directory contents. This directory contains confi
 ### I need to...
 
 **Plan a new feature**
-→ Copy `plans/TEMPLATE-feature-plan.md` to `plans/active/#[number]-feature.md`  
+→ Copy: [workflow/templates/TEMPLATE-feature-plan.md](workflow/templates/TEMPLATE-feature-plan.md)  
+→ Save to: `plans/active/#[number]-feature.md`  
 → Reference: [plans/README.md](plans/README.md)
 
 **Triage an issue**
-→ Copy `plans/TEMPLATE-issue-triage.md` to `plans/active/#[number]-issue.md`  
+→ Copy: [workflow/templates/TEMPLATE-issue-triage.md](workflow/templates/TEMPLATE-issue-triage.md)  
+→ Save to: `plans/active/#[number]-issue.md`  
 → Reference: [plans/README.md](plans/README.md)
 
 **Understand the MVP structure**

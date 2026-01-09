@@ -9,18 +9,18 @@ Organized storage for feature plans, issue plans, and related planning documents
 ```
 plans/
 ├── README.md (this file)
-├── TEMPLATE-feature-plan.md (use for new feature plans)
-├── TEMPLATE-issue-triage.md (use for issue triage)
 ├── active/ (current development)
-│   ├── #100-feature-name.md
-│   ├── #101-feature-name.md
+│   ├── #100-feature-name.md (use template from workflow/templates/)
 │   └── ...
 ├── backlog/ (future features)
-│   ├── #150-feature-name.md
 │   └── ...
-└── archive/ (completed features)
-    ├── #001-completed-feature.md
+└── archive/ (completed)
     └── ...
+```
+
+**Templates are stored in**: [workflow/templates/](../workflow/templates/)
+- `TEMPLATE-feature-plan.md` - for feature planning
+- `TEMPLATE-issue-triage.md` - for issue triage
 ```
 
 ---
@@ -29,26 +29,28 @@ plans/
 
 ### Creating a Feature Plan
 
-1. Copy `TEMPLATE-feature-plan.md` to `active/#[number]-[feature-name].md`
-2. Fill in all sections following the template
-3. Use during development to track progress
-4. Move to `archive/` when completed
+1. Copy template from `workflow/templates/TEMPLATE-feature-plan.md`
+2. Save to `active/#[number]-[feature-name].md`
+3. Fill in all sections following the template
+4. Use during development to track progress
+5. Move to `archive/` when completed
 
 **Example**:
 ```bash
-cp TEMPLATE-feature-plan.md active/#100-auth-system.md
+cp ../workflow/templates/TEMPLATE-feature-plan.md active/#100-auth-system.md
 # Edit active/#100-auth-system.md
 ```
 
 ### Triaging an Issue
 
-1. Copy `TEMPLATE-issue-triage.md` to `active/#[number]-issue.md`
-2. Analyze and decide: Needs Clarification | Ready for Planning | Duplicate | Won't Fix
-3. Move to `archive/` when resolved
+1. Copy template from `workflow/templates/TEMPLATE-issue-triage.md`
+2. Save to `active/#[number]-issue.md`
+3. Analyze and decide: Needs Clarification | Ready for Planning | Duplicate | Won't Fix
+4. Move to `archive/` when resolved
 
 **Example**:
 ```bash
-cp TEMPLATE-issue-triage.md active/#99-bug-report.md
+cp ../workflow/templates/TEMPLATE-issue-triage.md active/#99-issue.md
 # Edit and triage active/#99-bug-report.md
 ```
 
@@ -125,10 +127,10 @@ cp TEMPLATE-issue-triage.md active/#99-bug-report.md
 
 ```bash
 # Create a new feature plan
-cp TEMPLATE-feature-plan.md active/#100-my-feature.md
+cp ../workflow/templates/TEMPLATE-feature-plan.md active/#100-my-feature.md
 
 # Create a new issue triage
-cp TEMPLATE-issue-triage.md active/#50-issue.md
+cp ../workflow/templates/TEMPLATE-issue-triage.md active/#99-issue.md
 
 # Move completed plan to archive
 mv active/#100-my-feature.md archive/#100-my-feature.md
