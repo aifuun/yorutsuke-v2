@@ -325,6 +325,48 @@ export class YorutsukeStack extends cdk.Stack {
       })
     );
 
+    // Lambda for batch orchestration (Bedrock Batch Inference)
+    const batchOrchestratorLambda = new lambda.Function(this, "BatchOrchestratorLambda", {
+      functionName: `yorutsuke-batch-orchestrator-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/batch-orchestrator"),
+      layers: [sharedLayer],
+      environment: {
+        BUCKET_NAME: imageBucket.bucketName,
+        PENDING_IMAGES_TABLE: "yorutsuke-pending-images",
+        BATCH_JOBS_TABLE: "yorutsuke-batch-jobs",
+        CONTROL_TABLE_NAME: controlTable.tableName,
+      },
+      timeout: cdk.Duration.minutes(5),
+      memorySize: 512,
+    });
+
+    // Grant permissions for batch orchestrator
+    imageBucket.grantRead(batchOrchestratorLambda);  // Read images for manifest
+    imageBucket.grantWrite(batchOrchestratorLambda);  // Write manifest.jsonl
+    batchOrchestratorLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock:CreateModelInvocationJob",
+          "bedrock:GetModelInvocationJob",
+        ],
+        resources: ["arn:aws:bedrock:*::foundation-model/*"],
+      })
+    );
+
+    // Grant DynamoDB access for batch jobs table
+    const batchJobsTable = new dynamodb.Table(this, "BatchJobsTable", {
+      tableName: `yorutsuke-batch-jobs-${env}`,
+      partitionKey: {
+        name: "jobId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: "ttl",
+    });
+    batchJobsTable.grantReadWriteData(batchOrchestratorLambda);
+
     // Grant permissions
     imageBucket.grantReadWrite(batchProcessLambda);
     transactionsTable.grantWriteData(batchProcessLambda);
