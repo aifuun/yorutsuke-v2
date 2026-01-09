@@ -61,6 +61,13 @@ export class YorutsukeAdminStack extends cdk.Stack {
         requireDigits: true,
         requireSymbols: false,
       },
+      // @security: MFA is optional - users can enable TOTP in their settings
+      // For production, consider changing to Mfa.REQUIRED
+      mfa: cognito.Mfa.OPTIONAL,
+      mfaSecondFactor: {
+        sms: false,  // SMS costs money, disable
+        otp: true,   // TOTP via authenticator app
+      },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy:
         env === "prod"
@@ -74,6 +81,45 @@ export class YorutsukeAdminStack extends cdk.Stack {
         userSrp: true,
       },
       generateSecret: false,
+    });
+
+    // ========================================
+    // S3 Bucket for Admin Static Hosting
+    // (Moved before API to enable CORS restriction)
+    // ========================================
+    const adminBucket = new s3.Bucket(this, "AdminBucket", {
+      bucketName: `yorutsuke-admin-${env}-${this.account}`,
+      removalPolicy:
+        env === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: env !== "prod",
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+
+    // ========================================
+    // CloudFront Distribution
+    // (Moved before API to enable CORS restriction)
+    // ========================================
+    const distribution = new cloudfront.Distribution(this, "AdminDistribution", {
+      defaultBehavior: {
+        origin: origins.S3BucketOrigin.withOriginAccessControl(adminBucket),
+        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+      },
+      defaultRootObject: "index.html",
+      errorResponses: [
+        {
+          httpStatus: 404,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+        },
+        {
+          httpStatus: 403,
+          responseHttpStatus: 200,
+          responsePagePath: "/index.html",
+        },
+      ],
     });
 
     // ========================================
@@ -229,13 +275,35 @@ export class YorutsukeAdminStack extends cdk.Stack {
       restApiName: `yorutsuke-admin-api-${env}`,
       description: "Admin API for Yorutsuke",
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        // @security: Restrict CORS to CloudFront domain only (not ALL_ORIGINS)
+        allowOrigins: [`https://${distribution.distributionDomainName}`],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
           "Content-Type",
           "Authorization",
         ],
       },
+    });
+
+    // ========================================
+    // API Gateway Rate Limiting
+    // @security: Prevent brute force and DDoS
+    // ========================================
+    const usagePlan = api.addUsagePlan("AdminUsagePlan", {
+      name: `yorutsuke-admin-usage-${env}`,
+      description: "Rate limiting for Admin API",
+      throttle: {
+        rateLimit: 100,  // requests per second
+        burstLimit: 200, // maximum burst
+      },
+      quota: {
+        limit: 10000,    // requests per day
+        period: apigateway.Period.DAY,
+      },
+    });
+
+    usagePlan.addApiStage({
+      stage: api.deploymentStage,
     });
 
     // Cognito Authorizer
@@ -307,43 +375,6 @@ export class YorutsukeAdminStack extends cdk.Stack {
       new apigateway.LambdaIntegration(batchConfigLambda),
       authOptions
     );
-
-    // ========================================
-    // S3 Bucket for Admin Static Hosting
-    // ========================================
-    const adminBucket = new s3.Bucket(this, "AdminBucket", {
-      bucketName: `yorutsuke-admin-${env}-${this.account}`,
-      removalPolicy:
-        env === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: env !== "prod",
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-    });
-
-    // ========================================
-    // CloudFront Distribution
-    // ========================================
-    const distribution = new cloudfront.Distribution(this, "AdminDistribution", {
-      defaultBehavior: {
-        origin: origins.S3BucketOrigin.withOriginAccessControl(adminBucket),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-      },
-      defaultRootObject: "index.html",
-      errorResponses: [
-        {
-          httpStatus: 404,
-          responseHttpStatus: 200,
-          responsePagePath: "/index.html",
-        },
-        {
-          httpStatus: 403,
-          responseHttpStatus: 200,
-          responsePagePath: "/index.html",
-        },
-      ],
-    });
 
     // ========================================
     // Outputs
