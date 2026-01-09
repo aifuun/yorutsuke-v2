@@ -9,6 +9,37 @@ import { ProcessingSettings } from '../components/ProcessingSettings';
 import { api, endpoints } from '../api/client';
 import type { BatchConfig } from '../types/batch';
 
+// Mode display configuration
+const MODE_CONFIG = {
+  instant: {
+    label: 'Instant',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/30',
+    icon: '⚡',
+    description: 'Receipts are processed immediately after upload',
+    triggerAction: 'Force reprocess any failed images',
+  },
+  batch: {
+    label: 'Batch Only',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20',
+    borderColor: 'border-amber-500/30',
+    icon: '📦',
+    description: 'Images queued until threshold (≥100) is reached',
+    triggerAction: 'Process all queued images now (uses Batch API)',
+  },
+  hybrid: {
+    label: 'Hybrid',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/30',
+    icon: '🔄',
+    description: 'Batch when threshold met, Instant on timeout',
+    triggerAction: 'Process queued images via Instant API',
+  },
+} as const;
+
 interface BatchStatus {
   pendingImages: {
     pending: number;
@@ -77,9 +108,16 @@ export function Batch() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-app-text">Batch Processing</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-app-text">Receipt Processing</h1>
+              {config && (
+                <span className={`text-sm px-2.5 py-1 rounded-full ${MODE_CONFIG[config.processingMode].bgColor} ${MODE_CONFIG[config.processingMode].color} ${MODE_CONFIG[config.processingMode].borderColor} border font-medium`}>
+                  {MODE_CONFIG[config.processingMode].icon} {MODE_CONFIG[config.processingMode].label} Mode
+                </span>
+              )}
+            </div>
             <p className="text-app-text-secondary mt-1">
-              Monitor and trigger batch OCR processing
+              {config ? MODE_CONFIG[config.processingMode].description : 'Configure and monitor OCR processing'}
             </p>
           </div>
           <button
@@ -104,24 +142,42 @@ export function Batch() {
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <StatCard
-                title="Pending Images"
+                title="Queued Images"
                 value={status.pendingImages.pending}
-                subtitle={status.pendingImages.isTruncated ? 'More than shown' : 'In uploads/ folder'}
-                icon="🖼️"
-                color="blue"
+                subtitle={
+                  status.pendingImages.pending === 0
+                    ? 'No images waiting'
+                    : status.pendingImages.isTruncated
+                      ? '100+ images in queue'
+                      : config?.processingMode === 'instant'
+                        ? 'Will process on next upload'
+                        : `Threshold: ${config?.imageThreshold ?? 100}`
+                }
+                icon="📋"
+                color={status.pendingImages.pending > 0 ? 'yellow' : 'green'}
               />
               <StatCard
-                title="Last Processed"
+                title="Last Run"
                 value={status.lastResult?.processed ?? '-'}
-                subtitle={status.lastResult?.timestamp ? new Date(status.lastResult.timestamp).toLocaleString() : 'No recent runs'}
+                subtitle={
+                  status.lastResult?.timestamp
+                    ? `${new Date(status.lastResult.timestamp).toLocaleString()}`
+                    : 'No processing history'
+                }
                 icon="✅"
                 color="green"
               />
               <StatCard
-                title="Last Failed"
-                value={status.lastResult?.failed ?? '-'}
-                subtitle="In last batch run"
-                icon={status.lastResult?.failed && status.lastResult.failed > 0 ? '❌' : '✅'}
+                title="Failed"
+                value={status.lastResult?.failed ?? 0}
+                subtitle={
+                  !status.lastResult
+                    ? 'No errors recorded'
+                    : status.lastResult.failed > 0
+                      ? 'Requires attention'
+                      : 'All succeeded'
+                }
+                icon={status.lastResult?.failed && status.lastResult.failed > 0 ? '⚠️' : '✓'}
                 color={status.lastResult?.failed && status.lastResult.failed > 0 ? 'red' : 'green'}
               />
             </div>
@@ -134,25 +190,29 @@ export function Batch() {
               />
             )}
 
-            {/* Schedule Info */}
+            {/* Manual Trigger Section */}
             <div className="bg-app-surface border border-app-border rounded-lg p-6 mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-app-text">Scheduled Run</h3>
+                  <h3 className="text-lg font-semibold text-app-text">Manual Processing</h3>
                   <p className="text-app-text-secondary">
-                    Daily at {status.scheduledTime}
+                    {config ? MODE_CONFIG[config.processingMode].triggerAction : 'Trigger processing manually'}
                   </p>
-                  <p className="text-sm text-app-text-secondary mt-1">
+                  <p className="text-xs text-app-text-secondary mt-2 font-mono">
                     Lambda: {status.lambdaName}
                   </p>
                 </div>
-                {!showConfirm ? (
+                {status.pendingImages.pending === 0 && config?.processingMode === 'instant' ? (
+                  <div className="text-app-text-secondary text-sm px-6 py-3 bg-app-bg rounded-lg">
+                    No queued images to process
+                  </div>
+                ) : !showConfirm ? (
                   <button
                     onClick={() => setShowConfirm(true)}
                     className="px-6 py-3 bg-app-accent text-white rounded-lg
                                hover:bg-app-accent/80 transition-colors font-medium"
                   >
-                    Trigger Manually
+                    {config?.processingMode === 'instant' ? 'Reprocess Failed' : 'Process Now'}
                   </button>
                 ) : (
                   <div className="flex gap-3">
@@ -162,7 +222,7 @@ export function Batch() {
                       className="px-6 py-3 bg-amber-600 text-white rounded-lg
                                  hover:bg-amber-700 transition-colors font-medium disabled:opacity-50"
                     >
-                      {isTriggering ? 'Triggering...' : 'Confirm Trigger'}
+                      {isTriggering ? 'Processing...' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setShowConfirm(false)}
@@ -220,14 +280,30 @@ export function Batch() {
 
         {/* Info Box */}
         <div className="mt-6 p-4 bg-app-surface border border-app-border rounded-lg">
-          <h3 className="text-sm font-medium text-app-text mb-2">About Processing Modes</h3>
-          <ul className="text-sm text-app-text-secondary space-y-1 list-disc list-inside">
-            <li><b>Instant Mode</b>: Process each receipt immediately after upload (~5-10 sec, full price)</li>
-            <li><b>Batch Only Mode</b>: Accumulate images, process when threshold (≥100) is reached (50% discount)</li>
-            <li><b>Hybrid Mode</b>: Use Batch if threshold met, fallback to Instant if timeout expires</li>
-            <li>Processing mode and LLM models can be configured above</li>
-            <li>You can manually trigger processing at any time using the button above</li>
-          </ul>
+          <h3 className="text-sm font-medium text-app-text mb-3">Processing Modes Explained</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <div className="font-medium text-green-400 mb-1">⚡ Instant Mode</div>
+              <div className="text-app-text-secondary text-xs">
+                Process immediately after upload. Best UX, standard pricing.
+              </div>
+            </div>
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <div className="font-medium text-amber-400 mb-1">📦 Batch Only</div>
+              <div className="text-app-text-secondary text-xs">
+                Queue until 100+ images, then batch process. 50% cost savings.
+              </div>
+            </div>
+            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <div className="font-medium text-blue-400 mb-1">🔄 Hybrid</div>
+              <div className="text-app-text-secondary text-xs">
+                Try Batch first, fallback to Instant if timeout reached.
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-app-text-secondary mt-3">
+            LLM options: Nova Lite (low cost), Nova Pro (higher accuracy), Claude 3 Haiku (alternative)
+          </p>
         </div>
       </div>
     </Layout>
