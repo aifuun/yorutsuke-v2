@@ -384,7 +384,74 @@ export class YorutsukeStack extends cdk.Stack {
     
     batchJobsTable.grantReadWriteData(batchOrchestratorLambda);
 
-    // Grant permissions
+    // ========================================
+    // Batch Result Handler Lambda (Issue #99)
+    // Improvement #7: IAM least privilege - explicit S3/DynamoDB actions only
+    // ========================================
+    const batchResultHandlerLambda = new lambda.Function(
+      this,
+      "BatchResultHandlerLambda",
+      {
+        functionName: `yorutsuke-batch-result-handler-${env}`,
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "index.handler",
+        code: lambda.Code.fromAsset("lambda/batch-result-handler"),
+        layers: [sharedLayer],
+        environment: {
+          BUCKET_NAME: imageBucket.bucketName,
+          TRANSACTIONS_TABLE: transactionsTable.tableName,
+          BATCH_JOBS_TABLE: batchJobsTable.tableName,
+        },
+        timeout: cdk.Duration.minutes(10),
+        memorySize: 1024, // Increase for streaming large JSONL files
+      }
+    );
+
+    // Improvement #7: IAM least privilege - only needed actions
+    batchResultHandlerLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "s3:GetObject",    // Read Bedrock output JSONL
+          "s3:PutObject",    // Write to processed/
+          "s3:DeleteObject", // Delete from uploads/
+          "s3:HeadObject",   // Check file existence
+        ],
+        resources: [
+          `${imageBucket.bucketArn}/batch-output/*`,
+          `${imageBucket.bucketArn}/uploads/*`,
+          `${imageBucket.bucketArn}/processed/*`,
+        ],
+      })
+    );
+
+    batchResultHandlerLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "dynamodb:PutItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+        ],
+        resources: [
+          transactionsTable.tableArn,
+          batchJobsTable.tableArn,
+          `${batchJobsTable.tableArn}/index/*`, // For jobIdIndex
+        ],
+      })
+    );
+
+    // S3 event notification: batch-output/ → Lambda
+    // Trigger batch-result-handler when Bedrock outputs results
+    imageBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3_notifications.LambdaDestination(batchResultHandlerLambda),
+      { prefix: "batch-output/" }
+    );
+
+    // Grant permissions for instant processor
     imageBucket.grantReadWrite(batchProcessLambda);
     transactionsTable.grantWriteData(batchProcessLambda);
 
