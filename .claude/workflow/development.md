@@ -53,18 +53,33 @@
 
 ### *issue pick Flow
 
+**Prerequisite**: Issue should have:
+- ✅ Detailed development plan (from `workflow/planning.md` Step 4)
+- ✅ Plan added to issue comment (Step 6)
+- ✅ Test cases defined (Step 7)
+- ✅ Status labeled as `status/planned`
+
+**If issue is missing above, return to Phase B Planning first.**
+
 1. View issue details
-2. **Quick assessment** - Does this task involve:
+   ```bash
+   *issue pick <n>
+   ```
+2. Load issue details including:
+   - Acceptance criteria
+   - Development plan comment
+   - Test cases
+3. **Quick assessment** - Does this task involve:
    - Data writes / mutations?
    - State management?
    - External IO (API, IPC)?
    - Payment / critical operations?
 
-3. **If YES** → Run `*tier` for classification
+4. **If YES** → Run `*tier` for classification
    **If NO** (pure UI/style) → Skip to step breakdown
 
-4. Break down into steps → TODO.md
-5. Start execution
+5. Break down plan into TODO.md steps
+6. Start execution
 
 ### Execution Flow
 
