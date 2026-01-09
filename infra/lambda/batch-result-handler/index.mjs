@@ -86,11 +86,12 @@ function getJSTDate() {
 /**
  * Helper: Generate deterministic transactionId
  * Improvement #1: Idempotency via sha256 hash
+ * NOTE: Removed timestamp to ensure idempotency - same image always gets same transactionId
  */
-function generateTransactionId(jobId, imageId, timestamp) {
+function generateTransactionId(jobId, imageId) {
   return crypto
     .createHash("sha256")
-    .update(`${jobId}#${imageId}#${timestamp}`)
+    .update(`${jobId}#${imageId}`)
     .digest("hex")
     .slice(0, 24); // UUID-like string
 }
@@ -204,7 +205,7 @@ function transformToTransaction(bedrockOutput, userId, jobId, timestamp) {
     }
 
     // Generate idempotent transactionId (Improvement #1)
-    const transactionId = generateTransactionId(jobId, bedrockOutput.customData, timestamp);
+    const transactionId = generateTransactionId(jobId, bedrockOutput.customData);
 
     // Build and validate transaction record
     const transaction = {
