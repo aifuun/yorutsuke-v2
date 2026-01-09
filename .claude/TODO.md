@@ -2,7 +2,7 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Issue: #98 COMPLETED ✅
+## Current Issue: #98 COMPLETED + PILLAR REVIEW ✅
 
 ### Completed: #98 - batch-orchestrator Lambda
 
@@ -24,6 +24,30 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 **Files modified**:
 - `infra/lib/yorutsuke-stack.ts` (+ Lambda definition + IAM + DynamoDB table)
 
+### Completed: AI_DEV_PROT v15 Pillar Review + Fixes
+
+**Completion Time**: 2026-01-09 (~2 hours)
+
+**What was done**:
+1. Read all 18 pillar checklists (.prot/pillar-a..r); mapped to batch-orchestrator
+2. Identified 3 critical gaps:
+   - **Pillar Q** (Idempotency): Missing `intentId` → duplicate Bedrock job risk
+   - **Pillar B** (Input Parsing): Hard-coded `event` → fails with API Gateway
+   - **Pillar O** (Async API): No `statusUrl` → clients blind on status
+3. Implemented all 3 fixes:
+   - ✅ Added `intentId` field to input schema + DynamoDB conditional check
+   - ✅ Fixed parsing: prefer `event.body`, fallback to `event`
+   - ✅ Added `statusUrl` + `estimatedDuration` to response
+   - ✅ Changed batch-jobs table PK: `jobId` → `intentId`
+   - ✅ Added jobId GSI for reverse lookup
+4. Verified TypeScript + Lambda syntax
+
+**Files modified**:
+- `infra/lambda/batch-orchestrator/index.mjs` (schema, parsing, idempotency, statusUrl)
+- `infra/lib/yorutsuke-stack.ts` (table PK change, GSI, env var)
+- `.claude/batch-orchestrator-PILLAR-FIXES.md` (detailed summary)
+- `.claude/MEMORY.md` (recorded learning)
+
 **Next Issue**: #99 - batch-result-handler Lambda
 
 ---
@@ -38,7 +62,7 @@ Last completed: #97 - instant-processor Lambda
 | v1.0.0 | Phase 4 (Backend) | ✅ Complete |
 | MVP1 | Local Only | ✅ Verified 2026-01-07 |
 | MVP2 | Cloud Upload | ✅ Verified 2026-01-08 |
-| MVP3 | Hybrid Batch | 🔄 Active (#98 ✅, #99 next) |
+| MVP3 | Hybrid Batch | 🔄 Active (#98 ✅, Pillar review ✅, #99 next) |
 
 ## Backlog
 
