@@ -60,3 +60,8 @@ ltd update ../my-app
 - CLI reads `settings.json` to detect project type (code/write/study)
 - Falls back to feature file detection if no settings
 - Local custom commands are preserved (not deleted)
+
+## Related
+- Commands: *snapshot, *tidy
+- CLI: `ltd update <path>` (global command)
+- Templates: Claude Code default templates

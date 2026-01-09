@@ -1,12 +1,19 @@
-# Code Review Command
+---
+name: review
+category: quality
+requires: [.prot/checklists/post-code.md]
+---
 
-Run post-code checklist and optional audits before closing an issue.
+# Command: *review
+
+## Purpose
+Run post-code checklist and optional audits before closing an issue
 
 ## Usage
-
-```
-*review           # Review current issue
-*review --audit   # Review + run all applicable audits
+```bash
+*review                # Manual checklist review
+*review --audit        # Auto-run audit after checklist
+*review --skip-checklist  # Only run audit, skip manual checklist
 ```
 
 ## Workflow
@@ -80,3 +87,13 @@ Run post-code checklist and optional audits before closing an issue.
 
 - If **PASS**: Ready for `*issue close <n>`
 - If **NEEDS_FIX**: Create fix tasks in TODO.md, then re-run `*review`
+
+## Command Chaining
+
+**If --audit flag used**: Automatically runs `*audit` for tier-appropriate Pillars
+**If review passes**: Suggests `*issue close <n>` as next step
+
+## Related
+- Commands: *audit, *issue close
+- Files: @.prot/checklists/post-code.md
+- Patterns: @.claude/patterns/pillar-reference.md

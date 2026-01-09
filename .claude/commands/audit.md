@@ -1,10 +1,16 @@
-# Audit Command
+---
+name: audit
+category: quality
+requires: none
+---
 
-Run automated compliance checks against AI_DEV_PROT v15 Pillars.
+# Command: *audit
+
+## Purpose
+Run automated compliance checks against AI_DEV_PROT v15 Pillars
 
 ## Usage
-
-```
+```bash
 *audit              # Run all applicable audits (based on TODO.md Tier)
 *audit a d l        # Run specific Pillars only
 *audit --all        # Run all available audits
@@ -113,3 +119,8 @@ Run automated compliance checks against AI_DEV_PROT v15 Pillars.
 - Audits are non-blocking (won't prevent commits)
 - Use `*review` for full pre-close verification
 - Some audits may have false positives - review manually
+
+## Related
+- Commands: *review, *tier
+- Patterns: @.claude/patterns/pillar-reference.md
+- Scripts: @.prot/pillar-{a-r}/audit.ts

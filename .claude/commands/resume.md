@@ -48,3 +48,8 @@ After resuming, briefly mention global CLI commands:
 ```
 💡 Global CLI: ltd update <path> | ltd snapshot <path>
 ```
+
+## Related
+- Commands: *tidy, *status, *next
+- Files: @.claude/MEMORY.md, @.claude/TODO.md
+- Workflow: @.claude/WORKFLOW.md

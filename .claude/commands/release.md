@@ -98,3 +98,8 @@ Before proceeding, verify:
 - Always run tests before release
 - Update CHANGELOG before tagging
 - For CDK deployments, use `*cdk deploy` separately
+
+## Related
+- Commands: *sync, *cdk
+- Workflow: @.claude/patterns/git-workflow.md
+- Files: CHANGELOG.md, package.json

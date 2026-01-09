@@ -79,3 +79,8 @@ Content format:
 - Only collects text files (js, ts, py, md, json, etc.)
 - Binary files automatically skipped
 - Large projects: clean up unnecessary files first
+
+## Related
+- Commands: *update
+- CLI: `ltd snapshot <path>` (global command)
+- Output: `.claude/snapshot.txt` or `cwd/snapshot.txt`

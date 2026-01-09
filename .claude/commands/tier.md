@@ -68,7 +68,12 @@ Skip for:
 3. Create TODO.md task breakdown with pillar references
 4. Suggest: `*scaffold module {name} --t{X}` (if new module)
 
+## Command Chaining
+
+**After classification**: May suggest `*approve` to start implementation with recommended templates
+**Common next step**: `*scaffold module <name> --t{X}` for new modules
+
 ## Related
-- Commands: *plan, *scaffold
+- Commands: *plan, *scaffold, *approve
 - Reference: @.prot/CHEATSHEET.md (Tier Classification)
 - Patterns: @.claude/patterns/pillar-reference.md

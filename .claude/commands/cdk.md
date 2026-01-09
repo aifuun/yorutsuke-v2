@@ -1,11 +1,20 @@
-# CDK Command
+---
+name: cdk
+category: infrastructure
+requires: none
+---
 
-Manage AWS CDK infrastructure operations.
+# Command: *cdk
+
+## Purpose
+Manage AWS CDK infrastructure operations
 
 ## Usage
-
-```
-*cdk [action]
+```bash
+*cdk status    # Show stack status and drift
+*cdk diff      # Preview pending changes
+*cdk deploy    # Deploy with approval gate
+*cdk destroy   # Destroy with confirmation
 ```
 
 ## Actions
@@ -71,3 +80,13 @@ Default AWS profile: `dev` (from CLAUDE.md global config)
 
 ### Drift: None detected
 ```
+
+## Command Chaining
+
+**After *cdk deploy**: Suggests `*sync` to commit CDK changes
+**Before *cdk deploy**: Requires `*approve` (approval gate pattern)
+
+## Related
+- Commands: *approve, *sync
+- Files: @.claude/patterns/git-workflow.md
+- Profile: `dev` (default AWS profile)

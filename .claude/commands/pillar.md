@@ -1,10 +1,16 @@
-# Pillar Query Command
+---
+name: pillar
+category: quality
+requires: none
+---
 
-View detailed information about a specific Pillar.
+# Command: *pillar
+
+## Purpose
+View detailed information about a specific Pillar
 
 ## Usage
-
-```
+```bash
 *pillar <X>       # View Pillar X (e.g., *pillar A, *pillar M)
 *pillar list      # List all 18 Pillars
 ```
@@ -93,6 +99,11 @@ Copy from: `.prot/pillar-X/{name}.ts`
 Run: `npx tsx .prot/pillar-X/audit.ts`
 Checks: [What the audit verifies]
 ```
+
+## Related
+- Commands: *audit, *tier, *review
+- Patterns: @.claude/patterns/pillar-reference.md
+- Reference: @.prot/CHEATSHEET.md
 
 ## Example: *pillar L
 

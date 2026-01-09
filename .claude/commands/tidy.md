@@ -62,3 +62,8 @@ Clean up memory and todo files by archiving old entries
    - Suggest splitting into smaller documents
    - Check if content is duplicated elsewhere
 3. Target: Each doc file <40KB for AI readability
+
+## Related
+- Commands: *resume, *update
+- Files: @.claude/MEMORY.md, @.claude/TODO.md
+- Patterns: Memory protection rules
