@@ -1,5 +1,21 @@
 {
   "template": "tauri",
   "version": "0.7.0",
-  "created_at": "2025-12-28T11:51:05.486Z"
+  "created_at": "2025-12-28T11:51:05.486Z",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash",
+      "Edit(/app/src/**/*)",
+      "Edit(/infra/**/*)",
+      "Edit(/docs/**/*)",
+      "Edit(/.claude/**/*)",
+      "Edit(/CLAUDE.md)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.*.local)"
+    ]
+  }
 }

@@ -22,8 +22,8 @@ Resume previous session with automatic sync and context loading
 3. **Check progress**: Read .claude/TODO.md for current milestone status
 
 4. **Health check**:
-   - If MEMORY.md has >20 entries in any section, suggest `*tidy`
    - If TODO.md has stale tasks (>30 days), mention it
+   - If MEMORY.md seems large (>40KB), suggest manual cleanup
 
 5. **Remind workflow**: Mention workflow guide for new users
    - "For full workflow, see: @.claude/WORKFLOW.md"
@@ -41,15 +41,7 @@ Resume previous session with automatic sync and context loading
 Ready to continue. What would you like to work on?
 ```
 
-## CLI Reminder
-
-After resuming, briefly mention global CLI commands:
-
-```
-💡 Global CLI: ltd update <path> | ltd snapshot <path>
-```
-
 ## Related
-- Commands: *tidy, *status, *next
+- Commands: *status, *next
 - Files: @.claude/MEMORY.md, @.claude/TODO.md
 - Workflow: @.claude/WORKFLOW.md
