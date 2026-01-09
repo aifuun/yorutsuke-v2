@@ -345,10 +345,10 @@ $ *issue pick <M>
 ## 📚 Reference
 
 **For detailed information**:
-- Architecture: `@.claude/WORKFLOW-ARCHITECTURE.md`
-- Planning steps: `@.claude/workflow/planning.md`
-- Development steps: `@.claude/workflow/development.md`
-- Feature workflow: `@.claude/FEATURE-WORKFLOW-GUIDE.md`
+- Architecture: `@workflow/architecture.md`
+- Planning steps: `@workflow/planning.md`
+- Development steps: `@workflow/development.md`
+- Feature workflow: `@workflow/feature-development.md`
 
 **For standards**:
 - MVP pattern: `@.claude/rules/workflow.md`
