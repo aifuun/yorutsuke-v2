@@ -2,9 +2,31 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Issue: None
+## Current Issue: #98 COMPLETED ✅
 
-MVP3 Instant 模式核心功能完成。
+### Completed: #98 - batch-orchestrator Lambda
+
+**Completion Time**: 2026-01-09 (~1.5 hours)
+
+**What was done**:
+1. Created batch-orchestrator Lambda (293 lines)
+2. Implemented manifest.jsonl generation from pending images
+3. Integrated Bedrock CreateModelInvocationJob API
+4. Added DynamoDB batch-jobs table for job tracking
+5. Implemented error handling + Zod validation
+6. Updated CDK stack with Lambda + IAM permissions
+7. Verified TypeScript compilation
+
+**Files created**:
+- `infra/lambda/batch-orchestrator/index.mjs`
+- `.claude/batch-orchestrator-COMPLETED.md` (implementation summary)
+
+**Files modified**:
+- `infra/lib/yorutsuke-stack.ts` (+ Lambda definition + IAM + DynamoDB table)
+
+**Next Issue**: #99 - batch-result-handler Lambda
+
+---
 
 Last completed: #102 - Admin Panel Batch Settings
 Last completed: #101 - Admin Config API
@@ -16,7 +38,7 @@ Last completed: #97 - instant-processor Lambda
 | v1.0.0 | Phase 4 (Backend) | ✅ Complete |
 | MVP1 | Local Only | ✅ Verified 2026-01-07 |
 | MVP2 | Cloud Upload | ✅ Verified 2026-01-08 |
-| MVP3 | Hybrid Batch | 🔄 Active |
+| MVP3 | Hybrid Batch | 🔄 Active (#98 ✅, #99 next) |
 
 ## Backlog
 
