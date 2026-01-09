@@ -29,11 +29,14 @@ const BUCKET_NAME = process.env.BUCKET_NAME;
 const PENDING_IMAGES_TABLE = process.env.PENDING_IMAGES_TABLE || "yorutsuke-pending-images";
 const BATCH_JOBS_TABLE = process.env.BATCH_JOBS_TABLE || "yorutsuke-batch-jobs";
 const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
+const API_BASE_URL = process.env.API_BASE_URL || "https://api.example.com";
 
 /**
  * Batch Job Submission Input Schema
+ * Pillar Q: Idempotency - intentId required for retry semantics
  */
 const BatchOrchestratorInputSchema = z.object({
+    intentId: z.string().min(1, "intentId required for idempotency"),
     pendingImageIds: z.array(z.string()).min(100, "Must have at least 100 images"),
     modelId: z.string().default("amazon.nova-lite-v1:0"),
     userId: z.string(),
@@ -198,12 +201,46 @@ async function submitBatchJob(manifestUri, modelId) {
 }
 
 /**
- * Record batch job metadata in DynamoDB
+ * Check if this job has already been submitted (Pillar Q: Idempotency)
+ * Uses intentId as the key to prevent duplicate submissions
  */
-async function recordJobMetadata(jobId, userId, imageCount, modelId, manifestUri) {
+async function checkIdempotency(intentId) {
+    try {
+        const result = await ddb.send(new GetItemCommand({
+            TableName: BATCH_JOBS_TABLE,
+            Key: marshall({ intentId }),
+        }));
+
+        if (result.Item) {
+            const item = unmarshall(result.Item);
+            if (item.status === "PROCESSING") {
+                // Still processing - return cached response
+                logger.info("Job still processing (idempotency cache)", { intentId, jobId: item.jobId });
+                return { cached: true, jobId: item.jobId, status: item.status };
+            } else if (item.status === "SUBMITTED" || item.status === "COMPLETED") {
+                // Already completed - return cached result
+                logger.info("Job already submitted (idempotency cache hit)", { intentId, jobId: item.jobId });
+                return { cached: true, jobId: item.jobId, status: item.status };
+            }
+        }
+        return { cached: false };
+    } catch (error) {
+        logger.warn("Idempotency check failed", { intentId, error: error.message });
+        // Continue - don't block on cache miss
+        return { cached: false };
+    }
+}
+
+/**
+ * Record batch job metadata in DynamoDB with idempotency marker
+ * Pillar Q: Uses intentId as partition key to prevent duplicate submissions
+ * Pillar F: Conditional write to ensure atomic operation
+ */
+async function recordJobMetadata(jobId, userId, imageCount, modelId, manifestUri, intentId) {
     const timestamp = new Date().toISOString();
     const jobData = {
-        jobId,
+        intentId,           // Pillar Q: Use intentId as partition key
+        jobId,              // GSI for reverse lookup
         userId,
         status: "SUBMITTED",
         submitTime: timestamp,
@@ -213,42 +250,92 @@ async function recordJobMetadata(jobId, userId, imageCount, modelId, manifestUri
         ttl: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days
     };
 
-    await ddb.send(new PutItemCommand({
-        TableName: BATCH_JOBS_TABLE,
-        Item: marshall(jobData),
-    }));
-
-    logger.info("Batch job metadata recorded", { jobId, imageCount });
+    // Conditional write: only write if intentId doesn't exist (prevent duplicates)
+    try {
+        await ddb.send(new PutItemCommand({
+            TableName: BATCH_JOBS_TABLE,
+            Item: marshall(jobData),
+            ConditionExpression: "attribute_not_exists(intentId)",  // Pillar F: Concurrency control
+        }));
+        logger.info("Batch job metadata recorded", { intentId, jobId, imageCount });
+    } catch (error) {
+        if (error.name === "ConditionalCheckFailedException") {
+            // Another request already recorded this intentId - safe to return cached
+            logger.info("Job already recorded (concurrent duplicate prevented)", { intentId });
+            return { duplicate: true };
+        }
+        throw error;
+    }
 }
 
 /**
  * Handler: Main orchestration logic
+ * Pillar B: Robust input parsing with airlock (parse event.body first)
+ * Pillar Q: Idempotency wrapper with intentId check
  */
 export async function handler(event) {
     const ctx = initContext(event);
 
     try {
-        // 1. Parse input
-        logger.info(EVENTS.BATCH_STARTED, { event });
+        // 1. Robust input parsing (Pillar B: Airlock)
+        // Prefer event.body (API Gateway), fallback to direct event (direct invoke)
+        const payload = typeof event.body === 'string' 
+            ? JSON.parse(event.body) 
+            : (event.body || event);
+        
+        logger.info(EVENTS.BATCH_STARTED, { event: Object.keys(event) });
 
-        const input = BatchOrchestratorInputSchema.parse(event);
-        const { pendingImageIds, modelId, userId, batchJobThreshold } = input;
+        const input = BatchOrchestratorInputSchema.parse(payload);
+        const { intentId, pendingImageIds, modelId, userId, batchJobThreshold } = input;
 
-        // 2. Generate manifest.jsonl
+        // 2. Check idempotency (Pillar Q)
+        const idempotencyResult = await checkIdempotency(intentId);
+        if (idempotencyResult.cached) {
+            const statusUrl = `${API_BASE_URL}/api/batch/jobs/${idempotencyResult.jobId}`;
+            logger.info("Returning cached result", { intentId, jobId: idempotencyResult.jobId });
+            return {
+                statusCode: 202,
+                body: JSON.stringify({
+                    jobId: idempotencyResult.jobId,
+                    status: idempotencyResult.status,
+                    statusUrl,
+                    message: `Batch Job ${idempotencyResult.jobId} (from cache)`,
+                    cached: true,
+                }),
+            };
+        }
+
+        // 3. Mark as processing (Pillar Q: idempotency barrier)
+        await ddb.send(new PutItemCommand({
+            TableName: BATCH_JOBS_TABLE,
+            Item: marshall({
+                intentId,
+                jobId: `job_processing_${Date.now()}`,
+                status: "PROCESSING",
+                startTime: new Date().toISOString(),
+                ttl: Math.floor(Date.now() / 1000) + 3600,  // 1 hour processing TTL
+            }),
+            ConditionExpression: "attribute_not_exists(intentId)",
+        }));
+
+        // 4. Generate manifest.jsonl
         const { s3Uri: manifestUri, imageCount } = await generateManifest(pendingImageIds);
 
-        // 3. Submit Bedrock Batch Job
+        // 5. Submit Bedrock Batch Job
         const { jobId, status } = await submitBatchJob(manifestUri, modelId);
 
-        // 4. Record job metadata
-        await recordJobMetadata(jobId, userId, imageCount, modelId, manifestUri);
+        // 6. Record job metadata (Pillar Q: with intentId and conditional write)
+        await recordJobMetadata(jobId, userId, imageCount, modelId, manifestUri, intentId);
 
-        // 5. Return success response
+        // 7. Return success response with statusUrl (Pillar O: Async pattern)
+        const statusUrl = `${API_BASE_URL}/api/batch/jobs/${jobId}`;
         const response = {
             jobId,
             status,
             imageCount,
             estimatedCost: imageCount * 0.000375,  // ¥0.375 / 1000 images for Nova Lite Batch
+            statusUrl,  // Pillar O: polling endpoint
+            estimatedDuration: Math.ceil(imageCount / 10),  // ~10 images/sec
             message: `Batch Job ${jobId} submitted successfully`,
         };
 
@@ -268,6 +355,17 @@ export async function handler(event) {
                 body: JSON.stringify({
                     message: "Invalid input",
                     errors: error.errors,
+                }),
+            };
+        }
+
+        // Concurrent duplicate error (another request won the race)
+        if (error.name === "ConditionalCheckFailedException") {
+            return {
+                statusCode: 409,
+                body: JSON.stringify({
+                    message: "Duplicate submission detected - use intentId to retry",
+                    retryable: true,
                 }),
             };
         }

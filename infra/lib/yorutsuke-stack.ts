@@ -337,6 +337,7 @@ export class YorutsukeStack extends cdk.Stack {
         PENDING_IMAGES_TABLE: "yorutsuke-pending-images",
         BATCH_JOBS_TABLE: "yorutsuke-batch-jobs",
         CONTROL_TABLE_NAME: controlTable.tableName,
+        API_BASE_URL: `https://api.${env}.example.com`,  // For statusUrl
       },
       timeout: cdk.Duration.minutes(5),
       memorySize: 512,
@@ -356,15 +357,31 @@ export class YorutsukeStack extends cdk.Stack {
     );
 
     // Grant DynamoDB access for batch jobs table
+    // Pillar Q: Using intentId as partition key for idempotency
     const batchJobsTable = new dynamodb.Table(this, "BatchJobsTable", {
       tableName: `yorutsuke-batch-jobs-${env}`,
       partitionKey: {
-        name: "jobId",
+        name: "intentId",  // Pillar Q: Idempotency key
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "submitTime",  // For ordering submissions
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: "ttl",
     });
+    
+    // Add GSI for jobId lookup (reverse index)
+    batchJobsTable.addGlobalSecondaryIndex({
+      indexName: "jobIdIndex",
+      partitionKey: {
+        name: "jobId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+    
     batchJobsTable.grantReadWriteData(batchOrchestratorLambda);
 
     // Grant permissions
