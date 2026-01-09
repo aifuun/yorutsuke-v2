@@ -23,20 +23,33 @@
 **Use case**: Adding/updating requirements, architecture, design docs
 
 ### Phase B: Planning (Feature Development) ⭐ Most Important
-**When**: Planning new feature or breaking down MVP  
-**Main guide**: `@workflow/planning.md` (Steps 0-8)  
+**When**: Planning new features or releases  
+**Main guide**: `@workflow/planning.md` (Two-step process)  
 **Architecture**: `@workflow/architecture.md` (MVP → Issues → TODO flow)  
 **Quick ref**: `@workflow/quick-reference.md` (one-pager with visuals)  
 
-**8-step process**:
-1. Check documentation
-2. Analyze requirements
-3. **Open Issues** (check/create)
-4. **Plan** (detailed steps)
-5. **Evaluate** (validate feasibility)
-6. **Confirm** (add to GitHub Issue)
-7. **Test Cases** (create coverage matrix)
-8. Assess & prioritize
+**Two-step process**:
+
+**Step 1: MVP-Level Decomposition** (40 minutes)
+→ `@workflow/planning-mvp.md`
+- When: Starting new MVP release
+- Output: GitHub Issues + dependency graph
+- 1. Analyze MVP goal
+- 2. Identify features (rough sizing)
+- 3. Map dependencies
+- 4. Create GitHub Issues (minimal info)
+
+**Step 2: Feature-Level Planning** (1-2 hours)
+→ `@workflow/planning-feature.md`
+- When: Ready to develop a specific feature
+- Output: Dev Plan + Test Cases (in GitHub Issue)
+- 1. Validate requirements
+- 2. Create detailed development plan
+- 3. Create test cases with coverage
+- 4. Add to issue + apply labels
+
+**Complete Reference** (all 8 steps):
+→ `@workflow/planning-reference.md`
 
 ### Phase C: Development (Coding & Execution)
 **When**: Writing code, following implementation plan  

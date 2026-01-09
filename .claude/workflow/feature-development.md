@@ -1,219 +1,298 @@
-# Feature Development Workflow - Quick Guide
+# Feature Development Workflow - Complete Lifecycle
 
-> Complete feature lifecycle from requirements to testing. For detailed guidance, see individual phase docs.
+> From feature request to development completion. Covers all 4 phases: Documentation, Planning, Development, Release.
 
 ---
 
-## 📋 Complete Lifecycle in One Page
+## 📋 Complete Lifecycle
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                   FEATURE DEVELOPMENT LIFECYCLE                      │
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                       │
-│  PHASE A: DOCS              PHASE B: PLANNING                        │
-│  ┌──────────────┐          ┌─────────────────────────────────────┐  │
-│  │ Update docs/ │          │ 0. Check Docs                       │  │
-│  │ in docs/     │          │ 1. Analyze Requirements             │  │
-│  └──────────────┘          │ 2. Open Issues (check/create)       │  │
-│         │                  │ 3. Decompose Features               │  │
-│         │                  │ 4. Plan (create detailed steps)     │  │
-│         │                  │ 5. Evaluate Plan (review/validate)  │  │
-│         │                  │ 6. Confirm (add to issue comment)   │  │
-│         │                  │ 7. Create Test Cases                │  │
-│         │                  │ 8. Assess & Prioritize              │  │
-│         │                  └─────────────────────────────────────┘  │
-│         └────────────────────────────────────────────────┐           │
-│                                                          ▼           │
-│                              ┌─────────────────────────────────────┐ │
-│                              │ PHASE C: DEVELOPMENT                │ │
-│                              │                                     │ │
-│                              │ *issue pick <n>                     │ │
-│                              │ - Load plan from issue comment      │ │
-│                              │ - Run *tier (if needed)             │ │
-│                              │ - Execute Phase 1-4 (code)          │ │
-│                              │ - Run tests from test case doc      │ │
-│                              │ *issue close <n>                    │ │
-│                              │                                     │ │
-│                              └─────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
+│  PHASE A          PHASE B: Planning        PHASE C                   │
+│  (Docs)           (Two Steps)              (Development)             │
+│                                                                       │
+│ ┌─────────┐   ┌──────────────┐   ┌──────────────────┐              │
+│ │ Docs    │   │ Step 1:      │   │ *issue pick <n>  │              │
+│ │ Ready?  │───│ MVP-Level    │───│ Execute phases:  │              │
+│ └─────────┘   │ (40 min)     │   │ 1. Pre-code ✓    │              │
+│               │              │   │ 2. In-code ✓     │              │
+│  ✓ REQ        │ Create       │   │ 3. Tests ✓       │              │
+│  ✓ ARCH       │ GitHub       │   │ 4. Review ✓      │              │
+│  ✓ SCHEMA     │ Issues       │   │                  │              │
+│  ✓ DESIGN     │              │   │ *issue close <n> │              │
+│               │              │   └──────────────────┘              │
+│               │ ┌──────────────┐                                   │
+│               └─│ Step 2:      │                                   │
+│                 │ Feature-Level│                                   │
+│                 │ (1-2h)       │                                   │
+│                 │              │                                   │
+│                 │ Create plan+ │                                   │
+│                 │ test cases   │                                   │
+│                 │              │                                   │
+│                 │ Ready to code│                                   │
+│                 └──────────────┘                                   │
+│                                                                    │
+│                    PHASE D: Release                               │
+│                    (Tag + Publish)                                │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🟢 Phase A: Documentation (Prerequisite)
 
-Update these before starting Phase B:
-- REQUIREMENTS.md - User stories
-- ARCHITECTURE.md - Module boundaries
-- SCHEMA.md - Data entities
-- DESIGN.md - UI screens/components
+Ensure all docs are ready **before** starting Phase B planning:
 
-→ See `workflow/docs.md` for detailed guidance
+| Document | What | Examples |
+|----------|------|----------|
+| REQUIREMENTS.md | User stories for feature | "As a user, I want to add items to cart" |
+| ARCHITECTURE.md | Module boundaries | "Cart state in Redux" |
+| SCHEMA.md | Data entities | "Cart, CartItem models" |
+| DESIGN.md | UI mockups/specs | "Cart drawer screen design" |
+| INTERFACES.md | API definitions | "add_to_cart, remove_from_cart endpoints" |
+
+→ See `workflow/docs.md` for how to update docs
 
 ---
 
-## 🟡 Phase B: Planning (Steps 0-8)
+## 🟡 Phase B: Planning (Two Steps)
 
-**Duration**: 2-4 hours for typical feature  
-**Output**: GitHub Issue #N + Dev Plan + Test Cases  
-**See**: `workflow/planning.md` for complete guide
+### Step 1: MVP-Level Decomposition (40 minutes)
 
-### Checklist
+**When**: Starting a new MVP release  
+**Goal**: Understand what features exist + dependencies  
 
-- [ ] **Step 0**: Check docs ready (REQUIREMENTS, ARCHITECTURE, SCHEMA, DESIGN)
-- [ ] **Step 1**: Analyze requirements, define goal and boundaries
-- [ ] **Step 2**: Create or find GitHub issue #N
-- [ ] **Step 3**: Decompose feature into 3-5 sub-tasks (1-3 days each)
-- [ ] **Step 4**: Create `.claude/[feature]-PLAN.md` with detailed implementation steps
-- [ ] **Step 5**: Evaluate plan (clarity, feasibility, risk, optimization)
-- [ ] **Step 6**: Add plan to GitHub issue comment + apply labels
-- [ ] **Step 7**: Create `.claude/[feature]-TEST-CASES.md` with coverage matrix
-- [ ] **Step 8**: Assess complexity and apply priority labels
+→ See **[`planning-mvp.md`](planning-mvp.md)** for detailed guide
 
-**Output files:**
 ```
-.claude/
-├── [feature-name]-PLAN.md
-│   └─ Implementation steps with files, subtasks, time estimates, Pillar concerns
-│
-└── [feature-name]-TEST-CASES.md
-    └─ Test cases per step + coverage matrix
+MVP3.0 Definition
+  ↓
+Identify 5-8 features (10 min)
+  ├─ Feature-A: Cart state
+  ├─ Feature-B: Cart UI
+  ├─ Feature-C: Persistence
+  └─ Feature-D: Checkout
+  ↓
+Map dependencies (15 min)
+  ├─ Feature-A: none
+  ├─ Feature-B: blocked by A
+  ├─ Feature-C: blocked by A
+  └─ Feature-D: blocked by A, B
+  ↓
+Create GitHub Issues (15 min)
+  ├─ #100: Feature-A (rough: 8h)
+  ├─ #101: Feature-B (rough: 6h)
+  ├─ #102: Feature-C (rough: 3h)
+  └─ #103: Feature-D (rough: 12h)
+  ↓
+Ready to develop (pick features by priority)
 ```
+
+**Output**: GitHub Issues with rough sizes + dependency graph
+
+---
+
+### Step 2: Feature-Level Planning (1-2 hours)
+
+**When**: About to develop a specific feature  
+**Goal**: Detailed implementation plan + test cases  
+
+→ See **[`planning-feature.md`](planning-feature.md)** for detailed guide
+
+```
+Feature #100 selected from backlog
+  ↓
+Validate requirements (15 min)
+  ├─ Check REQUIREMENTS.md for user story
+  ├─ Check ARCHITECTURE.md for module definition
+  └─ Check DESIGN.md for UI specs
+  ↓
+Create development plan (45 min)
+  └─ .claude/feature-100-PLAN.md
+     ├─ Step 1: Redux slice (2h)
+     ├─ Step 2: UI components (3h)
+     └─ Step 3: Tests (1h)
+  ↓
+Create test cases (45 min)
+  └─ .claude/feature-100-TEST-CASES.md
+     ├─ TC-1.1, TC-1.2, TC-1.3 (Step 1 tests)
+     ├─ TC-2.1, TC-2.2 (Step 2 tests)
+     └─ Coverage matrix (100%)
+  ↓
+Add to GitHub Issue (15 min)
+  └─ Issue #100 now has:
+     ├─ Development Plan (comment)
+     ├─ Test Cases (comment)
+     └─ Labels: status/planned, tier/t2, pillar/f, pillar/l
+  ↓
+Ready to develop
+```
+
+**Output**: Ready-to-code GitHub Issue with plan + tests
 
 ---
 
 ## 🔵 Phase C: Development (Execution)
 
-**Duration**: 1-8 hours depending on tier  
-**Output**: Code + tests + closed issue  
-**See**: `workflow/development.md` for execution details
+**When**: After planning is approved  
+**How**: Follow 4 coding phases  
 
-### Quick Start
+→ See `workflow/development.md` for execution details
 
 ```bash
-# 1. Pick issue to start
-*issue pick 42
-
-# 2. Classify complexity (if needed)
-*tier
-
-# 3. Begin Phase 1-4 execution
-*next
-# - Phase 1: Pre-code checklist
-# - Phase 2: Implement (follow dev plan steps)
-# - Phase 3: Tests (run test cases)
-# - Phase 4: Review (final audit)
-
-# 4. Close issue
-*issue close 42
+*issue pick <n>      # Load issue #N and plan
 ```
 
 ### Four Development Phases
 
-| Phase | What | Time |
+| Phase | Goal | Time |
 |-------|------|------|
-| **1: Pre-Code** | Setup, checklist, pillar review | 15 min |
-| **2: In-Code** | Execute dev plan steps, follow templates | 2-6h |
-| **3: Tests** | Run unit/integration tests, verify coverage | 30 min-2h |
-| **4: Post-Code** | Review, audit, optimization, cleanup | 15-30 min |
+| **Phase 1: Pre-Code** | Setup, checklist, pillar review | 15 min |
+| **Phase 2: In-Code** | Execute dev plan steps from Step 2 | 2-6h |
+| **Phase 3: Tests** | Run test cases from TEST-CASES.md | 30min-2h |
+| **Phase 4: Review** | Final audit, optimization | 15-30 min |
+
+```bash
+*next            # Phase 1: Pre-code checklist
+*next            # Phase 2: Implement Step 1
+*next            # Phase 2: Implement Step 2
+*next            # Phase 2: Implement Step 3
+*next            # Phase 3: Run all tests
+*review          # Phase 4: Final review
+*issue close <n> # Done
+```
 
 ---
 
 ## 🟣 Phase D: Release
 
-**Duration**: 1-2 hours  
-**Output**: Version tag + published release  
-**See**: `workflow/release.md`
+**When**: All MVP features complete  
+**Goal**: Version and publish  
 
----
-
-## 📂 Shopping Cart Example (Phases B & C)
-
-### Phase B: Planning Output
-
-**Issue #42: Feature: Shopping cart add/remove items**
-
-**Dev Plan: 3 steps, 6 hours**
-```
-Step 1: Redux State (2h)
-- Files: src/redux/cart.slice.ts
-- Add slice, actions, selectors
-- Pillar: L (Headless), F (Consistency)
-
-Step 2: UI Components (3h)
-- Files: src/components/CartIcon.tsx, CartDrawer.tsx
-- Build UI, connect Redux
-- Pillar: A (Composition), L (Headless)
-
-Step 3: Persistence (1h)
-- Files: src/middleware/cartPersistence.ts
-- localStorage middleware
-- Pillar: Q (Idempotency), R (Observability)
-```
-
-**Test Cases: 100% coverage**
-```
-TC-1.1: Add to empty cart → State shows 1 item
-TC-1.2: Duplicate add → Qty updates to 3
-TC-2.1: Cart badge shows count
-TC-3.1: Persist & reload → Items restored
-```
-
-### Phase C: Development Execution
+→ See `workflow/release.md` for detailed process
 
 ```bash
-$ *issue pick 42
-$ *next (Phase 1) → Setup
-$ *next (Phase 2) → Implement Step 1 (Redux)
-$ *next (Phase 2) → Implement Step 2 (UI)
-$ *next (Phase 2) → Implement Step 3 (Persistence)
-$ *next (Phase 3) → Run all tests
-$ *review (Phase 4) → Final audit
-$ *issue close 42 → Done
+# Check all MVP features complete
+# Version + tag
+# Publish
 ```
 
 ---
 
-## ⚡ Command Reference
+## 📊 Example: Complete Shopping Cart Feature
 
-```bash
-# Planning Phase
-gh issue create --title "Feature: X"     # Create issue
-gh issue comment <n> -b "Plan..."        # Add plan comment
+### Phase A: Documentation ✓
+```
+REQUIREMENTS.md: "As a user, I want to add items to cart"
+ARCHITECTURE.md: "Cart state in Redux store"
+SCHEMA.md: "Cart, CartItem entities defined"
+DESIGN.md: "Cart drawer UI mockup created"
+```
 
-# Development Phase
-*issue pick <n>          # Start working
-*tier                    # Classify complexity
-*next                    # Show next steps
-*review                  # Final review
-*issue close <n>         # Complete issue
+### Phase B Step 1: MVP Decomposition ✓
+```
+MVP2.0 Features:
+├─ Feature #100: Cart state (8h)
+├─ Feature #101: Cart UI (6h, blocked by #100)
+├─ Feature #102: Persistence (3h, blocked by #100)
+└─ Feature #103: Checkout (12h, blocked by #100, #101)
+```
+
+### Phase B Step 2: Feature Planning ✓
+```
+Feature #100 Plan:
+┌─ Step 1: Redux slice (2h) - files, subtasks, tests
+├─ Step 2: localStorage (1h) - files, subtasks, tests
+└─ Step 3: Integration tests (1h)
+
+Test Cases:
+├─ TC-1.1: Add item to cart
+├─ TC-1.2: Remove item
+├─ TC-1.3: Update quantity
+├─ TC-2.1: Persist to localStorage
+└─ Coverage: 100% ✓
+```
+
+### Phase C: Development ✓
+```
+Day 1:
+  9:00 AM: *issue pick 100
+  9:15 AM: *next (Phase 1 setup)
+  9:30 AM: *next (Phase 2, Step 1: Redux)
+  11:30 AM: *next (Phase 2, Step 2: localStorage)
+  12:30 PM: Lunch break
+  1:00 PM: *next (Phase 3: Tests)
+  2:00 PM: *review (Phase 4)
+  2:30 PM: *issue close 100
+
+Day 2:
+  9:00 AM: *issue pick 101 (Feature #101)
+  → Repeat Phase C for Feature #101
+```
+
+### Phase D: Release ✓
+```
+All MVP2.0 features complete
+→ Version 2.0.0
+→ Publish
 ```
 
 ---
 
-## ✅ Success Criteria
+## ⚡ Timeline Summary
 
-**Phase B Complete when:**
-- Issue created with goal & acceptance criteria
-- Dev plan with implementation steps
-- Test cases with coverage matrix
-- GitHub issue labeled + approved
-
-**Phase C Complete when:**
-- All dev plan steps executed
-- All test cases passed
-- Code reviewed
-- Issue closed
+| Phase | Duration | Output |
+|-------|----------|--------|
+| **A: Documentation** | 1-2h per feature | Docs updated |
+| **B1: MVP Planning** | 40 min per MVP | GitHub Issues |
+| **B2: Feature Planning** | 1-2h per feature | Dev Plan + Tests |
+| **C: Development** | 1-8h per feature | Code + Tests ✓ |
+| **D: Release** | 1-2h per release | Published ✓ |
 
 ---
 
-## 📚 See Also
+## 🎯 Key Principles
+
+1. **Feature is the unit**: 1 feature = 1 GitHub Issue = 1 development cycle
+2. **Planning in two steps**: MVP-level (fast) + Feature-level (deep, just-in-time)
+3. **Plan before coding**: Feature plan created right before development
+4. **Tests from start**: TDD approach with test cases before implementation
+5. **Four development phases**: Pre-code → In-code → Tests → Review
+
+---
+
+## ✅ Quick Checklist
+
+**Before Phase C (Development):**
+- [ ] Docs ready (REQUIREMENTS, ARCHITECTURE, SCHEMA, DESIGN)
+- [ ] GitHub Issue created with goal + acceptance criteria
+- [ ] Development plan created and reviewed
+- [ ] Test cases created with 100% coverage
+- [ ] Issue labeled and approved
+
+**During Phase C (Development):**
+- [ ] Follow dev plan steps in order
+- [ ] Run test cases after each step
+- [ ] Commit with issue reference (#N)
+
+**After Phase C (Development):**
+- [ ] All test cases passed
+- [ ] Code reviewed
+- [ ] Issue closed
+- [ ] Ready for next feature
+
+---
+
+## 🔗 See Also
 
 - **Phase A (Docs)**: `workflow/docs.md`
-- **Phase B (Planning)**: `workflow/planning.md` (full guide)
-- **Phase C (Development)**: `workflow/development.md` (full guide)
+- **Phase B Step 1 (MVP)**: `workflow/planning-mvp.md`
+- **Phase B Step 2 (Feature)**: `workflow/planning-feature.md`
+- **Phase B Reference**: `workflow/planning-reference.md`
+- **Phase C (Development)**: `workflow/development.md`
 - **Phase D (Release)**: `workflow/release.md`
 - **Architecture**: `workflow/architecture.md`
-- **Quick Reference**: `workflow/quick-reference.md`
 
