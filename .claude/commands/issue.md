@@ -1,6 +1,22 @@
-# Issue Management
+---
+name: issue
+category: planning
+requires: none
+---
 
-GitHub Issues are the source of truth for project tasks.
+# Command: *issue
+
+## Purpose
+Manage GitHub issues (list, view, pick, close, create)
+
+## Usage
+```bash
+*issue              # List open issues
+*issue <n>          # View issue #n details
+*issue pick <n>     # Start working on issue #n
+*issue close <n>    # Complete and close issue #n
+*issue new <title>  # Create new issue
+```
 
 ## Commands
 
@@ -79,9 +95,43 @@ gh issue create --title "<title>"
 ```
 Interactively add body content.
 
+## Command Chaining
+
+**After *issue pick <n>**: Auto-runs `*tier` if task involves state/writes
+**After *issue close <n>**: Suggests `*sync` to commit all changes
+
+## Issue Planning Templates
+
+### *issue pick <n> - Feature Plan Check
+When picking an issue:
+1. Check if feature plan exists: `.claude/plans/active/#<n>-*.md`
+2. If T2/T3 complexity and no plan exists:
+   - Prompt: "Create feature plan? (recommended for complex tasks)"
+   - If yes → Copy `templates/TEMPLATE-feature-plan.md` to `plans/active/#<n>-name.md`
+   - Complete plan before starting implementation
+3. If plan exists → load steps from plan to TODO.md
+
+### *issue new <title> - Issue Template
+When creating new issue:
+- Use `templates/TEMPLATE-github-issue.md` as guidance
+- Follow Step 1 (MVP decomposition) format
+- Include: 概要, 验收标准, 技术要点, 测试场景
+
+### *issue close <n> - Archive Plan
+When closing issue:
+1. Move feature plan: `plans/active/#<n>-*.md` → `plans/archive/`
+2. Update TODO.md - remove completed issue
+3. Record important decisions in MEMORY.md
+
 ## Notes
 
 - One active issue at a time (tracked in TODO.md)
 - Large issues should be broken into smaller ones
 - Use labels for categorization
 - Always run `*tier` before starting implementation
+- Use feature plan template for T2/T3 complexity
+
+## Related
+- Commands: *tier, *review, *sync, *plan
+- Templates: `.claude/workflow/templates/`
+- Files: `.claude/TODO.md`, `.claude/MEMORY.md`, `.claude/plans/`

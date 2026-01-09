@@ -60,6 +60,18 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | tail -50
 1. **Step 1** (40 min): MVP 分解 → 创建 Issues + 依赖图
 2. **Step 2** (1-2h): Feature 详细规划 → Dev Plan + Test Cases (just-in-time)
 
+**Templates & Planning**:
+
+| 层级 | Template | Use Case | Command |
+|------|----------|----------|---------|
+| 战略 | `TEMPLATE-mvp.md` | New MVP release | `*plan` |
+| 战役 | `TEMPLATE-feature-plan.md` | Before coding | `*issue pick` |
+| 战役 | `TEMPLATE-github-issue.md` | Step 1 issues | `*issue new` |
+| 战术 | `TEMPLATE-todo.md` | Session tracking | `*next` |
+
+Templates location: `.claude/workflow/templates/`
+Complete guide: `.claude/workflow/templates/README.md`
+
 ---
 
 ## Overview

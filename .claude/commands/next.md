@@ -76,6 +76,28 @@ See detailed scenarios: @.claude/workflow/examples/next-command.md
 **Scenario 2**: TODO empty, recommend Issue from current MVP
 **Scenario 3**: Current MVP complete, recommend next MVP
 
+## Template Integration
+
+**Level 1 (TODO.md check)**:
+- If TODO.md empty or unstructured → suggest using `templates/TEMPLATE-todo.md`
+- Structure: Current Session → Active Issue → Steps with checkboxes
+
+**Level 2 (Issue recommendation)**:
+- When picking Issue → check if feature plan exists in `plans/active/#<n>-*.md`
+- If T2/T3 complexity and no plan → prompt: "Create feature plan first?"
+- If yes → copy `templates/TEMPLATE-feature-plan.md` to `plans/active/`
+
+**Level 3 (MVP recommendation)**:
+- When recommending new MVP → reference `templates/TEMPLATE-mvp.md`
+- Suggest `*plan` to decompose MVP into Issues (Step 1: 40 min)
+
+**Architecture**:
+```
+战略 (Strategy)  → Level 3: MVP      → TEMPLATE-mvp.md
+战役 (Campaign)  → Level 2: Issues   → TEMPLATE-feature-plan.md
+战术 (Tactics)   → Level 1: TODO     → TEMPLATE-todo.md
+```
+
 ## Notes
 
 - **Single focus**: One issue at a time
@@ -86,6 +108,6 @@ See detailed scenarios: @.claude/workflow/examples/next-command.md
 
 ## Related
 - Commands: *issue pick, *plan, *review, *tier
-- Templates: @.claude/workflow/templates/TEMPLATE-todo.md
-- Workflow: @.claude/workflow/development.md
-- Patterns: @.claude/patterns/pillar-reference.md
+- Templates: `.claude/workflow/templates/`
+- Workflow: `.claude/workflow/development.md`
+- Patterns: `.prot/pillar-*/`

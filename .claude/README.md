@@ -106,8 +106,42 @@ Master index for all `.claude` directory contents. This directory contains confi
 → Also check: [inbox/OPEN-QUESTIONS-CLARIFIED.md](inbox/OPEN-QUESTIONS-CLARIFIED.md) (problem resolution)
 
 **Quick reference for entire workflow**
-→ Visual: [workflow/quick-reference.md](workflow/quick-reference.md) (one-pager)  
+→ Visual: [workflow/quick-reference.md](workflow/quick-reference.md) (one-pager)
 → Master: [WORKFLOW.md](WORKFLOW.md) (index)
+
+---
+
+## 📋 Template System (Quick Start)
+
+**5 个模板，3 层架构**：战略 → 战役 → 战术
+
+### 战略层 (Strategy) - MVP Planning
+**Plan a new MVP**
+→ Copy: `workflow/templates/TEMPLATE-mvp.md`
+→ Save to: `docs/dev/MVPX_NAME.md`
+→ Guide: `workflow/planning-mvp.md` (Step 1: 40 min)
+
+### 战役层 (Campaign) - Feature Planning
+**Plan a feature (Step 2)**
+→ Copy: `workflow/templates/TEMPLATE-feature-plan.md`
+→ Save to: `plans/active/#xxx-name.md`
+→ Guide: `workflow/planning-feature.md` (1-2h)
+
+**Create GitHub Issues (Step 1)**
+→ Use: `workflow/templates/TEMPLATE-github-issue.md`
+→ Guide: `workflow/planning-mvp.md`
+
+### 战术层 (Tactics) - Session Tracking
+**Track session tasks**
+→ Use: `workflow/templates/TEMPLATE-todo.md`
+→ Update: `TODO.md` during session
+
+### 辅助
+**Triage external issue**
+→ Copy: `workflow/templates/TEMPLATE-issue-triage.md`
+→ Save to: `plans/active/#xxx-triage.md`
+
+**See all templates**: [workflow/templates/README.md](workflow/templates/README.md)
 
 ---
 

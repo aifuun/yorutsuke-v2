@@ -15,6 +15,25 @@
 
 ---
 
+## 📋 Template System Integration
+
+**5 个模板，3 层架构**（军事类比）
+
+| 层级 | Template | 输出位置 | 触发命令 |
+|------|----------|----------|----------|
+| 战略 (Strategy) | `TEMPLATE-mvp.md` | `docs/dev/MVPX.md` | `*plan` |
+| 战役 (Campaign) | `TEMPLATE-feature-plan.md` | `plans/active/#xxx.md` | `*issue pick` |
+| 战役 (Campaign) | `TEMPLATE-github-issue.md` | GitHub Issues | `*issue new` |
+| 战术 (Tactics) | `TEMPLATE-todo.md` | `.claude/TODO.md` | `*next` |
+| 辅助 | `TEMPLATE-issue-triage.md` | `plans/active/#xxx-triage.md` | as needed |
+
+**Quick access**: `.claude/workflow/templates/`
+**Guidance**: `workflow/planning-mvp.md` (Step 1) + `planning-feature.md` (Step 2)
+
+**Auto-loading**: 编辑 MVP/Feature Plan 文件时会自动加载相关模板提示
+
+---
+
 ## 📚 Complete Workflow Documentation
 
 ### Phase A: Documentation
