@@ -43,17 +43,22 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | tail -50
 
 ### Work Flow
 
-**MVP → Issues → TODO 的协同机制** → 详见 `.claude/rules/workflow.md`
+**MVP → Issues → TODO 的协同机制**
 
-核心原则：
+| 文档 | 用途 |
+|------|------|
+| `.claude/WORKFLOW.md` | 工作流索引 & 速查表 (主入口) |
+| `.claude/rules/workflow.md` | 核心原则 (三层架构) |
+| `.claude/workflow/planning.md` | Two-Step Planning 详细指南 |
+
+**三层架构**:
 - **MVP 文件** (`docs/dev/MVP*.md`)：目标和验收标准（路标）
 - **GitHub Issues**：详细的技术任务和实现方案（施工图）
 - **TODO.md**：当前 Session 正在处理的 1-3 个活跃 Issue（今日清单）
 
-执行流程：
-1. 规划阶段：创建 MVP 文件 → 拆解为 Issues → 在 MVP 中引用
-2. 开发阶段：选择 Issues → 记录到 TODO.md → 专注完成
-3. 收尾阶段：关闭 Issue → 更新 MVP 验收 → 归档决策到 MEMORY
+**Two-Step Planning**:
+1. **Step 1** (40 min): MVP 分解 → 创建 Issues + 依赖图
+2. **Step 2** (1-2h): Feature 详细规划 → Dev Plan + Test Cases (just-in-time)
 
 ---
 

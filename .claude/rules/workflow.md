@@ -1,5 +1,8 @@
 # Workflow Rule - MVP, Issues, TODO 协同机制
 
+> **详细指南**: `.claude/WORKFLOW.md` (index & cheatsheet)
+> **Two-Step Planning**: `.claude/workflow/planning.md`
+
 ## 核心原则
 
 **以 Issues 为核心的三层工作流**：
@@ -9,6 +12,18 @@ MVP 文件 (路标)  →  GitHub Issues (施工图)  →  TODO.md (今日清单)
      ↓                    ↓                         ↓
   目标/验收           技术任务/实现细节        Session 活跃任务
 ```
+
+## Two-Step Planning (新增)
+
+**Step 1: MVP-Level Decomposition** (40 min)
+- 分析 MVP 目标，识别功能模块
+- 快速创建 GitHub Issues (rough sizing)
+- 建立依赖关系图
+
+**Step 2: Feature-Level Planning** (1-2h per feature)
+- 在开发前进行详细规划
+- 创建 Dev Plan + Test Cases
+- Just-in-time planning，可根据前序 feature 学习调整
 
 ## 1. MVP 文件层 (Vision & Acceptance)
 

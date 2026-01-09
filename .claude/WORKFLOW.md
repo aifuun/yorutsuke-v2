@@ -19,21 +19,21 @@
 
 ### Phase A: Documentation
 **When**: Documentation updates required  
-**File**: `@workflow/docs.md`  
+**File**: `.claude/workflow/docs.md`  
 **Use case**: Adding/updating requirements, architecture, design docs
 
 ### Phase B: Planning (Feature Development) ⭐ Most Important
 **When**: Planning new features or releases  
-**Main guide**: `@workflow/planning.md` (Two-step process)  
-**Plan templates**: `@workflow/templates/` (feature plan & issue triage templates)  
-**Plan storage**: `@plans/active/` (current features), `@plans/archive/` (completed)  
-**Architecture**: `@workflow/architecture.md` (MVP → Issues → TODO flow)  
-**Quick ref**: `@workflow/quick-reference.md` (one-pager with visuals)  
+**Main guide**: `.claude/workflow/planning.md` (Two-step process)  
+**Plan templates**: `.claude/workflow/templates/` (feature plan & issue triage templates)  
+**Plan storage**: `.claude/plans/active/` (current features), `.claude/plans/archive/` (completed)  
+**Architecture**: `.claude/workflow/architecture.md` (MVP → Issues → TODO flow)  
+**Quick ref**: `.claude/workflow/quick-reference.md` (one-pager with visuals)  
 
 **Two-step process**:
 
 **Step 1: MVP-Level Decomposition** (40 minutes)
-→ `@workflow/planning-mvp.md`
+→ `.claude/workflow/planning-mvp.md`
 - When: Starting new MVP release
 - Output: GitHub Issues + dependency graph
 - 1. Analyze MVP goal
@@ -42,7 +42,7 @@
 - 4. Create GitHub Issues (minimal info)
 
 **Step 2: Feature-Level Planning** (1-2 hours)
-→ `@workflow/planning-feature.md`
+→ `.claude/workflow/planning-feature.md`
 - When: Ready to develop a specific feature
 - Output: Dev Plan + Test Cases (in GitHub Issue)
 - 1. Validate requirements
@@ -51,21 +51,21 @@
 - 4. Add to issue + apply labels
 
 **Complete Reference** (all 8 steps):
-→ `@workflow/planning-reference.md`
+→ `.claude/workflow/planning-reference.md`
 
 ### Phase C: Development (Coding & Execution)
 **When**: Writing code, following implementation plan  
-**File**: `@workflow/development.md`  
+**File**: `.claude/workflow/development.md`  
 **Commands**: `*tier`, `*next`, `*review`  
 **Phases**: Pre-code → In-code → Tests → Post-code review
 
 ### Phase D: Release
 **When**: Publishing version  
-**File**: `@workflow/release.md`
+**File**: `.claude/workflow/release.md`
 
 ### Feature Development Guide
 **New feature from start to finish**:  
-`@workflow/feature-development.md`  
+`.claude/workflow/feature-development.md`  
 (Complete lifecycle: from feature request to testing ready)
 
 ---
@@ -82,7 +82,7 @@ Layer 3: TODO.md (Operational)
 Code Execution
 ```
 
-**Detailed breakdown**: See `@workflow/architecture.md`
+**Detailed breakdown**: See `.claude/workflow/architecture.md`
 
 ---
 
@@ -165,19 +165,19 @@ Next day
 
 **Start here** (5 min read):
 1. Read this file (WORKFLOW.md) - understand the phases
-2. Read `@workflow/quick-reference.md` - visual overview
+2. Read `.claude/workflow/quick-reference.md` - visual overview
 
 **Before planning a feature** (30 min):
-1. Read `@workflow/planning.md` - understand 8 steps
-2. Review `@workflow/architecture.md` - understand MVP/Issues/TODO flow
+1. Read `.claude/workflow/planning.md` - understand 8 steps
+2. Review `.claude/workflow/architecture.md` - understand MVP/Issues/TODO flow
 
 **When coding** (on-demand):
-1. Load `@workflow/development.md` - phase guidance
+1. Load `.claude/workflow/development.md` - phase guidance
 2. Use `*next` command - AI will guide you
 
 **For deep understanding** (optional, 1-2 hours):
-1. `@workflow/architecture.md` - complete mental model
-2. `@workflow/feature-development.md` - real example walkthrough
+1. `.claude/workflow/architecture.md` - complete mental model
+2. `.claude/workflow/feature-development.md` - real example walkthrough
 
 ---
 
