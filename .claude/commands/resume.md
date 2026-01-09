@@ -1,6 +1,13 @@
-# Resume Session
+---
+name: resume
+category: workflow
+requires: [MEMORY.md, TODO.md]
+---
 
-Resume previous session with automatic sync.
+# Command: *resume
+
+## Purpose
+Resume previous session with automatic sync and context loading
 
 ## Workflow
 

@@ -1,4 +1,13 @@
-Clean up memory and todo
+---
+name: tidy
+category: workflow
+requires: [MEMORY.md, TODO.md]
+---
+
+# Command: *tidy
+
+## Purpose
+Clean up memory and todo files by archiving old entries
 
 ## MEMORY.md
 

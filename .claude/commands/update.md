@@ -1,6 +1,13 @@
-# Update LTD System
+---
+name: update
+category: infrastructure
+requires: none
+---
 
-Update the ltd command system in another project.
+# Command: *update
+
+## Purpose
+Update ltd command system in another project
 
 ## Two Ways to Update
 

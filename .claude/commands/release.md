@@ -1,6 +1,13 @@
-# Release
+---
+name: release
+category: infrastructure
+requires: none
+---
 
-Create a new version release.
+# Command: *release
+
+## Purpose
+Create a new version release with changelog and GitHub release
 
 ## Usage
 

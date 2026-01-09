@@ -1,11 +1,17 @@
-# Create Plan
+---
+name: plan
+category: planning
+requires: none
+---
 
-Create a plan for a task or feature.
+# Command: *plan
+
+## Purpose
+Create implementation plan for a task or feature
 
 ## Usage
-
-```
-*plan <description>
+```bash
+*plan <description>    # Create plan for task
 ```
 
 Example: `*plan add user authentication`
