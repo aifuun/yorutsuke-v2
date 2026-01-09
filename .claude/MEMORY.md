@@ -12,6 +12,32 @@ Update at session end, read at session start.
 
 Record important decisions with context.
 
+### [2026-01-09] AI_DEV_PROT v15 Review: batch-orchestrator Against 18 Pillars
+- **Decision**: Conducted comprehensive pillar review of batch-orchestrator Lambda implementation
+- **Method**: Read all 18 pillar checklists (.prot/pillar-a..r); mapped against Lambda code
+- **Findings**:
+  - **Strong (5 pillars)**: O(Async), R(Observability), B(Schema), G(Traceability), I(Firewalls)
+  - **Critical gaps (3 pillars, now fixed)**:
+    1. **Pillar Q (Idempotency)**: Missing `intentId` + no duplicate prevention → risk of duplicate Bedrock jobs
+    2. **Pillar B (Input Parsing)**: Hard-coded `event` parsing → fails with API Gateway `event.body`
+    3. **Pillar O (Async API)**: No `statusUrl` for polling → clients blind on job status
+  - **Medium gaps (2 pillars, deferred)**: S3 manifest lookup inefficient; tests/logging sparse
+- **Fixes Implemented** (Pillar Q + B + O):
+  - ✅ Added `intentId: string` to input schema (required field)
+  - ✅ Implemented `checkIdempotency()` with DynamoDB conditional check → cached response on retry
+  - ✅ Fixed parsing: prefer `event.body` (string/JSON) → fallback to `event` (direct invoke)
+  - ✅ Added `statusUrl` + `estimatedDuration` to response (Pillar O async pattern)
+  - ✅ Changed batch-jobs table PK: `jobId` → `intentId` (idempotency key)
+  - ✅ Added `jobId` GSI for reverse lookup
+  - ✅ Processing marker prevents concurrent duplicates (Pillar F: CAS)
+- **Semantic**: Client generates `intentId` once per user action; same `intentId` on retry returns cached `jobId`
+- **Key Learning**: Pillar Q is **critical for any T3 operation** (payment, saga, async workflows); missing it is production bug
+- **Pillar Usage Pattern**: Use CHEATSHEET.md as quick ref; drill into specific pillar checklist only when implementing/reviewing that area
+- **Files**: 
+  - `infra/lambda/batch-orchestrator/index.mjs` (schema, parsing, idempotency, statusUrl)
+  - `infra/lib/yorutsuke-stack.ts` (table PK change, GSI, env var)
+  - `.claude/batch-orchestrator-PILLAR-FIXES.md` (detailed summary)
+
 ### [2026-01-08] Hybrid Batch Cloud Processing (#96)
 - **Decision**: Use a three-mode processing strategy (Instant, Batch, Hybrid) for Cloud OCR.
 - **Trigger**: AWS Bedrock Batch Inference offers 50% discount but requires a minimum of 100 records and is asynchronous.
