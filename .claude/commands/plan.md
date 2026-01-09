@@ -7,16 +7,71 @@ requires: none
 # Command: *plan
 
 ## Purpose
-Create implementation plan for a task or feature
+Create implementation plan for MVP, feature/issue, or quick task
 
 ## Usage
 ```bash
-*plan <description>    # Create plan for task
+*plan                  # Show planning menu
+*plan mvp              # Step 1: MVP decomposition (战略层)
+*plan #<n>             # Step 2: Feature planning for issue #n (战役层)
+*plan <description>    # Quick plan for simple task (战术层)
 ```
 
-Example: `*plan add user authentication`
+## Subcommands
 
-## Workflow
+### *plan (no args)
+Show interactive menu:
+```
+Planning Menu:
+
+1. MVP Planning (战略层)
+   → Decompose MVP into GitHub Issues
+   → Use: *plan mvp
+
+2. Feature Planning (战役层)
+   → Create detailed plan for Issue #n
+   → Use: *plan #<n>
+
+3. Quick Plan (战术层)
+   → Plan a simple task
+   → Use: *plan <description>
+
+Which planning level? (1/2/3)
+```
+
+### *plan mvp
+**Step 1: MVP Decomposition** (40 min)
+
+1. Identify current/next MVP from `docs/dev/MVP*.md`
+2. Load template: `.claude/workflow/templates/TEMPLATE-mvp.md`
+3. Follow guide: `.claude/workflow/planning-mvp.md`
+4. Output: GitHub Issues + dependency graph
+5. Update MVP file with Issue references
+
+**Workflow**:
+```
+Analyze MVP goal → Identify features → Map dependencies → Create Issues
+```
+
+### *plan #<n>
+**Step 2: Feature Planning** (1-2h)
+
+1. View issue: `gh issue view <n>`
+2. Check complexity (suggest `*tier` if T2/T3)
+3. Load template: `.claude/workflow/templates/TEMPLATE-feature-plan.md`
+4. Follow guide: `.claude/workflow/planning-feature.md`
+5. Save to: `.claude/plans/active/#<n>-name.md`
+6. Update GitHub Issue with plan link
+
+**Workflow**:
+```
+Validate requirements → Create dev plan → Define test cases → Ready to code
+```
+
+### *plan <description>
+**Quick Plan** for simple tasks
+
+Workflow
 
 1. **Analyze request**: Understand what needs to be done
 
@@ -65,42 +120,23 @@ Example: `*plan add user authentication`
 - Each step should be testable
 - Identify risks upfront
 
-## Templates Available
+## Templates Summary
 
-When creating a plan, use the appropriate template:
+| Level | Template | Output |
+|-------|----------|--------|
+| 战略 MVP | `TEMPLATE-mvp.md` | `docs/dev/MVPX.md` |
+| 战役 Feature | `TEMPLATE-feature-plan.md` | `plans/active/#xxx.md` |
+| 战役 Issue | `TEMPLATE-github-issue.md` | GitHub Issues |
 
-### MVP Planning (战略层)
-**Template**: `.claude/workflow/templates/TEMPLATE-mvp.md`
-- **Copy to**: `docs/dev/MVPX_NAME.md`
-- **See**: `workflow/planning-mvp.md` for Step 1 guidance (40 min)
-- **Process**: Analyze goal → Identify features → Create Issues
-
-### Feature Planning (战役层)
-**Template**: `.claude/workflow/templates/TEMPLATE-feature-plan.md`
-- **Copy to**: `.claude/plans/active/#xxx-name.md`
-- **See**: `workflow/planning-feature.md` for Step 2 guidance (1-2h)
-- **Process**: Detailed plan → Test cases → Ready to code
-
-### Issue Creation
-**Template**: `.claude/workflow/templates/TEMPLATE-github-issue.md`
-- **Use during**: Step 1 MVP decomposition
-- **Format**: Lightweight Issue with links to detailed plan
-
-## Two-Step Planning
-
-1. **Determine plan type**: MVP-level or Feature-level?
-2. **Copy appropriate template**
-3. **Follow guidance** from workflow files
-4. **Execute** two-step planning process
-
-See: `.claude/workflow/planning.md` for complete workflow
+All templates: `.claude/workflow/templates/`
 
 ## Command Chaining
 
-**After plan created**: Waits for `*approve` to execute plan
-**After approval**: Starts first step from plan
+**After `*plan mvp`**: Creates Issues → use `*issue pick <n>` to start development
+**After `*plan #<n>`**: Creates feature plan → use `*approve` to execute
+**After `*plan <desc>`**: Creates quick plan → use `*approve` to execute
 
 ## Related
 - Commands: *approve, *tier, *issue
-- Templates: @.claude/workflow/templates/
-- Workflow: @.claude/rules/workflow.md
+- Templates: `.claude/workflow/templates/`
+- Workflow: `.claude/rules/workflow.md`

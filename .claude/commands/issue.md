@@ -41,27 +41,32 @@ Start working on issue #n:
    gh issue view <n>
    ```
 
-2. **Quick assessment** - Does this task involve:
+2. **Check for existing feature plan**: `.claude/plans/active/#<n>-*.md`
+   - If exists → load steps from plan to TODO.md, proceed to step 5
+   - If not exists → continue to step 3
+
+3. **Quick assessment** - Does this task involve:
    - Data writes / mutations?
    - State management (forms, wizards)?
    - Payment / critical operations?
 
-3. **If YES to any** → Run `*tier` to classify complexity
-   **If NO** (read-only, pure UI/style) → Skip to step 4
+4. **If YES to any** (T2/T3 complexity):
+   - Suggest: "Complex task detected. Create feature plan first? → `*plan #<n>`"
+   - If user agrees → exit and run `*plan #<n>`
+   - If user declines → proceed with simple breakdown
 
-4. Break down into steps and update .claude/TODO.md:
+   **If NO** (T1 read-only, pure UI/style) → Skip to step 5
+
+5. Break down into steps and update .claude/TODO.md:
    ```markdown
    ## Current Issue: #N - Title
 
    **Tier**: T[1/2/3] (if classified)
-   **Pillars**: [A, D, L, ...] (if classified)
 
    ### Steps
    - [ ] Step 1
    - [ ] Step 2
    ```
-
-5. Update .claude/MEMORY.md current context
 
 6. Start working on first step
 
@@ -97,19 +102,25 @@ Interactively add body content.
 
 ## Command Chaining
 
-**After *issue pick <n>**: Auto-runs `*tier` if task involves state/writes
+**After *issue pick <n>**:
+- If T2/T3 complexity detected → suggest `*plan #<n>`
+- Otherwise → start development directly
+
 **After *issue close <n>**: Suggests `*sync` to commit all changes
 
-## Issue Planning Templates
+## Feature Planning Integration
 
-### *issue pick <n> - Feature Plan Check
-When picking an issue:
-1. Check if feature plan exists: `.claude/plans/active/#<n>-*.md`
-2. If T2/T3 complexity and no plan exists:
-   - Prompt: "Create feature plan? (recommended for complex tasks)"
-   - If yes → Copy `templates/TEMPLATE-feature-plan.md` to `plans/active/#<n>-name.md`
-   - Complete plan before starting implementation
-3. If plan exists → load steps from plan to TODO.md
+### Separation of Concerns
+- `*issue pick <n>` = **Select** issue and start work (pure)
+- `*plan #<n>` = **Plan** feature implementation (detailed)
+
+### When to use `*plan #<n>`
+Before `*issue pick <n>` for complex tasks:
+1. T2/T3 complexity (data writes, state management)
+2. Multi-file changes
+3. New architectural patterns
+
+**Flow**: `*plan #<n>` → creates plan → `*issue pick <n>` → loads plan → develop
 
 ### *issue new <title> - Issue Template
 When creating new issue:
@@ -128,8 +139,7 @@ When closing issue:
 - One active issue at a time (tracked in TODO.md)
 - Large issues should be broken into smaller ones
 - Use labels for categorization
-- Always run `*tier` before starting implementation
-- Use feature plan template for T2/T3 complexity
+- For T2/T3 complexity → use `*plan #<n>` before `*issue pick <n>`
 
 ## Related
 - Commands: *tier, *review, *sync, *plan
