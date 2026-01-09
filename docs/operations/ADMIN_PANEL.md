@@ -85,20 +85,33 @@ Daily and monthly cost breakdown:
 - Bedrock (Nova Lite) processing costs
 - DynamoDB read/write costs
 
-### Batch
+### Batch (Receipt Processing)
 
-Batch processing status and history:
+**Renamed to "Receipt Processing"** with mode-aware UI:
 
-| Column | Description |
-|--------|-------------|
-| Date | Batch run date |
-| Started | Start time (JST) |
-| Duration | Processing time |
-| Processed | Images processed |
-| Failed | Error count |
-| Status | Success/Failed |
+#### Header
+- Dynamic mode indicator badge (⚡ Instant / 📦 Batch / 🔄 Hybrid)
+- Subtitle changes based on current mode behavior
 
-### Batch Settings (NEW)
+#### Stats Cards
+| Card | Shows | Context |
+|------|-------|---------|
+| Queued Images | Pending count | Threshold info in Batch mode |
+| Last Run | Processed count | Timestamp of last processing |
+| Failed | Error count | Severity indicator |
+
+#### Manual Processing Section
+- Mode-aware button: "Reprocess Failed" (Instant) / "Process Now" (Batch)
+- Disabled when no action needed
+- Two-step confirmation
+
+#### Processing Modes Info
+Visual three-card comparison at bottom:
+- ⚡ Instant: Green, immediate processing
+- 📦 Batch: Amber, queue until threshold
+- 🔄 Hybrid: Blue, batch first then instant
+
+### Processing Settings
 
 Configure processing mode, triggers, and LLM model:
 
