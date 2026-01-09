@@ -1,166 +1,95 @@
-# Feature Plan Template
+# Feature Plan: #[number] [Title]
 
-**Status**: [Not Started | In Progress | In Review | Completed]  
-**GitHub Issue**: #[number]  
-**Assignee**: @[username]  
-**Target Date**: [YYYY-MM-DD]  
-**Estimated Hours**: [8h | 16h | 32h | etc.]  
+> **Step 2 of Two-Step Planning** - 在开发前完成详细规划
 
-> **Where to use**: Step 2 of two-step planning (planning-feature.md)  
-> **When**: Before developing a specific feature  
-> **File location**: `plans/active/#[number]-feature-name.md`
-
----
-
-## 📋 Overview
-
-### Feature Goal
-Clear, one-sentence description of what this feature accomplishes.
-
-### Why This Matters
-- User benefit: ...
-- Business value: ...
-- Technical debt addressed: ... (if applicable)
-
-### Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
-- [ ] All tests passing
-- [ ] Documentation updated
+| 项目 | 值 |
+|------|-----|
+| Issue | #[number] |
+| MVP | MVP[X] |
+| 复杂度 | T1 / T2 / T3 |
+| 预估 | Xh |
+| 状态 | [ ] 规划 / [ ] 开发中 / [ ] Review / [ ] 完成 |
 
 ---
 
-## 🏗️ Implementation Plan
+## 1. 目标
 
-### Architecture Changes
-- **Files to create**: [List new files]
-- **Files to modify**: [List existing files with specific changes]
-- **Files to delete**: [If applicable]
-- **Dependencies**: [Libraries, services, or other features this depends on]
+**做什么**: [一句话描述]
 
-### Implementation Steps
-1. **Setup** (X hours)
-   - [ ] Subtask 1
-   - [ ] Subtask 2
-   
-2. **Core Implementation** (X hours)
-   - [ ] Subtask 1
-   - [ ] Subtask 2
-   
-3. **Testing** (X hours)
-   - [ ] Subtask 1
-   - [ ] Subtask 2
-   
-4. **Documentation** (X hours)
-   - [ ] Update code comments
-   - [ ] Update README
-   - [ ] Update API docs (if applicable)
+**为什么**: [业务价值或技术必要性]
+
+**验收标准**:
+- [ ] 标准1
+- [ ] 标准2
+- [ ] 测试通过
 
 ---
 
-## 🧪 Test Cases
+## 2. 实现方案
 
-### Unit Tests
-| Test Case | Input | Expected Output | Priority |
-|-----------|-------|-----------------|----------|
-| TC-1: [Name] | | | High |
-| TC-2: [Name] | | | High |
-| TC-3: [Name] | | | Medium |
+### 改动范围
 
-### Integration Tests
-| Test Case | Setup | Steps | Expected | Priority |
-|-----------|-------|-------|----------|----------|
-| TC-I1: [Name] | | | | High |
-| TC-I2: [Name] | | | | High |
+| 文件 | 类型 | 改动 |
+|------|------|------|
+| `path/file.ts` | 修改 | 添加 xxx 函数 |
+| `path/new.ts` | 新增 | xxx 模块 |
 
-### Edge Cases
-| Edge Case | Behavior | Test |
-|-----------|----------|------|
-| Null/empty input | Should handle gracefully | |
-| Large dataset | Should not timeout | |
-| Concurrent requests | Should not race | |
+### 实现步骤
 
----
+**Phase 1: [名称]** (~Xh)
+- [ ] 步骤1
+- [ ] 步骤2
 
-## 📊 Files Involved
+**Phase 2: [名称]** (~Xh)
+- [ ] 步骤1
+- [ ] 步骤2
 
-| File | Change Type | Details |
-|------|-------------|---------|
-| `src/path/file.ts` | Modify | Add new function `foo()`, update `bar()` |
-| `src/path/new-file.ts` | Create | New module for [purpose] |
-| `src/path/old-file.ts` | Delete | Merged into file.ts |
+**Phase 3: 测试** (~Xh)
+- [ ] 单元测试
+- [ ] 集成测试
 
 ---
 
-## ⚠️ Risks & Mitigations
+## 3. 测试用例
 
-| Risk | Severity | Mitigation |
-|------|----------|-----------|
-| [Risk description] | High/Medium/Low | [Mitigation plan] |
+### 单元测试
+| Case | 输入 | 期望 |
+|------|------|------|
+| 正常情况 | xxx | yyy |
+| 边界情况 | xxx | yyy |
+| 错误情况 | xxx | 抛出 Error |
 
----
-
-## 🔗 Dependencies
-
-### Blocks
-- [ ] Feature #[number] (must be completed first)
-- [ ] Feature #[number] (must be completed first)
-
-### Blocked By
-- [ ] Feature #[number] (blocking)
-- [ ] Feature #[number] (blocking)
-
-### Related Features
-- [ ] Feature #[number] (similar work)
-- [ ] Feature #[number] (uses this)
+### 场景测试 (SC-xxx / SB-xxx)
+| ID | 场景 | 预期 |
+|----|------|------|
+| SC-xxx | 用户操作描述 | 预期结果 |
 
 ---
 
-## 📝 Notes
+## 4. 风险 & 依赖
 
-### Learning Points from Previous Features
-- [Any learnings that affect this feature's plan]
+**风险**:
+| 风险 | 级别 | 应对 |
+|------|------|------|
+| xxx | 高/中/低 | 应对方案 |
 
-### Known Constraints
-- [Deployment constraints, browser compatibility, etc.]
-
-### Open Questions
-- [ ] Question 1? → Answer
-- [ ] Question 2? → Answer
-
----
-
-## ✅ Completion Checklist
-
-- [ ] All tests passing locally
-- [ ] Code reviewed and approved
-- [ ] PR merged to main
-- [ ] Documentation updated
-- [ ] Deployed to staging
-- [ ] Tested in staging
-- [ ] Deployed to production
-- [ ] Production validation complete
-- [ ] Close GitHub Issue
+**依赖**:
+- [ ] 前置 Issue: #xxx
+- [ ] 外部服务: xxx
 
 ---
 
-## 📈 Progress Tracking
+## 5. 进度
 
-| Date | Status | Notes |
-|------|--------|-------|
-| 2026-01-15 | Not Started | Plan created |
-| | In Progress | [Date] - Started implementation |
-| | In Review | [Date] - PR submitted |
-| | Completed | [Date] - Deployed |
+| 日期 | 状态 | 备注 |
+|------|------|------|
+| YYYY-MM-DD | 规划完成 | |
+| | 开发中 | |
+| | 完成 | |
 
 ---
 
-## 🎯 Success Metrics
-
-- [ ] Feature works as described in acceptance criteria
-- [ ] No regressions in existing tests
-- [ ] Code coverage maintained/improved
-- [ ] Performance baseline: [metric] ≤ [threshold]
-- [ ] User feedback: [success criteria]
-
+*开发前确认*:
+- [ ] 方案已确认，无 open questions
+- [ ] 依赖已就绪
+- [ ] 测试用例覆盖完整

@@ -1,7 +1,34 @@
+---
+paths:
+  - .claude/TODO.md
+---
+
 # Workflow Rule - MVP, Issues, TODO 协同机制
 
 > **详细指南**: `.claude/WORKFLOW.md` (index & cheatsheet)
 > **Two-Step Planning**: `.claude/workflow/planning.md`
+
+## TODO.md 战术层 (Tactics)
+
+当你编辑 `.claude/TODO.md` 时，请使用模板结构：
+
+**Template**: `.claude/workflow/templates/TEMPLATE-todo.md`
+
+**关键原则**:
+- 只跟踪当前 Session 的 1-3 个活跃 Issue
+- 从 Feature Plan 复制子任务到 TODO
+- 实时更新进度（打勾）
+- Session 结束后清理，重要决策归档到 MEMORY.md
+
+**结构**:
+```markdown
+## Current Session
+### Active Issue: #xxx [Title]
+**状态**: 开发中 | Plan: `plans/active/#xxx.md`
+- [x] 完成的步骤
+- [ ] **正在做** ← 当前
+- [ ] 下一步
+```
 
 ## 核心原则
 

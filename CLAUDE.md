@@ -192,15 +192,23 @@ cd app && npm test             # Run tests
 | `TransactionId` | `string & { __brand: 'TransactionId' }` | Transaction identifier |
 | `UserId` | `string & { __brand: 'UserId' }` | User identifier |
 
+## Architecture Decisions
+
+**Before coding**: Check past decisions → `docs/architecture/ADR/`
+- **ADR-001**: Service Pattern (global listeners, Zustand stores)
+- **ADR-005**: TraceId vs IntentId (log correlation vs idempotency)
+
+Full list: `docs/architecture/ADR/README.md`
+
 ## Rules
 
 **MUST**:
 - Classify task tier before implementation
 - Use Branded Types for IDs (Pillar A)
 - Validate all Lambda responses with Zod (Pillar B)
-- Separate UI from logic (Pillar L: Headless)
-- Use Service Pattern for global listeners (not React hooks) → `docs/architecture/PATTERNS.md`
-- Add Intent-ID for batch operations (Pillar Q)
+- Separate UI from logic (Pillar L: Headless) → See ADR-001
+- Use Service Pattern for global listeners (not React hooks) → ADR-001
+- Add Intent-ID for batch operations (Pillar Q) → See ADR-005
 
 **MUST NOT**:
 - Use primitive types for domain entities

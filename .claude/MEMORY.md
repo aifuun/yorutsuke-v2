@@ -4,13 +4,35 @@
 
 Update at session end, read at session start.
 
-- **Last Progress**: [2026-01-08] Completed MVP2 and Issue #101 (Admin Config API). Integrated dynamic model configuration for instant-processor.
-- **Next Steps**: Implement remaining Batch processing Lambdas for MVP3.
+- **Last Progress**: [2026-01-09] Workflow documentation restructure (Two-Step Planning). MVP3 backend complete (#97-#102). Next: verification and end-to-end testing.
+- **Next Steps**: MVP3 verification (#99), batch processing integration testing, end-to-end flow validation.
 - **Blockers**: None
 
 ## Architecture Decisions
 
 Record important decisions with context.
+
+### [2026-01-09] Workflow Documentation Restructure
+- **Decision**: Reorganized workflow documentation into layered structure with Two-Step Planning methodology
+- **Trigger**: Need for clearer planning process and better separation between strategic (MVP) and tactical (Feature) planning
+- **Structure**:
+  - `.claude/WORKFLOW.md` → Main index and cheatsheet (entry point)
+  - `.claude/rules/workflow.md` → Core principles (three-layer architecture: MVP → Issues → TODO)
+  - `.claude/workflow/planning.md` → Two-Step Planning detailed guide
+  - `.claude/workflow/templates/` → Planning templates (mvp-decomp, feature-plan, test-cases)
+- **Two-Step Planning Methodology**:
+  1. **Step 1 (MVP-Level, ~40 min)**: Analyze MVP goals → Create rough GitHub Issues → Build dependency graph
+  2. **Step 2 (Feature-Level, 1-2h)**: Just-in-time detailed planning per feature → Dev Plan + Test Cases before implementation
+- **Benefits**:
+  - Avoids upfront over-planning (learn from previous features)
+  - Separates strategic roadmap from tactical implementation
+  - Templates provide consistency without duplication
+- **Cleanup**: Renamed `INBOX.md` → `QUICK-NOTES.md` for clarity; moved clarified questions to inbox/
+- **Files**:
+  - `.claude/WORKFLOW.md` (index)
+  - `.claude/rules/workflow.md` (three-layer architecture)
+  - `.claude/workflow/planning.md` (two-step guide)
+  - `CLAUDE.md` (updated references)
 
 ### [2026-01-09] AI_DEV_PROT v15 Review: batch-orchestrator Against 18 Pillars
 - **Decision**: Conducted comprehensive pillar review of batch-orchestrator Lambda implementation
@@ -33,7 +55,7 @@ Record important decisions with context.
 - **Semantic**: Client generates `intentId` once per user action; same `intentId` on retry returns cached `jobId`
 - **Key Learning**: Pillar Q is **critical for any T3 operation** (payment, saga, async workflows); missing it is production bug
 - **Pillar Usage Pattern**: Use CHEATSHEET.md as quick ref; drill into specific pillar checklist only when implementing/reviewing that area
-- **Files**: 
+- **Files**:
   - `infra/lambda/batch-orchestrator/index.mjs` (schema, parsing, idempotency, statusUrl)
   - `infra/lib/yorutsuke-stack.ts` (table PK change, GSI, env var)
   - `.claude/batch-orchestrator-PILLAR-FIXES.md` (detailed summary)
