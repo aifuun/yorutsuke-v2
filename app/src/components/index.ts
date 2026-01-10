@@ -29,5 +29,9 @@ export { ErrorState } from './ErrorState';
 export { Progress } from './Progress';
 
 // Layout
+export { ViewHeader } from './ViewHeader';
+export type { ViewHeaderProps } from './ViewHeader';
+
+// Layout
 export { Sidebar } from './Sidebar';
 export type { ViewType } from './Sidebar';

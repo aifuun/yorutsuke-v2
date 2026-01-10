@@ -11,7 +11,7 @@ import { quotaService } from '../services/quotaService';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
-import { Icon } from '../../../components';
+import { Icon, ViewHeader } from '../../../components';
 import './capture.css';
 
 // Format file size for display
@@ -119,7 +119,7 @@ export function CaptureView() {
   if (userLoading) {
     return (
       <div className="capture">
-        <CaptureHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
+        <CaptureHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
         <div className="capture-content">
           <div className="capture-loading">{t('common.loading')}</div>
         </div>
@@ -133,7 +133,7 @@ export function CaptureView() {
 
   return (
     <div className="capture">
-      <CaptureHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
+      <CaptureHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
 
       <div className="capture-content">
         <div className="capture-container">
@@ -280,15 +280,17 @@ export function CaptureView() {
 }
 
 // Header component
-function CaptureHeader({ date, dayOfWeek, title }: { date: string; dayOfWeek: string; title: string }) {
+function CaptureHeaderComponent({ date, dayOfWeek, title }: { date: string; dayOfWeek: string; title: string }) {
   return (
-    <header className="capture-header">
-      <h1 className="capture-title">{title}</h1>
-      <div className="capture-date">
-        <span className="mono">{date}</span>
-        <span className="date-separator">•</span>
-        <span>{dayOfWeek}</span>
-      </div>
-    </header>
+    <ViewHeader
+      title={title}
+      rightContent={
+        <div className="capture-date">
+          <span className="mono">{date}</span>
+          <span className="date-separator">•</span>
+          <span>{dayOfWeek}</span>
+        </div>
+      }
+    />
   );
 }

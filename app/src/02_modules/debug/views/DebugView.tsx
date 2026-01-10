@@ -5,6 +5,7 @@ import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
+import { ViewHeader } from '../../../components';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction';
 import { resetTodayQuota } from '../../capture';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
@@ -68,7 +69,7 @@ export function DebugView() {
   if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
     return (
       <div className="debug">
-        <DebugHeader title={t('debug.title')} version={APP_VERSION} />
+        <ViewHeader title={t('debug.title')} rightContent={<VersionBadge version={APP_VERSION} />} />
         <div className="debug-content">
           <div className="debug-loading">{t('common.loading')}</div>
         </div>
@@ -79,7 +80,7 @@ export function DebugView() {
   if (state.status === 'error') {
     return (
       <div className="debug">
-        <DebugHeader title={t('debug.title')} />
+        <ViewHeader title={t('debug.title')} />
         <div className="debug-content">
           <div className="debug-error">{t('common.error')}</div>
         </div>
@@ -236,13 +237,13 @@ export function DebugView() {
 
   return (
     <div className="debug">
-      <DebugHeader title={t('debug.title')} version={APP_VERSION} />
+      <ViewHeader title={t('debug.title')} rightContent={<VersionBadge version={APP_VERSION} />} />
 
       <div className="debug-content">
         <div className="debug-container">
           {/* Section 1: Dev Actions */}
           <div className="card card--settings">
-            <h2 className="card--settings__header">{t('debug.devActions')}</h2>
+            <h2 className="section-header">{t('debug.devActions')}</h2>
 
             {/* Seed Data */}
             <div className="setting-row">
@@ -345,8 +346,8 @@ export function DebugView() {
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
-                <p className="setting-row__label">Clear Cloud Data</p>
-                <p className="setting-row__hint">Delete all transactions and images from AWS (DynamoDB + S3)</p>
+                <p className="setting-row__label">{t('debug.clearCloudData')}</p>
+                <p className="setting-row__hint">{t('debug.clearCloudDataHint')}</p>
               </div>
               <div className="setting-row__control">
                 <button
@@ -355,7 +356,7 @@ export function DebugView() {
                   onClick={handleOpenClearCloudDialog}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
-                  Clear Cloud
+                  {t('debug.clearCloudDataButton')}
                 </button>
               </div>
             </div>
@@ -387,7 +388,7 @@ export function DebugView() {
 
           {/* Section 2: System & Config */}
           <div className="card card--settings">
-            <h2 className="card--settings__header">{t('debug.systemInfo')}</h2>
+            <h2 className="section-header">{t('debug.systemInfo')}</h2>
 
             <div className="debug-grid">
               <div className="debug-grid-item">
@@ -420,7 +421,7 @@ export function DebugView() {
           {/* Section 3: Logs */}
           <div className="card card--settings">
             <div className="debug-logs-header">
-              <h2 className="card--settings__header">Logs</h2>
+              <h2 className="section-header">Logs</h2>
               <div className="debug-logs-controls">
                 <label className="debug-verbose-toggle">
                   <span className="debug-verbose-label">Verbose</span>
@@ -469,11 +470,11 @@ export function DebugView() {
       {/* Clear Cloud Data Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showClearCloudDialog}
-        title="Clear Cloud Data?"
-        message="This will permanently delete all transactions and images for this user from AWS (DynamoDB + S3). This action cannot be undone. Continue?"
-        checkboxLabel="I understand this is irreversible and will delete all my cloud data"
-        confirmText="Delete from Cloud"
-        cancelText="Cancel"
+        title={t('debug.clearCloudDataConfirmTitle')}
+        message={t('debug.clearCloudDataConfirmMessage')}
+        checkboxLabel={t('debug.clearCloudDataConfirmCheckbox')}
+        confirmText={t('debug.clearCloudDataButton')}
+        cancelText={t('common.cancel')}
         variant="danger"
         onConfirm={handleConfirmClearCloud}
         onCancel={handleCancelClearCloud}
@@ -482,12 +483,7 @@ export function DebugView() {
   );
 }
 
-// Header component
-function DebugHeader({ title, version }: { title: string; version?: string }) {
-  return (
-    <header className="debug-header">
-      <h1 className="debug-title">{title}</h1>
-      {version && <span className="debug-version mono">v{version}</span>}
-    </header>
-  );
+// Version badge component
+function VersionBadge({ version }: { version: string }) {
+  return <span className="debug-version mono">v{version}</span>;
 }

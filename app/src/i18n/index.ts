@@ -4,9 +4,10 @@ import { initReactI18next } from 'react-i18next';
 
 import ja from './locales/ja.json';
 import en from './locales/en.json';
+import zh from './locales/zh.json';
 
 // Language type
-export type Language = 'ja' | 'en';
+export type Language = 'ja' | 'en' | 'zh';
 
 // Initialize i18next
 i18n
@@ -15,9 +16,10 @@ i18n
     resources: {
       ja: { translation: ja },
       en: { translation: en },
+      zh: { translation: zh },
     },
-    lng: 'en', // Default language
-    fallbackLng: 'ja',
+    lng: 'en', // Default language (English)
+    fallbackLng: 'en',
     interpolation: {
       escapeValue: false, // React already escapes
     },

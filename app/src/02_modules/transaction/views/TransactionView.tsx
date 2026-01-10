@@ -2,6 +2,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTransactionLogic, useSyncLogic } from '../headless';
 import { useTranslation } from '../../../i18n';
+import { ViewHeader } from '../../../components';
 import { ask } from '@tauri-apps/plugin-dialog';
 import DatePicker from 'react-datepicker';
 import { ja } from 'date-fns/locale';
@@ -197,12 +198,29 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   if (state.status === 'idle') {
     return (
       <div className="ledger">
-        <LedgerHeader
+        <ViewHeader
           title={t('nav.ledger')}
-          onNewEntry={handleNewEntry}
-          onSync={handleSync}
-          syncState={syncLogic.state}
-          lastSynced={syncLogic.getTimeSinceLastSync()}
+          rightContent={
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {syncLogic.getTimeSinceLastSync() && (
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                  {syncLogic.getTimeSinceLastSync()}
+                </span>
+              )}
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={handleSync}
+                disabled={syncLogic.state.status === 'syncing'}
+                title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+              >
+                {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
+              </button>
+              <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
+                + {t('ledger.newEntry')}
+              </button>
+            </div>
+          }
         />
         <div className="ledger-content">
           <div className="ledger-loading">{t('auth.login')}</div>
@@ -214,12 +232,29 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   if (state.status === 'loading') {
     return (
       <div className="ledger">
-        <LedgerHeader
+        <ViewHeader
           title={t('nav.ledger')}
-          onNewEntry={handleNewEntry}
-          onSync={handleSync}
-          syncState={syncLogic.state}
-          lastSynced={syncLogic.getTimeSinceLastSync()}
+          rightContent={
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {syncLogic.getTimeSinceLastSync() && (
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                  {syncLogic.getTimeSinceLastSync()}
+                </span>
+              )}
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={handleSync}
+                disabled={syncLogic.state.status === 'syncing'}
+                title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+              >
+                {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
+              </button>
+              <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
+                + {t('ledger.newEntry')}
+              </button>
+            </div>
+          }
         />
         <div className="ledger-content">
           <div className="ledger-loading">{t('common.loading')}</div>
@@ -231,12 +266,29 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   if (state.status === 'error') {
     return (
       <div className="ledger">
-        <LedgerHeader
+        <ViewHeader
           title={t('nav.ledger')}
-          onNewEntry={handleNewEntry}
-          onSync={handleSync}
-          syncState={syncLogic.state}
-          lastSynced={syncLogic.getTimeSinceLastSync()}
+          rightContent={
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {syncLogic.getTimeSinceLastSync() && (
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                  {syncLogic.getTimeSinceLastSync()}
+                </span>
+              )}
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={handleSync}
+                disabled={syncLogic.state.status === 'syncing'}
+                title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+              >
+                {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
+              </button>
+              <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
+                + {t('ledger.newEntry')}
+              </button>
+            </div>
+          }
         />
         <div className="ledger-content">
           <div className="ledger-error">{state.error}</div>
@@ -247,12 +299,29 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   return (
     <div className="ledger">
-      <LedgerHeader
+      <ViewHeader
         title={t('nav.ledger')}
-        onNewEntry={handleNewEntry}
-        onSync={handleSync}
-        syncState={syncLogic.state}
-        lastSynced={syncLogic.getTimeSinceLastSync()}
+        rightContent={
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {syncLogic.getTimeSinceLastSync() && (
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
+                {syncLogic.getTimeSinceLastSync()}
+              </span>
+            )}
+            <button
+              type="button"
+              className="btn btn--secondary btn--sm"
+              onClick={handleSync}
+              disabled={syncLogic.state.status === 'syncing'}
+              title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+            >
+              {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
+            </button>
+            <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
+              + {t('ledger.newEntry')}
+            </button>
+          </div>
+        }
       />
 
       <div className="ledger-content">
@@ -417,48 +486,6 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 }
 
 // Header component
-interface LedgerHeaderProps {
-  title: string;
-  onNewEntry?: () => void;
-  onSync?: () => void;
-  syncState?: { status: 'idle' | 'syncing' | 'success' | 'error' };
-  lastSynced?: string | null;
-}
-
-function LedgerHeader({ title, onNewEntry, onSync, syncState, lastSynced }: LedgerHeaderProps) {
-  const { t } = useTranslation();
-  const isSyncing = syncState?.status === 'syncing';
-
-  return (
-    <header className="ledger-header">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <h1 className="ledger-title">{title}</h1>
-        {lastSynced && (
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
-            Last synced: {lastSynced}
-          </span>
-        )}
-      </div>
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        {onSync && (
-          <button
-            type="button"
-            className="btn btn--secondary"
-            onClick={onSync}
-            disabled={isSyncing}
-            title={isSyncing ? 'Syncing...' : 'Sync transactions from cloud'}
-          >
-            {isSyncing ? '⟳ Syncing...' : '↻ Sync'}
-          </button>
-        )}
-        <button type="button" className="btn btn--primary" onClick={onNewEntry}>
-          + {t('ledger.newEntry')}
-        </button>
-      </div>
-    </header>
-  );
-}
-
 // Transaction Card component
 interface TransactionCardProps {
   transaction: Transaction;

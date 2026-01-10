@@ -7,7 +7,7 @@ import { createMonthlySummary } from '../../../01_domains/transaction'; // Phase
 import { useTransactionLogic } from '../../transaction';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
-import { Icon } from '../../../components';
+import { Icon, ViewHeader } from '../../../components';
 import { EmptyState } from './EmptyState';
 import '../styles/dashboard.css';
 
@@ -138,7 +138,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   if (!userId) {
     return (
       <div className="dashboard">
-        <DashboardHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+        <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
         <div className="dashboard-content">
           <EmptyState variant="first-use" />
         </div>
@@ -149,7 +149,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   if (state.status === 'loading' || state.status === 'idle') {
     return (
       <div className="dashboard">
-        <DashboardHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+        <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
         <div className="dashboard-content">
           <div className="dashboard-loading">{t('common.loading')}</div>
         </div>
@@ -160,7 +160,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   if (state.status === 'error') {
     return (
       <div className="dashboard">
-        <DashboardHeader date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+        <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
         <div className="dashboard-content">
           <div className="dashboard-error">{t('common.error')}</div>
         </div>
@@ -174,7 +174,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 
   return (
     <div className="dashboard">
-      <DashboardHeader date={selectedDate} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+      <DashboardHeaderComponent date={selectedDate} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
 
       <div className="dashboard-content">
         <div className="dashboard-container">
@@ -321,16 +321,18 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 }
 
 // Header component
-function DashboardHeader({ date, dayOfWeek, title }: { date: string; dayOfWeek: string; title: string }) {
+function DashboardHeaderComponent({ date, dayOfWeek, title }: { date: string; dayOfWeek: string; title: string }) {
   return (
-    <header className="dashboard-header">
-      <h1 className="dashboard-title">{title}</h1>
-      <div className="dashboard-date">
-        <span className="mono">{date}</span>
-        <span className="date-separator">•</span>
-        <span>{dayOfWeek}</span>
-      </div>
-    </header>
+    <ViewHeader 
+      title={title}
+      rightContent={
+        <div className="dashboard-date">
+          <span className="mono">{date}</span>
+          <span className="date-separator">•</span>
+          <span>{dayOfWeek}</span>
+        </div>
+      }
+    />
   );
 }
 

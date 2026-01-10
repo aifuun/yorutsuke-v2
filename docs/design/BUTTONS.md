@@ -54,10 +54,10 @@ Button component specifications defining variants, sizes, states, and accessibil
 
 **Use Cases**: Cancel, secondary actions, alternative choices
 
-**Visual**:
-- Background: `var(--slate-100)` (#F1F5F9)
+**Visual** (Updated #136 for light theme visibility):
+- Background: `white`
 - Text: `var(--slate-700)` (#334155)
-- Border: `1px solid var(--border)`
+- Border: `1px solid var(--slate-300)`
 - Shadow: none (default), `var(--shadow-1)` (hover)
 
 **When to Use**:
@@ -68,18 +68,22 @@ Button component specifications defining variants, sizes, states, and accessibil
 **CSS Example**:
 ```css
 .btn-secondary {
-  background: var(--slate-100);
+  background: white;
   color: var(--slate-700);
-  border: 1px solid var(--border);
+  border: 1px solid var(--slate-300);
   border-radius: var(--radius-md);
   padding: 12px var(--space-4);
   font-weight: 600;
   font-size: 13px;
-  transition: all var(--duration-fast) var(--ease-standard);
+  line-height: 1.2;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 .btn-secondary:hover {
-  background: var(--slate-200);
+  background: var(--slate-50);
+  border-color: var(--slate-400);
   box-shadow: var(--shadow-1);
 }
 ```
@@ -164,20 +168,20 @@ Button component specifications defining variants, sizes, states, and accessibil
 
 ## Button Sizes
 
-### Small (sm) - 32px height
+### Small (sm) - ~32px height
 
 **Use Cases**: Inline actions, compact spaces, toolbars
 
-**Dimensions**:
-- Height: `32px`
+**Dimensions** (Padding-based, no fixed height):
 - Padding: `8px 12px`
 - Font-size: `13px`
+- Line-height: `1.2` (15.6px)
+- Total height: ~32px (8 + 15.6 + 8)
 - Icon size: `16px`
 
 **CSS Example**:
 ```css
 .btn-sm {
-  height: 32px;
   padding: 8px 12px;
   font-size: 13px;
   line-height: 1.2;
@@ -189,22 +193,24 @@ Button component specifications defining variants, sizes, states, and accessibil
 }
 ```
 
+**Note**: No `height` property - padding determines button size (M3 standard).
+
 ---
 
-### Medium (md) - 40px height ← **Default**
+### Medium (md) - ~40px height ← **Default**
 
 **Use Cases**: Standard buttons, forms, most use cases
 
-**Dimensions**:
-- Height: `40px`
+**Dimensions** (Padding-based, no fixed height):
 - Padding: `12px var(--space-4)` (12px 16px)
 - Font-size: `13px`
+- Line-height: `1.2` (15.6px)
+- Total height: ~40px (12 + 15.6 + 12)
 - Icon size: `20px`
 
 **CSS Example**:
 ```css
 .btn, .btn-md {
-  height: 40px;
   padding: 12px var(--space-4);
   font-size: 13px;
   line-height: 1.2;
@@ -216,22 +222,24 @@ Button component specifications defining variants, sizes, states, and accessibil
 }
 ```
 
+**Note**: No `height` property - padding determines button size (M3 standard).
+
 ---
 
-### Large (lg) - 48px height
+### Large (lg) - ~48px height
 
 **Use Cases**: Hero sections, primary CTAs, emphasis
 
-**Dimensions**:
-- Height: `48px`
+**Dimensions** (Padding-based, no fixed height):
 - Padding: `16px 20px`
 - Font-size: `14px`
+- Line-height: `1.2` (16.8px)
+- Total height: ~48px (16 + 16.8 + 16)
 - Icon size: `24px`
 
 **CSS Example**:
 ```css
 .btn-lg {
-  height: 48px;
   padding: 16px 20px;
   font-size: 14px;
   line-height: 1.2;
@@ -242,6 +250,8 @@ Button component specifications defining variants, sizes, states, and accessibil
   height: 24px;
 }
 ```
+
+**Note**: No `height` property - padding determines button size (M3 standard).
 
 ---
 

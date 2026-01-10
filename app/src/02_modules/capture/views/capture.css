@@ -7,33 +7,6 @@
   overflow: hidden;
 }
 
-.capture-header {
-  height: 64px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(203, 213, 225, 0.5);
-  padding: 0 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-}
-
-.capture-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--slate-700);
-  letter-spacing: -0.025em;
-}
-
-.capture-date {
-  font-size: 14px;
-  color: var(--slate-500);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .capture-content {
   flex: 1;
   overflow-y: auto;

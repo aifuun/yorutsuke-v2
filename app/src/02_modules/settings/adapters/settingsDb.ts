@@ -16,7 +16,7 @@ export interface AppSettings {
   userName: string | null;
   notificationEnabled: boolean;
   theme: 'light' | 'dark';
-  language: 'ja' | 'en';
+  language: 'ja' | 'en' | 'zh';
   debugEnabled: boolean;
 }
 

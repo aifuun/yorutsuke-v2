@@ -181,7 +181,7 @@
   },
   "ledger": {
     "dateRange": "Date Range",
-    "year": "",
+    "year": "year",
     "thisMonth": "This Month",
     "lastMonth": "Last Month",
     "thisYear": "This Year",
@@ -190,7 +190,11 @@
     "annualOutflow": "Total Outflow",
     "latestEntries": "Transactions",
     "totalItems": "{{count}} items",
-    "newEntry": "New Entry"
+    "newEntry": "New Entry",
+    "sync": "Sync",
+    "syncing": "Syncing...",
+    "syncTooltip": "Sync transactions from cloud",
+    "lastSynced": "Last synced: {{time}}"
   },
   "history": {
     "title": "History",
@@ -247,6 +251,12 @@
     "clearSettings": "Reset Settings",
     "clearSettingsHint": "Reset language, theme, and other preferences to defaults",
     "clearSettingsConfirm": "This will reset all settings to defaults. Business data will be preserved. Continue?",
+    "clearCloudData": "Clear Cloud Data",
+    "clearCloudDataHint": "Delete all transactions and images from AWS (DynamoDB + S3)",
+    "clearCloudDataButton": "Clear Cloud",
+    "clearCloudDataConfirmTitle": "Clear Cloud Data?",
+    "clearCloudDataConfirmMessage": "This will permanently delete all transactions and images for this user from AWS (DynamoDB + S3). This action cannot be undone. Continue?",
+    "clearCloudDataConfirmCheckbox": "I understand this is irreversible and will delete all my cloud data",
     "mockMode": "Mock Mode",
     "mockModeHint": "Control API behavior for testing",
     "mockOff": "Off (Real API)",
