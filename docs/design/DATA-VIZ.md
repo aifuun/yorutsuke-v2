@@ -838,6 +838,41 @@ export function CumulativeBalanceChart({ data }: { data: BalanceData[] }) {
 
 ---
 
+## Implementation Checklist
+
+### Phase 1: Documentation ✅
+- [x] Define chart color system (income/expense/categories)
+- [x] Define chart types (Line/Bar/Area, avoid Pie)
+- [x] Define interaction patterns (Tooltip/Legend/Click)
+- [x] Define responsive strategy
+- [x] Define accessibility requirements
+- [x] Provide code templates (3 chart types)
+
+### Phase 2: Dependencies (Pending #119)
+- [ ] Install Recharts: `npm install recharts`
+- [ ] Add CSS tokens for chart colors to `styles.css`
+- [ ] Verify bundle size impact
+
+### Phase 3: Implementation (Pending #119)
+- [ ] Implement 7-day trend chart (income vs expense)
+- [ ] Implement Top 5 categories bar chart
+- [ ] Add click navigation to Ledger
+- [ ] Add responsive handling
+
+### Phase 4: Accessibility (Pending #119)
+- [ ] Add `aria-label` to chart containers
+- [ ] Add screen reader data table fallback
+- [ ] Test with color-blind simulator
+- [ ] Verify WCAG AA contrast
+
+### Phase 5: Testing (Pending #119)
+- [ ] Visual testing (colors, tooltips, legend)
+- [ ] Interaction testing (hover, click, legend toggle)
+- [ ] Performance testing (<100ms render)
+- [ ] Accessibility audit
+
+---
+
 **Last updated**: 2026-01-10
 **Version**: 1.0.0
-**Status**: ✅ Complete (documentation ready for #119)
+**Status**: ✅ Documentation complete, awaiting implementation in #119
