@@ -7,7 +7,7 @@ import { TraceId as makeTraceId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { fetchTransactionsFromCloud as fetchFromCloud, fetchTransactions as fetchFromLocal, upsertTransaction } from '../adapters';
 import { logger } from '../../../00_kernel/telemetry/logger';
-import { syncImagesForTransactions } from './imageSyncService';
+import { syncImagesForTransactions, type ImageSyncResult } from './imageSyncService';
 
 /**
  * Sync result summary
@@ -18,6 +18,7 @@ export interface SyncResult {
   errors: string[]; // Error messages if any
   cloudCount: number; // Total transactions in cloud
   localCount: number; // Total transactions in local before sync
+  images?: ImageSyncResult; // Image sync stats (if images were synced)
 }
 
 /**
@@ -155,7 +156,7 @@ export async function syncTransactions(
     // Step 4: Sync images for synced transactions
     // This checks local images first, only downloads from S3 if needed
     const traceId = makeTraceId(`sync-${Date.now()}`);
-    await syncImagesForTransactions(cloudTransactions, userId, traceId);
+    const imageSyncResult = await syncImagesForTransactions(cloudTransactions, userId, traceId);
 
     const result: SyncResult = {
       synced,
@@ -163,6 +164,7 @@ export async function syncTransactions(
       errors,
       cloudCount: cloudTransactions.length,
       localCount: localTransactions.length,
+      images: imageSyncResult,
     };
 
     logger.info('transaction_sync_complete', { ...result });

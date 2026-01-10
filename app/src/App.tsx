@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, useEffect } from 'react';
+import { useState, useSyncExternalStore, useEffect, useCallback } from 'react';
 import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
 import { subscribeMockMode, getMockSnapshot, isDebugEnabled } from './00_kernel/config';
@@ -19,6 +19,17 @@ function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
+  // DEBUG: Log view changes
+  useEffect(() => {
+    console.log('[App] activeView changed to:', activeView);
+  }, [activeView]);
+
+  // DEBUG: Log component mount/unmount
+  useEffect(() => {
+    console.log('[App] AppContent mounted');
+    return () => console.log('[App] AppContent unmounted');
+  }, []);
+
   // Set user ID in transaction sync service when it changes
   useEffect(() => {
     transactionSyncService.setUser(userId);
@@ -27,6 +38,12 @@ function AppContent() {
   // @security CRITICAL: Debug panel is ALWAYS disabled in production
   // In development, controlled by VITE_DEBUG_PANEL environment variable (.env.local)
   const isDebugUnlocked = isDebugEnabled();
+
+  // DEBUG: Wrap setActiveView to log caller
+  const handleViewChange = useCallback((view: ViewType) => {
+    console.log('[App] setActiveView called with:', view, 'from:', new Error().stack?.split('\n')[2]);
+    setActiveView(view);
+  }, []);
 
   return (
     <div className="app-shell">
@@ -38,14 +55,14 @@ function AppContent() {
       <div className="app-body">
         <Sidebar
           activeView={activeView}
-          onViewChange={setActiveView}
+          onViewChange={handleViewChange}
           userId={userId}
           isDebugUnlocked={isDebugUnlocked}
         />
 
         <main className="main-content accounting-grid">
           <div className={`view-panel ${activeView === 'dashboard' ? 'active' : ''}`}>
-            <DashboardView userId={userId} onViewChange={setActiveView} />
+            <DashboardView userId={userId} onViewChange={handleViewChange} />
           </div>
 
           <div className={`view-panel ${activeView === 'capture' ? 'active' : ''}`}>
@@ -53,7 +70,7 @@ function AppContent() {
           </div>
 
           <div className={`view-panel ${activeView === 'ledger' ? 'active' : ''}`}>
-            <TransactionView userId={userId} onNavigate={setActiveView} />
+            <TransactionView userId={userId} onNavigate={handleViewChange} />
           </div>
 
           <div className={`view-panel ${activeView === 'settings' ? 'active' : ''}`}>

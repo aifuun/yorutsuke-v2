@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
@@ -214,7 +214,34 @@ export async function handler(event) {
                 transaction = validationResult.data;
             }
 
-            // 7. Write to DynamoDB (Pillar Q: Conditional check for idempotency)
+            // 7. Move to processed/ FIRST (before DynamoDB write)
+            // @ai-intent: Copy before DB write ensures s3Key is valid when transaction is created
+            // This prevents orphaned transactions with non-existent s3Keys
+            await s3.send(new CopyObjectCommand({
+                Bucket: bucket,
+                CopySource: `${bucket}/${key}`,
+                Key: processedKey,
+            }));
+
+            // 8. Verify copy succeeded before proceeding
+            try {
+                await s3.send(new HeadObjectCommand({
+                    Bucket: bucket,
+                    Key: processedKey,
+                }));
+            } catch (headErr) {
+                logger.error(EVENTS.IMAGE_PROCESSING_FAILED, {
+                    userId,
+                    imageId,
+                    reason: "S3_COPY_VERIFICATION_FAILED",
+                    processedKey,
+                    error: headErr.message,
+                });
+                continue; // Skip - don't create transaction with invalid s3Key
+            }
+
+            // 9. Write to DynamoDB (Pillar Q: Conditional check for idempotency)
+            // Now safe to write - s3Key is guaranteed to exist
             try {
                 await ddb.send(new PutItemCommand({
                     TableName: TRANSACTIONS_TABLE_NAME,
@@ -224,24 +251,19 @@ export async function handler(event) {
             } catch (ddbError) {
                 if (ddbError.name === "ConditionalCheckFailedException") {
                     logger.info(EVENTS.IMAGE_PROCESSING_CACHED, { transactionId });
-                    // If transaction already exists, we still want to proceed to mark image as processed
+                    // Transaction already exists, proceed to cleanup original
                 } else {
                     throw ddbError;
                 }
             }
 
-            // 8. Move to processed/ (reuse processedKey from above)
-            await s3.send(new CopyObjectCommand({
-                Bucket: bucket,
-                CopySource: `${bucket}/${key}`,
-                Key: processedKey,
-            }));
+            // 10. Delete original from uploads/ (cleanup)
             await s3.send(new DeleteObjectCommand({
                 Bucket: bucket,
                 Key: key,
             }));
 
-            logger.info(EVENTS.IMAGE_PROCESSING_COMPLETED, { userId, imageId, transactionId });
+            logger.info(EVENTS.IMAGE_PROCESSING_COMPLETED, { userId, imageId, transactionId, s3Key: processedKey });
 
         } catch (error) {
             logger.error(EVENTS.IMAGE_PROCESSING_FAILED, { userId, key, error: error.message });
@@ -250,4 +272,4 @@ export async function handler(event) {
     }
 }
 
-// Force deploy: 2026-01-09-17:36 (lenient OCR schema)
+// Force deploy: 2026-01-10-14:55 (s3Key validation: copy-verify-then-write)
