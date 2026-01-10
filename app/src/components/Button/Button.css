@@ -1,0 +1,142 @@
+/* Button Component */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Sizes */
+.btn--sm {
+  height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.btn--md {
+  height: 40px;
+  font-size: var(--text-sm);
+}
+
+.btn--lg {
+  height: 48px;
+  padding: 0 var(--space-6);
+  font-size: var(--text-base);
+}
+
+/* Primary Variant */
+.btn--primary {
+  background: var(--blue-500);
+  color: white;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--blue-600);
+}
+
+.btn--primary:active:not(:disabled) {
+  background: var(--blue-700);
+}
+
+/* Secondary Variant */
+.btn--secondary {
+  background: var(--slate-100);
+  color: var(--slate-700);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--slate-200);
+}
+
+.btn--secondary:active:not(:disabled) {
+  background: var(--slate-300);
+}
+
+/* Ghost Variant */
+.btn--ghost {
+  background: transparent;
+  color: var(--slate-600);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--slate-100);
+}
+
+.btn--ghost:active:not(:disabled) {
+  background: var(--slate-200);
+}
+
+/* Danger Variant */
+.btn--danger {
+  background: var(--rose-500);
+  color: white;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--rose-600);
+}
+
+.btn--danger:active:not(:disabled) {
+  background: var(--rose-700);
+}
+
+/* States */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Icon */
+.btn__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.btn--sm .btn__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.btn--lg .btn__icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Spinner (Loading state) */
+.btn__spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Text */
+.btn__text {
+  flex: 0 0 auto;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}

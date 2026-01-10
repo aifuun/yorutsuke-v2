@@ -1,0 +1,68 @@
+/* EmptyState Component */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  text-align: center;
+  min-height: 300px;
+}
+
+/* Icon */
+.empty-state__icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.empty-state--first-use .empty-state__icon {
+  font-size: 64px;
+}
+
+/* Title */
+.empty-state__title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-default);
+  margin: 0;
+}
+
+/* Description */
+.empty-state__description {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 400px;
+  margin: 0;
+}
+
+/* Action button spacing */
+.empty-state .btn {
+  margin-top: var(--space-2);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .empty-state {
+    padding: var(--space-6);
+    min-height: 250px;
+  }
+
+  .empty-state__icon {
+    font-size: 40px;
+  }
+
+  .empty-state--first-use .empty-state__icon {
+    font-size: 56px;
+  }
+
+  .empty-state__title {
+    font-size: var(--text-lg);
+  }
+
+  .empty-state__description {
+    font-size: var(--text-sm);
+  }
+}

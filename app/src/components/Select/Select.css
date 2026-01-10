@@ -1,0 +1,88 @@
+/* Select Component */
+
+.select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.select-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.select {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-10) 0 var(--space-3);
+  background: var(--bg-default);
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-default);
+  cursor: pointer;
+  appearance: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.select::placeholder {
+  color: var(--text-muted);
+}
+
+/* States */
+.select:hover:not(:disabled) {
+  border-color: var(--slate-400);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.select:disabled {
+  background: var(--slate-100);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* Error state */
+.select--error {
+  border-color: var(--rose-500);
+}
+
+.select--error:focus {
+  border-color: var(--rose-500);
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
+}
+
+/* Custom arrow */
+.select__arrow {
+  position: absolute;
+  right: var(--space-3);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.select:disabled + .select__arrow {
+  opacity: 0.5;
+}
+
+/* Message */
+.select__message {
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.select__message--error {
+  color: var(--rose-600);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .select {
+    transition: none;
+  }
+}

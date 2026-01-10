@@ -1,0 +1,47 @@
+/* Spinner - Loading indicator */
+
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 2px solid var(--slate-200);
+  border-top-color: var(--color-primary);
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+/* Sizes */
+.spinner--sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner--md {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.spinner--lg {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+/* Animation */
+@keyframes spinner-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-top-color: var(--color-primary);
+    border-right-color: var(--color-primary);
+  }
+}

@@ -49,13 +49,13 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-6);
 }
 
 /* Date Picker Input */
 .input--date {
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--slate-200);
   background: var(--bg-card);
   font-size: 14px;
@@ -86,7 +86,7 @@
   font-family: inherit;
   border: 1px solid var(--slate-200);
   border-radius: 12px;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-2);
 }
 
 .react-datepicker__header {
@@ -271,7 +271,7 @@
 
 .glass-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-2);
 }
 
 /* Card List Header */
@@ -279,9 +279,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: var(--space-6) var(--space-6);
   border-bottom: 1px solid var(--slate-200);
-  gap: 1rem;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
@@ -313,7 +313,7 @@
 .sorting-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .sorting-label {
@@ -323,11 +323,11 @@
 }
 
 .btn--sort {
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-size: 0.875rem;
   border: 1px solid var(--slate-200);
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--slate-700);
   font-weight: 500;
   cursor: pointer;
@@ -355,7 +355,7 @@
 .control-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .control-label {
@@ -367,11 +367,11 @@
 
 /* Select Dropdowns */
 .select {
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-size: 13px;
   border: 1px solid var(--slate-200);
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--slate-700);
   font-weight: 500;
   cursor: pointer;
@@ -410,7 +410,7 @@
   justify-content: center;
   border: 1px solid var(--slate-200);
   background: var(--bg-card);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--slate-600);
   font-size: 14px;
   cursor: pointer;
@@ -425,7 +425,7 @@
 
 /* Transaction Card */
 .transaction-card {
-  padding: 20px;
+  padding: var(--space-6);
   display: flex;
   align-items: center;
   gap: 24px;
@@ -527,7 +527,7 @@
   min-width: 90px;
   height: 40px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--slate-100);
   border: 1px solid var(--slate-200);
   display: flex;
@@ -562,7 +562,7 @@
 .transaction-tags {
   display: flex;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
   flex-wrap: wrap;
 }
 

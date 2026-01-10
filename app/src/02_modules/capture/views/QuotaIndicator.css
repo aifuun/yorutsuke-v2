@@ -1,6 +1,6 @@
 .quota-indicator {
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: var(--bg-hover);
   cursor: pointer;
   transition: background-color 0.15s;
@@ -50,7 +50,7 @@
 .quota-indicator__status {
   font-size: 10px;
   color: var(--text-disabled);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .quota-indicator__status--limit {
@@ -63,9 +63,9 @@
   font-size: 10px;
   color: var(--amber-600);
   background-color: var(--amber-100);
-  padding: 4px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   text-align: center;
 }
 
@@ -73,13 +73,13 @@
 .quota-indicator__bar {
   height: 3px;
   background-color: var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 
 .quota-indicator__bar-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   transition: width 0.3s ease;
 }
 

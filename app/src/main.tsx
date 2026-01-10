@@ -2,6 +2,19 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles.css";
+import "./components/Spinner.css";
+import "./components/Skeleton.css";
+import "./components/Toast/Toast.css";
+import "./components/Button/Button.css";
+import "./components/Modal/Modal.css";
+import "./components/Input/Input.css";
+import "./components/Select/Select.css";
+import "./components/Textarea/Textarea.css";
+import "./components/Checkbox/Checkbox.css";
+import "./components/Radio/Radio.css";
+import "./components/EmptyState/EmptyState.css";
+import "./components/ErrorState/ErrorState.css";
+import "./components/Progress/Progress.css";
 
 // Initialize i18n before rendering
 import "./i18n";

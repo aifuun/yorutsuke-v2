@@ -1,0 +1,94 @@
+/* Radio Component */
+
+.radio-wrapper {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Hide native radio */
+.radio__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Label */
+.radio__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio__input:disabled + .radio__label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom radio circle */
+.radio__circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--bg-default);
+  border: 2px solid var(--slate-300);
+  border-radius: 50%;
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.radio__label:hover .radio__circle {
+  border-color: var(--slate-400);
+}
+
+.radio__input:checked + .radio__label .radio__circle {
+  border-color: var(--blue-500);
+}
+
+.radio__input:checked + .radio__label:hover .radio__circle {
+  border-color: var(--blue-600);
+}
+
+/* Focus state */
+.radio__input:focus-visible + .radio__label .radio__circle {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Dot (checked state) */
+.radio__dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: var(--blue-500);
+  border-radius: 50%;
+}
+
+.radio__input:checked + .radio__label:hover .radio__dot {
+  background: var(--blue-600);
+}
+
+/* Text */
+.radio__text {
+  font-size: var(--text-sm);
+  color: var(--text-default);
+  line-height: 1.5;
+}
+
+/* RadioGroup */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .radio__circle {
+    transition: none;
+  }
+}

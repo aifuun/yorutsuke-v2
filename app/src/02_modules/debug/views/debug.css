@@ -104,7 +104,7 @@
   padding: 10px 14px;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   color: var(--blue-500);
 }

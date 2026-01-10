@@ -1,0 +1,81 @@
+/* Checkbox Component */
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Hide native checkbox */
+.checkbox__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Label */
+.checkbox__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox__input:disabled + .checkbox__label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom checkbox box */
+.checkbox__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--bg-default);
+  border: 2px solid var(--slate-300);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.checkbox__label:hover .checkbox__box {
+  border-color: var(--slate-400);
+}
+
+.checkbox__input:checked + .checkbox__label .checkbox__box {
+  background: var(--blue-500);
+  border-color: var(--blue-500);
+}
+
+.checkbox__input:checked + .checkbox__label:hover .checkbox__box {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+}
+
+/* Focus state */
+.checkbox__input:focus-visible + .checkbox__label .checkbox__box {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Checkmark icon */
+.checkbox__checkmark {
+  color: white;
+}
+
+/* Text */
+.checkbox__text {
+  font-size: var(--text-sm);
+  color: var(--text-default);
+  line-height: 1.5;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .checkbox__box {
+    transition: none;
+  }
+}

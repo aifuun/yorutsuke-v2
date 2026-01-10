@@ -1,0 +1,83 @@
+/* Progress Component */
+
+.progress-wrapper {
+  width: 100%;
+}
+
+.progress__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.progress__label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-default);
+}
+
+.progress__percentage {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Progress bar container */
+.progress {
+  width: 100%;
+  height: 8px;
+  background: var(--slate-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+/* Progress bar fill */
+.progress__bar {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+/* Variants */
+.progress--default .progress__bar {
+  background: var(--blue-500);
+}
+
+.progress--success .progress__bar {
+  background: var(--emerald-500);
+}
+
+.progress--error .progress__bar {
+  background: var(--rose-500);
+}
+
+/* Indeterminate mode */
+.progress--indeterminate .progress__bar {
+  width: 40%;
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(250%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .progress__bar {
+    transition: none;
+  }
+
+  .progress--indeterminate .progress__bar {
+    animation: none;
+    width: 100%;
+  }
+}
