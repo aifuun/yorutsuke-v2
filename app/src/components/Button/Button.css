@@ -13,7 +13,10 @@
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
   white-space: nowrap;
   user-select: none;
 }

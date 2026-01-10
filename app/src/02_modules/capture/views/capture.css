@@ -102,7 +102,9 @@
   background: rgba(248, 250, 252, 0.5);
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
 }
 
 .drop-zone:hover {
@@ -246,7 +248,9 @@
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--slate-200);
   border-radius: var(--radius-lg);
-  transition: all 0.2s;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
 }
 
 /* 3-column layout: left (thumb+id) | center (status) | right (dots) */

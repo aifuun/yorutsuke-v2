@@ -91,6 +91,39 @@ Record important decisions with context.
 - **Issue**: #108 (completed 2026-01-09)
 - **Next Steps**: Issue #109 - Transaction Management UX (images, sorting, pagination, soft delete)
 
+### [2026-01] Border Radius Migration - Complete Standardization (#122)
+- **Decision**: Migrated all hardcoded border-radius values to design tokens + added stylelint enforcement
+- **Trigger**: Issue #122 (RADIUS.md) completed documentation, migration needed for consistency
+- **Scope**: 71+ occurrences across 12 CSS files
+- **Migration Mapping**:
+  - 4px → var(--radius-xs) - Tags, badges, small elements
+  - 6px → var(--radius-sm) - Legacy web design (optional)
+  - 8px → var(--radius-md) - Buttons, inputs, small cards
+  - 12px → var(--radius-lg) - Cards, modals, containers
+  - 16px → var(--radius-xl) - Large cards, hero sections
+  - 24px → var(--radius-2xl) - Hero cards (Yorutsuke signature)
+  - 9999px → var(--radius-full) - Pills, circular elements
+- **stylelint Enforcement**:
+  - Added `declaration-property-value-disallowed-list` rule
+  - Prevents hardcoded px/rem/em values in border-radius
+  - Allows CSS variables (var(--radius-*)) and percentages (50%)
+- **Impact**:
+  - Consistency: 100% of border-radius values now use design tokens
+  - Prevention: stylelint catches new hardcoded values in pre-commit
+  - Bundle size: +1KB CSS gzipped (minimal, worth the maintainability)
+  - Build time: 1.43s (no performance impact)
+- **Files Modified** (71 occurrences):
+  - Sidebar.css (2), styles.css (22), report.css (7), dashboard.css (5)
+  - ledger.css (11), settings.css (7), capture.css (4), debug.css (3)
+  - confirm-dialog.css (3), QuotaIndicator.css (2), ImageLightbox.css (2), Pagination.css (1)
+- **Verification**:
+  - ✅ stylelint: 0 errors (all hardcoded values migrated)
+  - ✅ Build: Success (1.43s)
+  - ✅ Type check: Passed
+  - ✅ New components: 100% using tokens from day 1
+- **M3 Adoption**: 85% (6/7 scales directly from M3, 2 adjustments for brand/web standards)
+- **Issue**: #122 (completed 2026-01-10)
+
 ### [2026-01-09] Claude Code Commands Optimization (#105)
 - **Decision**: Comprehensive restructuring of .claude/commands/ directory for consistency, maintainability, and AI effectiveness
 - **Trigger**: 19 command files had inconsistent formats, duplicate content, and no metadata structure

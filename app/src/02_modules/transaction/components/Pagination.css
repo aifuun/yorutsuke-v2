@@ -32,7 +32,10 @@
   font-weight: 600;
   color: var(--slate-700);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
   display: flex;
   align-items: center;
   justify-content: center;
