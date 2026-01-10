@@ -9,6 +9,8 @@ requires: none
 ## Purpose
 Create implementation plan for MVP, feature/issue, or quick task
 
+**Note**: Executing `*plan` will **enter Plan Mode**, a specialized planning environment where you explore the codebase and design solutions before coding. Plan Mode is exited when you approve the plan or abort it.
+
 ## Usage
 ```bash
 *plan                  # Show planning menu
@@ -114,11 +116,39 @@ Workflow
    - Update `.claude/MEMORY.md` with approach chosen
    - Note alternatives considered
 
+## Plan Mode Explained
+
+When you execute `*plan`, you enter **Plan Mode** - a special state where:
+
+### What Happens in Plan Mode
+
+1. **Exploration Phase**: I explore your codebase using specialized tools (Glob, Grep, Explore agent)
+2. **Analysis Phase**: I analyze patterns, architecture, dependencies
+3. **Design Phase**: I create a detailed implementation plan
+4. **Presentation**: I write the plan to a file (`.claude/plans/active/`) and present it to you
+5. **Approval**: You review and approve, modify, or reject the plan
+6. **Exit**: Plan Mode exits once you approve or abort
+
+### Key Features
+
+- **No coding yet** - Plan Mode is for planning, not implementation
+- **Deep exploration** - Can read and analyze many files to understand context
+- **Architecture-aware** - Checks ADRs, patterns, existing code styles
+- **Risk identification** - Identifies potential issues before coding
+- **Test cases** - Suggests how to test the implementation
+
+### After Plan Mode
+
+Once you approve the plan:
+- Use `*approve` to start implementing according to the plan
+- Or use `*next` to execute tasks from TODO.md
+
 ## Notes
 
 - Good plans have 3-7 steps
 - Each step should be testable
 - Identify risks upfront
+- **Plan Mode is safe** - exploration only, no code changes until approved
 
 ## Templates Summary
 

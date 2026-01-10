@@ -191,6 +191,15 @@ Use monospace font for all numeric data.
 }
 ```
 
+### Numeric Hierarchy
+
+| Size | Usage | Example |
+|------|-------|---------|
+| 48px | Hero number | Dashboard main balance |
+| 20px | Secondary stats | Monthly income, category totals |
+| 14px | Regular amounts | Transaction list amounts |
+| 12px | Small numbers | Counts, micro stats |
+
 ### Amount Colors
 
 | Type | Color | Example |
@@ -267,6 +276,8 @@ The brand name is the ONLY element that uses italic.
 | Micro | 10px | 600 | #94A3B8 |
 | Button | 13px | 600 | varies |
 | Badge | 10px | 700 | varies |
+| **Hero Number** | **48px** | **700** | **#1E293B** (mono) |
+| **Stat Number** | **20px** | **700** | **#1E293B** (mono) |
 
 ---
 
@@ -293,4 +304,4 @@ Files updated:
 
 ---
 
-*Last updated: 2026-01-05*
+*Last updated: 2026-01-10*

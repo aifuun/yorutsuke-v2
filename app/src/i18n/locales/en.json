@@ -34,7 +34,10 @@
     "categoryBreakdown": "Category Breakdown"
   },
   "dashboard": {
+    "today": "Today",
+    "yesterday": "Yesterday",
     "todayBalance": "Today's Balance",
+    "yesterdayBalance": "Yesterday's Balance",
     "monthlyIncome": "Monthly Income",
     "monthlyExpense": "Monthly Expense",
     "pending": "Pending",
@@ -42,6 +45,7 @@
     "recentActivity": "Recent Activity",
     "noActivity": "No recent activity",
     "viewAllInLedger": "View all in Ledger",
+    "viewDetails": "View Details",
     "activity": {
       "uploaded": "Receipt uploaded",
       "confirmed": "Transaction confirmed"

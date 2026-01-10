@@ -1,40 +1,57 @@
-# Feature Plan: #114 Dashboard Yesterday's Summary
+# Feature Plan: #114 Dashboard Date Selector + Daily Summary (Phase A)
 
 > **Step 2 of Two-Step Planning** - UI-first approach with mock data validation
+> **范围**: Dashboard 核心功能，图表功能拆分到 #115, #116
 
 | 项目 | 值 |
 |------|-----|
-| Issue | #114 |
+| Issue | #114 (Phase A) |
 | MVP | MVP3 |
 | 复杂度 | T1 |
-| 预估 | 5h (4h original + 1h for breakdown) |
+| 预估 | 6h |
+| 后续 | #115 (Charts, 12h), #116 (UX Polish, 5h) |
 | 状态 | [x] 规划 / [ ] 开发中 / [ ] Review / [ ] 完成 |
 
 ---
 
 ## 1. 目标
 
-**做什么**: Display **yesterday's** income/expense summary with confirmed/unconfirmed breakdown
+**做什么**:
+- 智能默认日期选择（早上昨日，下午今日）
+- 今日/昨日快捷切换按钮
+- 显示选中日期的收支总结（确认/未确认分解）
+- 跳转到 Ledger 查看详情
 
-**为什么**: Users check dashboard in the morning to review yesterday's completed business activity
+**为什么**:
+- 早上查看昨日完整数据（business review）
+- 下午查看今日进度（real-time tracking）
+- Dashboard 只读展示，确认操作保留在 Ledger
 
-**架构决策**: 🎯 **Local-First Reactive View**
+**架构决策**: 🎯 **Local-First Reactive View + Smart Defaults**
 - Reports are a "live lens" into local SQLite data
-- User confirmations/deletions update reports **immediately**
+- User confirmations/deletions in Ledger update Dashboard **immediately**
 - Cloud = Storage Backup, Local DB = User Reality
-- Show sync status indicator ("Last synced: 2 min ago")
+- Smart date: AM shows yesterday, PM shows today
 
 **验收标准**:
-- [ ] Display **yesterday's** income total (with breakdown)
-- [ ] Display **yesterday's** expense total (with breakdown)
+- [ ] **智能默认**: 0:00-12:00 显示昨日, 12:00-24:00 显示今日
+- [ ] **快捷按钮**: [今日] [昨日] 切换
+- [ ] Display selected date's income total (with breakdown)
+- [ ] Display selected date's expense total (with breakdown)
 - [ ] Display net profit (income - expense)
 - [ ] Show confirmed vs unconfirmed amounts (live reactive)
 - [ ] Show pending confirmation count
-- [ ] Show upload queue status (Ready/Processing)
-- [ ] Show sync status indicator (last synced time)
-- [ ] **Reactive updates**: Confirm/delete yesterday's tx → report updates instantly
-- [ ] Handle empty state (no transactions yesterday)
-- [ ] All SC-900~921 test scenarios pass
+- [ ] **"詳細を見る"按钮**: Jump to Ledger with date filter
+- [ ] **Reactive updates**: Ledger confirm/delete → Dashboard auto-refresh
+- [ ] Handle empty state (no transactions on selected date)
+- [ ] i18n: en/ja translations
+- [ ] All SC-900~SC-910, SC-922 test scenarios pass
+
+**不在此 Issue 范围**:
+- ❌ 本周/本月按钮（→ #115）
+- ❌ 自定义日期选择器（→ #115）
+- ❌ 趋势图表（→ #115）
+- ❌ 分类统计（→ #115）
 
 ---
 
@@ -43,20 +60,23 @@
 ### 🎨 UI-First Approach (Recommended)
 
 **Phase 1: Design & Mock Data** (~2h)
-- Design the breakdown UI (confirmed/unconfirmed display)
+- Design smart date selector (today/yesterday buttons)
+- Design breakdown UI (confirmed/unconfirmed display)
 - Create mock data for different scenarios
 - Implement UI with mocked values
 - Get user approval on design/UX
 
-**Phase 2: Data Integration** (~2h)
-- Implement yesterday date calculation
+**Phase 2: Data Integration** (~3h)
+- Implement **smart default date** logic (AM yesterday, PM today)
+- Add date switching functionality
 - Add confirmed/unconfirmed filtering logic
 - Integrate with real transaction data
+- Add "詳細を見る" navigation to Ledger
 - Update domain functions if needed
 
 **Phase 3: Testing & Polish** (~1h)
-- Write test cases SC-900~921
-- Edge case handling
+- Write test cases SC-900~922
+- Edge case handling (midnight boundary)
 - i18n translations
 - Manual testing
 
@@ -74,7 +94,32 @@
 
 ## 3. Phase 1: UI Design with Mock Data (2h)
 
-### Step 1.1: Design the Breakdown UI (~30min)
+### Step 1.1: Design Date Selector (~15min)
+
+**Quick Buttons**:
+```
+┌─────────────────────────────┐
+│ [今日] [昨日]               │ ← 快捷按钮
+└─────────────────────────────┘
+```
+
+**Smart Default**:
+```typescript
+const getDefaultDate = () => {
+  const now = new Date();
+  const hour = now.getHours();
+
+  // 早上 0:00-12:00 → 昨日
+  if (hour < 12) {
+    return getYesterdayDate();
+  }
+
+  // 下午 12:00-24:00 → 今日
+  return getTodayDate();
+};
+```
+
+### Step 1.2: Design the Breakdown UI (~30min)
 
 **Current Hero Card**:
 ```
@@ -87,7 +132,27 @@
 └─────────────────────────────────┘
 ```
 
-**New Design - Option A (Inline Breakdown)**:
+**With Date Selector**:
+```
+┌─────────────────────────────────┐
+│ [今日] [昨日]                   │ ← NEW: Quick buttons
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│ 📅 昨日精算（2026-01-10）       │
+│ ↑ ¥20,000                       │
+│                                 │
+│ +¥50,000 収入                   │
+│   ✓ ¥45,000  ⏳ ¥5,000         │
+│ -¥30,000 支出                   │
+│   ✓ ¥28,000  ⏳ ¥2,000         │
+│                                 │
+│ 未確認: 3件                     │
+│ [詳細を見る →]                  │ ← Jump to Ledger
+└─────────────────────────────────┘
+```
+
+**Design - Option A (Inline Breakdown)**:
 ```
 ┌─────────────────────────────────┐
 │ Yesterday's Balance             │
@@ -117,7 +182,7 @@
 
 **Decision**: Choose Option A or B based on visual balance
 
-### Step 1.2: Create Mock Data (~15min)
+### Step 1.3: Create Mock Data (~15min)
 
 ```typescript
 // Mock data scenarios for UI testing
@@ -149,7 +214,7 @@ const MOCK_SCENARIOS = {
 };
 ```
 
-### Step 1.3: Implement UI with Mock (~45min)
+### Step 1.4: Implement UI with Mock (~45min)
 
 ```typescript
 // DashboardView.tsx changes
@@ -193,7 +258,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 }
 ```
 
-### Step 1.4: Add i18n Translations (~15min)
+### Step 1.5: Add i18n Translations (~15min)
 
 **en.json**:
 ```json
@@ -225,7 +290,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 }
 ```
 
-### Step 1.5: CSS Styling (~15min)
+### Step 1.6: CSS Styling (~15min)
 
 ```css
 .hero-breakdown-detail {
@@ -252,20 +317,85 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 
 ---
 
-## 4. Phase 2: Data Integration (2h)
+## 4. Phase 2: Data Integration (3h)
 
-### Step 2.1: Calculate Yesterday's Date (~15min)
+### Step 2.1: Implement Smart Default Date (~30min)
 
 ```typescript
 // utils/dateHelpers.ts (new file)
+export function getTodayDate(): string {
+  return new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+}
+
 export function getYesterdayDate(): string {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   return yesterday.toLocaleDateString('sv-SE'); // YYYY-MM-DD
 }
+
+/**
+ * Smart default: AM shows yesterday (review completed business)
+ *                PM shows today (track current progress)
+ */
+export function getSmartDefaultDate(): string {
+  const now = new Date();
+  const hour = now.getHours();
+
+  // 0:00-12:00 → Yesterday
+  if (hour < 12) {
+    return getYesterdayDate();
+  }
+
+  // 12:00-24:00 → Today
+  return getTodayDate();
+}
 ```
 
-### Step 2.2: Add Breakdown Domain Function (~30min)
+### Step 2.2: Add Date Switching UI Logic (~30min)
+
+```typescript
+// DashboardView.tsx
+import { getSmartDefaultDate, getTodayDate, getYesterdayDate } from '../../../00_kernel/utils/dateHelpers';
+
+export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
+  // Smart default date
+  const [selectedDate, setSelectedDate] = useState<string>(getSmartDefaultDate());
+
+  // Quick buttons
+  const handleTodayClick = () => setSelectedDate(getTodayDate());
+  const handleYesterdayClick = () => setSelectedDate(getYesterdayDate());
+
+  // Use selectedDate instead of hardcoded yesterday
+  const summary = useMemo(
+    () => createDailySummaryWithBreakdown(selectedDate, transactions),
+    [selectedDate, transactions]
+  );
+
+  return (
+    <div className="dashboard">
+      {/* Date selector */}
+      <div className="date-selector">
+        <button
+          className={selectedDate === getTodayDate() ? 'active' : ''}
+          onClick={handleTodayClick}
+        >
+          {t('dashboard.today')}
+        </button>
+        <button
+          className={selectedDate === getYesterdayDate() ? 'active' : ''}
+          onClick={handleYesterdayClick}
+        >
+          {t('dashboard.yesterday')}
+        </button>
+      </div>
+
+      {/* Summary card with selectedDate */}
+    </div>
+  );
+}
+```
+
+### Step 2.3: Add Breakdown Domain Function (~30min)
 
 ```typescript
 // app/src/01_domains/transaction/rules.ts
@@ -306,7 +436,7 @@ export function createDailySummaryWithBreakdown(
 }
 ```
 
-### Step 2.3: Integrate Real Data - Reactive View (~45min)
+### Step 2.4: Integrate Real Data - Reactive View (~45min)
 
 ```typescript
 // DashboardView.tsx
@@ -339,7 +469,36 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 - ✅ `useMemo` recalculates → report UI updates **immediately**
 - ✅ No need to wait for cloud sync
 
-### Step 2.4: Add Sync Status Indicator (~20min)
+### Step 2.5: Add "詳細を見る" Navigation (~30min)
+
+```typescript
+// DashboardView.tsx
+import { useNavigate } from 'react-router-dom'; // If using react-router
+
+const handleViewDetails = () => {
+  // Navigate to Ledger with date filter
+  onViewChange('ledger');
+
+  // Optional: Pass date as state or URL param for auto-filter
+  // For now, Ledger can read from localStorage or context
+};
+
+// In Summary Card
+<button
+  type="button"
+  className="btn btn--link"
+  onClick={handleViewDetails}
+>
+  {t('dashboard.viewDetails')} →
+</button>
+```
+
+**Future Enhancement (optional)**:
+- Store selectedDate in app context
+- Ledger reads context and auto-filters
+- Or use URL params: `/ledger?date=2026-01-10&status=pending`
+
+### Step 2.6: Add Sync Status Indicator (~20min)
 
 ```typescript
 // Show when data was last synced with cloud
@@ -363,7 +522,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 }
 ```
 
-### Step 2.5: Add Upload Queue Status (~30min)
+### Step 2.7: Add Upload Queue Status (~15min)
 
 ```typescript
 // Export from capture module
