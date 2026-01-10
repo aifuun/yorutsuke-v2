@@ -293,3 +293,50 @@ export async function resetTodayQuota(userId: UserId): Promise<number> {
   logger.warn(EVENTS.QUOTA_CHECKED, { userId, count, phase: 'reset_quota_complete' });
   return count;
 }
+
+/**
+ * Update S3 key for an existing image record
+ * Used by imageSyncService when syncing cloud transactions
+ * Pillar I: Adapter layer isolates DB operations
+ *
+ * @param imageId - Image identifier
+ * @param s3Key - S3 object key (e.g., "processed/device-xxx/123.webp")
+ */
+export async function updateImageS3Key(
+  imageId: ImageIdType,
+  s3Key: string,
+): Promise<void> {
+  await execute(
+    'UPDATE images SET s3_key = ? WHERE id = ?',
+    [s3Key, String(imageId)],
+  );
+}
+
+/**
+ * Create image record for cloud-synced transaction
+ * Used by imageSyncService when transaction has image but no local record
+ * Pillar I: Adapter layer isolates DB operations
+ *
+ * @param params - Image record parameters
+ */
+export async function createImageRecord(params: {
+  id: ImageIdType;
+  userId: UserId;
+  traceId: TraceId;
+  s3Key: string;
+  createdAt: string;
+}): Promise<void> {
+  await execute(
+    `INSERT INTO images (
+      id, user_id, trace_id, s3_key, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      String(params.id),
+      String(params.userId),
+      String(params.traceId),
+      params.s3Key,
+      'uploaded', // Mark as uploaded since it exists in S3
+      params.createdAt,
+    ],
+  );
+}

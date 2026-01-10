@@ -2,11 +2,10 @@
 // Provides image URL resolution for transaction image preview
 // Pillar L: Business logic separated from UI
 
-import { convertFileSrc } from '@tauri-apps/api/core';
-import { exists } from '@tauri-apps/plugin-fs';
-import { fetch } from '@tauri-apps/plugin-http';
 import type { ImageId as ImageIdType } from '../../../00_kernel/types';
 import { getImageById } from '../../capture/adapters/imageDb';
+import { checkFileExists, getLocalImageUrl } from '../adapters/imageAdapter';
+import { getS3DownloadUrl } from '../adapters/presignAdapter';
 
 /**
  * Result of image URL resolution
@@ -41,9 +40,9 @@ export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult>
 
     // Step 2: Try local compressed file first (fastest, offline-capable)
     if (imageRow.compressed_path) {
-      const fileExists = await exists(imageRow.compressed_path);
+      const fileExists = await checkFileExists(imageRow.compressed_path);
       if (fileExists) {
-        const url = convertFileSrc(imageRow.compressed_path);
+        const url = getLocalImageUrl(imageRow.compressed_path);
         return { url, source: 'local' };
       }
     }
@@ -51,41 +50,13 @@ export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult>
     // Step 3: Try S3 presigned URL (requires network)
     if (imageRow.s3_key) {
       try {
-        const presignUrl = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
-        if (!presignUrl) {
-          return {
-            url: null,
-            source: 's3',
-            error: 'Presign Lambda URL not configured'
-          };
-        }
-
-        // Call presign Lambda to get download URL
-        const response = await fetch(presignUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'download',
-            s3Key: imageRow.s3_key,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          return {
-            url: null,
-            source: 's3',
-            error: `Failed to get presigned URL: ${errorData.message || response.statusText}`
-          };
-        }
-
-        const data = await response.json();
-        return { url: data.url, source: 's3' };
+        const url = await getS3DownloadUrl(imageRow.s3_key);
+        return { url, source: 's3' };
       } catch (error) {
         return {
           url: null,
           source: 's3',
-          error: `Network error: ${error instanceof Error ? error.message : 'Unknown'}`
+          error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
     }

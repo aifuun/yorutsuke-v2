@@ -211,6 +211,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     id: TransactionId(generateId('tx')),
     userId,
     imageId: null, // Mock data has no real images (FK constraint)
+    s3Key: null,
     type,
     category,
     amount,

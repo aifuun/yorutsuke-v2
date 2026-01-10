@@ -220,6 +220,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     id: TransactionId(generateId('tx')),
     userId: UserId('mock-user'),
     imageId: random() > 0.3 ? ImageId(generateId('img')) : null,
+    s3Key: null,
     type,
     category,
     amount,

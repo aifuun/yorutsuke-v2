@@ -147,10 +147,13 @@ export async function handler(event) {
 
             // 6. Pillar B: Validate complete transaction object
             const now = new Date().toISOString();
+            // Use final processed/ path, not uploads/ (image will be moved to processed/)
+            const processedKey = key.replace("uploads/", "processed/");
             const transactionData = {
                 userId,
                 transactionId,
                 imageId,
+                s3Key: processedKey, // Store S3 key for image sync optimization
                 amount: parsed.amount,
                 type: parsed.type,
                 date: parsed.date,
@@ -188,6 +191,7 @@ export async function handler(event) {
                     userId,
                     transactionId,
                     imageId,
+                    s3Key: processedKey, // Store S3 key for image sync optimization
                     amount: parsed.amount || 0,
                     type: parsed.type || 'expense',
                     date: parsed.date || new Date().toISOString().split('T')[0], // Use today if empty
@@ -223,12 +227,11 @@ export async function handler(event) {
                 }
             }
 
-            // 8. Move to processed/
-            const newKey = key.replace("uploads/", "processed/");
+            // 8. Move to processed/ (reuse processedKey from above)
             await s3.send(new CopyObjectCommand({
                 Bucket: bucket,
                 CopySource: `${bucket}/${key}`,
-                Key: newKey,
+                Key: processedKey,
             }));
             await s3.send(new DeleteObjectCommand({
                 Bucket: bucket,

@@ -20,6 +20,7 @@ export const TransactionSchema = z.object({
     userId: z.string(),
     transactionId: z.string(),
     imageId: z.string().optional(),
+    s3Key: z.string().optional(), // S3 object key for associated image
     amount: z.number(),
     type: z.enum(['income', 'expense']),
     date: z.string(),

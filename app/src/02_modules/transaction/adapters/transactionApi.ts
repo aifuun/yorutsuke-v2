@@ -18,6 +18,7 @@ const CloudTransactionSchema = z.object({
   userId: z.string(),
   transactionId: z.string(),
   imageId: z.string().optional().nullable(),
+  s3Key: z.string().optional().nullable(), // S3 object key for image sync optimization
   amount: z.number(),
   type: z.enum(['income', 'expense']),
   date: z.string(), // YYYY-MM-DD
@@ -70,6 +71,7 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     id: TransactionId(cloudTx.transactionId),
     userId: UserIdConstructor(cloudTx.userId),
     imageId: cloudTx.imageId ? ImageId(cloudTx.imageId) : null,
+    s3Key: cloudTx.s3Key ?? null, // S3 object key for image sync
     type: cloudTx.type,
     category: cloudTx.category as Transaction['category'],
     amount: cloudTx.amount,
@@ -100,6 +102,7 @@ function createMockTransactions(userId: UserId, count: number = 3): Transaction[
       id: TransactionId(`mock-tx-${i + 1}`),
       userId,
       imageId: i % 2 === 0 ? ImageId(`mock-img-${i + 1}`) : null,
+      s3Key: null,
       type: i % 2 === 0 ? 'expense' : 'income',
       category: i % 2 === 0 ? 'purchase' : 'sale',
       amount: 1000 + i * 500,

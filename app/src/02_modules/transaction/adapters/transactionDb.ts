@@ -8,6 +8,7 @@ interface DbTransaction {
   id: string;
   user_id: string;
   image_id: string | null;
+  s3_key: string | null; // v9: Image sync optimization
   type: string;
   category: string;
   amount: number;
@@ -29,6 +30,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     id: TransactionId(row.id),
     userId: UserId(row.user_id),
     imageId: row.image_id ? ImageId(row.image_id) : null,
+    s3Key: row.s3_key,
     type: row.type as TransactionType,
     category: row.category as TransactionCategory,
     amount: row.amount,
@@ -140,12 +142,13 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
 
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
       transaction.imageId,
+      transaction.s3Key,
       transaction.type,
       transaction.category,
       transaction.amount,
@@ -177,12 +180,13 @@ export async function upsertTransaction(transaction: Transaction): Promise<void>
   // INSERT OR REPLACE will update all fields if transaction.id already exists
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
       transaction.imageId,
+      transaction.s3Key,
       transaction.type,
       transaction.category,
       transaction.amount,

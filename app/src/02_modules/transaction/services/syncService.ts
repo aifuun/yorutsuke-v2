@@ -2,11 +2,13 @@
 // Orchestrates cloud-to-local synchronization with conflict resolution
 // Pillar Q: Idempotent - safe to retry
 
-import type { UserId } from '../../../00_kernel/types';
+import type { UserId, TraceId } from '../../../00_kernel/types';
+import { TraceId as makeTraceId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { fetchTransactions as fetchFromCloud } from '../adapters/transactionApi';
 import { fetchTransactions as fetchFromLocal, upsertTransaction } from '../adapters/transactionDb';
 import { logger } from '../../../00_kernel/telemetry/logger';
+import { syncImagesForTransactions } from './imageSyncService';
 
 /**
  * Sync result summary
@@ -150,6 +152,11 @@ export async function syncTransactions(
         });
       }
     }
+
+    // Step 4: Sync images for synced transactions
+    // This checks local images first, only downloads from S3 if needed
+    const traceId = makeTraceId(`sync-${Date.now()}`);
+    await syncImagesForTransactions(cloudTransactions, userId, traceId);
 
     const result: SyncResult = {
       synced,

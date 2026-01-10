@@ -16,6 +16,7 @@ export interface Transaction {
   id: TransactionId;
   userId: UserId;
   imageId: ImageId | null;
+  s3Key: string | null;     // S3 object key for the associated image
   type: TransactionType;
   category: TransactionCategory;
   amount: number;           // Always positive

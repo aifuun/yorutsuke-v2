@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 8;
+const CURRENT_VERSION = 9;
 
 /**
  * Run all migrations on database
@@ -60,6 +60,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 8) {
     await migration_v8(db);
     await setVersion(db, 8);
+  }
+
+  if (version < 9) {
+    await migration_v9(db);
+    await setVersion(db, 9);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -359,6 +364,24 @@ async function migration_v8(db: Database): Promise<void> {
   await safeAddColumn(db, 'transactions', 'dirty_sync', 'INTEGER DEFAULT 0');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 8, phase: 'complete' });
+}
+
+/**
+ * Migration v9: Add s3_key column to transactions
+ * Issue #109: Image sync optimization
+ *
+ * Purpose: Store S3 key with transaction for efficient image sync
+ * - When syncing from cloud, save s3_key in transaction record
+ * - Image sync service checks local images first, uses s3_key for download if needed
+ * - Avoids redundant S3 downloads when image already exists locally
+ */
+async function migration_v9(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 9, name: 'add_s3_key_to_transactions', phase: 'start' });
+
+  // Add s3_key column (nullable - not all transactions have images)
+  await safeAddColumn(db, 'transactions', 's3_key', 'TEXT');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 9, phase: 'complete' });
 }
 
 // ============================================================================

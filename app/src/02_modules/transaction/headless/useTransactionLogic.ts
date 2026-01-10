@@ -5,13 +5,13 @@ import type { TransactionId, UserId } from '../../../00_kernel/types';
 import type { Transaction, TransactionFilters } from '../../../01_domains/transaction';
 import { filterTransactions } from '../../../01_domains/transaction';
 import {
-  fetchTransactions,
-  countTransactions,
-  saveTransaction,
-  deleteTransaction,
-  confirmTransaction,
+  loadTransactions,
+  countTotalTransactions,
+  saveNewTransaction,
+  removeTransaction,
+  confirmExistingTransaction,
   type FetchTransactionsOptions,
-} from '../adapters/transactionDb';
+} from '../services/transactionService';
 
 const DEFAULT_FILTERS: TransactionFilters = {};
 
@@ -88,12 +88,12 @@ export function useTransactionLogic(userId: UserId | null) {
     if (!userId) return;
     dispatch({ type: 'LOAD' });
     try {
-      const transactions = await fetchTransactions(userId, options);
+      const transactions = await loadTransactions(userId, options);
       dispatch({ type: 'LOAD_SUCCESS', transactions });
 
       // Also fetch total count for pagination
       if (options.limit !== undefined) {
-        const count = await countTransactions(userId, {
+        const count = await countTotalTransactions(userId, {
           startDate: options.startDate,
           endDate: options.endDate,
         });
@@ -107,7 +107,7 @@ export function useTransactionLogic(userId: UserId | null) {
   const save = useCallback(async (transaction: Transaction) => {
     dispatch({ type: 'SAVE_START' });
     try {
-      await saveTransaction(transaction);
+      await saveNewTransaction(transaction);
       dispatch({ type: 'SAVE_SUCCESS', transaction });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
@@ -116,7 +116,7 @@ export function useTransactionLogic(userId: UserId | null) {
 
   const remove = useCallback(async (id: TransactionId) => {
     try {
-      await deleteTransaction(id);
+      await removeTransaction(id);
       dispatch({ type: 'DELETE_SUCCESS', id });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
@@ -125,7 +125,7 @@ export function useTransactionLogic(userId: UserId | null) {
 
   const confirm = useCallback(async (id: TransactionId) => {
     try {
-      await confirmTransaction(id);
+      await confirmExistingTransaction(id);
       dispatch({ type: 'CONFIRM_SUCCESS', id });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
