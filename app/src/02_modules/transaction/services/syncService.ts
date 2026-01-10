@@ -129,8 +129,8 @@ export async function syncTransactions(
           // Conflict - resolve and update
           const resolved = resolveConflict(cloudTx, localTx);
 
-          // Only upsert if resolved is different from local
-          if (resolved.id === cloudTx.id) {
+          // Only upsert if cloud won (resolved is cloudTx, not localTx)
+          if (resolved === cloudTx) {
             await upsertTransaction(resolved);
             synced++;
             conflicts++;

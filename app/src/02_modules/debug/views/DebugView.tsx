@@ -16,6 +16,8 @@ import { captureService } from '../../capture/services/captureService';
 import { captureStore } from '../../capture/stores/captureStore';
 import { uploadStore } from '../../capture/stores/uploadStore';
 import type { UserId } from '../../../00_kernel/types';
+import { deleteUserData } from '../adapters/adminApi';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import './debug.css';
 
 // App version from package.json
@@ -45,6 +47,9 @@ export function DebugView() {
   const [actionStatus, setActionStatus] = useState<'idle' | 'running'>('idle');
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [slowUpload, setSlowUploadState] = useState(isSlowUpload);
+
+  // Clear cloud data state
+  const [showClearCloudDialog, setShowClearCloudDialog] = useState(false);
 
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
@@ -195,6 +200,40 @@ export function DebugView() {
     setSlowUpload(newValue);
   };
 
+  const handleOpenClearCloudDialog = () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+    setShowClearCloudDialog(true);
+  };
+
+  const handleConfirmClearCloud = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+
+    setShowClearCloudDialog(false);
+    setActionStatus('running');
+    setActionResult('Deleting cloud data...');
+
+    try {
+      const result = await deleteUserData(effectiveUserId as UserId, ['transactions', 'images']);
+      setActionResult(
+        `Deleted ${result.deleted.transactions || 0} transactions and ${result.deleted.images || 0} images from cloud`
+      );
+    } catch (e) {
+      setActionResult('Error: ' + String(e));
+    }
+
+    setActionStatus('idle');
+  };
+
+  const handleCancelClearCloud = () => {
+    setShowClearCloudDialog(false);
+  };
+
   return (
     <div className="debug">
       <DebugHeader title={t('debug.title')} version={APP_VERSION} />
@@ -306,6 +345,23 @@ export function DebugView() {
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
+                <p className="setting-row__label">Clear Cloud Data</p>
+                <p className="setting-row__hint">Delete all transactions and images from AWS (DynamoDB + S3)</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--danger btn--sm"
+                  onClick={handleOpenClearCloudDialog}
+                  disabled={actionStatus === 'running' || !effectiveUserId}
+                >
+                  Clear Cloud
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-row setting-row--danger">
+              <div className="setting-row__info">
                 <p className="setting-row__label">{t('debug.clearSettings')}</p>
                 <p className="setting-row__hint">{t('debug.clearSettingsHint')}</p>
               </div>
@@ -409,6 +465,19 @@ export function DebugView() {
           </div>
         </div>
       </div>
+
+      {/* Clear Cloud Data Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showClearCloudDialog}
+        title="Clear Cloud Data?"
+        message="This will permanently delete all transactions and images for this user from AWS (DynamoDB + S3). This action cannot be undone. Continue?"
+        checkboxLabel="I understand this is irreversible and will delete all my cloud data"
+        confirmText="Delete from Cloud"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmClearCloud}
+        onCancel={handleCancelClearCloud}
+      />
     </div>
   );
 }

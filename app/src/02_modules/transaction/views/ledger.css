@@ -351,6 +351,78 @@
   border-color: var(--blue-600);
 }
 
+/* Control Group - for dropdown grouping */
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.control-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--slate-500);
+  white-space: nowrap;
+}
+
+/* Select Dropdowns */
+.select {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: 1px solid var(--slate-200);
+  background: var(--bg-card);
+  border-radius: 6px;
+  color: var(--slate-700);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  padding-right: 28px;
+}
+
+.select:hover {
+  border-color: var(--slate-300);
+  background-color: var(--slate-50);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.select--sort,
+.select--filter {
+  min-width: 100px;
+}
+
+/* Icon Button */
+.btn--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--slate-200);
+  background: var(--bg-card);
+  border-radius: 6px;
+  color: var(--slate-600);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn--icon:hover {
+  border-color: var(--blue-400);
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
 /* Transaction Card */
 .transaction-card {
   padding: 20px;
@@ -449,6 +521,30 @@
   margin-top: 2px;
 }
 
+/* Date Stamp - Full date format (YYYY-MM-DD) */
+.date-stamp--full {
+  width: auto;
+  min-width: 90px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--slate-100);
+  border: 1px solid var(--slate-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.date-full {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--slate-600);
+  letter-spacing: 0.01em;
+}
+
 /* Transaction Details */
 .transaction-details {
   flex: 1;
@@ -488,6 +584,12 @@
   font-style: italic;
 }
 
+.tag--confirmed {
+  background: var(--emerald-100);
+  color: var(--emerald-600);
+  font-weight: 700;
+}
+
 /* Transaction Right */
 .transaction-right {
   text-align: right;
@@ -506,7 +608,7 @@
 }
 
 .amount--expense {
-  color: var(--rose-500);
+  color: var(--slate-600);
 }
 
 .account-label {

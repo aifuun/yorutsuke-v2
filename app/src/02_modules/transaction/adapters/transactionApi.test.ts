@@ -108,7 +108,7 @@ describe('transactionApi', () => {
       await expect(fetchTransactions(testUserId)).rejects.toThrow(
         'Transaction fetch timeout (10s)'
       );
-    });
+    }, 15000); // Extended timeout for this test (10s API timeout + buffer)
 
     it('TC-1.3: Throws error on invalid JSON response (Zod validation fails)', async () => {
       const invalidResponse = {

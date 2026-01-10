@@ -8,7 +8,7 @@
 
 Mock mode enables UI development and testing without AWS backend dependencies.
 
-> **Note**: Mock mode is controlled via the Debug panel, which is **developer-only** and hidden in release builds. See [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) for details.
+> **Note**: Mock mode is controlled via the Debug panel. The Debug panel requires `VITE_DEBUG_PANEL=true` in `.env.local` during development and is **automatically disabled** in release builds. See [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) for access details.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -224,18 +224,27 @@ return await realApiCall();
 
 ## Usage
 
+### Prerequisites: Enable Debug Panel
+
+**First-time setup**:
+
+1. Open or create `app/.env.local`
+2. Add: `VITE_DEBUG_PANEL=true`
+3. Restart dev server
+
+See [DEBUG.md](../../app/DEBUG.md) for detailed configuration guide.
+
 ### Enable Mock Mode (Debug Panel)
 
 1. Start the app: `npm run tauri dev`
-2. Type `debug` anywhere to unlock Debug panel
-3. Navigate to Debug tab in sidebar
-4. Find "Mock Mode" dropdown
-5. Select mode:
+2. Navigate to Debug tab in sidebar (debug icon)
+3. Find "Mock Mode" dropdown
+4. Select mode:
    - **Off (Real API)**: Use real backend
    - **Online (Mock API)**: Use mock responses
    - **Offline (Network Fail)**: Simulate network failure
 
-The setting is **persisted** - it will be restored on next app start.
+The setting is **persisted to SQLite** - it will be restored on next app start (development only).
 
 ### Verify Mock Mode Active
 
@@ -298,10 +307,12 @@ const isOfflineEnabled = isMockingOffline;  // Alias, use isMockingOffline()
 
 ## References
 
-- [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) - Debug panel documentation
+- [DEBUG_PANEL.md](../operations/DEBUG_PANEL.md) - Debug panel access and configuration
+- [DEBUG.md](../../app/DEBUG.md) - Quick developer guide for debug panel setup
 - [INTERFACES.md](../architecture/INTERFACES.md) - API specifications being mocked
 - [MVP_PLAN.md](../dev/MVP_PLAN.md) - MVP Roadmap Index
+- [PRODUCTION_SECURITY.md](../operations/PRODUCTION_SECURITY.md) - Production build security
 
 ---
 
-*Last updated: 2025-01*
+*Last updated: 2026-01-10*

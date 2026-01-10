@@ -205,6 +205,19 @@ export interface AppEvents {
   'quota:reset': {
     count: number;  // Number of uploads reset
   };
+
+  // =========================================================================
+  // Transaction Events
+  // =========================================================================
+
+  /**
+   * @trigger transaction:synced
+   * @payload Transaction sync completed (from cloud)
+   */
+  'transaction:synced': {
+    count: number;  // Number of transactions synced
+    source: 'auto' | 'manual';
+  };
 }
 
 export type AppEventKey = keyof AppEvents;

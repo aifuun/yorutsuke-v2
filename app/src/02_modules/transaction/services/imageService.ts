@@ -6,7 +6,6 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { exists } from '@tauri-apps/plugin-fs';
 import type { ImageId as ImageIdType } from '../../../00_kernel/types';
 import { getImageById } from '../../capture/adapters/imageDb';
-import { logger, EVENTS } from '../../../00_kernel/telemetry';
 
 /**
  * Result of image URL resolution
@@ -33,12 +32,9 @@ export interface ImageUrlResult {
  */
 export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult> {
   try {
-    logger.debug(EVENTS.IMAGE_LOADED, { imageId, phase: 'url_resolution_start' });
-
     // Step 1: Query image record from database
     const imageRow = await getImageById(imageId);
     if (!imageRow) {
-      logger.warn(EVENTS.IMAGE_LOADED, { imageId, phase: 'not_found' });
       return { url: null, source: 'missing', error: 'Image record not found' };
     }
 
@@ -47,10 +43,8 @@ export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult>
       const fileExists = await exists(imageRow.compressed_path);
       if (fileExists) {
         const url = convertFileSrc(imageRow.compressed_path);
-        logger.info(EVENTS.IMAGE_LOADED, { imageId, source: 'local', phase: 'complete' });
         return { url, source: 'local' };
       }
-      logger.debug(EVENTS.IMAGE_LOADED, { imageId, path: imageRow.compressed_path, phase: 'local_missing' });
     }
 
     // Step 3: Try S3 presigned URL (requires network)
@@ -65,11 +59,6 @@ export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult>
       // 3. Call from here: const result = await getPresignedReadUrl(imageRow.s3_key)
       //
       // For MVP4, return placeholder
-      logger.info(EVENTS.IMAGE_LOADED, {
-        imageId,
-        s3_key: imageRow.s3_key,
-        phase: 's3_not_implemented'
-      });
       return {
         url: null,
         source: 's3',
@@ -78,15 +67,9 @@ export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult>
     }
 
     // Step 4: No local file and no S3 key - image truly missing
-    logger.warn(EVENTS.IMAGE_LOADED, { imageId, phase: 'completely_missing' });
     return { url: null, source: 'missing', error: 'Image deleted or never uploaded' };
 
   } catch (error) {
-    logger.error(EVENTS.IMAGE_LOADED, {
-      imageId,
-      error: error instanceof Error ? error.message : String(error),
-      phase: 'error'
-    });
     return {
       url: null,
       source: 'missing',

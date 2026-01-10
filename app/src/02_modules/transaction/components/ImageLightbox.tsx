@@ -1,8 +1,9 @@
-// Image Lightbox Component
-// Simple modal for viewing receipt images in full size
+// Image Lightbox / Confirm Modal Component
+// Modal for reviewing receipt images, transaction details, and confirming/deleting
 
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from '../../../i18n';
+import type { Transaction } from '../../../01_domains/transaction';
 import './ImageLightbox.css';
 
 interface ImageLightboxProps {
@@ -14,8 +15,12 @@ interface ImageLightboxProps {
   onClose: () => void;
   /** Called when user confirms the transaction */
   onConfirm?: () => void;
+  /** Called when user deletes the transaction */
+  onDelete?: () => void;
   /** Whether transaction is already confirmed */
   isConfirmed?: boolean;
+  /** Transaction data to display details */
+  transaction?: Transaction;
 }
 
 export function ImageLightbox({
@@ -23,7 +28,9 @@ export function ImageLightbox({
   alt = 'Receipt image',
   onClose,
   onConfirm,
+  onDelete,
   isConfirmed = false,
+  transaction,
 }: ImageLightboxProps) {
   const { t } = useTranslation();
 
@@ -51,12 +58,20 @@ export function ImageLightbox({
   // Handle confirm + close
   const handleConfirm = () => {
     onConfirm?.();
-    onClose();
+    // Note: Parent handler (handleModalConfirm) already closes the modal
+    // No need to call onClose() here to avoid double-closing
   };
+
+  // Format amount for display (no +/- prefix, color indicates type)
+  const formatAmount = (amount: number, _type: string) => {
+    return `¥${amount.toLocaleString()}`;
+  };
+
+  const hasImage = imageUrl && imageUrl.length > 0;
 
   return (
     <div className="lightbox-overlay" onClick={onClose}>
-      <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+      <div className="lightbox-content lightbox-content--with-details" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           type="button"
@@ -67,9 +82,82 @@ export function ImageLightbox({
           ✕
         </button>
 
-        {/* Image */}
-        <div className="lightbox-image-container">
-          <img src={imageUrl} alt={alt} className="lightbox-image" />
+        <div className="lightbox-body">
+          {/* Left: Image */}
+          <div className="lightbox-image-section">
+            {hasImage ? (
+              <div className="lightbox-image-container">
+                <img src={imageUrl} alt={alt} className="lightbox-image" />
+              </div>
+            ) : (
+              <div className="lightbox-no-image">
+                <span className="no-image-icon">📷</span>
+                <span className="no-image-text">{t('transaction.noImage') || 'No image available'}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Transaction Details */}
+          {transaction && (
+            <div className="lightbox-details-section">
+              <h3 className="lightbox-details-title">{t('transaction.details') || 'Transaction Details'}</h3>
+
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.merchant') || 'Merchant'}:</span>
+                <span className="detail-value">{transaction.merchant || transaction.description}</span>
+              </div>
+
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.amount') || 'Amount'}:</span>
+                <span className={`detail-value detail-amount ${transaction.type === 'income' ? 'amount--income' : 'amount--expense'}`}>
+                  {formatAmount(transaction.amount, transaction.type)}
+                </span>
+              </div>
+
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.date') || 'Date'}:</span>
+                <span className="detail-value">{transaction.date}</span>
+              </div>
+
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.category') || 'Category'}:</span>
+                <span className="detail-value">{t(`transaction.categories.${transaction.category}`)}</span>
+              </div>
+
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.type') || 'Type'}:</span>
+                <span className="detail-value">{t(`transaction.types.${transaction.type}`)}</span>
+              </div>
+
+              {/* OCR Raw Text */}
+              {transaction.rawText && (
+                <div className="lightbox-ocr-section">
+                  <h4 className="lightbox-ocr-title">{t('transaction.extractedText') || 'Extracted Text'}</h4>
+                  <div className="lightbox-ocr-text">
+                    {transaction.rawText}
+                  </div>
+                </div>
+              )}
+
+              {/* Confidence */}
+              {transaction.confidence !== null && transaction.confidence !== undefined && (
+                <div className="lightbox-detail-row">
+                  <span className="detail-label">{t('transaction.confidence') || 'AI Confidence'}:</span>
+                  <span className="detail-value">{Math.round(transaction.confidence * 100)}%</span>
+                </div>
+              )}
+
+              {/* Status */}
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.status') || 'Status'}:</span>
+                <span className={`detail-value ${isConfirmed ? 'status--confirmed' : 'status--pending'}`}>
+                  {isConfirmed
+                    ? (t('transaction.confirmed') || '✓ Confirmed')
+                    : (t('transaction.pendingConfirmation') || '⏳ Pending')}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -87,6 +175,15 @@ export function ImageLightbox({
             <div className="lightbox-confirmed-badge">
               ✓ {t('transaction.confirmed') || 'Confirmed'}
             </div>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              className="btn btn--danger btn--lg"
+              onClick={onDelete}
+            >
+              🗑 {t('common.delete') || 'Delete'}
+            </button>
           )}
           <button type="button" className="btn btn--secondary btn--lg" onClick={onClose}>
             {t('common.close') || 'Close'}

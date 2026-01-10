@@ -77,7 +77,7 @@
 
 ### images
 
-Receipt images with status FSM. Schema version: v4.
+Receipt images with status FSM. Schema version: v5.
 
 ```sql
 CREATE TABLE images (
@@ -108,6 +108,9 @@ CREATE TABLE images (
 
   -- Error handling
   error TEXT,                       -- Error message for failed status (v4)
+
+  -- Display
+  original_name TEXT,               -- Original filename from drop/paste (v5)
 
   -- Reference counting (future use)
   ref_count INTEGER DEFAULT 1

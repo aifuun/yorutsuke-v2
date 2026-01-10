@@ -1,14 +1,14 @@
 import { useState, useSyncExternalStore, useEffect } from 'react';
 import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
-import { subscribeMockMode, getMockSnapshot } from './00_kernel/config/mock';
+import { subscribeMockMode, getMockSnapshot, loadDebugConfig, isDebugEnabled } from './00_kernel/config';
 import { Sidebar, type ViewType } from './components/Sidebar';
 import { DashboardView } from './02_modules/report';
 import { CaptureView } from './02_modules/capture';
 import { TransactionView } from './02_modules/transaction';
 import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
-import { DebugView, useSecretCode } from './02_modules/debug';
+import { DebugView } from './02_modules/debug';
 import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
 
 // @security: Check once at module load - cannot change at runtime
@@ -17,16 +17,16 @@ const IS_DEVELOPMENT = !import.meta.env.PROD;
 function AppContent() {
   const { userId } = useAppContext();
   const [activeView, setActiveView] = useState<ViewType>('capture');
-  // Hook must be called unconditionally (React rules), but result ignored in prod
-  const secretCodeResult = useSecretCode();
-  // @security CRITICAL: Debug panel is ALWAYS disabled in production
-  const isDebugUnlocked = IS_DEVELOPMENT && secretCodeResult.isUnlocked;
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
   // Set user ID in transaction sync service when it changes
   useEffect(() => {
     transactionSyncService.setUser(userId);
   }, [userId]);
+
+  // @security CRITICAL: Debug panel is ALWAYS disabled in production
+  // In development, controlled by VITE_DEBUG_PANEL environment variable (.env.local)
+  const isDebugUnlocked = isDebugEnabled();
 
   return (
     <div className="app-shell">

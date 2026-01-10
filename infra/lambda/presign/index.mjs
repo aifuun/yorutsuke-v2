@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -219,10 +219,41 @@ export async function handler(event) {
     }
 
     const body = JSON.parse(event.body || "{}");
-    const { userId, fileName, intentId, contentType } = body;
+    const { userId, fileName, intentId, contentType, action, s3Key } = body;
 
-    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, intentId });
+    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, intentId, action });
 
+    // Handle download action (GET presigned URL)
+    if (action === 'download') {
+      if (!s3Key) {
+        return {
+          statusCode: 400,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({ error: "MISSING_PARAMS", message: "Missing s3Key for download" }),
+        };
+      }
+
+      const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: s3Key,
+      });
+
+      const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hour
+
+      logger.info(EVENTS.PRESIGN_COMPLETED, { s3Key, action: 'download' });
+
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "X-Trace-Id": ctx.traceId,
+        },
+        body: JSON.stringify({ url: signedUrl, key: s3Key }),
+      };
+    }
+
+    // Handle upload action (PUT presigned URL) - existing logic
     if (!userId || !fileName) {
       return {
         statusCode: 400,

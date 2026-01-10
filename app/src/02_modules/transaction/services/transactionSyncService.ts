@@ -92,8 +92,8 @@ class TransactionSyncService {
 
       // Emit event to notify UI to reload
       emit('transaction:synced', {
-        userId: this.userId,
-        result,
+        count: result.synced,
+        source: 'auto',
       });
     } catch (error) {
       logger.error('transaction_sync_auto_failed', {

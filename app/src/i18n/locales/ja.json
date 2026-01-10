@@ -18,7 +18,9 @@
     "delete": "削除",
     "confirm": "確認",
     "edit": "編集",
-    "retry": "再試行"
+    "retry": "再試行",
+    "close": "閉じる",
+    "view": "詳細"
   },
   "report": {
     "title": "朝のレポート",
@@ -60,7 +62,21 @@
     "status": "ステータス",
     "confirmed": "確認済み",
     "pending": "確認待ち",
+    "pendingConfirmation": "確認待ち",
     "ocrText": "OCRテキスト",
+    "type": "種類",
+    "types": {
+      "income": "収入",
+      "expense": "支出"
+    },
+    "details": "取引詳細",
+    "review": "確認",
+    "reviewAndConfirm": "確認して承認",
+    "viewDetails": "詳細を見る",
+    "clickToReview": "クリックして確認",
+    "extractedText": "抽出テキスト",
+    "confidence": "AI信頼度",
+    "noImage": "画像なし",
     "categories": {
       "purchase": "仕入",
       "sale": "売上",
@@ -186,7 +202,13 @@
     "annualOutflow": "支出合計",
     "latestEntries": "取引一覧",
     "totalItems": "全{{count}}件",
-    "newEntry": "新規登録"
+    "newEntry": "新規登録",
+    "sortBy": "並び替え",
+    "invoiceDate": "発生日",
+    "processingTime": "処理日時",
+    "filter": "絞り込み",
+    "pendingConfirmation": "確認待ち",
+    "confirmed": "確認済み"
   },
   "history": {
     "title": "履歴",

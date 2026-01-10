@@ -592,6 +592,61 @@ export class YorutsukeStack extends cdk.Stack {
     });
     throttleAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
 
+    // ========================================
+    // Admin Delete Data Lambda (Debug/Admin Only)
+    // ========================================
+    const adminDeleteDataLambda = new lambda.Function(this, "AdminDeleteDataLambda", {
+      functionName: `yorutsuke-admin-delete-data-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/admin-delete-data"),
+      environment: {
+        TRANSACTIONS_TABLE: transactionsTable.tableName,
+        IMAGES_BUCKET: imageBucket.bucketName,
+      },
+      timeout: cdk.Duration.minutes(5),
+      memorySize: 512,
+    });
+
+    // Grant DynamoDB permissions (Query + BatchWrite for user data deletion)
+    adminDeleteDataLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "dynamodb:Query",           // Query transactions by userId
+          "dynamodb:BatchWriteItem",  // Batch delete transactions
+        ],
+        resources: [
+          transactionsTable.tableArn,
+        ],
+      })
+    );
+
+    // Grant S3 permissions (List + Delete for user images)
+    adminDeleteDataLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "s3:ListBucket",      // List objects with userId prefix
+          "s3:DeleteObject",    // Delete individual objects
+        ],
+        resources: [
+          imageBucket.bucketArn,
+          `${imageBucket.bucketArn}/*`,
+        ],
+      })
+    );
+
+    // Lambda Function URL for admin delete data
+    const adminDeleteDataUrl = adminDeleteDataLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -656,6 +711,11 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "EmergencyStopParamName", {
       value: emergencyStopParam.parameterName,
       exportName: `${id}-EmergencyStopParam`,
+    });
+
+    new cdk.CfnOutput(this, "AdminDeleteDataUrl", {
+      value: adminDeleteDataUrl.url,
+      exportName: `${id}-AdminDeleteDataUrl`,
     });
   }
 }

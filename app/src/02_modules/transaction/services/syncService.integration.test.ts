@@ -307,8 +307,7 @@ describe('Integration: Full Sync Flow', () => {
 
     expect(mockFetchFromLocal).toHaveBeenCalledWith(
       testUserId,
-      startDate,
-      endDate
+      { startDate, endDate }
     );
   });
 

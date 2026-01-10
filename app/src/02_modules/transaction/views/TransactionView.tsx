@@ -22,17 +22,8 @@ interface TransactionViewProps {
   onNavigate?: (view: ViewType) => void;
 }
 
-// Month names for display
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// Get day boundaries
-function getDayStart(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-}
-
-function getDayEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-}
+// Status filter type
+type StatusFilter = 'all' | 'pending' | 'confirmed';
 
 // Quick filter helpers
 function getThisMonth(): { start: Date; end: Date } {
@@ -74,6 +65,9 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('date');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
   // Pagination state
   const pageSize = 20;
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -88,13 +82,19 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     };
 
     // Add date filters if not 'all'
+    // Use local date (not UTC) per time-handling.md rules
     if (activeFilter !== 'all') {
-      options.startDate = startDate.toISOString().split('T')[0];
-      options.endDate = endDate.toISOString().split('T')[0];
+      options.startDate = startDate.toLocaleDateString('sv-SE');
+      options.endDate = endDate.toLocaleDateString('sv-SE');
+    }
+
+    // Add status filter
+    if (statusFilter !== 'all') {
+      options.statusFilter = statusFilter;
     }
 
     return options;
-  }, [activeFilter, startDate, endDate, sortBy, sortOrder, currentPage, pageSize]);
+  }, [activeFilter, startDate, endDate, sortBy, sortOrder, currentPage, pageSize, statusFilter]);
 
   // Reload data when options change
   useEffect(() => {
@@ -136,15 +136,21 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   };
 
   // Handle sorting change
-  const handleSortChange = (newSortBy: 'date' | 'createdAt') => {
-    if (newSortBy === sortBy) {
-      // Toggle order if clicking same field
-      setSortOrder(sortOrder === 'DESC' ? 'ASC' : 'DESC');
-    } else {
-      setSortBy(newSortBy);
-      setSortOrder('DESC'); // Default to descending for new field
-    }
-    setCurrentPage(1); // Reset to first page
+  const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortBy(e.target.value as 'date' | 'createdAt');
+    setCurrentPage(1);
+  };
+
+  // Handle status filter change
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value as StatusFilter);
+    setCurrentPage(1);
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === 'DESC' ? 'ASC' : 'DESC');
+    setCurrentPage(1);
   };
 
   // Handle page change
@@ -340,23 +346,40 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                 </span>
               </div>
 
-              {/* Sorting Controls */}
+              {/* Sorting & Filter Controls */}
               <div className="sorting-controls">
-                <span className="sorting-label">Sort by:</span>
-                <button
-                  type="button"
-                  className={`btn btn--sort ${sortBy === 'date' ? 'btn--sort-active' : ''}`}
-                  onClick={() => handleSortChange('date')}
-                >
-                  Invoice Date {sortBy === 'date' && (sortOrder === 'DESC' ? '↓' : '↑')}
-                </button>
-                <button
-                  type="button"
-                  className={`btn btn--sort ${sortBy === 'createdAt' ? 'btn--sort-active' : ''}`}
-                  onClick={() => handleSortChange('createdAt')}
-                >
-                  Processing Time {sortBy === 'createdAt' && (sortOrder === 'DESC' ? '↓' : '↑')}
-                </button>
+                <div className="control-group">
+                  <label className="control-label">{t('ledger.sortBy')}:</label>
+                  <select
+                    className="select select--sort"
+                    value={sortBy}
+                    onChange={handleSortByChange}
+                  >
+                    <option value="date">{t('ledger.invoiceDate')}</option>
+                    <option value="createdAt">{t('ledger.processingTime')}</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn--icon"
+                    onClick={toggleSortOrder}
+                    title={sortOrder === 'DESC' ? 'Newest first' : 'Oldest first'}
+                  >
+                    {sortOrder === 'DESC' ? '↓' : '↑'}
+                  </button>
+                </div>
+
+                <div className="control-group">
+                  <label className="control-label">{t('ledger.filter')}:</label>
+                  <select
+                    className="select select--filter"
+                    value={statusFilter}
+                    onChange={handleStatusFilterChange}
+                  >
+                    <option value="all">{t('ledger.all')}</option>
+                    <option value="pending">{t('ledger.pendingConfirmation')}</option>
+                    <option value="confirmed">{t('ledger.confirmed')}</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -445,12 +468,14 @@ interface TransactionCardProps {
 }
 
 function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const date = new Date(transaction.date);
-  const month = i18n.language === 'ja'
-    ? `${date.getMonth() + 1}月`
-    : MONTHS[date.getMonth()];
-  const day = date.getDate();
+
+  // Format date as YYYY-MM-DD
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const formattedDate = `${year}-${month}-${day}`;
 
   const isConfirmed = !!transaction.confirmedAt;
   const isIncome = transaction.type === 'income';
@@ -459,7 +484,7 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
   // Image thumbnail state
   const [imageResult, setImageResult] = useState<ImageUrlResult | null>(null);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Load image URL when component mounts
   useEffect(() => {
@@ -475,10 +500,31 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
     }
   }, [transaction.imageId]);
 
-  // Handle thumbnail click
+  // Handle thumbnail click - opens confirm modal
   const handleThumbnailClick = () => {
-    if (imageResult?.url) {
-      setIsLightboxOpen(true);
+    setIsConfirmModalOpen(true);
+  };
+
+  // Handle confirm button click - opens confirm modal
+  const handleConfirmClick = () => {
+    setIsConfirmModalOpen(true);
+  };
+
+  // Handle actual confirmation from modal
+  const handleModalConfirm = () => {
+    onConfirm();
+    setIsConfirmModalOpen(false);
+  };
+
+  // Handle delete from modal
+  const handleModalDelete = async () => {
+    const confirmed = await ask(t('transaction.deleteConfirm'), {
+      title: 'Delete',
+      kind: 'warning',
+    });
+    if (confirmed) {
+      onDelete();
+      setIsConfirmModalOpen(false);
     }
   };
 
@@ -494,7 +540,7 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
               src={imageResult.url}
               alt="Receipt"
               className="thumbnail-image"
-              title="Click to view full image"
+              title={t('transaction.clickToReview')}
             />
           ) : (
             <div
@@ -507,21 +553,22 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
         </div>
       )}
 
-      {/* Image Lightbox */}
-      {isLightboxOpen && imageResult?.url && (
+      {/* Confirm Modal with Image, OCR text, and Transaction details */}
+      {isConfirmModalOpen && (
         <ImageLightbox
-          imageUrl={imageResult.url}
+          imageUrl={imageResult?.url || ''}
           alt={`Receipt from ${transaction.merchant || transaction.description}`}
-          onClose={() => setIsLightboxOpen(false)}
-          onConfirm={isConfirmed ? undefined : onConfirm}
+          onClose={() => setIsConfirmModalOpen(false)}
+          onConfirm={isConfirmed ? undefined : handleModalConfirm}
+          onDelete={handleModalDelete}
           isConfirmed={isConfirmed}
+          transaction={transaction}
         />
       )}
 
-      {/* Date Stamp */}
-      <div className="date-stamp">
-        <span className="date-month">{month}</span>
-        <span className="date-day">{day}</span>
+      {/* Date Stamp - Year-Month-Day format */}
+      <div className="date-stamp date-stamp--full">
+        <span className="date-full">{formattedDate}</span>
       </div>
 
       {/* Details */}
@@ -534,41 +581,27 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
           {!isConfirmed && (
             <span className="tag tag--pending">{t('transaction.pending')}</span>
           )}
+          {isConfirmed && (
+            <span className="tag tag--confirmed">✓</span>
+          )}
         </div>
       </div>
 
-      {/* Amount & Actions */}
+      {/* Amount - no +/- sign, color indicates type */}
       <div className="transaction-right">
         <div className={`transaction-amount ${isIncome ? 'amount--income' : 'amount--expense'}`}>
-          {isIncome ? '+' : '-'} ¥{transaction.amount.toLocaleString()}
+          ¥{transaction.amount.toLocaleString()}
         </div>
         <div className="account-label">{transaction.category.toUpperCase()}</div>
+        {/* Actions - only Review button, delete moved to modal */}
         <div className="transaction-actions">
-          {!isConfirmed && (
-            <button
-              type="button"
-              className="btn btn--success btn--sm"
-              onClick={onConfirm}
-              title={t('transaction.confirm')}
-            >
-              {t('common.confirm')}
-            </button>
-          )}
           <button
             type="button"
-            className="btn btn--danger btn--sm"
-            onClick={async () => {
-              const confirmed = await ask(t('transaction.deleteConfirm'), {
-                title: 'Delete',
-                kind: 'warning',
-              });
-              if (confirmed) {
-                onDelete();
-              }
-            }}
-            title={t('transaction.delete')}
+            className={`btn btn--sm ${isConfirmed ? 'btn--secondary' : 'btn--primary'}`}
+            onClick={handleConfirmClick}
+            title={isConfirmed ? t('transaction.viewDetails') : t('transaction.reviewAndConfirm')}
           >
-            {t('common.delete')}
+            {isConfirmed ? t('common.view') : t('transaction.review')}
           </button>
         </div>
       </div>

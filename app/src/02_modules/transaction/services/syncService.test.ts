@@ -288,8 +288,7 @@ describe('syncService', () => {
 
       expect(mockFetchFromLocal).toHaveBeenCalledWith(
         testUserId,
-        '2026-01-01',
-        '2026-01-31'
+        { startDate: '2026-01-01', endDate: '2026-01-31' }
       );
     });
   });

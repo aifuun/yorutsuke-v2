@@ -51,6 +51,8 @@ export interface FetchTransactionsOptions {
   sortOrder?: 'ASC' | 'DESC';
   limit?: number;
   offset?: number;
+  /** Filter by confirmation status: 'pending' (unconfirmed) or 'confirmed' */
+  statusFilter?: 'pending' | 'confirmed';
 }
 
 export async function fetchTransactions(
@@ -58,7 +60,7 @@ export async function fetchTransactions(
   options: FetchTransactionsOptions = {},
 ): Promise<Transaction[]> {
   const database = await getDb();
-  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset } = options;
+  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter } = options;
 
   // Filter out deleted transactions (Issue #109: Soft delete)
   let query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
@@ -71,6 +73,13 @@ export async function fetchTransactions(
   if (endDate) {
     query += ' AND date <= ?';
     params.push(endDate);
+  }
+
+  // Status filter: pending (unconfirmed) or confirmed
+  if (statusFilter === 'pending') {
+    query += ' AND confirmed_at IS NULL';
+  } else if (statusFilter === 'confirmed') {
+    query += ' AND confirmed_at IS NOT NULL';
   }
 
   // Sorting (default: invoice date descending)
@@ -97,10 +106,10 @@ export async function fetchTransactions(
  */
 export async function countTransactions(
   userId: UserIdType,
-  options: { startDate?: string; endDate?: string } = {},
+  options: { startDate?: string; endDate?: string; statusFilter?: 'pending' | 'confirmed' } = {},
 ): Promise<number> {
   const database = await getDb();
-  const { startDate, endDate } = options;
+  const { startDate, endDate, statusFilter } = options;
 
   // Filter out deleted transactions
   let query = 'SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
@@ -113,6 +122,13 @@ export async function countTransactions(
   if (endDate) {
     query += ' AND date <= ?';
     params.push(endDate);
+  }
+
+  // Status filter: pending (unconfirmed) or confirmed
+  if (statusFilter === 'pending') {
+    query += ' AND confirmed_at IS NULL';
+  } else if (statusFilter === 'confirmed') {
+    query += ' AND confirmed_at IS NOT NULL';
   }
 
   const rows = await database.select<Array<{ count: number }>>(query, params);

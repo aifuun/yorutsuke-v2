@@ -1,3 +1,3 @@
 export * from './transactionDb';
-export * from './transactionApi';
+export { fetchTransactions as fetchTransactionsFromCloud } from './transactionApi';
 export * from './seedData';
