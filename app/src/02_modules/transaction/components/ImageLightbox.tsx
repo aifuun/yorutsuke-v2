@@ -2,6 +2,7 @@
 // Modal for reviewing receipt images, transaction details, and confirming/deleting
 
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../i18n';
 import type { Transaction } from '../../../01_domains/transaction';
 import './ImageLightbox.css';
@@ -69,7 +70,9 @@ export function ImageLightbox({
 
   const hasImage = imageUrl && imageUrl.length > 0;
 
-  return (
+  // Use Portal to render modal at document body level
+  // This escapes stacking context from parent's backdrop-filter
+  return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <div className="lightbox-content lightbox-content--with-details" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
@@ -190,6 +193,7 @@ export function ImageLightbox({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

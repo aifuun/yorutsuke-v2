@@ -64,8 +64,11 @@ export async function handler(event) {
 
         const userId = keyParts[1];
         const fileName = keyParts[2];
-        // imageId is {timestamp}-{filename} without extension
-        const imageId = fileName.replace(/\.[^/.]+$/, "");
+        // fileName format: {timestamp}-{uuid}.webp
+        // Extract just the UUID part (after the timestamp prefix)
+        const fileNameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+        // Remove timestamp prefix (13 digits + hyphen) to get just the UUID
+        const imageId = fileNameWithoutExt.replace(/^\d+-/, "");
 
         try {
             // 2. Pillar Q: Idempotency check - stable transactionId
