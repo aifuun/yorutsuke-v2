@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, Camera, BookOpen, Settings, Wrench, User, ChevronRight } from 'lucide-react';
+import { Icon } from './Icon/Icon';
 import type { UserId } from '../00_kernel/types';
 import './Sidebar.css';
 
@@ -33,7 +34,7 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
       </div>
 
       <nav className="nav-group">
-        {visibleNavItems.map(({ view, icon: Icon, labelKey }) => (
+        {visibleNavItems.map(({ view, icon: LucideIcon, labelKey }) => (
           <div
             key={view}
             className={`nav-item ${activeView === view ? 'active' : ''}`}
@@ -42,7 +43,7 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onViewChange(view)}
           >
-            <Icon size={18} strokeWidth={2} />
+            <Icon icon={LucideIcon} size="sm" aria-label={t(labelKey)} />
             <span>{t(labelKey)}</span>
           </div>
         ))}
@@ -54,9 +55,9 @@ export function Sidebar({ activeView, onViewChange, userId, isDebugUnlocked = fa
           className={`user-label ${activeView === 'profile' ? 'active' : ''}`}
           onClick={() => onViewChange('profile')}
         >
-          <User size={14} />
+          <Icon icon={User} size="xs" aria-label={t('nav.profile')} />
           <span>{userId ? userId.toString().slice(0, 16) : t('auth.guest')}</span>
-          <ChevronRight size={14} className="user-label-arrow" />
+          <ChevronRight size={14} />
         </button>
       </div>
     </aside>

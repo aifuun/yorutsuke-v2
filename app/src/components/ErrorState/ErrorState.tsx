@@ -1,3 +1,6 @@
+import { AlertTriangle } from 'lucide-react';
+import { Icon } from '../index';
+
 interface ErrorStateProps {
   title: string;
   description: string;
@@ -28,8 +31,8 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <div className={`error-state ${className}`} role="alert">
-      <div className="error-state__icon" aria-hidden="true">
-        ⚠️
+      <div className="error-state__icon">
+        <Icon icon={AlertTriangle} size="lg" aria-label={title} />
       </div>
       <h3 className="error-state__title">{title}</h3>
       <p className="error-state__description">{description}</p>

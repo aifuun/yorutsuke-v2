@@ -81,6 +81,13 @@
   --rose-600: #E11D48;
 
   /* ---------------------------------------------------------------------------
+   * UI/UX Optimization - Deep Blue Business Palette (#136)
+   * --------------------------------------------------------------------------- */
+  --sidebar-bg-start: #1e3a5f;  /* Deep blue-gray gradient start */
+  --sidebar-bg-end: #152a47;    /* Deep blue-gray gradient end */
+  --bg-app-warm: #f5f7fa;       /* Warmer neutral gray for main background */
+
+  /* ---------------------------------------------------------------------------
    * Semantic Tokens - State Colors
    * --------------------------------------------------------------------------- */
   --color-primary: var(--blue-500);
@@ -113,7 +120,7 @@
   /* ---------------------------------------------------------------------------
    * Semantic Tokens - Backgrounds
    * --------------------------------------------------------------------------- */
-  --bg-app: var(--slate-100);
+  --bg-app: var(--bg-app-warm);  /* Updated from slate-100 to warmer neutral (#136) */
   --bg-card: #FFFFFF;
   --bg-panel: rgba(255, 255, 255, 0.85);
   --bg-sidebar: var(--slate-900);

@@ -248,11 +248,52 @@ Full list: `docs/architecture/ADR/README.md`
 cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .  # View today's logs
 ```
 
+## Design System Integration
+
+**Read before developing ANY UI component**: `.claude/rules/design-system.md`
+
+### Pre-Development Checklist
+- [ ] Read relevant design doc from `docs/design/`
+- [ ] Identify required tokens (Color, Typography, Spacing, etc.)
+- [ ] Check accessibility requirements (WCAG AA/AAA)
+- [ ] Follow implementation pattern (no hard-coded values)
+- [ ] Verify component in design spec before coding
+
+### Design System Structure
+| Layer | Location | Coverage |
+|-------|----------|----------|
+| **Tokens** | `docs/design/COLOR.md`, `TYPOGRAPHY.md`, `SPACING.md`, etc. | 25-color palette, font scales, animations |
+| **Components** | `docs/design/BUTTONS.md`, `FORMS.md`, `FEEDBACK.md`, `ICONS.md` | 15+ UI components verified |
+| **Views** | `docs/design/0X-*.md` | 5 complete screen specifications |
+| **A11y** | `docs/design/ACCESSIBILITY.md` | WCAG 2.1 AA/AAA compliance |
+
+### Token Usage Rules
+1. **No hard-coded values** - use `--color-*`, `--space-*`, `--text-*` tokens only
+2. **Semantic colors** - use `--color-primary`, `--text-default`, not `--blue-500`
+3. **Copy structure directly** - don't invent, follow design spec exactly
+4. **Include accessibility** - ARIA labels, focus states, reduced motion support
+
+### Quick Start
+```bash
+# Read design system rules
+cat .claude/rules/design-system.md
+
+# Check specific component
+cat docs/design/BUTTONS.md        # For buttons
+cat docs/design/FORMS.md          # For form inputs
+cat docs/design/FEEDBACK.md       # For toast/modal
+
+# Verify tokens
+grep "^--color" app/src/styles.css
+grep "^--space" app/src/styles.css
+```
+
 ## Memory & Context
 
 - **Session tasks**: `.claude/TODO.md`
 - **Long-term memory**: `.claude/MEMORY.md` (write in English only)
 - **Workflow guide**: `.claude/WORKFLOW.md`
+- **Design rules**: `.claude/rules/design-system.md` (read before UI coding)
 
 ## Key Documentation
 
@@ -261,7 +302,7 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .  # View today's logs
 | **Architecture** | `docs/architecture/README.md` | Index → LAYERS, PATTERNS, FLOWS, SCHEMA, ADR |
 | **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
 | **MVP Plan** | `docs/dev/MVP_PLAN.md` | Roadmap & current phase |
-| **Design** | `docs/design/` | COLOR.md, TYPOGRAPHY.md |
+| **Design System** | `docs/design/` | 19 specs: Foundation (6), Components (7), Views (5), A11y (1) → See `.claude/rules/design-system.md` |
 | **Operations** | `docs/operations/` | LOGGING.md, QUOTA.md |
 
 ---

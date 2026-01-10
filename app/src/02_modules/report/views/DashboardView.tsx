@@ -1,11 +1,13 @@
 // Pillar L: View - Dashboard with premium UI design
 import { useMemo, useState } from 'react';
+import { Check, Receipt } from 'lucide-react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
 import { createMonthlySummary } from '../../../01_domains/transaction'; // Phase 2: add createDailySummary
 import { useTransactionLogic } from '../../transaction';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
+import { Icon } from '../../../components';
 import { EmptyState } from './EmptyState';
 import '../styles/dashboard.css';
 
@@ -123,7 +125,8 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
       .slice(0, 4)
       .map(tx => ({
         id: tx.id,
-        icon: tx.confirmedAt ? '✅' : '🧾',
+        icon: tx.confirmedAt ? Check : Receipt,
+        iconLabel: tx.confirmedAt ? t('dashboard.activity.confirmed') : t('dashboard.activity.uploaded'),
         iconBg: tx.confirmedAt ? 'bg-blue-100' : 'bg-emerald-100',
         title: tx.confirmedAt ? t('dashboard.activity.confirmed') : t('dashboard.activity.uploaded'),
         subtitle: `${tx.merchant || tx.category} - ¥${Math.abs(tx.amount).toLocaleString()}`,
@@ -293,7 +296,9 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <div className="activity-list">
                 {recentActivity.map(item => (
                   <div key={item.id} className="activity-item">
-                    <div className={`activity-icon ${item.iconBg}`}>{item.icon}</div>
+                    <div className={`activity-icon ${item.iconBg}`}>
+                      <Icon icon={item.icon} size="md" aria-label={item.iconLabel} />
+                    </div>
                     <div className="activity-content">
                       <div className="activity-title">{item.title}</div>
                       <div className="activity-subtitle">{item.subtitle}</div>

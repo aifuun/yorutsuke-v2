@@ -5,6 +5,9 @@ export { Spinner } from './Spinner';
 export { Skeleton } from './Skeleton';
 export { LoadingOverlay } from './LoadingOverlay/LoadingOverlay';
 
+// Icons
+export { Icon } from './Icon/Icon';
+
 // Feedback
 export { ToastContainer, useToast } from './Toast';
 export type { ToastType } from './Toast';

@@ -3,6 +3,7 @@ import { useAuth } from '../../auth';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { User, Crown, LogOut, UserPlus, LogIn, AlertTriangle } from 'lucide-react';
+import { Icon } from '../../../components';
 import '../styles/settings.css';
 
 // TODO: Get from quota service
@@ -40,14 +41,18 @@ export function UserProfileView() {
             {/* Identity Header */}
             <div className="profile-header">
               <div className="profile-header__avatar">
-                {isGuest ? <User size={24} /> : user.email?.charAt(0).toUpperCase()}
+                {isGuest ? (
+                  <Icon icon={User} size="lg" aria-label={t('auth.guestMode')} />
+                ) : (
+                  user.email?.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="profile-header__info">
                 <span className="profile-header__mode">
                   {isGuest ? t('auth.guestMode') : user?.email}
                 </span>
                 <span className="profile-header__plan">
-                  <Crown size={12} />
+                  <Icon icon={Crown} size="xs" aria-hidden="true" />
                   {user?.tier || 'Free'} Plan
                 </span>
               </div>
@@ -67,7 +72,7 @@ export function UserProfileView() {
             {/* Warning Box (Guest only) */}
             {isGuest && (
               <div className="profile-warning">
-                <AlertTriangle size={18} className="profile-warning__icon" />
+                <Icon icon={AlertTriangle} size="md" className="profile-warning__icon" aria-label={t('profile.warning')} />
                 <div className="profile-warning__text">
                   <p className="profile-warning__title">
                     {t('profile.expiresIn', { days: DAYS_REMAINING })}
@@ -82,11 +87,11 @@ export function UserProfileView() {
               {isGuest ? (
                 <>
                   <button type="button" className="btn btn--primary btn--lg">
-                    <UserPlus size={18} />
+                    <Icon icon={UserPlus} size="md" aria-hidden="true" />
                     {t('profile.registerToSave')}
                   </button>
                   <button type="button" className="btn btn--ghost">
-                    <LogIn size={16} />
+                    <Icon icon={LogIn} size="sm" aria-hidden="true" />
                     {t('profile.alreadyHaveAccount')}
                   </button>
                 </>
@@ -96,7 +101,7 @@ export function UserProfileView() {
                     {t('settings.upgrade')}
                   </button>
                   <button type="button" className="btn btn--ghost btn--danger-text" onClick={handleLogout}>
-                    <LogOut size={16} />
+                    <Icon icon={LogOut} size="sm" aria-hidden="true" />
                     {t('settings.logout')}
                   </button>
                 </>

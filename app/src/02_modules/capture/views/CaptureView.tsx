@@ -1,6 +1,7 @@
 // Pillar L: Views are pure JSX, logic in Service layer
 // MVP0: Migrated from headless hooks to Service pattern
 import { useEffect } from 'react';
+import { AlertTriangle, FileText } from 'lucide-react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useCaptureQueue, useCaptureStats, useRejection } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
@@ -10,6 +11,7 @@ import { quotaService } from '../services/quotaService';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
+import { Icon } from '../../../components';
 import './capture.css';
 
 // Format file size for display
@@ -138,7 +140,7 @@ export function CaptureView() {
           {/* Offline Banner */}
           {!isOnline && (
             <div className="info-banner info-banner--warning">
-              <span className="banner-icon">⚠️</span>
+              <Icon icon={AlertTriangle} size="md" aria-label={t('capture.offline')} className="banner-icon" />
               <div className="banner-content">
                 <p className="banner-title">{t('capture.offline')}</p>
                 <p className="banner-text">{t('capture.offlineHint')}</p>
@@ -169,7 +171,7 @@ export function CaptureView() {
             {/* Rejection Banner - inside drop card */}
             {rejection && (
               <div className="drop-rejection">
-                <span className="drop-rejection__icon">⚠️</span>
+                <Icon icon={AlertTriangle} size="md" aria-label={t('capture.rejected')} className="drop-rejection__icon" />
                 <div className="drop-rejection__content">
                   <span className="drop-rejection__title">
                     {rejection.reason === 'limit'
@@ -219,7 +221,7 @@ export function CaptureView() {
                           {image.thumbnailPath ? (
                             <img src={convertFileSrc(image.thumbnailPath)} alt="" />
                           ) : (
-                            <span className="queue-item__icon">🧾</span>
+                            <Icon icon={FileText} size="md" aria-label={image.originalName || t('capture.selectFiles')} className="queue-item__icon" />
                           )}
                         </div>
                         <div className="queue-item__info">

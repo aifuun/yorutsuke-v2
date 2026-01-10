@@ -1,5 +1,7 @@
 // Error fallback UI component
 import { useTranslation } from '../../i18n';
+import { AlertTriangle } from 'lucide-react';
+import { Icon } from '../../components';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -17,7 +19,9 @@ export function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
 
   return (
     <div className="error-fallback">
-      <div className="error-icon">⚠️</div>
+      <div className="error-icon">
+        <Icon icon={AlertTriangle} size="lg" aria-label={t('error.title')} />
+      </div>
       <h2>{t('error.title')}</h2>
       <p className="error-message">{error.message}</p>
       <button className="btn-retry" onClick={onReset}>
