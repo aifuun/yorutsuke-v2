@@ -169,7 +169,7 @@
   align-items: center;
   gap: 16px;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   transition: all 0.2s;
 }
 
@@ -181,7 +181,7 @@
 .activity-icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -265,7 +265,7 @@
 .date-btn {
   padding: 8px 24px;
   border: 1px solid rgba(203, 213, 225, 0.6);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.6);
   color: var(--slate-600);
   font-size: 13px;
@@ -363,7 +363,7 @@
   background: var(--blue-500);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -423,7 +423,7 @@
   padding: 8px 16px;
   background: var(--slate-800);
   color: white;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: none;
   font-weight: 500;
   cursor: pointer;

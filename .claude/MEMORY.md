@@ -48,6 +48,45 @@ Record important decisions with context.
   - `app/src/02_modules/transaction/views/TransactionView.tsx` (updated)
   - `app/src/00_kernel/storage/migrations.ts` (migration v6, v7)
   - `app/src/main.tsx` (service initialization)
+
+### [2026-01] Phase 2 Design System - Component Library (#126-131, #108)
+- **Decision**: Implemented complete component library based on Material Design 3 (70%) + Yorutsuke pragmatism (30%)
+- **Trigger**: Issues #126-131 documentation complete, ready for implementation phase
+- **Scope**: Full Component Library (~18h implementation)
+- **Architecture Decisions**:
+  - **Toast System**: Zustand vanilla store (consistent with existing architecture)
+  - **Modal System**: Individual modals (YAGNI principle, no global manager)
+  - **Component Pattern**: Co-located CSS (.tsx + .css files), explicit exports via index.ts
+  - **State Management**: FSM pattern (no boolean flags), Zustand vanilla stores
+- **Components Implemented** (45 files):
+  1. **Foundation**: .sr-only utility, Spinner (3 sizes), Skeleton (pulse animation)
+  2. **Toast System**: toastStore (Zustand), Toast (4 variants), ToastContainer (Portal), useToast hook
+  3. **Button**: 4 variants (primary/secondary/ghost/danger), 3 sizes, icon support, loading state
+  4. **Modal**: 3 sizes, focus trap (Tab cycles), Escape/overlay close, ARIA attributes
+  5. **Forms**: Input (password toggle), Select (custom arrow), Textarea (char count), Checkbox, Radio + RadioGroup (arrow navigation)
+  6. **States**: EmptyState (3 variants, role="status"), ErrorState (retry button, role="alert")
+  7. **Progress**: Linear bar, 3 variants, indeterminate mode, ARIA progressbar
+  8. **Integration**: Barrel export (components/index.ts), all CSS imported in main.tsx
+- **Design Specifications** (7 docs, 4850+ lines):
+  - BUTTONS.md, FORMS.md, FEEDBACK.md, STATES.md, ACCESSIBILITY.md, ICONS.md, DATA-VIZ.md
+- **Key Features**:
+  - All components use design tokens (no hardcoded values)
+  - WCAG 2.1 Level AA compliance (color contrast, keyboard nav, ARIA)
+  - Mobile responsive (768px breakpoint)
+  - prefers-reduced-motion support
+  - Keyboard accessible (Tab, Enter, Space, Escape, Arrow keys)
+  - Focus indicators (2px outline, 2px offset)
+- **Bundle Impact**:
+  - CSS: +1KB (15.94KB → 17.24KB gzipped)
+  - JS: No change (185.54KB gzipped)
+  - Build time: 1.34s
+- **Files**:
+  - `app/src/components/` (45 new files: Button, Input, Select, Textarea, Checkbox, Radio, Modal, Toast, EmptyState, ErrorState, Progress, Spinner, Skeleton)
+  - `app/src/components/index.ts` (barrel export)
+  - `app/src/main.tsx` (CSS imports)
+  - `app/src/App.tsx` (ToastContainer)
+  - `app/src/styles.css` (removed .btn, added .sr-only)
+  - `docs/design/` (7 specifications)
   - `app/src/App.tsx` (userId propagation)
 - **Issue**: #108 (completed 2026-01-09)
 - **Next Steps**: Issue #109 - Transaction Management UX (images, sorting, pagination, soft delete)

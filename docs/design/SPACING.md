@@ -317,19 +317,19 @@ margin: 0;
 - [x] Audit current code
 - [x] Define migration path
 
-### Phase 2: CSS Tokens (Next)
-- [ ] Add tokens to `app/src/styles.css`
-- [ ] Add tokens to `app/src/index.css`
+### Phase 2: CSS Tokens ✅
+- [x] Add tokens to `app/src/styles.css`
 
-### Phase 3: Migration (Optional)
-- [ ] Migrate 20px → 24px (2 occurrences)
-- [ ] Migrate rem → px tokens (~30 occurrences)
-- [ ] Update new code to use tokens
+### Phase 3: Migration ✅
+- [x] Migrate 20px → 24px (2 occurrences)
+- [x] Migrate rem → px tokens (8 occurrences)
+- [x] Update new code to use tokens
 
-### Phase 4: Enforcement (Future)
-- [ ] Add stylelint rule for spacing
-- [ ] Add pre-commit check
-- [ ] Update component templates
+### Phase 4: Enforcement ✅
+- [x] Add stylelint rule for spacing (disallow rem/em in padding/margin/gap)
+- [x] Add npm script: `npm run lint:css`
+- [ ] Add pre-commit check (optional)
+- [ ] Update component templates (optional)
 
 ---
 

@@ -266,7 +266,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -306,7 +306,7 @@ body {
   background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -325,7 +325,7 @@ body {
   padding: var(--space-3) var(--space-4);
   background: linear-gradient(135deg, var(--amber-100) 0%, var(--amber-300) 100%);
   border: 1px solid var(--amber-500);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: var(--amber-800);
   font-size: 0.875rem;
   font-weight: 500;
@@ -359,7 +359,7 @@ body {
 .drop-zone {
   padding: var(--space-12) var(--space-8);
   border: 2px dashed var(--slate-300);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   text-align: center;
   color: var(--slate-500);
   background: var(--slate-50);
@@ -418,7 +418,7 @@ body {
 .card {
   background: var(--bg-panel);
   border: 1px solid var(--slate-200);
-  border-radius: 24px;
+  border-radius: var(--radius-2xl);
   backdrop-filter: blur(16px);
   box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.04);
 }
@@ -830,7 +830,7 @@ body {
 /* Danger variant */
 .setting-row--danger {
   background: rgba(244, 63, 94, 0.05);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   margin: 4px -16px;
   border-bottom: none;
@@ -861,7 +861,7 @@ body {
 .stat-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--slate-200);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   backdrop-filter: blur(12px);
 }
 
@@ -869,7 +869,7 @@ body {
 .queue-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--slate-200);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   transition: all 0.2s;
 }
 
@@ -936,14 +936,14 @@ body {
 /* Progress Bar */
 .progress-bar {
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--slate-200);
   overflow: hidden;
 }
 
 .progress-bar__fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: width 0.3s ease;
 }
 
@@ -958,7 +958,7 @@ body {
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
 }
 
 .info-banner--info {
@@ -1040,7 +1040,7 @@ body {
   height: 24px;
   background: var(--slate-300);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: background 0.2s ease-in-out;
   flex-shrink: 0;
@@ -1106,7 +1106,7 @@ body {
   width: 48px;
   height: 48px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--slate-100);
   display: flex;
   align-items: center;
@@ -1145,7 +1145,7 @@ body {
 .media--sm .media__figure {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .media--sm {
@@ -1159,7 +1159,7 @@ body {
 .media--lg .media__figure {
   width: 64px;
   height: 64px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .media--lg {
@@ -1244,7 +1244,7 @@ body {
 .stat--sm .stat__icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
 }
 
@@ -1259,7 +1259,7 @@ body {
 .stat--lg .stat__icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: 24px;
 }
 
@@ -1273,7 +1273,7 @@ body {
   align-items: center;
   gap: 16px;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   transition: all 0.2s;
 }
 
@@ -1285,7 +1285,7 @@ body {
 /* Debug Panel */
 .debug-panel {
   background: var(--slate-900);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: 16px;
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1322,7 +1322,7 @@ body {
 .select {
   padding: 8px 32px 8px 12px;
   border: 1px solid var(--slate-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 500;
@@ -1365,7 +1365,7 @@ body {
 .input {
   padding: 8px 12px;
   border: 1px solid var(--slate-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-family: var(--font-ui);
   font-size: 14px;
   color: var(--slate-700);

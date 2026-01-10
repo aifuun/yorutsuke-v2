@@ -31,7 +31,7 @@
   color: var(--slate-400);
   background: rgba(148, 163, 184, 0.1);
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .settings-content {
@@ -174,7 +174,7 @@
   padding: 16px;
   background: var(--amber-50);
   border: 1px solid var(--amber-200);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: 24px;
 }
 
@@ -250,7 +250,7 @@
   margin-top: 16px;
   padding: 16px;
   background: var(--slate-800);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 .debug-panel__row {
@@ -297,7 +297,7 @@
   margin-top: 12px;
   padding: 8px 12px;
   background: rgba(59, 130, 246, 0.1);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 /* Responsive */

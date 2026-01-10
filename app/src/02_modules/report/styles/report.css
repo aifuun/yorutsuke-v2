@@ -32,7 +32,7 @@
   margin-bottom: var(--space-6);
   padding: var(--space-4);
   background: var(--slate-50);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--slate-200);
 }
 
@@ -59,7 +59,7 @@
 .filter-group input[type="date"] {
   padding: var(--space-2);
   border: 1px solid var(--slate-300);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   background: #fff;
   min-width: 120px;
@@ -95,7 +95,7 @@
   margin-bottom: var(--space-6);
   padding: var(--space-4);
   background: var(--slate-50);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .category-breakdown h3 {
@@ -164,7 +164,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3); /* 12px */
 }
 
 .section-header h3 {
@@ -188,7 +188,7 @@
 .transaction-item {
   background: var(--bg-card);
   border: 1px solid var(--slate-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   transition: box-shadow 0.2s;
 }
@@ -235,7 +235,7 @@
 .tx-info {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: var(--space-1); /* 4px - upgraded from 2px to follow grid */
 }
 
 .tx-merchant {
@@ -317,7 +317,7 @@
 .empty-icon {
   font-size: 2rem;
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2); /* 8px */
 }
 
 .transactions-empty p {
@@ -339,13 +339,13 @@
   text-align: center;
   background: var(--slate-50);
   border: 1px dashed var(--slate-300);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   margin: var(--space-4) 0;
 }
 
 .empty-state__icon {
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4); /* 16px */
 }
 
 .empty-state__title {
@@ -370,7 +370,7 @@
   background: var(--blue-500);
   color: var(--bg-card);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -443,7 +443,7 @@
   flex: 1;
   padding: var(--space-2);
   border: 1px solid var(--slate-300);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
 }
 
@@ -457,15 +457,15 @@
 .edit-actions {
   display: flex;
   gap: var(--space-2);
-  margin-top: 0.5rem;
+  margin-top: var(--space-2); /* 8px */
 }
 
 /* Action Buttons */
 .tx-actions {
   display: flex;
   gap: var(--space-2);
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
+  margin-top: var(--space-3); /* 12px */
+  padding-top: var(--space-3); /* 12px */
   border-top: 1px solid var(--slate-200);
 }
 
@@ -481,7 +481,7 @@
   z-index: 1000;
   background: var(--bg-card);
   border: 1px solid var(--slate-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-2);
   min-width: 140px;
   padding: var(--space-1) 0;
