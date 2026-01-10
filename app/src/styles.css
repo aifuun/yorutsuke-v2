@@ -1427,29 +1427,26 @@ body {
 }
 
 /* ============================================================================
- * Dark Mode Adjustments
+ * Dark Mode Adjustments - DISABLED (#136: Force light mode)
  * ============================================================================ */
 
+/* Disabled to force light mode for consistent UI/UX (#136)
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Increase shadow opacity by ~0.05 for visibility in dark mode */
     --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.10);
     --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.13);
     --shadow-3: 0 10px 30px rgba(0, 0, 0, 0.20);
     --shadow-4: 0 20px 50px rgba(0, 0, 0, 0.25);
     --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.10);
 
-    /* Adjust backgrounds for dark mode */
     --bg-app: var(--slate-900);
     --bg-card: var(--slate-800);
     --bg-panel: rgba(30, 41, 59, 0.85);
     --bg-input: var(--slate-700);
 
-    /* Adjust text for dark mode */
     --text-primary: var(--slate-200);
     --text-secondary: var(--slate-400);
 
-    /* Adjust borders for dark mode */
     --border: var(--slate-700);
     --border-light: rgba(255, 255, 255, 0.08);
   }
@@ -1459,6 +1456,7 @@ body {
     background-color: var(--bg-app);
   }
 }
+*/
 
 /* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
