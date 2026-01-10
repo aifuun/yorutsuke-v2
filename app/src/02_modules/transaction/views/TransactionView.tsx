@@ -62,7 +62,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const [activeFilter, setActiveFilter] = useState<QuickFilter>('all'); // Default to 'all' to show historical data
 
   // Sorting state
-  const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
   // Status filter state
