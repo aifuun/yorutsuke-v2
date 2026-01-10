@@ -170,7 +170,42 @@ export async function handler(event) {
                 transactionData.isGuest = true;
             }
 
-            const transaction = TransactionSchema.parse(transactionData);
+            // Use safeParse to handle validation failures gracefully
+            const validationResult = TransactionSchema.safeParse(transactionData);
+            let transaction;
+
+            if (!validationResult.success) {
+                // @ai-intent: Create transaction with needs_review status for manual correction
+                logger.warn(EVENTS.AIRLOCK_BREACH, {
+                    userId,
+                    imageId,
+                    error: JSON.stringify(validationResult.error.issues),
+                    raw: JSON.stringify(transactionData)
+                });
+
+                // Create fallback transaction with needs_review status
+                transaction = {
+                    userId,
+                    transactionId,
+                    imageId,
+                    amount: parsed.amount || 0,
+                    type: parsed.type || 'expense',
+                    date: parsed.date || new Date().toISOString().split('T')[0], // Use today if empty
+                    merchant: parsed.merchant || 'Unknown',
+                    category: parsed.category || 'other',
+                    description: parsed.description || 'Validation failed - needs review',
+                    status: 'needs_review', // Mark for manual review
+                    aiProcessed: true,
+                    version: 1,
+                    createdAt: now,
+                    updatedAt: now,
+                    confirmedAt: null,
+                    validationErrors: validationResult.error.issues, // Store errors for debugging
+                    ...(isGuestUser(userId) && { ttl: getGuestTTL(), isGuest: true }),
+                };
+            } else {
+                transaction = validationResult.data;
+            }
 
             // 7. Write to DynamoDB (Pillar Q: Conditional check for idempotency)
             try {
@@ -208,3 +243,5 @@ export async function handler(event) {
         }
     }
 }
+
+// Force deploy: 2026-01-09-17:36 (lenient OCR schema)

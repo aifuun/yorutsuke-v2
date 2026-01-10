@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 8;
 
 /**
  * Run all migrations on database
@@ -45,6 +45,21 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 5) {
     await migration_v5(db);
     await setVersion(db, 5);
+  }
+
+  if (version < 6) {
+    await migration_v6(db);
+    await setVersion(db, 6);
+  }
+
+  if (version < 7) {
+    await migration_v7(db);
+    await setVersion(db, 7);
+  }
+
+  if (version < 8) {
+    await migration_v8(db);
+    await setVersion(db, 8);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -239,6 +254,111 @@ async function migration_v5(db: Database): Promise<void> {
   await safeAddColumn(db, 'images', 'original_name', 'TEXT');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 5, phase: 'complete' });
+}
+
+/**
+ * Migration v6: Add status and version columns to transactions table
+ * Issue #108: Cloud Sync for Transactions
+ * - status: Track transaction state (unconfirmed/confirmed/deleted/needs_review)
+ * - version: Support optimistic locking for future conflict resolution
+ */
+async function migration_v6(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 6, name: 'add_transaction_sync_fields', phase: 'start' });
+
+  // Add status column (default: unconfirmed for existing transactions)
+  await safeAddColumn(db, 'transactions', 'status', 'TEXT DEFAULT \'unconfirmed\'');
+
+  // Add version column (default: 1 for existing transactions)
+  await safeAddColumn(db, 'transactions', 'version', 'INTEGER DEFAULT 1');
+
+  // Create index for status filtering
+  await safeCreateIndex(db, 'idx_transactions_status', 'transactions', 'status');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 6, phase: 'complete' });
+}
+
+/**
+ * Migration v7: Remove foreign key constraint from transactions table
+ * Issue #108: Cloud Sync for Transactions
+ *
+ * Root cause: FOREIGN KEY constraint failed when syncing transactions
+ * - Cloud transactions reference images that don't exist locally
+ * - Images may be deleted, from other devices, or guest→user migration
+ * - Cloud retention is longer than local image retention
+ *
+ * Solution: Drop foreign key, keep image_id as soft reference
+ * - Transactions can exist without their source images
+ * - image_id column remains for reference (nullable)
+ */
+async function migration_v7(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 7, name: 'remove_transaction_fk', phase: 'start' });
+
+  // SQLite doesn't support DROP FOREIGN KEY, so we need to recreate the table
+  // Step 1: Create new table without foreign key
+  await db.execute(`
+    CREATE TABLE transactions_new (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      image_id TEXT,
+      type TEXT NOT NULL,
+      category TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      currency TEXT DEFAULT 'JPY',
+      description TEXT,
+      merchant TEXT,
+      date TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      confirmed_at TEXT,
+      confidence REAL,
+      raw_text TEXT,
+      status TEXT DEFAULT 'unconfirmed',
+      version INTEGER DEFAULT 1
+    )
+  `);
+
+  // Step 2: Copy all data from old table
+  await db.execute(`
+    INSERT INTO transactions_new
+    SELECT id, user_id, image_id, type, category, amount, currency,
+           description, merchant, date, created_at, updated_at,
+           confirmed_at, confidence, raw_text, status, version
+    FROM transactions
+  `);
+
+  // Step 3: Drop old table
+  await db.execute('DROP TABLE transactions');
+
+  // Step 4: Rename new table
+  await db.execute('ALTER TABLE transactions_new RENAME TO transactions');
+
+  // Step 5: Recreate indexes
+  await safeCreateIndex(db, 'idx_transactions_user_id', 'transactions', 'user_id');
+  await safeCreateIndex(db, 'idx_transactions_date', 'transactions', 'date');
+  await safeCreateIndex(db, 'idx_transactions_image_id', 'transactions', 'image_id');
+  await safeCreateIndex(db, 'idx_transactions_status', 'transactions', 'status');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 7, phase: 'complete' });
+}
+
+/**
+ * Migration v8: Add dirty_sync column to transactions
+ * Issue #109: Transaction Management UX - Confirm/Delete sync preparation
+ *
+ * Purpose: Track transactions that have local changes needing cloud sync
+ * - dirty_sync = true: Has unsynced local changes (confirm, delete)
+ * - dirty_sync = false: Synced with cloud or no local changes
+ *
+ * MVP4: Mark transactions with dirty flag
+ * MVP5: Implement bidirectional sync (push dirty transactions to cloud)
+ */
+async function migration_v8(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 8, name: 'add_dirty_sync', phase: 'start' });
+
+  // Add dirty_sync column (default false = no pending changes)
+  await safeAddColumn(db, 'transactions', 'dirty_sync', 'INTEGER DEFAULT 0');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 8, phase: 'complete' });
 }
 
 // ============================================================================

@@ -1,16 +1,56 @@
 # Memory
 
-## Current Context
-
-Update at session end, read at session start.
-
-- **Last Progress**: [2026-01-09] Workflow documentation restructure (Two-Step Planning). MVP3 backend complete (#97-#102). Next: verification and end-to-end testing.
-- **Next Steps**: MVP3 verification (#99), batch processing integration testing, end-to-end flow validation.
-- **Blockers**: None
+Long-term project knowledge. Session context comes from `git log` + `gh issue list`.
 
 ## Architecture Decisions
 
 Record important decisions with context.
+
+### [2026-01] Transaction Cloud Sync (#108)
+- **Decision**: Implemented pull-only cloud-to-local transaction sync with conflict resolution
+- **Trigger**: Transactions processed in cloud (Lambda → DynamoDB) but app reads from local SQLite; gap broke "local-first" promise
+- **Architecture**:
+  - **transactionApi.ts**: Cloud API adapter (DynamoDB via Lambda)
+  - **syncService.ts**: Orchestration with conflict resolution
+  - **useSyncLogic.ts**: FSM-based headless hook (`idle | syncing | success | error`)
+  - **transactionSyncService.ts**: Global service listening to `upload:complete` events
+  - **Migration v6**: Added `status` and `version` columns to transactions table
+- **Conflict Resolution Strategy**:
+  1. Local confirmed > Cloud timestamp (user manual confirmation is highest authority)
+  2. Cloud updatedAt > Local updatedAt → Cloud wins (newer data)
+  3. Local updatedAt > Cloud updatedAt → Local wins (local edits)
+  4. Same updatedAt → Cloud wins (default to source of truth)
+- **Auto-Sync Triggers**:
+  - **On mount**: If last sync > 5 minutes ago
+  - **After upload**: 3 seconds after image upload completes (allow Lambda processing time)
+  - **Manual**: User clicks "Sync" button in TransactionView header
+- **Key Design Decisions**:
+  - **Pull-only**: Cloud is source of truth; no push to cloud (future: MVP5 bidirectional)
+  - **No pagination**: Fetch all user transactions (acceptable for <100 tx; future: pagination if >1000)
+  - **Debounced**: Multiple uploads trigger single sync (3s delay after last upload)
+  - **Idempotent**: Safe to retry; uses `upsertTransaction()` for conflict-free merging
+- **Pillar Compliance**:
+  - **A (Nominal Types)**: TransactionId, UserId branded types
+  - **B (Airlock)**: Zod validation on all API responses
+  - **D (FSM)**: Explicit states in useSyncLogic
+  - **L (Headless)**: Logic in hooks, UI in views
+  - **Q (Idempotency)**: Sync is safe to retry
+  - **R (Observability)**: JSON semantic logs for all sync events
+- **Testing**: 17 unit tests + 9 integration tests covering all conflict scenarios
+- **Critical Bugs Fixed**:
+  - **BUG-003 - Foreign Key Constraint**: `FOREIGN KEY (image_id) REFERENCES images(id)` prevented syncing transactions when source images didn't exist locally (30-day TTL, other devices, guest→user migration). Solution: Migration v7 drops FK, keeps `image_id` as soft reference
+  - **BUG-004 - Date Filter**: Default "This Month" filter hid all historical test data (2018-2025). Solution: Changed default to "All"
+- **Files**:
+  - `app/src/02_modules/transaction/adapters/transactionApi.ts` (new)
+  - `app/src/02_modules/transaction/services/syncService.ts` (new)
+  - `app/src/02_modules/transaction/services/transactionSyncService.ts` (new)
+  - `app/src/02_modules/transaction/headless/useSyncLogic.ts` (new)
+  - `app/src/02_modules/transaction/views/TransactionView.tsx` (updated)
+  - `app/src/00_kernel/storage/migrations.ts` (migration v6, v7)
+  - `app/src/main.tsx` (service initialization)
+  - `app/src/App.tsx` (userId propagation)
+- **Issue**: #108 (completed 2026-01-09)
+- **Next Steps**: Issue #109 - Transaction Management UX (images, sorting, pagination, soft delete)
 
 ### [2026-01-09] Claude Code Commands Optimization (#105)
 - **Decision**: Comprehensive restructuring of .claude/commands/ directory for consistency, maintainability, and AI effectiveness

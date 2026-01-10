@@ -4,7 +4,36 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 ## Current Session
 
-No active tasks. Use `*next` to get recommendations.
+### Completed Issue: #108 [Cloud Sync for Transactions] ✅
+
+**完成时间**: 2026-01-09
+**状态**: 已完成 | Type: T2 (Logic/State) | MVP4
+
+**完成内容**:
+- [x] Migration v6: 添加 status/version 列
+- [x] Migration v7: 移除 foreign key constraint（修复同步失败）
+- [x] transactionApi.ts: 云端 API adapter（Zod 验证）
+- [x] syncService.ts: 冲突解决策略（4规则）
+- [x] useSyncLogic.ts: FSM 状态管理
+- [x] TransactionView: Sync 按钮 + Last synced 时间
+- [x] transactionSyncService: Auto-sync 监听 upload:complete
+- [x] 17 unit tests + 9 integration tests
+- [x] 修复 UI bug: 默认显示 "All" 而非 "This Month"
+
+**关键技术决策**:
+- Pull-only sync: 云端为 source of truth
+- Soft reference: imageId 无 FK，允许 transactions 独立存在
+- Default filter: "All" 避免过滤历史数据
+
+**下一步**: Issue #109 (Transaction Management UX)
+
+---
+
+### Deferred Issue: #104 [MVP3: End-to-end batch testing]
+
+**状态**: Frontend 测试未完成
+- Frontend 测试 (SC-304~307, 800~821, 900~934) remaining
+- Can resume later after #108
 
 ---
 

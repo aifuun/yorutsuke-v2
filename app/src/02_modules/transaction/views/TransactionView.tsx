@@ -1,6 +1,7 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTransactionLogic } from '../headless/useTransactionLogic';
+import { useSyncLogic } from '../headless/useSyncLogic';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
 import DatePicker from 'react-datepicker';
@@ -8,6 +9,10 @@ import { ja } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
+import { on } from '../../../00_kernel/eventBus';
+import { getImageUrl, type ImageUrlResult } from '../services/imageService';
+import { ImageLightbox, Pagination } from '../components';
+import type { FetchTransactionsOptions } from '../adapters/transactionDb';
 import './ledger.css';
 
 type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
@@ -56,16 +61,52 @@ type QuickFilter = 'thisMonth' | 'lastMonth' | 'thisYear' | 'all' | 'custom';
 
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t, i18n } = useTranslation();
-  const { state, filteredTransactions, confirm, remove } = useTransactionLogic(userId);
+  const { state, filteredTransactions, confirm, remove, load, totalCount } = useTransactionLogic(userId);
+  const syncLogic = useSyncLogic(userId, true); // Auto-sync enabled
 
-  // Date range state
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [activeFilter, setActiveFilter] = useState<QuickFilter>('thisMonth');
+  // Date range state - initialize with this month's range
+  const thisMonth = getThisMonth();
+  const [startDate, setStartDate] = useState<Date>(thisMonth.start);
+  const [endDate, setEndDate] = useState<Date>(thisMonth.end);
+  const [activeFilter, setActiveFilter] = useState<QuickFilter>('all'); // Default to 'all' to show historical data
+
+  // Sorting state
+  const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('date');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+
+  // Pagination state
+  const pageSize = 20;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Build fetch options
+  const buildFetchOptions = useCallback((): FetchTransactionsOptions => {
+    const options: FetchTransactionsOptions = {
+      sortBy,
+      sortOrder,
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize,
+    };
+
+    // Add date filters if not 'all'
+    if (activeFilter !== 'all') {
+      options.startDate = startDate.toISOString().split('T')[0];
+      options.endDate = endDate.toISOString().split('T')[0];
+    }
+
+    return options;
+  }, [activeFilter, startDate, endDate, sortBy, sortOrder, currentPage, pageSize]);
+
+  // Reload data when options change
+  useEffect(() => {
+    if (userId) {
+      load(buildFetchOptions());
+    }
+  }, [userId, buildFetchOptions, load]);
 
   // Apply quick filter
   const applyQuickFilter = useCallback((filter: QuickFilter) => {
     setActiveFilter(filter);
+    setCurrentPage(1); // Reset to first page
     if (filter === 'thisMonth') {
       const { start, end } = getThisMonth();
       setStartDate(start);
@@ -86,6 +127,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const handleDateChange = (type: 'start' | 'end', date: Date | null) => {
     if (!date) return;
     setActiveFilter('custom');
+    setCurrentPage(1); // Reset to first page
     if (type === 'start') {
       setStartDate(date);
     } else {
@@ -93,18 +135,25 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   };
 
-  // Filter transactions by date range
-  const displayTransactions = useMemo(() => {
-    if (activeFilter === 'all') {
-      return filteredTransactions;
+  // Handle sorting change
+  const handleSortChange = (newSortBy: 'date' | 'createdAt') => {
+    if (newSortBy === sortBy) {
+      // Toggle order if clicking same field
+      setSortOrder(sortOrder === 'DESC' ? 'ASC' : 'DESC');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder('DESC'); // Default to descending for new field
     }
-    const start = getDayStart(startDate);
-    const end = getDayEnd(endDate);
-    return filteredTransactions.filter((t) => {
-      const date = new Date(t.date);
-      return date >= start && date <= end;
-    });
-  }, [filteredTransactions, startDate, endDate, activeFilter]);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Display transactions (already filtered and sorted by backend)
+  const displayTransactions = filteredTransactions;
 
   // DatePicker locale
   const dateLocale = i18n.language === 'ja' ? ja : undefined;
@@ -122,11 +171,34 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   const handleNewEntry = () => onNavigate?.('capture');
 
+  // Handle sync completion - reload transactions
+  const handleSync = useCallback(async () => {
+    await syncLogic.sync();
+    // Always reload transactions after sync attempt (even if partial failure)
+    load(buildFetchOptions());
+  }, [syncLogic, load, buildFetchOptions]);
+
+  // Listen to auto-sync completion events and reload transactions
+  useEffect(() => {
+    const cleanup = on('transaction:synced', () => {
+      // Auto-sync completed - reload transactions to show new data
+      load(buildFetchOptions());
+    });
+
+    return cleanup;
+  }, [load, buildFetchOptions]);
+
   // Handle all states (Pillar D: FSM)
   if (state.status === 'idle') {
     return (
       <div className="ledger">
-        <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
+        <LedgerHeader
+          title={t('nav.ledger')}
+          onNewEntry={handleNewEntry}
+          onSync={handleSync}
+          syncState={syncLogic.state}
+          lastSynced={syncLogic.getTimeSinceLastSync()}
+        />
         <div className="ledger-content">
           <div className="ledger-loading">{t('auth.login')}</div>
         </div>
@@ -137,7 +209,13 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   if (state.status === 'loading') {
     return (
       <div className="ledger">
-        <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
+        <LedgerHeader
+          title={t('nav.ledger')}
+          onNewEntry={handleNewEntry}
+          onSync={handleSync}
+          syncState={syncLogic.state}
+          lastSynced={syncLogic.getTimeSinceLastSync()}
+        />
         <div className="ledger-content">
           <div className="ledger-loading">{t('common.loading')}</div>
         </div>
@@ -148,7 +226,13 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   if (state.status === 'error') {
     return (
       <div className="ledger">
-        <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
+        <LedgerHeader
+          title={t('nav.ledger')}
+          onNewEntry={handleNewEntry}
+          onSync={handleSync}
+          syncState={syncLogic.state}
+          lastSynced={syncLogic.getTimeSinceLastSync()}
+        />
         <div className="ledger-content">
           <div className="ledger-error">{state.error}</div>
         </div>
@@ -158,7 +242,13 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   return (
     <div className="ledger">
-      <LedgerHeader title={t('nav.ledger')} onNewEntry={handleNewEntry} />
+      <LedgerHeader
+        title={t('nav.ledger')}
+        onNewEntry={handleNewEntry}
+        onSync={handleSync}
+        syncState={syncLogic.state}
+        lastSynced={syncLogic.getTimeSinceLastSync()}
+      />
 
       <div className="ledger-content">
         <div className="ledger-container">
@@ -243,10 +333,31 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           {/* Transaction List */}
           <div className="card card--list">
             <div className="card--list__header">
-              <h2 className="card--list__title">{t('ledger.latestEntries')}</h2>
-              <span className="card--list__count">
-                {t('ledger.totalItems', { count: summary.count })}
-              </span>
+              <div>
+                <h2 className="card--list__title">{t('ledger.latestEntries')}</h2>
+                <span className="card--list__count">
+                  {t('ledger.totalItems', { count: totalCount })}
+                </span>
+              </div>
+
+              {/* Sorting Controls */}
+              <div className="sorting-controls">
+                <span className="sorting-label">Sort by:</span>
+                <button
+                  type="button"
+                  className={`btn btn--sort ${sortBy === 'date' ? 'btn--sort-active' : ''}`}
+                  onClick={() => handleSortChange('date')}
+                >
+                  Invoice Date {sortBy === 'date' && (sortOrder === 'DESC' ? '↓' : '↑')}
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn--sort ${sortBy === 'createdAt' ? 'btn--sort-active' : ''}`}
+                  onClick={() => handleSortChange('createdAt')}
+                >
+                  Processing Time {sortBy === 'createdAt' && (sortOrder === 'DESC' ? '↓' : '↑')}
+                </button>
+              </div>
             </div>
 
             {displayTransactions.length === 0 ? (
@@ -255,16 +366,26 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                 <p className="empty-message">{t('empty.no-results.message')}</p>
               </div>
             ) : (
-              <div className="card--list__items">
-                {displayTransactions.map((transaction) => (
-                  <TransactionCard
-                    key={transaction.id}
-                    transaction={transaction}
-                    onConfirm={() => confirm(transaction.id)}
-                    onDelete={() => remove(transaction.id)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="card--list__items">
+                  {displayTransactions.map((transaction) => (
+                    <TransactionCard
+                      key={transaction.id}
+                      transaction={transaction}
+                      onConfirm={() => confirm(transaction.id)}
+                      onDelete={() => remove(transaction.id)}
+                    />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={totalCount}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                />
+              </>
             )}
           </div>
         </div>
@@ -274,14 +395,44 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 }
 
 // Header component
-function LedgerHeader({ title, onNewEntry }: { title: string; onNewEntry?: () => void }) {
+interface LedgerHeaderProps {
+  title: string;
+  onNewEntry?: () => void;
+  onSync?: () => void;
+  syncState?: { status: 'idle' | 'syncing' | 'success' | 'error' };
+  lastSynced?: string | null;
+}
+
+function LedgerHeader({ title, onNewEntry, onSync, syncState, lastSynced }: LedgerHeaderProps) {
   const { t } = useTranslation();
+  const isSyncing = syncState?.status === 'syncing';
+
   return (
     <header className="ledger-header">
-      <h1 className="ledger-title">{title}</h1>
-      <button type="button" className="btn btn--primary" onClick={onNewEntry}>
-        + {t('ledger.newEntry')}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <h1 className="ledger-title">{title}</h1>
+        {lastSynced && (
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
+            Last synced: {lastSynced}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {onSync && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={onSync}
+            disabled={isSyncing}
+            title={isSyncing ? 'Syncing...' : 'Sync transactions from cloud'}
+          >
+            {isSyncing ? '⟳ Syncing...' : '↻ Sync'}
+          </button>
+        )}
+        <button type="button" className="btn btn--primary" onClick={onNewEntry}>
+          + {t('ledger.newEntry')}
+        </button>
+      </div>
     </header>
   );
 }
@@ -305,8 +456,68 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
   const isIncome = transaction.type === 'income';
   const categoryKey = `transaction.categories.${transaction.category}` as const;
 
+  // Image thumbnail state
+  const [imageResult, setImageResult] = useState<ImageUrlResult | null>(null);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  // Load image URL when component mounts
+  useEffect(() => {
+    if (transaction.imageId) {
+      setIsLoadingImage(true);
+      getImageUrl(transaction.imageId)
+        .then(setImageResult)
+        .catch((error) => {
+          console.error('Failed to load image:', error);
+          setImageResult({ url: null, source: 'missing', error: String(error) });
+        })
+        .finally(() => setIsLoadingImage(false));
+    }
+  }, [transaction.imageId]);
+
+  // Handle thumbnail click
+  const handleThumbnailClick = () => {
+    if (imageResult?.url) {
+      setIsLightboxOpen(true);
+    }
+  };
+
   return (
     <div className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''}`}>
+      {/* Image Thumbnail */}
+      {transaction.imageId && (
+        <div className="transaction-thumbnail" onClick={handleThumbnailClick}>
+          {isLoadingImage ? (
+            <div className="thumbnail-placeholder thumbnail-loading">⏳</div>
+          ) : imageResult?.url ? (
+            <img
+              src={imageResult.url}
+              alt="Receipt"
+              className="thumbnail-image"
+              title="Click to view full image"
+            />
+          ) : (
+            <div
+              className="thumbnail-placeholder thumbnail-missing"
+              title={imageResult?.error || 'Image not available'}
+            >
+              📷
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {isLightboxOpen && imageResult?.url && (
+        <ImageLightbox
+          imageUrl={imageResult.url}
+          alt={`Receipt from ${transaction.merchant || transaction.description}`}
+          onClose={() => setIsLightboxOpen(false)}
+          onConfirm={isConfirmed ? undefined : onConfirm}
+          isConfirmed={isConfirmed}
+        />
+      )}
+
       {/* Date Stamp */}
       <div className="date-stamp">
         <span className="date-month">{month}</span>

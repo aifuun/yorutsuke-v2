@@ -9,10 +9,15 @@ const CODE_TIMEOUT = 2000; // Reset after 2 seconds of inactivity
 /**
  * Hook to detect secret key sequence for revealing debug menu
  * User must press 5-4-1-7-8-#-#-# in sequence to unlock
+ *
+ * @security CRITICAL: Debug panel is ALWAYS disabled in production builds
+ * In development, users must enter secret code to unlock
  */
 export function useSecretCode() {
-  // Default to true for development - change to false for production
-  const [isUnlocked, setIsUnlocked] = useState(true);
+  // SECURITY: Always start locked. Users must enter secret code to unlock.
+  // In production builds (import.meta.env.PROD), this hook won't even be called
+  // because the entire debug view is conditionally not rendered.
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const inputRef = useRef('');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

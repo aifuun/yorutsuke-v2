@@ -274,6 +274,83 @@
   box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.08);
 }
 
+/* Card List Header */
+.card--list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--slate-200);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.card--list__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--slate-800);
+  margin: 0;
+}
+
+.card--list__count {
+  font-size: 13px;
+  color: var(--slate-500);
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.card--list__empty {
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.card--list__items {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sorting Controls */
+.sorting-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sorting-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate-600);
+}
+
+.btn--sort {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  border: 1px solid var(--slate-200);
+  background: var(--bg-card);
+  border-radius: 6px;
+  color: var(--slate-700);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn--sort:hover {
+  border-color: var(--blue-400);
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
+.btn--sort-active {
+  background: var(--blue-500);
+  border-color: var(--blue-500);
+  color: white;
+}
+
+.btn--sort-active:hover {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+}
+
 /* Transaction Card */
 .transaction-card {
   padding: 20px;
@@ -284,6 +361,61 @@
 
 .transaction-card--income {
   border-right: 4px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Image Thumbnail */
+.transaction-thumbnail {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--slate-100);
+  border: 1px solid var(--slate-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.transaction-thumbnail:hover {
+  border-color: var(--blue-400);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: var(--slate-50);
+}
+
+.thumbnail-loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.thumbnail-missing {
+  opacity: 0.5;
+  cursor: help;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Date Stamp */

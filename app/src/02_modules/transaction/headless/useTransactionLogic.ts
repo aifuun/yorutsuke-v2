@@ -4,7 +4,14 @@ import { useReducer, useCallback, useEffect, useState, useMemo } from 'react';
 import type { TransactionId, UserId } from '../../../00_kernel/types';
 import type { Transaction, TransactionFilters } from '../../../01_domains/transaction';
 import { filterTransactions } from '../../../01_domains/transaction';
-import { fetchTransactions, saveTransaction, deleteTransaction, confirmTransaction } from '../adapters/transactionDb';
+import {
+  fetchTransactions,
+  countTransactions,
+  saveTransaction,
+  deleteTransaction,
+  confirmTransaction,
+  type FetchTransactionsOptions,
+} from '../adapters/transactionDb';
 
 const DEFAULT_FILTERS: TransactionFilters = {};
 
@@ -75,13 +82,23 @@ function reducer(state: State, action: Action): State {
 export function useTransactionLogic(userId: UserId | null) {
   const [state, dispatch] = useReducer(reducer, { status: 'idle' });
   const [filters, setFilters] = useState<TransactionFilters>(DEFAULT_FILTERS);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
-  const load = useCallback(async (startDate?: string, endDate?: string) => {
+  const load = useCallback(async (options: FetchTransactionsOptions = {}) => {
     if (!userId) return;
     dispatch({ type: 'LOAD' });
     try {
-      const transactions = await fetchTransactions(userId, startDate, endDate);
+      const transactions = await fetchTransactions(userId, options);
       dispatch({ type: 'LOAD_SUCCESS', transactions });
+
+      // Also fetch total count for pagination
+      if (options.limit !== undefined) {
+        const count = await countTransactions(userId, {
+          startDate: options.startDate,
+          endDate: options.endDate,
+        });
+        setTotalCount(count);
+      }
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
     }
@@ -155,5 +172,6 @@ export function useTransactionLogic(userId: UserId | null) {
     transactions,
     filteredTransactions,
     unconfirmedCount,
+    totalCount,
   };
 }

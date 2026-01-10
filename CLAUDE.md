@@ -26,16 +26,9 @@ Local-first AI accounting assistant for second-hand business users. Drag receipt
 
 ### Debugging Rules
 
-**遇到 Bug / 问题时，必须先检查日志！**
+**排查顺序**: 本地 Logs → 云端 Logs → 模拟代码流程 → 最小复现
 
-1. **Check logs first** - 读取 `~/.yorutsuke/logs/` 下的今日日志
-2. **Look for traceId** - 追踪相关操作的完整链路
-3. **Don't guess** - 日志比猜测更可靠
-
-```bash
-# 查看今日日志
-cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | tail -50
-```
+详见 `.claude/rules/debugging.md`
 
 ### Time Handling
 

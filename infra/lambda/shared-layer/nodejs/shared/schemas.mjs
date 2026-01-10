@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 /**
  * AI OCR Result Schema (Pillar B: Airlock)
- * Consistent with transaction domain requirements
+ * @ai-intent: Lenient on AI output - allow empty/invalid values, will be caught by TransactionSchema
  */
 export const OcrResultSchema = z.object({
-    amount: z.number(),
-    type: z.enum(['income', 'expense']),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
-    merchant: z.string().min(1),
-    category: z.enum(['sale', 'purchase', 'shipping', 'packaging', 'fee', 'other']),
+    amount: z.number().catch(0), // Default to 0 if invalid
+    type: z.enum(['income', 'expense']).catch('expense'), // Default to expense
+    date: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
+    merchant: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
+    category: z.enum(['sale', 'purchase', 'shipping', 'packaging', 'fee', 'other']).catch('other'),
     description: z.string().optional().default(''),
 });
 
@@ -26,12 +26,13 @@ export const TransactionSchema = z.object({
     merchant: z.string(),
     category: z.string(),
     description: z.string(),
-    status: z.enum(['unconfirmed', 'confirmed', 'deleted']),
+    status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
     aiProcessed: z.boolean().default(true),
     version: z.number().default(1),
     createdAt: z.string(),
     updatedAt: z.string(),
     confirmedAt: z.string().nullable().default(null),
+    validationErrors: z.array(z.any()).optional(), // @ai-intent: Store Zod validation errors for debugging
     isGuest: z.boolean().optional(),
     ttl: z.number().optional(),
 });

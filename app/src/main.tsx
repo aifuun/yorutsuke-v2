@@ -13,8 +13,10 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 // MVP0: Fixes #82 StrictMode race condition
 import { captureService } from "./02_modules/capture/services/captureService";
 import { quotaService } from "./02_modules/capture/services/quotaService";
+import { transactionSyncService } from "./02_modules/transaction/services/transactionSyncService";
 captureService.init();
 quotaService.init();
+transactionSyncService.init(); // Issue #108: Auto-sync after upload
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

@@ -136,31 +136,40 @@ pending ──────► compressed ──────► uploading ──�
 
 ### transactions
 
-Transaction records (cached from cloud).
+Transaction records (cached from cloud). Schema version: v8.
 
 ```sql
 CREATE TABLE transactions (
   id TEXT PRIMARY KEY,              -- TransactionId (UUID)
   user_id TEXT NOT NULL,            -- UserId
-  image_id TEXT,                    -- ImageId (nullable)
+  image_id TEXT,                    -- ImageId (nullable, soft reference since v7)
   type TEXT NOT NULL,               -- 'income'|'expense'
   category TEXT NOT NULL,           -- 'purchase'|'sale'|'shipping'|'fee'|'other'
   amount INTEGER NOT NULL,          -- JPY (always positive)
+  currency TEXT DEFAULT 'JPY',      -- Currency code
   description TEXT NOT NULL,
   merchant TEXT,
-  date TEXT NOT NULL,               -- 'YYYY-MM-DD'
-  created_at TEXT NOT NULL,         -- ISO 8601
-  updated_at TEXT NOT NULL,         -- ISO 8601
+  date TEXT NOT NULL,               -- 'YYYY-MM-DD' (invoice date)
+  created_at TEXT NOT NULL,         -- ISO 8601 (processing time)
+  updated_at TEXT NOT NULL,         -- ISO 8601 (last modification)
   confirmed_at TEXT,                -- ISO 8601 (null = unconfirmed)
   confidence REAL,                  -- 0.0-1.0 (AI confidence)
   raw_text TEXT,                    -- OCR result
-  FOREIGN KEY (image_id) REFERENCES images(id)
+  status TEXT DEFAULT 'unconfirmed',-- v6: 'unconfirmed'|'confirmed'|'deleted'
+  version INTEGER DEFAULT 1,        -- v6: Optimistic locking
+  dirty_sync INTEGER DEFAULT 0      -- v8: 1=needs cloud sync, 0=synced
 );
 
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX idx_transactions_date ON transactions(date);
-CREATE INDEX idx_transactions_confirmed ON transactions(confirmed_at);
+CREATE INDEX idx_transactions_image_id ON transactions(image_id);
+CREATE INDEX idx_transactions_status ON transactions(status);
 ```
+
+**Schema Changes**:
+- v6: Added `status` (for cloud sync), `version` (optimistic locking)
+- v7: Removed FK constraint on `image_id` (soft reference for cloud sync)
+- v8: Added `dirty_sync` (track local changes needing cloud sync)
 
 ### morning_reports / settings
 

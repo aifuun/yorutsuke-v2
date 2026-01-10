@@ -20,6 +20,8 @@ interface DbTransaction {
   confirmed_at: string | null;
   confidence: number | null;
   raw_text: string | null;
+  status: string | null; // v6: Cloud sync support
+  version: number | null; // v6: Optimistic locking
 }
 
 function mapDbToTransaction(row: DbTransaction): Transaction {
@@ -42,15 +44,25 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
   };
 }
 
+export interface FetchTransactionsOptions {
+  startDate?: string;
+  endDate?: string;
+  sortBy?: 'date' | 'createdAt';
+  sortOrder?: 'ASC' | 'DESC';
+  limit?: number;
+  offset?: number;
+}
+
 export async function fetchTransactions(
   userId: UserIdType,
-  startDate?: string,
-  endDate?: string,
+  options: FetchTransactionsOptions = {},
 ): Promise<Transaction[]> {
   const database = await getDb();
+  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset } = options;
 
-  let query = 'SELECT * FROM transactions WHERE user_id = ?';
-  const params: unknown[] = [userId];
+  // Filter out deleted transactions (Issue #109: Soft delete)
+  let query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
+  const params: unknown[] = [userId, 'deleted'];
 
   if (startDate) {
     query += ' AND date >= ?';
@@ -61,10 +73,50 @@ export async function fetchTransactions(
     params.push(endDate);
   }
 
-  query += ' ORDER BY date DESC, created_at DESC';
+  // Sorting (default: invoice date descending)
+  const sortField = sortBy === 'createdAt' ? 'created_at' : 'date';
+  query += ` ORDER BY ${sortField} ${sortOrder}`;
+
+  // Pagination
+  if (limit !== undefined) {
+    query += ' LIMIT ?';
+    params.push(limit);
+    if (offset !== undefined) {
+      query += ' OFFSET ?';
+      params.push(offset);
+    }
+  }
 
   const rows = await database.select<DbTransaction[]>(query, params);
   return rows.map(mapDbToTransaction);
+}
+
+/**
+ * Count total transactions for a user (used for pagination)
+ * Excludes soft-deleted transactions (Issue #109)
+ */
+export async function countTransactions(
+  userId: UserIdType,
+  options: { startDate?: string; endDate?: string } = {},
+): Promise<number> {
+  const database = await getDb();
+  const { startDate, endDate } = options;
+
+  // Filter out deleted transactions
+  let query = 'SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
+  const params: unknown[] = [userId, 'deleted'];
+
+  if (startDate) {
+    query += ' AND date >= ?';
+    params.push(startDate);
+  }
+  if (endDate) {
+    query += ' AND date <= ?';
+    params.push(endDate);
+  }
+
+  const rows = await database.select<Array<{ count: number }>>(query, params);
+  return rows[0]?.count ?? 0;
 }
 
 export async function saveTransaction(transaction: Transaction): Promise<void> {
@@ -72,8 +124,8 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
 
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
@@ -90,20 +142,80 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
       transaction.confirmedAt,
       transaction.confidence,
       transaction.rawText,
+      'unconfirmed', // Default status for new transactions
+      1, // Default version for new transactions
     ],
   );
 }
 
-export async function deleteTransaction(id: TransactionIdType): Promise<void> {
+/**
+ * Upsert transaction (insert or update with conflict resolution)
+ * Used for cloud sync to merge cloud data into local storage
+ * Pillar B: Input is already validated domain Transaction
+ *
+ * @param transaction - Domain transaction to upsert
+ */
+export async function upsertTransaction(transaction: Transaction): Promise<void> {
   const database = await getDb();
-  await database.execute('DELETE FROM transactions WHERE id = ?', [id]);
+
+  // INSERT OR REPLACE will update all fields if transaction.id already exists
+  await database.execute(
+    `INSERT OR REPLACE INTO transactions
+     (id, user_id, image_id, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      transaction.id,
+      transaction.userId,
+      transaction.imageId,
+      transaction.type,
+      transaction.category,
+      transaction.amount,
+      transaction.currency,
+      transaction.description,
+      transaction.merchant,
+      transaction.date,
+      transaction.createdAt,
+      transaction.updatedAt,
+      transaction.confirmedAt,
+      transaction.confidence,
+      transaction.rawText,
+      'unconfirmed', // Status from cloud (will be updated in future when cloud has status)
+      1, // Version from cloud (will be synced in future)
+    ],
+  );
 }
 
-export async function confirmTransaction(id: TransactionIdType): Promise<void> {
+/**
+ * Soft delete transaction (mark as deleted, don't remove from database)
+ * Issue #109: Soft delete strategy for cloud sync
+ *
+ * Benefits:
+ * - Offline support: Mark deleted locally, sync later
+ * - Audit trail: Keep history of deleted transactions
+ * - Sync compatibility: Cloud can receive delete status
+ * - Undo support (future): Can restore deleted transactions
+ */
+export async function deleteTransaction(id: TransactionIdType): Promise<void> {
   const database = await getDb();
   await database.execute(
-    'UPDATE transactions SET confirmed_at = ?, updated_at = ? WHERE id = ?',
-    [new Date().toISOString(), new Date().toISOString(), id],
+    'UPDATE transactions SET status = ?, dirty_sync = ?, updated_at = ? WHERE id = ?',
+    ['deleted', 1, new Date().toISOString(), id],
+  );
+}
+
+/**
+ * Confirm transaction (mark as confirmed with dirty flag for sync)
+ * Issue #109: Confirm changes need cloud sync
+ *
+ * MVP4: Set dirty_sync flag to mark for future sync
+ * MVP5: Bidirectional sync will push confirmed status to cloud
+ */
+export async function confirmTransaction(id: TransactionIdType): Promise<void> {
+  const database = await getDb();
+  const now = new Date().toISOString();
+  await database.execute(
+    'UPDATE transactions SET confirmed_at = ?, updated_at = ?, dirty_sync = ? WHERE id = ?',
+    [now, now, 1, id],
   );
 }
 

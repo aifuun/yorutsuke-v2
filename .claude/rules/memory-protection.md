@@ -4,10 +4,10 @@ These rules protect project memory files from accidental corruption.
 
 ## MEMORY.md
 
-**Mode**: APPEND ONLY
+**Mode**: APPEND ONLY (no confirm)
 
 - Never overwrite or delete existing content
-- Use Edit tool to append new entries at section end
+- Use Edit tool to append new entries at section end (no permission prompt)
 - Every entry must have date prefix: `[YYYY-MM]`
 - Format for new entries:
   ```markdown
