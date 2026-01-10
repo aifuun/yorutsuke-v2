@@ -46,24 +46,24 @@ export function EmptyState({
     'no-results': Search,   // Changed from 🔍
   };
 
-  // For icon component: use the Lucide icon if provided, otherwise use default
-  const displayIcon = icon ? icon : defaultIcons[variant];
-  const isEmoji = typeof icon === 'string'; // Check if custom icon is emoji or Lucide
-  
+  // Check if icon is emoji (string) or not provided
+  const isEmoji = typeof icon === 'string';
+  const lucideIcon = isEmoji ? defaultIcons[variant] : (icon || defaultIcons[variant]);
+
   return (
     <div
       className={`empty-state empty-state--${variant} ${className}`}
       role="status"
     >
       <div className="empty-state__icon">
-        {isEmoji ? (
+        {isEmoji && typeof icon === 'string' ? (
           // Custom emoji passed in
-          <span role="img" aria-hidden="true">{displayIcon}</span>
+          <span role="img" aria-hidden="true">{icon}</span>
         ) : (
           // Use Lucide icon with Icon wrapper
-          <Icon 
-            icon={displayIcon as any} 
-            size={variant === 'first-use' ? 'xl' : 'lg'} 
+          <Icon
+            icon={lucideIcon}
+            size={variant === 'first-use' ? 'xl' : 'lg'}
             aria-label={title}
           />
         )}

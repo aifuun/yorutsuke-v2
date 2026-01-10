@@ -1,6 +1,7 @@
 .sidebar {
   width: 256px;
-  background-color: var(--slate-900);
+  /* Updated from slate-900 to deep blue gradient (#136) */
+  background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
@@ -48,12 +49,12 @@
 }
 
 .nav-item:focus-visible {
-  outline: 2px solid var(--blue-500);
+  outline: 2px solid var(--blue-400);  /* Lighter for dark bg visibility (#136) */
   outline-offset: -2px;
 }
 
 .nav-item.active {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: rgba(59, 130, 246, 0.15);  /* Increased from 0.1 to 0.15 (#136) */
   color: var(--blue-500);
 }
 
@@ -66,11 +67,9 @@
   width: 4px;
   background: var(--blue-500);
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-  /* Phase 3-B: Decorative glow effect (not elevation shadow) - intentionally kept
-     to maintain visual emphasis on active navigation item. Not subject to shadow
-     token migration as it serves a distinct design purpose. */
+  /* Phase 3-B: Decorative glow effect (not elevation shadow) - softened for deep blue bg (#136) */
   /* stylelint-disable-next-line declaration-property-value-disallowed-list */
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.3);  /* Reduced from 10px/0.5 to 6px/0.3 */
 }
 
 .sidebar-footer {
@@ -104,7 +103,7 @@
 }
 
 .user-label:focus-visible {
-  outline: 2px solid var(--blue-500);
+  outline: 2px solid var(--blue-400);  /* Lighter for dark bg visibility (#136) */
   outline-offset: -2px;
 }
 

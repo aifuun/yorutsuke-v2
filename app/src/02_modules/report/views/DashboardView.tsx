@@ -273,7 +273,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <p className="card--summary__label">{t('dashboard.pending')}</p>
               <p className="card--summary__value">{pendingCount}</p>
             </div>
-            <div className="card card--summary is-info">
+            <div className="card card--summary is-count">
               <p className="card--summary__label">{t('dashboard.quotaRemaining')}</p>
               <p className="card--summary__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
             </div>

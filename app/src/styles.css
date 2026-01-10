@@ -50,9 +50,10 @@
   --slate-900: #0F172A;
 
   /* ---------------------------------------------------------------------------
-   * Base Palette - Blue (Primary) - 3 shades
+   * Base Palette - Blue (Primary) - 4 shades (#136: +400 for focus rings)
    * --------------------------------------------------------------------------- */
   --blue-100: #DBEAFE;
+  --blue-400: #60A5FA;  /* For focus rings on dark backgrounds */
   --blue-500: #3B82F6;
   --blue-600: #2563EB;
 
