@@ -1,0 +1,67 @@
+/* LoadingOverlay - Full-screen or component-scoped loading indicator */
+
+/* Base overlay */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+}
+
+/* Full-screen variant */
+.loading-overlay--fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  animation: loading-overlay-fade-in 0.2s var(--ease-out);
+}
+
+/* Overlay variant (scoped to parent) */
+.loading-overlay--overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: loading-overlay-fade-in 0.15s var(--ease-out);
+}
+
+/* Fade-in animation */
+@keyframes loading-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Content container */
+.loading-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  pointer-events: none;
+}
+
+/* Spinner */
+.loading-overlay__spinner {
+  display: inline-block;
+}
+
+/* Message text */
+.loading-overlay__message {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .loading-overlay--fullscreen,
+  .loading-overlay--overlay {
+    animation: none;
+  }
+}

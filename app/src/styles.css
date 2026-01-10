@@ -93,6 +93,15 @@
   --color-income: var(--emerald-600);
   --color-expense: var(--rose-600);
 
+  /* Chart Category Palette (7 colors, color-blind safe) */
+  --chart-cat-1: var(--blue-500);
+  --chart-cat-2: var(--emerald-500);
+  --chart-cat-3: var(--amber-500);
+  --chart-cat-4: var(--rose-500);
+  --chart-cat-5: #8B5CF6;  /* Violet 500 */
+  --chart-cat-6: #14B8A6;  /* Teal 500 */
+  --chart-cat-7: #F97316;  /* Orange 500 */
+
   /* Legacy compat aliases */
   --accent: var(--color-primary);
   --accent-hover: var(--color-primary-hover);

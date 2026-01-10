@@ -1,0 +1,115 @@
+/* Chart Styles */
+/* @see docs/design/DATA-VIZ.md */
+
+/* Chart containers */
+.trend-chart,
+.category-chart {
+  margin: 0;
+  padding: 0;
+}
+
+/* Responsive wrapper for horizontal scroll on mobile */
+.chart-scroll-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chart-scroll-container > * {
+  min-width: 600px;
+}
+
+/* Legend styling */
+.recharts-legend-wrapper {
+  padding-top: var(--space-4) !important;
+}
+
+.recharts-legend-item {
+  cursor: pointer;
+}
+
+.recharts-legend-item:hover {
+  opacity: 0.8;
+}
+
+/* Tooltip hover effect */
+.recharts-active-dot {
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Bar hover effect */
+.recharts-bar-rectangle:hover {
+  opacity: 0.9;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+  .chart-scroll-container {
+    margin: 0 calc(-1 * var(--space-4));
+    padding: 0 var(--space-4);
+  }
+
+  /* Reduce chart height on mobile */
+  .trend-chart .recharts-responsive-container,
+  .category-chart .recharts-responsive-container {
+    min-height: 250px;
+  }
+}
+
+/* Chart loading state */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+/* Chart error state */
+.chart-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: var(--space-6);
+  background: var(--bg-error);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.chart-error__icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+
+.chart-error__message {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+/* Chart empty state */
+.chart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: var(--space-6);
+  background: var(--slate-50);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.chart-empty__icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-3);
+  opacity: 0.5;
+}
+
+.chart-empty__message {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
