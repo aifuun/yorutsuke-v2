@@ -4,6 +4,7 @@
 
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { exists } from '@tauri-apps/plugin-fs';
+import { fetch } from '@tauri-apps/plugin-http';
 import type { ImageId as ImageIdType } from '../../../00_kernel/types';
 import { getImageById } from '../../capture/adapters/imageDb';
 
@@ -49,21 +50,44 @@ export async function getImageUrl(imageId: ImageIdType): Promise<ImageUrlResult>
 
     // Step 3: Try S3 presigned URL (requires network)
     if (imageRow.s3_key) {
-      // TODO: Implement presigned GET URL from Lambda
-      // Currently presign Lambda only supports PUT (upload)
-      // Need to extend Lambda to support GET operation
-      //
-      // Implementation plan:
-      // 1. Extend infra/lambda/presign to accept action: 'upload' | 'download'
-      // 2. Generate presigned URL with getSignedUrl(new GetObjectCommand(...))
-      // 3. Call from here: const result = await getPresignedReadUrl(imageRow.s3_key)
-      //
-      // For MVP4, return placeholder
-      return {
-        url: null,
-        source: 's3',
-        error: 'S3 image viewing not yet implemented (presign GET needed)'
-      };
+      try {
+        const presignUrl = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
+        if (!presignUrl) {
+          return {
+            url: null,
+            source: 's3',
+            error: 'Presign Lambda URL not configured'
+          };
+        }
+
+        // Call presign Lambda to get download URL
+        const response = await fetch(presignUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'download',
+            s3Key: imageRow.s3_key,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          return {
+            url: null,
+            source: 's3',
+            error: `Failed to get presigned URL: ${errorData.message || response.statusText}`
+          };
+        }
+
+        const data = await response.json();
+        return { url: data.url, source: 's3' };
+      } catch (error) {
+        return {
+          url: null,
+          source: 's3',
+          error: `Network error: ${error instanceof Error ? error.message : 'Unknown'}`
+        };
+      }
     }
 
     // Step 4: No local file and no S3 key - image truly missing
