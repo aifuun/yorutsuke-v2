@@ -898,7 +898,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font-size: 10px;
   font-weight: 700;
 }

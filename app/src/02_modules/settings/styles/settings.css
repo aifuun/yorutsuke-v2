@@ -92,7 +92,7 @@
 .profile-header__avatar {
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   background: linear-gradient(135deg, var(--slate-100), var(--slate-200));
   color: var(--slate-500);
   font-size: 22px;
@@ -155,14 +155,14 @@
 .profile-usage__track {
   height: 8px;
   background: var(--slate-100);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 
 .profile-usage__fill {
   height: 100%;
   background: linear-gradient(90deg, var(--blue-500), #8B5CF6);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   transition: width 0.3s ease;
 }
 

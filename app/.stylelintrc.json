@@ -2,7 +2,9 @@
   "extends": ["stylelint-config-standard"],
   "rules": {
     "declaration-property-value-disallowed-list": {
-      "/^(padding|margin|gap)/": ["/\\d+rem$/", "/\\d+em$/"]
+      "/^(padding|margin|gap)/": ["/\\d+rem$/", "/\\d+em$/"],
+      "border-radius": ["/^[0-9]+px$/", "/^[0-9]+rem$/", "/^[0-9]+em$/"],
+      "/^border-(top|right|bottom|left)-(left|right)-radius$/": ["/^[0-9]+px$/", "/^[0-9]+rem$/", "/^[0-9]+em$/"]
     },
     "comment-empty-line-before": null,
     "custom-property-empty-line-before": null,
