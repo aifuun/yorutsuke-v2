@@ -848,24 +848,24 @@ export function CumulativeBalanceChart({ data }: { data: BalanceData[] }) {
 - [x] Define accessibility requirements
 - [x] Provide code templates (3 chart types)
 
-### Phase 2: Dependencies (Pending #119)
-- [ ] Install Recharts: `npm install recharts`
-- [ ] Add CSS tokens for chart colors to `styles.css`
-- [ ] Verify bundle size impact
+### Phase 2: Dependencies ✅ (#135)
+- [x] Install Recharts: `npm install recharts`
+- [x] Add CSS tokens for chart colors to `styles.css`
+- [x] Verify bundle size impact (~45KB gzipped)
 
-### Phase 3: Implementation (Pending #119)
-- [ ] Implement 7-day trend chart (income vs expense)
-- [ ] Implement Top 5 categories bar chart
-- [ ] Add click navigation to Ledger
-- [ ] Add responsive handling
+### Phase 3: Implementation ✅ (#135)
+- [x] Implement TrendChart (income vs expense line chart)
+- [x] Implement CategoryChart (top categories bar chart)
+- [x] Add click navigation support (onNavigate prop)
+- [x] Add responsive handling (charts.css)
 
-### Phase 4: Accessibility (Pending #119)
-- [ ] Add `aria-label` to chart containers
-- [ ] Add screen reader data table fallback
-- [ ] Test with color-blind simulator
-- [ ] Verify WCAG AA contrast
+### Phase 4: Accessibility ✅ (#135)
+- [x] Add `aria-label` to chart containers
+- [x] Add screen reader data table fallback
+- [ ] Test with color-blind simulator (pending manual test)
+- [ ] Verify WCAG AA contrast (pending manual test)
 
-### Phase 5: Testing (Pending #119)
+### Phase 5: Testing (Pending #119 integration)
 - [ ] Visual testing (colors, tooltips, legend)
 - [ ] Interaction testing (hover, click, legend toggle)
 - [ ] Performance testing (<100ms render)
