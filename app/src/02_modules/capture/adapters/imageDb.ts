@@ -328,12 +328,13 @@ export async function createImageRecord(params: {
 }): Promise<void> {
   await execute(
     `INSERT INTO images (
-      id, user_id, trace_id, s3_key, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?)`,
+      id, user_id, trace_id, original_path, s3_key, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       String(params.id),
       String(params.userId),
       String(params.traceId),
+      `cloud:${params.s3Key}`, // Virtual path for cloud-sourced images
       params.s3Key,
       'uploaded', // Mark as uploaded since it exists in S3
       params.createdAt,

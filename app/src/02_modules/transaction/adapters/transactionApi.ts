@@ -44,7 +44,6 @@ const FetchTransactionsResponseSchema = z.object({
 });
 
 type CloudTransaction = z.infer<typeof CloudTransactionSchema>;
-type FetchTransactionsResponse = z.infer<typeof FetchTransactionsResponseSchema>;
 
 /**
  * Wrap a promise with timeout protection

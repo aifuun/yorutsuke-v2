@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { UserId, type UserId as UserIdType } from '../../../00_kernel/types';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { getGuestId } from '../adapters/tokenStorage';
+import { getStoredGuestId } from '../services/authService';
 import { useAuth } from './useAuth';
 
 /**
@@ -36,7 +36,7 @@ export function useEffectiveUserId(): {
   useEffect(() => {
     async function loadGuestId() {
       try {
-        const id = await getGuestId();
+        const id = await getStoredGuestId();
         setGuestId(UserId(id));
         logger.debug(EVENTS.DEVICE_ID_LOADED, { guestId: id });
       } catch (e) {

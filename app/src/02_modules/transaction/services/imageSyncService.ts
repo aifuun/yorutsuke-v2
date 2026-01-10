@@ -5,8 +5,8 @@
 
 import type { UserId, TraceId } from '../../../00_kernel/types';
 import { ImageId } from '../../../00_kernel/types';
-import { getImageById, updateImageS3Key, createImageRecord } from '../../capture/adapters/imageDb';
-import { checkFileExists } from '../adapters/imageAdapter';
+import { getImageById, updateImageS3Key, createImageRecord } from '../../capture';
+import { checkFileExists } from '../adapters';
 import { logger } from '../../../00_kernel/telemetry/logger';
 import type { Transaction } from '../../../01_domains/transaction';
 
@@ -75,9 +75,11 @@ export async function syncImageForTransaction(
 
     // Step 4: No local record - create one with s3_key for on-demand download
     if (!transaction.s3Key) {
-      logger.warn('image_sync_failed', {
+      logger.warn('image_sync_skipped', {
         imageId: String(imageId),
         reason: 'no_s3_key_in_cloud_transaction',
+        message: 'Image in transaction but no S3 key - cannot create local record. Image may not have been successfully uploaded.',
+        transactionId: transaction.id,
         traceId,
       });
       return;

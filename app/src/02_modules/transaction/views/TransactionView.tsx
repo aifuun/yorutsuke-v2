@@ -1,7 +1,6 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useTransactionLogic } from '../headless/useTransactionLogic';
-import { useSyncLogic } from '../headless/useSyncLogic';
+import { useTransactionLogic, useSyncLogic } from '../headless';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
 import DatePicker from 'react-datepicker';
@@ -12,7 +11,7 @@ import type { Transaction } from '../../../01_domains/transaction';
 import { on } from '../../../00_kernel/eventBus';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
-import type { FetchTransactionsOptions } from '../adapters/transactionDb';
+import type { FetchTransactionsOptions } from '../services/transactionService';
 import './ledger.css';
 
 type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';

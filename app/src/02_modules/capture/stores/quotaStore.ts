@@ -2,7 +2,7 @@
 // Pillar D: FSM - no boolean flags
 // Pillar J: Locality - state near usage
 import { createStore } from 'zustand/vanilla';
-import type { QuotaResponse, UserTier, GuestExpirationInfo } from '../adapters/quotaApi';
+import type { QuotaResponse, UserTier, GuestExpirationInfo } from '../adapters';
 
 // Default values for offline/guest mode
 // Must match TIER_LIMITS.guest in quotaApi.ts

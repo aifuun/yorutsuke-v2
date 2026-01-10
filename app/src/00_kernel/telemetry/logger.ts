@@ -4,7 +4,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import type { ContextProvider } from './traceContext';
-import { debugLog } from '../../02_modules/debug/headless/debugLog';
+import { debugLog } from '../../02_modules/debug/headless';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 

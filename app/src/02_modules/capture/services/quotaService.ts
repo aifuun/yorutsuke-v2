@@ -6,7 +6,7 @@
 import type { UserId } from '../../../00_kernel/types';
 import { on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { fetchQuota } from '../adapters/quotaApi';
+import { fetchQuota } from '../adapters';
 import { quotaStore } from '../stores/quotaStore';
 
 // Refresh intervals

@@ -2,50 +2,37 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Session
+## Current Session [2026-01-10]
 
-### Completed Issue: #109 [Transaction Management UX Improvements] ✅
+### Completed: MVP3 Frontend Decomposition (Step 1) ✅
 
-**完成时间**: 2026-01-10
-**状态**: 已完成 | Type: T2 (Logic/State) | MVP4
+**任务**: `*plan mvp` - MVP-Level Decomposition for MVP3 Frontend
 
 **完成内容**:
-- [x] Phase 1: Image Preview & Lightbox
-  - imageService.ts: 图片 URL 解析（local > S3 > missing）
-  - ImageLightbox.tsx: 全屏查看 + ESC/点击外部关闭
-  - TransactionCard: 48x48 缩略图 + 点击打开 lightbox
-  - Lightbox 内置确认按钮
-- [x] Phase 2: Sorting & Pagination
-  - transactionDb.ts: 扩展 fetchTransactions 支持 sortBy/sortOrder/limit/offset
-  - countTransactions(): 分页总数查询
-  - Pagination.tsx: 分页组件（20条/页）
-  - TransactionView: 排序控制（Invoice Date / Processing Time）
-- [x] Phase 3: Soft Delete & Sync
-  - Migration v8: 添加 dirty_sync 列（INTEGER DEFAULT 0）
-  - deleteTransaction(): 软删除（status='deleted', dirty_sync=1）
-  - confirmTransaction(): 标记 dirty_sync=1
-  - fetchTransactions/countTransactions: 过滤 deleted 状态
-- [x] Phase 4: Documentation
-  - SCHEMA.md: 更新 transactions 表 schema（v8 变更）
-- [x] 所有 55 个测试通过
-- [x] 手动测试指南已提供（/tmp/test-109.md）
+- [x] Analyzed MVP3 goal and remaining frontend scope
+- [x] Identified 5 features with dependencies
+- [x] Created 5 GitHub Issues (#114-#118)
+- [x] Updated MVP3_BATCH.md with Issue references
+- [x] Generated dependency graph and development roadmap
 
-**关键技术决策**:
-- Soft delete over hard delete: 离线支持、审计跟踪、撤销能力
-- SQL LIMIT/OFFSET 分页: 性能优化（O(n) → O(20)）
-- Local file priority: 速度、离线、成本
-- dirty_sync flag: MVP4→MVP5 过渡准备
-- S3 presigned GET URL: 延迟到 MVP5
+**创建的 Issues**:
+- #114: Dashboard Today's Summary (T1, 4h) - Ready
+- #115: Transaction List & Filters (T1, 5h) - Ready
+- #116: Transaction Confirmation (T2, 6h) - Blocked by #115
+- #117: Report History Calendar (T1, 6h) - Ready
+- #118: Offline CRUD Testing (T2, 3h) - Blocked by #116
 
-**下一步**: Issue #109 已完成，可执行 `*next` 或关闭 Issue
+**Dependency Graph**:
+```
+Phase 1 (parallel): #114, #115, #117 → 6h
+Phase 2: #116 (after #115) → 6h
+Phase 3: #118 (after #116) → 3h
+Total: 15 hours
+```
 
----
-
-### Deferred Issue: #104 [MVP3: End-to-end batch testing]
-
-**状态**: Frontend 测试未完成
-- Frontend 测试 (SC-304~307, 800~821, 900~934) remaining
-- Can resume later after #108
+**下一步**:
+- Use `*issue pick #114` / `#115` / `#117` to start any ready issue
+- Consider `*plan #116` for detailed T2 planning before development
 
 ---
 
@@ -79,6 +66,18 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 ## Recently Completed
 
+- **MVP3 Frontend Decomposition** (2026-01-10)
+  - Step 1 (40 min): Created Issues #114-#118
+  - Updated MVP3_BATCH.md with roadmap
+  - Total: 5 features, 15h estimated
+- **#113** Image Architecture Refactor (2026-01-10)
+  - Created imageAdapter.ts and presignAdapter.ts
+  - Fixed Lambda path bug (uploads/ → processed/)
+  - 4-layer compliance: Service → Adapter → Tauri/AWS
+- **#112** Headless Architecture Enforcement (2026-01-10)
+  - Verified all service files exist
+  - No direct adapter imports in hooks
+  - All 105 tests passing
 - **#109** Transaction Management UX Improvements (2026-01-10)
   - Image preview, lightbox, sorting, pagination, soft delete
   - Migration v8: dirty_sync column

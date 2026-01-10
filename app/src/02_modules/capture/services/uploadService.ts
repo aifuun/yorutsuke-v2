@@ -13,8 +13,8 @@ import { canUpload } from '../../../01_domains/receipt';
 
 // Polling interval (1 second) - rate limit is enforced separately by canUpload()
 const UPLOAD_POLL_INTERVAL_MS = 1000;
-import { getPresignedUrl, uploadToS3 } from '../adapters/uploadApi';
-import { fetchQuota } from '../adapters/quotaApi';
+import { getPresignedUrl, uploadToS3 } from '../adapters';
+import { fetchQuota } from '../adapters';
 import { uploadStore, shouldRetry, classifyError, RETRY_DELAYS } from '../stores/uploadStore';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';

@@ -8,8 +8,16 @@ import { UserId } from '../../../00_kernel/types';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { emit } from '../../../00_kernel/eventBus';
 import type { AuthState, AuthStatus, User } from '../types';
-import * as authApi from '../adapters/authApi';
-import * as tokenStorage from '../adapters/tokenStorage';
+import {
+  registerUser,
+  verifyUserEmail,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  loadUserSession,
+  saveUserTokens,
+  saveUserProfile,
+} from '../services/authService';
 import { updateImagesUserId } from '../../capture';
 
 // Action types
@@ -109,14 +117,11 @@ export function useAuth(): UseAuthResult {
 
   const loadStoredAuth = async () => {
     try {
-      const [tokens, user] = await Promise.all([
-        tokenStorage.loadTokens(),
-        tokenStorage.loadUser(),
-      ]);
+      const session = await loadUserSession();
 
-      if (tokens && user) {
-        logger.info(EVENTS.AUTH_SESSION_RESTORED, { userId: user.id });
-        dispatch({ type: 'LOADED', user });
+      if (session.tokens && session.user) {
+        logger.info(EVENTS.AUTH_SESSION_RESTORED, { userId: session.user.id });
+        dispatch({ type: 'LOADED', user: session.user });
       } else {
         dispatch({ type: 'LOGGED_OUT' });
       }
@@ -130,7 +135,7 @@ export function useAuth(): UseAuthResult {
     async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
       dispatch({ type: 'LOADING' });
 
-      const result = await authApi.register(email, password);
+      const result = await registerUser(email, password);
 
       if (!result.success) {
         dispatch({ type: 'ERROR', error: result.error || 'Registration failed' });
@@ -148,7 +153,7 @@ export function useAuth(): UseAuthResult {
     async (email: string, code: string): Promise<{ success: boolean; error?: string }> => {
       dispatch({ type: 'LOADING' });
 
-      const result = await authApi.verify(email, code);
+      const result = await verifyUserEmail(email, code);
 
       if (!result.success) {
         dispatch({ type: 'ERROR', error: result.error || 'Verification failed' });
@@ -166,20 +171,18 @@ export function useAuth(): UseAuthResult {
     async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
       dispatch({ type: 'LOADING' });
 
-      // Get device ID for device binding
-      const deviceId = await tokenStorage.getDeviceId();
-
-      const result = await authApi.login(email, password, deviceId);
+      const result = await loginUser(email, password);
 
       if (!result.ok) {
-        dispatch({ type: 'ERROR', error: result.error });
-        return { success: false, error: result.error };
+        const error = result.error || 'Login failed';
+        dispatch({ type: 'ERROR', error });
+        return { success: false, error };
       }
 
-      const data = result.data;
+      const data = result.data!;
 
       // Save tokens
-      await tokenStorage.saveTokens({
+      await saveUserTokens({
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         idToken: data.idToken,
@@ -191,7 +194,7 @@ export function useAuth(): UseAuthResult {
         email: data.email || email,
         tier: data.tier || 'free',
       };
-      await tokenStorage.saveUser(user);
+      await saveUserProfile(user);
 
       dispatch({ type: 'LOADED', user });
       logger.info(EVENTS.AUTH_LOGIN_SUCCESS, { userId: user.id });
@@ -199,7 +202,7 @@ export function useAuth(): UseAuthResult {
       // Handle guest data claim (#50)
       // When a guest registers and logs in, backend claims their device data
       if (data.dataClaimed && data.dataClaimed > 0) {
-        const oldUserId = deviceId; // device-{machineId} format
+        const oldUserId = UserId(data.userId); // device-{machineId} format
         const newUserId = user.id;
 
         logger.info(EVENTS.AUTH_GUEST_DATA_CLAIMED, {
@@ -226,18 +229,13 @@ export function useAuth(): UseAuthResult {
   );
 
   const logout = useCallback(async () => {
-    await tokenStorage.clearAuthData();
+    await logoutUser();
     dispatch({ type: 'LOGGED_OUT' });
     logger.info(EVENTS.AUTH_LOGOUT, {});
   }, []);
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
-    const currentRefreshToken = await tokenStorage.getRefreshToken();
-    if (!currentRefreshToken) {
-      return false;
-    }
-
-    const result = await authApi.refreshToken(currentRefreshToken);
+    const result = await refreshAccessToken();
 
     if (!result.ok) {
       // Refresh failed, logout user
@@ -245,12 +243,12 @@ export function useAuth(): UseAuthResult {
       return false;
     }
 
-    const data = result.data;
+    const data = result.data!;
 
     // Update tokens
-    await tokenStorage.saveTokens({
+    await saveUserTokens({
       accessToken: data.accessToken,
-      refreshToken: data.refreshToken || currentRefreshToken,
+      refreshToken: data.refreshToken || '',
       idToken: data.idToken,
     });
 

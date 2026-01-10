@@ -12,11 +12,8 @@ const mockFetchFromCloud = vi.fn();
 const mockFetchFromLocal = vi.fn();
 const mockUpsertTransaction = vi.fn();
 
-vi.mock('../adapters/transactionApi', () => ({
-  fetchTransactions: (...args: unknown[]) => mockFetchFromCloud(...args),
-}));
-
-vi.mock('../adapters/transactionDb', () => ({
+vi.mock('../adapters', () => ({
+  fetchTransactionsFromCloud: (...args: unknown[]) => mockFetchFromCloud(...args),
   fetchTransactions: (...args: unknown[]) => mockFetchFromLocal(...args),
   upsertTransaction: (...args: unknown[]) => mockUpsertTransaction(...args),
 }));
@@ -28,6 +25,9 @@ vi.mock('../../../00_kernel/telemetry/logger', () => ({
     debug: vi.fn(),
     error: vi.fn(),
   },
+  EVENTS: {
+    TRANSACTION_CREATED: 'TRANSACTION_CREATED',
+  },
 }));
 
 // Test fixture factory
@@ -35,6 +35,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   id: TransactionId('tx-1'),
   userId: UserId('user-1'),
   imageId: ImageId('img-1'),
+  s3Key: null,
   type: 'expense',
   category: 'purchase',
   amount: 1000,

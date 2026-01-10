@@ -3,8 +3,8 @@
 // Pillar D: FSM States
 
 import { useReducer, useCallback, useEffect } from 'react';
-import type { AppSettings } from '../adapters/settingsDb';
-import { loadSettings, saveSetting } from '../adapters/settingsDb';
+import type { AppSettings } from '../adapters';
+import { loadAppSettings, updateAppSetting } from '../services/settingsService';
 import { changeLanguage } from '../../../i18n';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
@@ -77,7 +77,7 @@ export function useSettings(): UseSettingsResult {
   const load = useCallback(async () => {
     dispatch({ type: 'LOAD' });
     try {
-      const settings = await loadSettings();
+      const settings = await loadAppSettings();
       // Sync i18n language with stored setting
       if (settings.language) {
         changeLanguage(settings.language);
@@ -108,7 +108,7 @@ export function useSettings(): UseSettingsResult {
     }
 
     try {
-      await saveSetting(key, value);
+      await updateAppSetting(key, value);
     } catch (e) {
       logger.error(EVENTS.SETTINGS_SAVE_FAILED, { key, error: String(e) });
       // Reload on error to get correct state

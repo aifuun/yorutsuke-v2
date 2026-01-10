@@ -14,7 +14,7 @@ let mockOffline = false;
 vi.mock('../../../00_kernel/config/mock', () => ({
   isMockingOnline: () => mockOnline,
   isMockingOffline: () => mockOffline,
-  mockDelay: (ms: number) => Promise.resolve(),
+  mockDelay: (_ms: number) => Promise.resolve(),
 }));
 
 // Mock logger

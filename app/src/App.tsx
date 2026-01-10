@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore, useEffect } from 'react';
 import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
-import { subscribeMockMode, getMockSnapshot, loadDebugConfig, isDebugEnabled } from './00_kernel/config';
+import { subscribeMockMode, getMockSnapshot, isDebugEnabled } from './00_kernel/config';
 import { Sidebar, type ViewType } from './components/Sidebar';
 import { DashboardView } from './02_modules/report';
 import { CaptureView } from './02_modules/capture';

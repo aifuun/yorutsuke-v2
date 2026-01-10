@@ -9,7 +9,7 @@ import { createIntentId, createTraceId, ImageId as createImageId } from '../../.
 import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
 import { emit } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { compressImage, deleteLocalImage } from '../adapters/imageIpc';
+import { compressImage, deleteLocalImage } from '../adapters';
 import {
   findImageByMd5,
   getImageById,
@@ -18,7 +18,7 @@ import {
   deleteImageRecord,
   loadUnfinishedImages,
   resetInterruptedUploads,
-} from '../adapters/imageDb';
+} from '../adapters';
 import { captureStore } from '../stores/captureStore';
 import type { ImageRow } from '../../../00_kernel/storage';
 

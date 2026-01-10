@@ -8,7 +8,7 @@
 | MVP | Tech Debt (pre-MVP4) |
 | 复杂度 | T2 - Logic (mechanical refactoring) |
 | 预估 | 4h |
-| 状态 | [x] 规划 / [ ] 开发中 / [ ] Review / [ ] 完成 |
+| 状态 | [x] 规划 / [x] 开发中 / [ ] Review / [x] 完成 |
 
 ---
 
@@ -22,10 +22,10 @@
 - Align with ADR-001 Service Pattern
 
 **验收标准**:
-- [ ] No headless hook imports from `adapters/` directly
-- [ ] All adapter calls go through service layer
-- [ ] Existing functionality preserved (no regressions)
-- [ ] All 105+ tests pass
+- [x] No headless hook imports from `adapters/` directly
+- [x] All adapter calls go through service layer
+- [x] Existing functionality preserved (no regressions)
+- [x] All 105+ tests pass
 
 ---
 
@@ -47,42 +47,49 @@
 
 **Phase 1: Transaction Module** (~1.5h)
 
-- [ ] Create `transactionService.ts` with Pure TS functions:
-  - `loadTransactions(userId, options)` → wraps `fetchTransactions`
-  - `countTransactions(userId, options)` → wraps `countTransactions`
-  - `saveTransaction(tx)` → wraps `saveTransaction`
-  - `removeTransaction(id)` → wraps `deleteTransaction`
-  - `confirmTransaction(id)` → wraps `confirmTransaction`
-- [ ] Update `services/index.ts` to export new service
-- [ ] Refactor `useTransactionLogic.ts` to import from service
-- [ ] Verify transaction functionality works
+- [x] Create `transactionService.ts` with Pure TS functions:
+  - [x] `loadTransactions(userId, options)` → wraps `fetchTransactions`
+  - [x] `countTotalTransactions(userId, options)` → wraps `countTransactions`
+  - [x] `saveNewTransaction(tx)` → wraps `saveTransaction`
+  - [x] `removeTransaction(id)` → wraps `deleteTransaction`
+  - [x] `confirmExistingTransaction(id)` → wraps `confirmTransaction`
+- [x] Update `services/index.ts` to export new service
+- [x] Refactor `useTransactionLogic.ts` to import from service
+- [x] Verify transaction functionality works
 
 **Phase 2: Auth Module** (~1h)
 
-- [ ] Create `auth/services/authService.ts` with Pure TS functions:
-  - `signIn(username, password)` → wraps authApi
-  - `signOut()` → wraps authApi
-  - `getGuestId()` → wraps tokenStorage
-  - etc.
-- [ ] Create `auth/services/index.ts`
-- [ ] Refactor `useAuth.ts` to import from service
-- [ ] Refactor `useEffectiveUserId.ts` to import from service
-- [ ] Verify auth functionality works
+- [x] Create `auth/services/authService.ts` with Pure TS functions:
+  - [x] `registerUser(email, password)` → wraps authApi
+  - [x] `verifyUserEmail(email, code)` → wraps authApi
+  - [x] `loginUser(email, password)` → wraps authApi
+  - [x] `logoutUser()` → wraps authApi
+  - [x] `refreshAccessToken()` → wraps authApi
+  - [x] `loadUserSession()` → wraps tokenStorage
+  - [x] `saveUserTokens(tokens)` → wraps tokenStorage
+  - [x] `saveUserProfile(user)` → wraps tokenStorage
+  - [x] `getGuestDeviceId()` → wraps tokenStorage
+  - [x] `getStoredGuestId()` → wraps tokenStorage
+  - [x] `clearStoredTokens()` → wraps tokenStorage
+- [x] Create `auth/services/index.ts`
+- [x] Refactor `useAuth.ts` to import from service
+- [x] Refactor `useEffectiveUserId.ts` to import from service
+- [x] Verify auth functionality works
 
 **Phase 3: Settings Module** (~1h)
 
-- [ ] Create `settings/services/settingsService.ts` with Pure TS functions:
-  - `loadSettings()` → wraps settingsDb
-  - `updateSetting(key, value)` → wraps settingsDb
-- [ ] Create `settings/services/index.ts`
-- [ ] Refactor `useSettings.ts` to import from service
-- [ ] Verify settings functionality works
+- [x] Create `settings/services/settingsService.ts` with Pure TS functions:
+  - [x] `loadAppSettings()` → wraps settingsDb
+  - [x] `updateAppSetting(key, value)` → wraps settingsDb
+- [x] Create `settings/services/index.ts`
+- [x] Refactor `useSettings.ts` to import from service
+- [x] Verify settings functionality works
 
 **Phase 4: Verification** (~0.5h)
 
-- [ ] Run `npm test` - all 105+ tests pass
-- [ ] Run `npm run tauri dev` - manual smoke test
-- [ ] Verify no headless hook imports adapters: `grep -r "from.*adapters" app/src/**/headless/`
+- [x] Run `npm test` - all 105+ tests pass
+- [x] Run `npm run tauri dev` - manual smoke test
+- [x] Verify no headless hook imports adapters: `grep -r "from.*adapters" app/src/**/headless/`
 
 ---
 
@@ -157,7 +164,7 @@ import { loadTransactions, removeTransaction, ... } from '../services/transactio
 | 日期 | 状态 | 备注 |
 |------|------|------|
 | 2026-01-10 | 规划完成 | |
-| | 开发中 | |
+| 2026-01-10 | 开发完成 | 3 services 创建，3 headless hooks 重构，105 tests pass |
 | | 完成 | |
 
 ---

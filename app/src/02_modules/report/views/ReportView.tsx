@@ -4,7 +4,7 @@ import type { UserId, TransactionId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { createDailySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
-import { seedMockTransactions } from '../../transaction/adapters/seedData';
+import { seedMockTransactions } from '../../transaction';
 import { useTranslation } from '../../../i18n';
 import { SummaryCards } from './SummaryCards';
 import { CategoryBreakdown } from './CategoryBreakdown';

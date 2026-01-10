@@ -11,7 +11,10 @@ import {
   deleteTransaction,
   confirmTransaction,
   type FetchTransactionsOptions,
-} from '../adapters/transactionDb';
+} from '../adapters';
+
+// Re-export types for views/hooks (Pillar I: Firewall)
+export type { FetchTransactionsOptions };
 
 /**
  * Load transactions for a user with optional filters

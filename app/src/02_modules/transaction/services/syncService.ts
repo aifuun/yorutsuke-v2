@@ -2,11 +2,10 @@
 // Orchestrates cloud-to-local synchronization with conflict resolution
 // Pillar Q: Idempotent - safe to retry
 
-import type { UserId, TraceId } from '../../../00_kernel/types';
+import type { UserId } from '../../../00_kernel/types';
 import { TraceId as makeTraceId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
-import { fetchTransactions as fetchFromCloud } from '../adapters/transactionApi';
-import { fetchTransactions as fetchFromLocal, upsertTransaction } from '../adapters/transactionDb';
+import { fetchTransactionsFromCloud as fetchFromCloud, fetchTransactions as fetchFromLocal, upsertTransaction } from '../adapters';
 import { logger } from '../../../00_kernel/telemetry/logger';
 import { syncImagesForTransactions } from './imageSyncService';
 
@@ -166,7 +165,7 @@ export async function syncTransactions(
       localCount: localTransactions.length,
     };
 
-    logger.info('transaction_sync_complete', result);
+    logger.info('transaction_sync_complete', { ...result });
     return result;
   } catch (error) {
     logger.error('transaction_sync_failed', {

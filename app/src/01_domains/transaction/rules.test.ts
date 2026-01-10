@@ -16,6 +16,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   id: TransactionId('tx-1'),
   userId: UserId('user-1'),
   imageId: null,
+  s3Key: null,
   type: 'expense',
   category: 'purchase',
   amount: 1000,

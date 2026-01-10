@@ -3,9 +3,8 @@
 // Pillar L: Business logic separated from UI
 
 import type { ImageId as ImageIdType } from '../../../00_kernel/types';
-import { getImageById } from '../../capture/adapters/imageDb';
-import { checkFileExists, getLocalImageUrl } from '../adapters/imageAdapter';
-import { getS3DownloadUrl } from '../adapters/presignAdapter';
+import { getImageById } from '../../capture';
+import { checkFileExists, getLocalImageUrl, getS3DownloadUrl } from '../adapters';
 
 /**
  * Result of image URL resolution
