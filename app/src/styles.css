@@ -1354,10 +1354,10 @@ body {
   border-color: var(--slate-300);
 }
 
-.select:focus {
-  outline: none;
+.select:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
   border-color: var(--blue-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .select:disabled {
@@ -1393,10 +1393,10 @@ body {
   border-color: var(--slate-300);
 }
 
-.input:focus {
-  outline: none;
+.input:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
   border-color: var(--blue-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .input:disabled {
