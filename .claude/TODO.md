@@ -66,6 +66,11 @@ Total: 15 hours
 
 ## Recently Completed
 
+- **Design System Audits** (2026-01-10)
+  - ✅ Issue #128: FEEDBACK.md - 6-item checklist + comprehensive audit (Toast, Modal, Progress, LoadingOverlay)
+  - ✅ Issue #131: ICONS.md - 6-item checklist + code audit (Lucide adoption + emoji migration plan)
+  - Fixed Progress.css token bug (--duration-normal → --duration-base)
+  - Both components verified 100% compliant
 - **MVP3 Frontend Decomposition** (2026-01-10)
   - Step 1 (40 min): Created Issues #114-#118
   - Updated MVP3_BATCH.md with roadmap
