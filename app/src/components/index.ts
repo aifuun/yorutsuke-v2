@@ -3,6 +3,7 @@
 // Loading
 export { Spinner } from './Spinner';
 export { Skeleton } from './Skeleton';
+export { LoadingOverlay } from './LoadingOverlay/LoadingOverlay';
 
 // Feedback
 export { ToastContainer, useToast } from './Toast';
