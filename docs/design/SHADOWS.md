@@ -175,12 +175,28 @@ Combine **outer focus ring** (no shadow) with **subtle inner shadow** for clarit
 
 ### Input Focus State
 
+**Recommended**: Use `outline` property (not `box-shadow`) for better accessibility:
+
 ```css
-input:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);  /* Focus ring glow */
+input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
   border-color: var(--color-primary);
 }
+
+/* Error state */
+input.error:focus-visible {
+  outline: 2px solid var(--rose-500);
+  outline-offset: 2px;
+  border-color: var(--rose-500);
+}
 ```
+
+**Why `outline` over `box-shadow`?**
+- Semantic: `outline` is designed for focus indication
+- Accessible: Better screen reader support
+- Predictable: Doesn't affect layout (unlike border)
+- Standard: Follows WCAG best practices
 
 ---
 
