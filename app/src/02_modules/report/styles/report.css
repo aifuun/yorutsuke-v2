@@ -65,11 +65,11 @@
   min-width: 120px;
 }
 
-.filter-group select:focus,
-.filter-group input[type="date"]:focus {
-  outline: none;
+.filter-group select:focus-visible,
+.filter-group input[type="date"]:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
   border-color: var(--blue-500);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .date-inputs {
@@ -447,11 +447,11 @@
   font-size: 0.875rem;
 }
 
-.edit-row input:focus,
-.edit-row select:focus {
-  outline: none;
+.edit-row input:focus-visible,
+.edit-row select:focus-visible {
+  outline: 2px solid var(--blue-500);
+  outline-offset: 2px;
   border-color: var(--blue-500);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .edit-actions {

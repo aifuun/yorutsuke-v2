@@ -34,10 +34,10 @@
   border-color: var(--slate-400);
 }
 
-.textarea:focus {
-  outline: none;
+.textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .textarea:disabled {
@@ -52,9 +52,10 @@
   border-color: var(--rose-500);
 }
 
-.textarea--error:focus {
+.textarea--error:focus-visible {
+  outline: 2px solid var(--rose-500);
+  outline-offset: 2px;
   border-color: var(--rose-500);
-  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
 }
 
 /* Character count */

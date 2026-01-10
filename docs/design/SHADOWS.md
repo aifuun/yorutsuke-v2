@@ -228,6 +228,32 @@ input.error:focus-visible {
    }
    ```
 
+### Linting & Enforcement
+
+**Stylelint Rule** (Phase 3-B): Hard-coded `box-shadow` values are enforced via stylelint:
+```json
+{
+  "declaration-property-value-disallowed-list": {
+    "box-shadow": ["/rgba\\(/", "/rgb\\(/", "/hsl\\(/", "/[0-9]+px/", "/^0\\s+0\\s+/"]
+  }
+}
+```
+
+**Exceptions**: Hard-coded shadows are allowed ONLY when used for **decorative effects** (not elevation), with explicit documentation:
+
+```css
+/* ✅ Allowed: Decorative glow (not elevation) */
+.nav-item.active::before {
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);  /* Glow effect */
+  /* @explain: Decorative glow for visual emphasis - not elevation shadow */
+}
+
+/* ❌ Disallowed: Hard-coded elevation shadow */
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);  /* Use var(--shadow-1) instead */
+}
+```
+
 ---
 
 ## Dark Mode Adjustments
@@ -321,8 +347,9 @@ grep -r "transition: all" src/
 - [x] Create CSS custom properties (tokens)
 - [x] Add tokens to `styles.css` (CSS root) - Lines 148-168
 - [x] Test dark mode adjustments - Lines 1464-1492
-- [ ] Refactor existing hard-coded shadows (separate issue)
-- [ ] Update component documentation
+- [x] Refactor existing hard-coded shadows (Phase 3-A/3-B)
+- [x] Add stylelint enforcement rule (Phase 3-B)
+- [x] Update component documentation
 - [ ] Create utility classes (optional)
 - [ ] Perform accessibility audit
 - [ ] Document in Storybook (future)

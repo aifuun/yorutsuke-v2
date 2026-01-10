@@ -66,6 +66,10 @@
   width: 4px;
   background: var(--blue-500);
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  /* Phase 3-B: Decorative glow effect (not elevation shadow) - intentionally kept
+     to maintain visual emphasis on active navigation item. Not subject to shadow
+     token migration as it serves a distinct design purpose. */
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list */
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
