@@ -372,5 +372,26 @@
       "failed": "失敗",
       "skipped": "重複"
     }
+  },
+  "calendar": {
+    "prevMonth": "前月",
+    "nextMonth": "次月",
+    "monthSummary": "月間サマリーを表示",
+    "transactions": "件の取引",
+    "monthlyView": "月間サマリー ({{month}})",
+    "days": {
+      "sun": "日",
+      "mon": "月",
+      "tue": "火",
+      "wed": "水",
+      "thu": "木",
+      "fri": "金",
+      "sat": "土"
+    }
+  },
+  "history": {
+    "title": "履歴",
+    "noTransactions": "この日付には取引がありません",
+    "transactions": "取引"
   }
 }

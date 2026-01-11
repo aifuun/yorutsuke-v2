@@ -8,6 +8,7 @@ import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
 import { EmptyState } from './EmptyState';
+import { HistoryModal } from './HistoryModal';
 import { navigationStore } from '../../../00_kernel/navigation';
 import '../styles/dashboard.css';
 
@@ -66,6 +67,9 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   // Date selector with smart default
   const [selectedDate, setSelectedDate] = useState(getSmartDefaultDate());
 
+  // History modal state
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   // Helper: Navigate to ledger with optional filter intent
   const navigateToLedger = (showPending: boolean = false) => {
     if (showPending) {
@@ -89,6 +93,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     () => createDailySummaryWithBreakdown(selectedDate, transactions),
     [selectedDate, transactions]
   );
+
 
   // Phase 4: Pending transactions (unconfirmed only, limit 5)
   const pendingTransactions = useMemo(() => {
@@ -145,7 +150,12 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   if (!userId) {
     return (
       <div className="dashboard">
-        <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+        <DashboardHeaderComponent
+          date={today}
+          dayOfWeek={dayOfWeek}
+          title={t('nav.dashboard')}
+          onHistoryClick={() => setIsHistoryOpen(true)}
+        />
         <div className="dashboard-content">
           <EmptyState variant="first-use" />
         </div>
@@ -156,7 +166,12 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   if (state.status === 'loading' || state.status === 'idle') {
     return (
       <div className="dashboard">
-        <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+        <DashboardHeaderComponent
+          date={today}
+          dayOfWeek={dayOfWeek}
+          title={t('nav.dashboard')}
+          onHistoryClick={() => setIsHistoryOpen(true)}
+        />
         <div className="dashboard-content">
           <div className="dashboard-loading">{t('common.loading')}</div>
         </div>
@@ -167,7 +182,12 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   if (state.status === 'error') {
     return (
       <div className="dashboard">
-        <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+        <DashboardHeaderComponent
+          date={today}
+          dayOfWeek={dayOfWeek}
+          title={t('nav.dashboard')}
+          onHistoryClick={() => setIsHistoryOpen(true)}
+        />
         <div className="dashboard-content">
           <div className="dashboard-error">{t('common.error')}</div>
         </div>
@@ -181,7 +201,12 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 
   return (
     <div className="dashboard">
-      <DashboardHeaderComponent date={selectedDate} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
+      <DashboardHeaderComponent
+        date={selectedDate}
+        dayOfWeek={dayOfWeek}
+        title={t('nav.dashboard')}
+        onHistoryClick={() => setIsHistoryOpen(true)}
+      />
 
       <div className="dashboard-content">
         <div className="dashboard-container">
@@ -514,20 +539,51 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
           </div>
         </div>
       </div>
+
+      {/* History Modal */}
+      {isHistoryOpen && (
+        <HistoryModal
+          transactions={transactions}
+          onClose={() => setIsHistoryOpen(false)}
+          initialDate={selectedDate}
+        />
+      )}
     </div>
   );
 }
 
 // Header component
-function DashboardHeaderComponent({ date, dayOfWeek, title }: { date: string; dayOfWeek: string; title: string }) {
+function DashboardHeaderComponent({
+  date,
+  dayOfWeek,
+  title,
+  onHistoryClick
+}: {
+  date: string;
+  dayOfWeek: string;
+  title: string;
+  onHistoryClick: () => void;
+}) {
+  const { t } = useTranslation();
+
   return (
-    <ViewHeader 
+    <ViewHeader
       title={title}
       rightContent={
-        <div className="dashboard-date">
-          <span className="mono">{date}</span>
-          <span className="date-separator">•</span>
-          <span>{dayOfWeek}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+          <button
+            type="button"
+            className="btn btn--secondary btn--sm"
+            onClick={onHistoryClick}
+            aria-label={t('history.title')}
+          >
+            📅 {t('history.title')}
+          </button>
+          <div className="dashboard-date">
+            <span className="mono">{date}</span>
+            <span className="date-separator">•</span>
+            <span>{dayOfWeek}</span>
+          </div>
         </div>
       }
     />
