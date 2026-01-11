@@ -120,10 +120,9 @@
 
 .user-label-arrow {
   opacity: 0.5;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .user-label:hover .user-label-arrow {
   opacity: 1;
-  transform: translateX(2px);
 }

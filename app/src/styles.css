@@ -1301,13 +1301,10 @@ body {
   gap: 16px;
   padding: 12px;
   border-radius: var(--radius-lg);
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    transform var(--duration-fast) var(--ease-standard);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .activity-item:hover {
-  transform: translateX(4px);
   background: rgba(255, 255, 255, 0.5);
 }
 
