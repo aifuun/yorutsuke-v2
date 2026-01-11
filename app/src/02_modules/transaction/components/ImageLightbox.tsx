@@ -425,7 +425,7 @@ export function ImageLightbox({
                 className="btn btn--danger"
                 onClick={onDelete}
               >
-                🗑 {t('common.delete') || 'Delete'}
+                {t('common.delete') || 'Delete'}
               </button>
             )}
             <button type="button" className="btn btn--secondary" onClick={onClose}>
