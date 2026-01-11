@@ -6,6 +6,22 @@ Long-term project knowledge. Session context comes from `git log` + `gh issue li
 
 Record important decisions with context.
 
+### [2026-01] Branch-First Workflow Rule (Process Improvement)
+- **Decision**: ALWAYS create feature branch BEFORE any code changes (not after)
+- **Trigger**: Started Issue #115 directly on `development` branch; user identified this as workflow violation
+- **Root Causes**:
+  1. `*next` command lacks branch creation automation
+  2. No explicit "branch-first" rule in AI workflow guidelines
+- **Fix Applied**:
+  - Added "Branch-First Rule" section to `.claude/rules/workflow.md`
+  - Retroactively created `feature/115-unified-filter-bar` branch
+  - AI must check `git branch --show-current` before coding
+- **Branch Naming Convention**:
+  - `feature/#XXX-short-description` (new features)
+  - `bugfix/#XXX-short-description` (bug fixes)
+  - `hotfix/#XXX-short-description` (urgent production fixes)
+- **Long-term TODO**: Enhance `*next` command to prompt/auto-create feature branches
+
 ### [2026-01] Transaction Cloud Sync (#108)
 - **Decision**: Implemented pull-only cloud-to-local transaction sync with conflict resolution
 - **Trigger**: Transactions processed in cloud (Lambda → DynamoDB) but app reads from local SQLite; gap broke "local-first" promise

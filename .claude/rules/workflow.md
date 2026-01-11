@@ -40,6 +40,39 @@ MVP 文件 (路标)  →  GitHub Issues (施工图)  →  TODO.md (今日清单)
   目标/验收           技术任务/实现细节        Session 活跃任务
 ```
 
+## Branch-First Rule (CRITICAL)
+
+**BEFORE starting ANY code changes, ALWAYS create a feature branch.**
+
+### Branch Naming Convention
+```
+feature/#XXX-short-description   (new features)
+bugfix/#XXX-short-description    (bug fixes)
+hotfix/#XXX-short-description    (urgent production fixes)
+```
+
+### Checklist (MUST verify before coding)
+- [ ] NOT on `development` or `master` branch
+- [ ] Branch name follows convention
+- [ ] Created from latest `development`
+
+### Example Workflow
+```bash
+# 1. Check current branch
+git branch --show-current
+
+# 2. If on development/master, create feature branch
+git checkout development
+git pull origin development
+git checkout -b feature/115-unified-filter-bar
+
+# 3. NOW start coding
+```
+
+**Why?** Feature branches allow safe experimentation, easy rollback, clean history, and parallel development.
+
+**When to branch?** When `*next` picks up a new issue, IMMEDIATELY create a branch BEFORE planning or coding.
+
 ## Two-Step Planning (新增)
 
 **Step 1: MVP-Level Decomposition** (40 min)

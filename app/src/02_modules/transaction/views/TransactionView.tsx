@@ -1,12 +1,9 @@
 // Pillar L: Views are pure JSX, logic in headless hooks
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTransactionLogic, useSyncLogic } from '../headless';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
 import { ask } from '@tauri-apps/plugin-dialog';
-import DatePicker from 'react-datepicker';
-import { ja } from 'date-fns/locale';
-import 'react-datepicker/dist/react-datepicker.css';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { on } from '../../../00_kernel/eventBus';
@@ -26,41 +23,10 @@ interface TransactionViewProps {
 // Status filter type
 type StatusFilter = 'all' | 'pending' | 'confirmed';
 
-// Quick filter helpers
-function getThisMonth(): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of month
-  return { start, end };
-}
-
-function getLastMonth(): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const end = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
-  return { start, end };
-}
-
-function getThisYear(): { start: Date; end: Date } {
-  const year = new Date().getFullYear();
-  return {
-    start: new Date(year, 0, 1),
-    end: new Date(year, 11, 31),
-  };
-}
-
-type QuickFilter = 'thisMonth' | 'lastMonth' | 'thisYear' | 'all' | 'custom';
-
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { state, filteredTransactions, confirm, remove, load, totalCount } = useTransactionLogic(userId);
   const syncLogic = useSyncLogic(userId, true); // Auto-sync enabled
-
-  // Date range state - initialize with this month's range
-  const thisMonth = getThisMonth();
-  const [startDate, setStartDate] = useState<Date>(thisMonth.start);
-  const [endDate, setEndDate] = useState<Date>(thisMonth.end);
-  const [activeFilter, setActiveFilter] = useState<QuickFilter>('all'); // Default to 'all' to show historical data
 
   // Sorting state
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
@@ -68,6 +34,20 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // Status filter state
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Type filter state (NEW)
+  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
+
+  // Category filter state (NEW)
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'purchase' | 'sale' | 'shipping' | 'packaging' | 'fee' | 'other'>('all');
+
+  // Year/Month filters (NEW - replacing DatePicker)
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<'all' | number>('all');
+
+  // Layout toggle for mockup (TEMPORARY - for testing)
+  const [filterLayout, setFilterLayout] = useState<'compact' | 'grouped'>('compact');
 
   // Pagination state
   const pageSize = 20;
@@ -82,20 +62,38 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
       offset: (currentPage - 1) * pageSize,
     };
 
-    // Add date filters if not 'all'
-    // Use local date (not UTC) per time-handling.md rules
-    if (activeFilter !== 'all') {
+    // Year/Month filters (NEW)
+    if (selectedMonth !== 'all') {
+      // Specific month selected
+      const startDate = new Date(selectedYear, selectedMonth, 1);
+      const endDate = new Date(selectedYear, selectedMonth + 1, 0); // Last day of month
+      options.startDate = startDate.toLocaleDateString('sv-SE');
+      options.endDate = endDate.toLocaleDateString('sv-SE');
+    } else {
+      // Full year selected
+      const startDate = new Date(selectedYear, 0, 1);
+      const endDate = new Date(selectedYear, 11, 31);
       options.startDate = startDate.toLocaleDateString('sv-SE');
       options.endDate = endDate.toLocaleDateString('sv-SE');
     }
 
-    // Add status filter
+    // Status filter
     if (statusFilter !== 'all') {
       options.statusFilter = statusFilter;
     }
 
+    // Type filter (NEW)
+    if (typeFilter !== 'all') {
+      options.typeFilter = typeFilter;
+    }
+
+    // Category filter (NEW)
+    if (categoryFilter !== 'all') {
+      options.categoryFilter = categoryFilter as any; // TODO: Fix type
+    }
+
     return options;
-  }, [activeFilter, startDate, endDate, sortBy, sortOrder, currentPage, pageSize, statusFilter]);
+  }, [selectedYear, selectedMonth, sortBy, sortOrder, currentPage, pageSize, statusFilter, typeFilter, categoryFilter]);
 
   // Check for navigation intent on mount
   useEffect(() => {
@@ -105,9 +103,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
       if (intent.statusFilter) {
         setStatusFilter(intent.statusFilter);
       }
-      if (intent.quickFilter) {
-        setActiveFilter(intent.quickFilter);
-      }
+      // Note: quickFilter removed with date picker redesign (Issue #115)
       // Clear intent after applying
       navigationStore.getState().clearLedgerIntent();
     }
@@ -119,38 +115,6 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
       load(buildFetchOptions());
     }
   }, [userId, buildFetchOptions, load]);
-
-  // Apply quick filter
-  const applyQuickFilter = useCallback((filter: QuickFilter) => {
-    setActiveFilter(filter);
-    setCurrentPage(1); // Reset to first page
-    if (filter === 'thisMonth') {
-      const { start, end } = getThisMonth();
-      setStartDate(start);
-      setEndDate(end);
-    } else if (filter === 'lastMonth') {
-      const { start, end } = getLastMonth();
-      setStartDate(start);
-      setEndDate(end);
-    } else if (filter === 'thisYear') {
-      const { start, end } = getThisYear();
-      setStartDate(start);
-      setEndDate(end);
-    }
-    // 'all' and 'custom' don't change the date selectors
-  }, []);
-
-  // Handle manual date change from DatePicker
-  const handleDateChange = (type: 'start' | 'end', date: Date | null) => {
-    if (!date) return;
-    setActiveFilter('custom');
-    setCurrentPage(1); // Reset to first page
-    if (type === 'start') {
-      setStartDate(date);
-    } else {
-      setEndDate(date);
-    }
-  };
 
   // Handle sorting change
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -175,22 +139,33 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     setCurrentPage(page);
   };
 
+  // NEW: Handle year change
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedYear(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  // NEW: Handle month change
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedMonth(value === 'all' ? 'all' : Number(value));
+    setCurrentPage(1);
+  };
+
+  // NEW: Handle type filter change
+  const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTypeFilter(e.target.value as 'all' | 'income' | 'expense');
+    setCurrentPage(1);
+  };
+
+  // NEW: Handle category filter change
+  const handleCategoryFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCategoryFilter(e.target.value as any);
+    setCurrentPage(1);
+  };
+
   // Display transactions (already filtered and sorted by backend)
   const displayTransactions = filteredTransactions;
-
-  // DatePicker locale
-  const dateLocale = i18n.language === 'ja' ? ja : undefined;
-
-  // Calculate summary
-  const summary = useMemo(() => {
-    const income = displayTransactions
-      .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const expense = displayTransactions
-      .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    return { income, expense, count: displayTransactions.length };
-  }, [displayTransactions]);
 
   const handleNewEntry = () => onNavigate?.('capture');
 
@@ -343,129 +318,195 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
       <div className="ledger-content">
         <div className="ledger-container">
-          {/* Date Picker Card */}
-          <div className="card card--picker">
-            {/* Date Range Selectors */}
-            <span className="picker-label">{t('ledger.dateRange')}</span>
-            <div className="date-range-row">
-              {/* Start Date */}
-              <DatePicker
-                selected={startDate}
-                onChange={(date: Date | null) => handleDateChange('start', date)}
-                dateFormat="yyyy/MM/dd"
-                locale={dateLocale}
-                className="input input--date"
-                selectsStart
-                startDate={startDate}
-                endDate={endDate}
-              />
-
-              <span className="date-range-arrow">→</span>
-
-              {/* End Date */}
-              <DatePicker
-                selected={endDate}
-                onChange={(date: Date | null) => handleDateChange('end', date)}
-                dateFormat="yyyy/MM/dd"
-                locale={dateLocale}
-                className="input input--date"
-                selectsEnd
-                startDate={startDate}
-                endDate={endDate}
-                minDate={startDate}
-              />
-            </div>
-
-            {/* Quick Filters */}
-            <div className="quick-filters">
-              <button
-                type="button"
-                className={`btn btn--filter ${activeFilter === 'thisMonth' ? 'btn--filter-active' : ''}`}
-                onClick={() => applyQuickFilter('thisMonth')}
-              >
-                {t('ledger.thisMonth')}
-              </button>
-              <button
-                type="button"
-                className={`btn btn--filter ${activeFilter === 'lastMonth' ? 'btn--filter-active' : ''}`}
-                onClick={() => applyQuickFilter('lastMonth')}
-              >
-                {t('ledger.lastMonth')}
-              </button>
-              <button
-                type="button"
-                className={`btn btn--filter ${activeFilter === 'thisYear' ? 'btn--filter-active' : ''}`}
-                onClick={() => applyQuickFilter('thisYear')}
-              >
-                {t('ledger.thisYear')}
-              </button>
-              <button
-                type="button"
-                className={`btn btn--filter ${activeFilter === 'all' ? 'btn--filter-active' : ''}`}
-                onClick={() => applyQuickFilter('all')}
-              >
-                {t('ledger.all')}
-              </button>
-            </div>
+          {/* MOCKUP: Layout Toggle (TEMPORARY - for testing only) */}
+          <div style={{ padding: '8px', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)', display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>🎨 Mockup Toggle:</span>
+            <button
+              type="button"
+              className={`btn btn--sm ${filterLayout === 'compact' ? 'btn--primary' : 'btn--secondary'}`}
+              onClick={() => setFilterLayout('compact')}
+            >
+              Option A: Compact Row
+            </button>
+            <button
+              type="button"
+              className={`btn btn--sm ${filterLayout === 'grouped' ? 'btn--primary' : 'btn--secondary'}`}
+              onClick={() => setFilterLayout('grouped')}
+            >
+              Option B: Grouped Rows
+            </button>
           </div>
 
-          {/* Summary Cards */}
-          <div className="summary-grid">
-            <div className="card card--summary is-income">
-              <p className="card--summary__label">{t('ledger.annualInflow')}</p>
-              <p className="card--summary__value">¥{summary.income.toLocaleString()}</p>
-            </div>
-            <div className="card card--summary is-expense">
-              <p className="card--summary__label">{t('ledger.annualOutflow')}</p>
-              <p className="card--summary__value">¥{summary.expense.toLocaleString()}</p>
-            </div>
-          </div>
+          {/* NEW: Unified Filter Bar */}
+          <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
+            {filterLayout === 'compact' ? (
+              /* Option A: Single Compact Row */
+              <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Time Filters */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem' }}>📅</span>
+                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '100px' }}>
+                    <option value={2024}>2024</option>
+                    <option value={2025}>2025</option>
+                    <option value={2026}>2026</option>
+                  </select>
+                  <select className="select" value={selectedMonth} onChange={handleMonthChange} style={{ width: '140px' }}>
+                    <option value="all">{t('ledger.all')} Months</option>
+                    <option value={0}>January</option>
+                    <option value={1}>February</option>
+                    <option value={2}>March</option>
+                    <option value={3}>April</option>
+                    <option value={4}>May</option>
+                    <option value={5}>June</option>
+                    <option value={6}>July</option>
+                    <option value={7}>August</option>
+                    <option value={8}>September</option>
+                    <option value={9}>October</option>
+                    <option value={10}>November</option>
+                    <option value={11}>December</option>
+                  </select>
+                </div>
 
-          {/* Transaction List */}
-          <div className="card card--list">
-            <div className="card--list__header">
-              <div>
-                <h2 className="card--list__title">{t('ledger.latestEntries')}</h2>
-                <span className="card--list__count">
-                  {t('ledger.totalItems', { count: totalCount })}
-                </span>
-              </div>
+                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
 
-              {/* Sorting & Filter Controls */}
-              <div className="sorting-controls">
-                <div className="control-group">
-                  <label className="control-label">{t('ledger.sortBy')}:</label>
-                  <select
-                    className="select select--sort"
-                    value={sortBy}
-                    onChange={handleSortByChange}
-                  >
-                    <option value="date">{t('ledger.invoiceDate')}</option>
-                    <option value="createdAt">{t('ledger.processingTime')}</option>
+                {/* Content Filters */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem' }}>📊</span>
+                  <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '120px' }}>
+                    <option value="all">All Types</option>
+                    <option value="income">💰 Income</option>
+                    <option value="expense">💸 Expense</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🏷️</span>
+                  <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '140px' }}>
+                    <option value="all">All Categories</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="sale">Sale</option>
+                    <option value="shipping">Shipping</option>
+                    <option value="packaging">Packaging</option>
+                    <option value="fee">Fee</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem' }}>✓</span>
+                  <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '120px' }}>
+                    <option value="all">{t('ledger.all')}</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                  </select>
+                </div>
+
+                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
+
+                {/* Sort Controls */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem' }}>⇅</span>
+                  <select className="select" value={sortBy} onChange={handleSortByChange} style={{ width: '140px' }}>
+                    <option value="date">Invoice Date</option>
+                    <option value="createdAt">Processing Time</option>
                   </select>
                   <button
                     type="button"
                     className="btn btn--icon"
                     onClick={toggleSortOrder}
-                    title={sortOrder === 'DESC' ? 'Newest first' : 'Oldest first'}
+                    style={{ minWidth: '32px' }}
                   >
                     {sortOrder === 'DESC' ? '↓' : '↑'}
                   </button>
                 </div>
-
-                <div className="control-group">
-                  <label className="control-label">{t('ledger.filter')}:</label>
-                  <select
-                    className="select select--filter"
-                    value={statusFilter}
-                    onChange={handleStatusFilterChange}
-                  >
-                    <option value="all">{t('ledger.all')}</option>
-                    <option value="pending">{t('ledger.pendingConfirmation')}</option>
-                    <option value="confirmed">{t('ledger.confirmed')}</option>
+              </div>
+            ) : (
+              /* Option B: Grouped Multi-Row */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {/* Row 1: Time Filters */}
+                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '80px' }}>📅 Time:</span>
+                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '100px' }}>
+                    <option value={2024}>2024</option>
+                    <option value={2025}>2025</option>
+                    <option value={2026}>2026</option>
+                  </select>
+                  <select className="select" value={selectedMonth} onChange={handleMonthChange} style={{ width: '140px' }}>
+                    <option value="all">{t('ledger.all')} Months</option>
+                    <option value={0}>January</option>
+                    <option value={1}>February</option>
+                    <option value={2}>March</option>
+                    <option value={3}>April</option>
+                    <option value={4}>May</option>
+                    <option value={5}>June</option>
+                    <option value={6}>July</option>
+                    <option value={7}>August</option>
+                    <option value={8}>September</option>
+                    <option value={9}>October</option>
+                    <option value={10}>November</option>
+                    <option value={11}>December</option>
                   </select>
                 </div>
+
+                {/* Row 2: Content Filters */}
+                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '80px' }}>🔍 Filters:</span>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Type:</label>
+                    <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '120px' }}>
+                      <option value="all">All</option>
+                      <option value="income">💰 Income</option>
+                      <option value="expense">💸 Expense</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Category:</label>
+                    <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '140px' }}>
+                      <option value="all">All</option>
+                      <option value="purchase">Purchase</option>
+                      <option value="sale">Sale</option>
+                      <option value="shipping">Shipping</option>
+                      <option value="packaging">Packaging</option>
+                      <option value="fee">Fee</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Status:</label>
+                    <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '120px' }}>
+                      <option value="all">{t('ledger.all')}</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 3: Sort Controls */}
+                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '80px' }}>⇅ Sort:</span>
+                  <select className="select" value={sortBy} onChange={handleSortByChange} style={{ width: '160px' }}>
+                    <option value="date">Invoice Date</option>
+                    <option value="createdAt">Processing Time</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    onClick={toggleSortOrder}
+                  >
+                    {sortOrder === 'DESC' ? '↓ Newest First' : '↑ Oldest First'}
+                  </button>
+                </div>
               </div>
+            )}
+          </div>
+
+          {/* Transaction List */}
+          <div className="card card--list">
+            <div className="card--list__header">
+              <h2 className="card--list__title">{t('ledger.latestEntries')}</h2>
+              <span className="card--list__count">
+                {t('ledger.totalItems', { count: totalCount })}
+              </span>
             </div>
 
             {displayTransactions.length === 0 ? (
