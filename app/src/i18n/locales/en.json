@@ -18,7 +18,8 @@
     "delete": "Delete",
     "confirm": "Confirm",
     "edit": "Edit",
-    "retry": "Retry"
+    "retry": "Retry",
+    "view": "View"
   },
   "report": {
     "title": "Morning Report",
@@ -189,6 +190,12 @@
     "lastMonth": "Last Month",
     "thisYear": "This Year",
     "all": "All",
+    "sortBy": "Sort By",
+    "filter": "Filter",
+    "invoiceDate": "Invoice Date",
+    "processingTime": "Processing Time",
+    "pendingConfirmation": "Pending Confirmation",
+    "confirmed": "Confirmed",
     "annualInflow": "Total Inflow",
     "annualOutflow": "Total Outflow",
     "latestEntries": "Transactions",

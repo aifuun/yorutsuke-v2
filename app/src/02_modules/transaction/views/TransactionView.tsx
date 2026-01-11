@@ -494,14 +494,14 @@ interface TransactionCardProps {
 }
 
 function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const date = new Date(transaction.date);
 
-  // Format date as YYYY-MM-DD
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const formattedDate = `${year}-${month}-${day}`;
+  // Format date based on locale
+  const formattedDate = date.toLocaleDateString(
+    i18n.language === 'ja' ? 'ja-JP' : i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+    { year: 'numeric', month: 'short', day: '2-digit' }
+  );
 
   const isConfirmed = !!transaction.confirmedAt;
   const isIncome = transaction.type === 'income';
@@ -618,7 +618,6 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
         <div className={`transaction-amount ${isIncome ? 'amount--income' : 'amount--expense'}`}>
           ¥{transaction.amount.toLocaleString()}
         </div>
-        <div className="account-label">{transaction.category.toUpperCase()}</div>
         {/* Actions - only Review button, delete moved to modal */}
         <div className="transaction-actions">
           <button
