@@ -8,28 +8,18 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 **当前目标**: Complete MVP3 frontend core features (Issues #114-#118)
 
-### Current Issue: #115 - Transaction List: Type & Category Filters
-**状态**: 🔄 进行中 | Plan: `.claude/plans/active/#115-transaction-filters.md`
-**复杂度**: T1 (read-only, direct pattern)
-**预估用时**: 5h
+### 当前无活跃 Issue
+**下一步**: 选择 #116 或 #117 继续 MVP3 Frontend
 
-**进度**:
-- [x] Phase 0: Feature Planning (0.5h) - ✅ 已完成
-- [ ] Phase 1: Backend Support (1.5h)
-  - [ ] Update FetchTransactionsOptions interface
-  - [ ] Update fetchTransactions with type/category filters
-  - [ ] Update countTransactions with type/category filters
-- [ ] Phase 2: Frontend UI (2.5h)
-  - [ ] Add filter state variables (typeFilter, categoryFilter)
-  - [ ] Update buildFetchOptions
-  - [ ] Add filter change handlers
-  - [ ] Add filter UI controls (2 new select dropdowns)
-- [ ] Phase 3: i18n Updates (0.5h)
-  - [ ] Verify/add missing translations (en/ja/zh)
-- [ ] Phase 4: Testing & Verification (1h)
-  - [ ] Manual testing (SC-800~807, SC-820~821)
-  - [ ] Edge cases (empty results, combined filters)
-  - [ ] Build verification
+### Recently Completed: #115 - Transaction List: Type & Category Filters
+**状态**: ✅ 完成 (2026-01-11)
+**实际用时**: ~6h (包含 Modal UX 优化和 Mock Mode 修复)
+**完成内容**:
+- Type/Category/Status 三个过滤器全部实现
+- Modal 优化（40% 空间减少，按钮重新布局）
+- Mock Mode 修复（online/offline 共享数据库）
+- 新增 i18n checker 工具（npm run check:i18n）
+- Branch-first workflow 规则文档化
 
 ### Recently Completed: #114 - Dashboard Daily Summary
 **状态**: ✅ 完成 (2026-01-11)
