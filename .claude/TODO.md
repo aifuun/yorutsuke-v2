@@ -39,12 +39,18 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 - [x] .claude/README.md (8 refs updated)
 - [x] .claude/workflow/templates/README.md (4 refs updated)
 
-#### Phase 5: Validation & Testing [1-2h] ⬅️ **CURRENT**
-- [ ] Verify all links work (MEMORY.md → ADRs, Commands → plans/active)
-- [ ] Test key commands (`*next`, `*issue pick`, `*sync`, `*resume`)
-- [ ] Spot check: No remaining TODO.md references in commands/docs
-- [ ] Verify plans/active/ structure is working
-- [ ] Final documentation review
+#### Phase 5: Validation & Testing [1-2h] ✅
+- [x] Verify all links work (MEMORY.md → ADRs, Commands → plans/active)
+- [x] Test key commands (`*next`, `*issue pick`, `*sync`, `*resume`)
+- [x] Spot check: No remaining TODO.md references in commands/docs (except session tracking)
+- [x] Verify plans/active/ structure is working
+- [x] Final documentation review
+
+#### Phase 6: Merge & Close ⬅️ **FINAL**
+- [ ] Create PR for review
+- [ ] Run final git diff to verify changes
+- [ ] Merge to development
+- [ ] Close issue #139
 
 ### Recently Completed: #115 - Transaction List: Type & Category Filters
 **状态**: ✅ 完成 (2026-01-11)
