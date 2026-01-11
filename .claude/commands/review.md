@@ -11,7 +11,7 @@ Run code review before closing an issue: static checks → architecture → test
 
 ## Usage
 ```bash
-*review              # Review current issue from TODO.md
+*review              # Review current issue plan and prepare to close
 *review #123         # Review specific issue
 *review --quick      # Skip tests + build (fast feedback)
 ```

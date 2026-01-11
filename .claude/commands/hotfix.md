@@ -43,13 +43,16 @@ Create hotfix branch from main:
    git push -u origin hotfix/<desc>
    ```
 
-3. **Update TODO.md**:
+3. **Create feature plan** (`.claude/plans/active/hotfix-desc.md`):
    ```markdown
-   ## Current Hotfix: <desc>
-
-   **Branch**: hotfix/<desc>
-   **Urgency**: PRODUCTION FIX
-
+   ---
+   issue: [critical issue number]
+   type: hotfix
+   urgency: PRODUCTION FIX
+   ---
+   
+   # Hotfix: <desc>
+   
    ### Steps
    - [ ] Identify root cause
    - [ ] Implement minimal fix
@@ -65,7 +68,7 @@ Complete hotfix and merge to main + development:
 1. **Verify fix is complete**:
    - Fix is minimal and targeted
    - Tests passing
-   - TODO.md steps completed
+   - Feature plan steps completed
 
 2. **Commit final changes**:
    ```bash
@@ -102,7 +105,7 @@ Complete hotfix and merge to main + development:
    git push origin --delete hotfix/<desc>
    ```
 
-7. **Clear TODO.md** hotfix section
+7. **Archive feature plan** hotfix section
 
 ## Output Format
 
@@ -156,4 +159,4 @@ main ◄─────────────── hotfix/<desc>
 
 ## Related
 - Commands: *bugfix (for development), *release, *sync
-- Patterns: @.claude/patterns/git-workflow.md
+- Files: .claude/plans/active/

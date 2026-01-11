@@ -17,21 +17,21 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 - [x] 008-component-library.md (#126-131)
 - [x] 009-branch-first-workflow.md (process improvement)
 
-#### Phase 2: Refactor MEMORY.md [1h] ⬅️
-- [ ] Create new lean MEMORY.md structure
-- [ ] Verify all ADR links
+#### Phase 2: Refactor MEMORY.md [1h] ✅
+- [x] Create new lean MEMORY.md structure (125 lines, down from 451)
+- [x] Verify all ADR links
 
-#### Phase 3: Update Core Commands [3-4h]
-- [ ] next.md (5 refs)
-- [ ] issue.md (8 refs)
-- [ ] sync.md (8 refs)
-- [ ] resume.md (7 refs)
-- [ ] status.md (5 refs)
-- [ ] approve.md (1 ref)
+#### Phase 3: Update Core Commands [3-4h] ✅
+- [x] next.md (5 refs)
+- [x] issue.md (8 refs)
+- [x] sync.md (8 refs)
+- [x] resume.md (7 refs)
+- [x] status.md (5 refs)
+- [x] approve.md (1 ref)
 
-#### Phase 4: Update Supporting Files [2h]
-- [ ] Remaining 11 commands
-- [ ] 8 documentation files
+#### Phase 4: Update Supporting Files [2h] ⬅️ **NEXT**
+- [ ] Remaining 11 commands (bugfix, hotfix, plan, review, tidy, audit, scaffold, tier, issue, workflow/release)
+- [ ] 8 documentation files (CLAUDE.md, rules/workflow.md, WORKFLOW.md, README.md, .prot/STRUCTURE.md, dev docs)
 
 #### Phase 5: Validation [1h]
 - [ ] Test commands

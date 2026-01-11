@@ -88,7 +88,7 @@ Workflow
    - Identify risky/complex steps
 
 4. **Create plan**:
-   - Add steps to .claude/TODO.md under "Quick Tasks"
+   - Create `.claude/plans/active/#<n>-title.md` from template
    - Or create GitHub issue if substantial
 
 5. **Present** to user:
@@ -141,7 +141,7 @@ When you execute `*plan`, you enter **Plan Mode** - a special state where:
 
 Once you approve the plan:
 - Use `*approve` to start implementing according to the plan
-- Or use `*next` to execute tasks from TODO.md
+- Or use `*next` to pick next issue and load its plan
 
 ## Notes
 

@@ -84,4 +84,4 @@ Total: 3 files changed, 120 insertions(+), 45 deletions(-)
 
 ## Related
 - Commands: *sync, *resume, *next
-- Files: @.claude/TODO.md, @.claude/MEMORY.md
+- Files: @.claude/MEMORY.md, @.claude/plans/active/

@@ -19,7 +19,7 @@ Reads last AI output to determine what to approve:
 - Report stack status on completion
 
 ### If previous command was *plan (ExitPlanMode)
-- Create TODO.md entries from plan
+- Create issue plan file in `.claude/plans/active/#<n>-title.md`
 - Load tier-based templates (if applicable)
 - Start first step from plan
 

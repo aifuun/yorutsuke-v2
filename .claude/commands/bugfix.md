@@ -42,12 +42,15 @@ Create bugfix branch from development:
    git push -u origin bugfix/<desc>
    ```
 
-3. **Update TODO.md**:
+3. **Create feature plan** (`.claude/plans/active/bugfix-desc.md`):
    ```markdown
-   ## Current Bugfix: <desc>
-
-   **Branch**: bugfix/<desc>
-
+   ---
+   issue: [bug issue number]
+   type: bugfix
+   ---
+   
+   # Bugfix: <desc>
+   
    ### Steps
    - [ ] Identify root cause
    - [ ] Implement fix
@@ -62,7 +65,7 @@ Complete bugfix and merge to development:
 
 1. **Verify fix is complete**:
    - All tests passing
-   - TODO.md steps completed
+   - Feature plan steps completed
 
 2. **Commit final changes**:
    ```bash
@@ -89,7 +92,7 @@ Complete bugfix and merge to development:
    git push origin --delete bugfix/<desc>
    ```
 
-4. **Clear TODO.md** bugfix section
+4. **Archive feature plan**: Move to `.claude/plans/archive/`
 
 ## Output Format
 
