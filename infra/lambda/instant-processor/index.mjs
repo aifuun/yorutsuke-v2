@@ -36,16 +36,17 @@ const OCR_PROMPT = `あなたは日本語と英語に対応したレシート解
 - date: 日付（YYYY-MM-DD形式）
 - merchant: 店舗名または取引先名
 - category: カテゴリ（以下から選択）
-  - sale: 売上
-  - purchase: 仕入れ
-  - shipping: 送料
-  - packaging: 梱包材
-  - fee: 手数料
+  - food: 餐饮（飲食）
+  - transport: 交通（交通費）
+  - shopping: 购物（買い物）
+  - entertainment: 娱乐（娯楽）
+  - utilities: 水电费（水道光熱費）
+  - health: 医疗（医療）
   - other: その他
 - description: 取引の説明（簡潔に）
 
 JSON形式で返してください。マークダウンのコードブロックは使わないでください。
-例: {"amount": 1500, "type": "expense", "date": "2025-01-15", "merchant": "ヤマト運輸", "category": "shipping", "description": "荷物発送"}`;
+例: {"amount": 1500, "type": "expense", "date": "2025-01-15", "merchant": "ファミリーマート", "category": "food", "description": "昼食"}`;
 
 export async function handler(event) {
     const ctx = initContext(event);

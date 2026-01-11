@@ -9,7 +9,7 @@ export const OcrResultSchema = z.object({
     type: z.enum(['income', 'expense']).catch('expense'), // Default to expense
     date: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
     merchant: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
-    category: z.enum(['sale', 'purchase', 'shipping', 'packaging', 'fee', 'other']).catch('other'),
+    category: z.enum(['food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other']).catch('other'),
     description: z.string().optional().default(''),
 });
 
