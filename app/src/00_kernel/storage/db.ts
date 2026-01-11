@@ -41,7 +41,8 @@ export async function getDb(): Promise<Database> {
   // This allows runtime mode switching in Debug panel
   if (isMockingOnline()) {
     if (!mockDb) {
-      await initDb();
+      // FIX: Use getMockDb() instead of initDb() to properly initialize mock database
+      return getMockDb();
     }
     return mockDb!;
   }
