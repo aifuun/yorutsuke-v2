@@ -79,6 +79,36 @@ git checkout -b feature/115-unified-filter-bar
 
 **When to branch?** When `*next` picks up a new issue, IMMEDIATELY create a branch BEFORE planning or coding.
 
+## Branch-Cleanup Rule (CRITICAL)
+
+**AFTER issue is closed, ALWAYS delete the feature branch (locally AND on GitHub).**
+
+### Cleanup Checklist (MUST verify after `*issue close`)
+- [ ] Feature branch deleted locally: `git branch -d feature/XXX-*`
+- [ ] Feature branch deleted on GitHub: `git push origin --delete feature/XXX-*`
+- [ ] Stale branches cleaned: `git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d`
+- [ ] Plan file archived: `plans/active/#XXX.md` → `plans/archive/`
+
+### Why Clean Up Branches?
+
+| Reason | Impact |
+|--------|--------|
+| **Prevents clutter** | Too many branches = confusion about active work |
+| **Clear history** | Only merged branches remain = reflects actual timeline |
+| **Easier `*resume`** | No stale branches to skip over |
+| **Better PR hygiene** | Feature branch = one PR = one issue (clear causality) |
+| **Saves CI/CD resources** | GitHub doesn't run workflows on deleted branches |
+
+### Auto-Cleanup (in `*issue close` command)
+When you run `*issue close #XXX`, the command automatically:
+1. ✅ Merges feature/XXX-* to development
+2. ✅ Deletes feature/XXX-* (local + GitHub)
+3. ✅ Archives issue plan: plans/active/ → plans/archive/
+4. ✅ Closes GitHub issue
+
+**No manual work needed** - but verify completion!
+
+
 ## Two-Step Planning (新增)
 
 **Step 1: MVP-Level Decomposition** (40 min)
