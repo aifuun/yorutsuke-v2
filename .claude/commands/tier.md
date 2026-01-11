@@ -27,7 +27,7 @@ Skip for:
 
 ## Process
 
-1. Read task description (from TODO.md or user input)
+1. Read task description (from issue plan or user input)
 2. Classify using criteria: @.prot/CHEATSHEET.md (Tier Classification section)
 3. Identify applicable Pillars: @.claude/patterns/pillar-reference.md
 4. Recommend templates from .prot/pillar-*/
@@ -65,7 +65,7 @@ Skip for:
 
 1. Load: @.prot/checklists/pre-code.md
 2. Copy applicable templates from .prot/pillar-*/
-3. Create TODO.md task breakdown with pillar references
+3. Update issue plan with Tier and pillar references
 4. Suggest: `*scaffold module {name} --t{X}` (if new module)
 
 ## Command Chaining

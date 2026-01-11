@@ -11,8 +11,8 @@ Master index for all `.claude` directory contents. This directory contains confi
 ├── 📋 Index & Navigation
 │   ├── README.md (this file)
 │   ├── WORKFLOW.md (master workflow reference)
-│   ├── MEMORY.md (key decisions & context)
-│   └── TODO.md (current session tasks)
+│   ├── MEMORY.md (key decisions & architecture links)
+│   └── TODO.md (session tracking - minimal)
 │
 ├── 📑 Session Context & Inbox
 │   ├── QUICK-NOTES.md (capture quick ideas, not disruptive)
@@ -21,8 +21,9 @@ Master index for all `.claude` directory contents. This directory contains confi
 │
 ├── 📊 Plans (Feature/Issue Planning)
 │   ├── README.md (plans directory guide)
-│   ├── active/ (current development plans)
-│   │   └── plan.md (current MVP/sprint plans)
+│   ├── active/ (current issue plans - one per issue)
+│   │   └── #XXX-description.md (issue-specific dev plan)
+│   └── archive/ (completed issue plans)
 │   ├── backlog/ (future features)
 │   └── archive/ (completed features)
 │       ├── batch-orchestrator-COMPLETED.md
@@ -98,12 +99,13 @@ Master index for all `.claude` directory contents. This directory contains confi
 → Write in: [QUICK-NOTES.md](QUICK-NOTES.md) (capture ideas without interrupting)
 
 **Check what I should be working on**
-→ Read: [TODO.md](TODO.md) (current session tasks)  
-→ See also: [MEMORY.md](MEMORY.md) (key context)
+→ Read: [plans/active/](plans/active/) (current issue plans)  
+→ See also: [MEMORY.md](MEMORY.md) (architecture decisions)
 
 **Remember why we made a decision**
-→ Read: [MEMORY.md](MEMORY.md) (decision log)  
-→ Also check: [inbox/OPEN-QUESTIONS-CLARIFIED.md](inbox/OPEN-QUESTIONS-CLARIFIED.md) (problem resolution)
+→ Read: [MEMORY.md](MEMORY.md) (ADR index, pure links only)  
+→ Details: Follow ADR links in MEMORY.md  
+→ Rules: [rules/memory-management.md](rules/memory-management.md) (prevent bloat)
 
 **Quick reference for entire workflow**
 → Visual: [workflow/quick-reference.md](workflow/quick-reference.md) (one-pager)
@@ -131,10 +133,11 @@ Master index for all `.claude` directory contents. This directory contains confi
 → Use: `workflow/templates/TEMPLATE-github-issue.md`
 → Guide: `workflow/planning-mvp.md`
 
-### 战术层 (Tactics) - Session Tracking
-**Track session tasks**
-→ Use: `workflow/templates/TEMPLATE-todo.md`
-→ Update: `TODO.md` during session
+### 战术层 (Tactics) - Issue Plans
+**Track issue-specific tasks**
+→ Use: `workflow/templates/TEMPLATE-feature-plan.md`
+→ Save to: `plans/active/#XXX-description.md`
+→ Archive when done: `plans/archive/`
 
 ### 辅助
 **Triage external issue**
@@ -151,9 +154,9 @@ Master index for all `.claude` directory contents. This directory contains confi
 
 | File | Purpose | Frequency |
 |------|---------|-----------|
-| `TODO.md` | Current session tasks, blockers, next steps | Daily |
+| `plans/active/` | Current issue plans (one per issue) | Per issue |
 | `QUICK-NOTES.md` | Quick capture of ideas without disruption | As needed |
-| `MEMORY.md` | Key decisions, important context, learnings | Weekly |
+| `MEMORY.md` | ADR index & key architecture decisions | When ADR created |
 | `inbox/OPEN-QUESTIONS-CLARIFIED.md` | Problem resolution logs, investigation notes | Per feature |
 
 ### Planning
@@ -218,16 +221,21 @@ Phase D: Release
 
 ## ✅ Maintenance Checklist
 
+**Per Issue**:
+- [ ] Create `.claude/plans/active/#XXX-description.md` for each issue
+- [ ] Update plan file with progress as you work
+- [ ] Archive plan when issue is complete
+
 **Weekly**:
-- [ ] Process `QUICK-NOTES.md`: convert to Issues, add to TODO, or archive
-- [ ] Review and update `TODO.md` with new tasks
-- [ ] Update `MEMORY.md` with key decisions from the week
+- [ ] Process `QUICK-NOTES.md`: convert to Issues, create plan, or archive
+- [ ] Review open plans in `plans/active/`
+- [ ] Create ADRs for major decisions and link from `MEMORY.md`
 - [ ] Archive completed plans from `plans/active/` → `plans/archive/`
 - [ ] Promote ready features from `plans/backlog/` → `plans/active/`
 
 **Monthly**:
 - [ ] Review `OPEN-QUESTIONS-CLARIFIED.md` for clarification needs
-- [ ] Update `MEMORY.md` with monthly summary
+- [ ] Update `MEMORY.md` ADR index for completeness
 - [ ] Archive old session context (move previous month to `archive/`)
 - [ ] Review workflow documents for accuracy
 
@@ -261,9 +269,9 @@ Phase D: Release
 
 ### For First Session:
 1. Read [WORKFLOW.md](WORKFLOW.md) (5 min)
-2. Read [TODO.md](TODO.md) (5 min)
-3. Review [MEMORY.md](MEMORY.md) (10 min)
-4. Check [workflow/quick-reference.md](workflow/quick-reference.md) (5 min)
+2. Read [MEMORY.md](MEMORY.md) (10 min) - links to architecture decisions
+3. Check [plans/active/](plans/active/) for current issues (5 min)
+4. Review [workflow/quick-reference.md](workflow/quick-reference.md) (5 min)
 5. Start work with clear context
 
 ### For Planning a Feature:

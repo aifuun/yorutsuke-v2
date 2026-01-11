@@ -9,8 +9,9 @@
 | [TEMPLATE-mvp.md](TEMPLATE-mvp.md) | MVP 里程碑规划 | 新 MVP 启动时 | ~80 |
 | [TEMPLATE-feature-plan.md](TEMPLATE-feature-plan.md) | Feature 详细规划 | Step 2: 开发前 | ~95 |
 | [TEMPLATE-github-issue.md](TEMPLATE-github-issue.md) | GitHub Issue 模板 | Step 1: MVP 分解 | ~60 |
-| [TEMPLATE-todo.md](TEMPLATE-todo.md) | Session 任务跟踪 | 每个 Session | ~45 |
 | [TEMPLATE-issue-triage.md](TEMPLATE-issue-triage.md) | Issue 分类评估 | 外部 Issue 评估 | ~100 |
+
+**Note**: TEMPLATE-todo.md deprecated. Use `.claude/plans/active/#XXX.md` instead.
 
 ---
 
@@ -34,8 +35,8 @@
 │       └─→ .claude/plans/active/#100-feature.md                  │
 │                                                                 │
 │  Session 开发 (执行层)                                            │
-│  └─→ TEMPLATE-todo.md                                           │
-│       └─→ .claude/TODO.md (实时更新进度)                          │
+│  └─→ 使用 .claude/plans/active/#XXX.md                           │
+│       └─→ 实时更新进度，Issue 完成后存档                           │
 │                                                                 │
 │  外部 Issue 评估                                                  │
 │  └─→ TEMPLATE-issue-triage.md                                   │
@@ -116,11 +117,11 @@ TEMPLATE-feature-plan.md
 
 战术 (Tactics) - 当前执行的动作
 ───────────────────────────
-TEMPLATE-todo.md
-├── Session 任务跟踪
+Issue Plan files (.claude/plans/active/#xxx.md)
+├── Issue-specific 任务跟踪
 ├── 从 Feature Plan 复制子任务
 ├── 实时更新进度
-└── 存储: .claude/TODO.md
+└── Issue 完成后存档到 plans/archive/
 
 辅助
 ───────────────────────────
@@ -139,7 +140,8 @@ TEMPLATE-issue-triage.md
 | 战役 | GitHub Issues | GitHub 仓库 |
 | 战役 | Feature Plans (活跃) | `.claude/plans/active/#xxx-name.md` |
 | 战役 | Feature Plans (归档) | `.claude/plans/archive/#xxx-name.md` |
-| 战术 | Session Tasks | `.claude/TODO.md` |
+| 战术 | Issue Plans (活跃) | `.claude/plans/active/#xxx.md` |
+| 战术 | Issue Plans (归档) | `.claude/plans/archive/#xxx.md` |
 | 辅助 | Issue Triage | `.claude/plans/active/#xxx-triage.md` |
 
 ---

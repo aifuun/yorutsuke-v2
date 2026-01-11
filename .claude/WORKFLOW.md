@@ -24,7 +24,7 @@
 | 战略 (Strategy) | `TEMPLATE-mvp.md` | `docs/dev/MVPX.md` | `*plan` |
 | 战役 (Campaign) | `TEMPLATE-feature-plan.md` | `plans/active/#xxx.md` | `*issue pick` |
 | 战役 (Campaign) | `TEMPLATE-github-issue.md` | GitHub Issues | `*issue new` |
-| 战术 (Tactics) | `TEMPLATE-todo.md` | `.claude/TODO.md` | `*next` |
+| 战术 (Tactics) | Issue Plan files | `.claude/plans/active/#xxx.md` | `*next` |
 | 辅助 | `TEMPLATE-issue-triage.md` | `plans/active/#xxx-triage.md` | as needed |
 
 **Quick access**: `.claude/workflow/templates/`
@@ -96,7 +96,7 @@ Layer 1: MVP (Strategic)
   ↓ [Planning workflow Steps 0-8]
 Layer 2: GitHub Issues (Tactical)  
   ↓ [*issue pick]
-Layer 3: TODO.md (Operational)
+Layer 3: Issue Plans (Operational)
   ↓ [*next command]
 Code Execution
 ```
@@ -151,8 +151,8 @@ development (integration) ◄─┘
 
 | File | Purpose | Update |
 |------|---------|--------|
-| `TODO.md` | Active session tasks (1-3 issues) | Per session |
-| `MEMORY.md` | Key decisions, learnings | When notable |
+| `.plans/active/#xxx.md` | Active issue plans | Per issue |
+| `MEMORY.md` | Key decisions (ADR index only) | When creating ADR |
 | `WORKFLOW.md` | This index (you are here) | Updated with process |
 
 ---
@@ -195,7 +195,7 @@ Working on feature
 
 End of session
   $ *sync
-  (TODO.md cleared, decision archived to MEMORY.md)
+  (plans archived, decisions documented in ADRs)
 
 Next day
   $ *resume
@@ -245,11 +245,11 @@ Release a version                   → release.md
 
 ## ⚡ Pro Tips
 
-1. **Always start with `*resume`** - loads context from MEMORY.md
+1. **Always start with `*resume`** - loads architecture context from MEMORY.md and active plans
 2. **Use `*next` liberally** - it's the intelligent task navigator
-3. **Keep TODO.md minimal** - only 1-3 active issues per session
-4. **Update MEMORY.md on findings** - captures learning for future sessions
-5. **Reference workflow files with `@`** - system loads them automatically
+3. **Keep issue plans focused** - one issue per `.claude/plans/active/#xxx.md` file
+4. **Create ADRs for architecture** - prevents MEMORY.md bloat (see @.claude/rules/memory-management.md)
+5. **MEMORY.md is read-only** for most work - only update with new ADR links (rare)
 
 ---
 

@@ -60,9 +60,9 @@ ROOT/
 │   └── e2e/                # End-to-end tests
 │
 ├── .claude/                # Claude Code config
-│   ├── MEMORY.md           # Long-term decisions
-│   ├── TODO.md             # Current tasks
+│   ├── MEMORY.md           # Long-term decisions (ADR index)
 │   ├── WORKFLOW.md         # Development workflow
+│   ├── plans/              # Issue-specific task plans
 │   ├── commands/           # Custom commands
 │   └── rules/              # Path-specific rules
 │
@@ -199,10 +199,17 @@ pillar-*/checklist.md      ──── Deep pillar-specific checks
 @.prot/checklists/pre-code.md
 ```
 
-### .claude/TODO.md
+### .claude/plans/active/
 ```markdown
-## Current Task
-- [ ] Implement feature X
+---
+issue: 123
+status: in-progress
+---
+
+## Issue #123: Feature Title
+
+### Steps
+- [ ] Task A
   - Tier: T2 (ref: .prot/CHEATSHEET.md)
   - Pillars: A, L, D (ref: .prot/pillar-a/, pillar-l/, pillar-d/)
 ```

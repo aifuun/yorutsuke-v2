@@ -46,8 +46,8 @@ Local-first AI accounting assistant for second-hand business users. Drag receipt
 
 **三层架构**:
 - **MVP 文件** (`docs/dev/MVP*.md`)：目标和验收标准（路标）
-- **GitHub Issues**：详细的技术任务和实现方案（施工图）
-- **TODO.md**：当前 Session 正在处理的 1-3 个活跃 Issue（今日清单）
+- **GitHub Issues + Issue Plans** (`.claude/plans/active/`)：详细的技术任务和实现方案（施工图）
+- **MEMORY.md** (ADR index only)：长期知识和架构决策（备忘）
 
 **Two-Step Planning**:
 1. **Step 1** (40 min): MVP 分解 → 创建 Issues + 依赖图
@@ -60,7 +60,7 @@ Local-first AI accounting assistant for second-hand business users. Drag receipt
 | 战略 | `TEMPLATE-mvp.md` | New MVP release | `*plan` |
 | 战役 | `TEMPLATE-feature-plan.md` | Before coding | `*issue pick` |
 | 战役 | `TEMPLATE-github-issue.md` | Step 1 issues | `*issue new` |
-| 战术 | `TEMPLATE-todo.md` | Session tracking | `*next` |
+| 战术 | Issue Plan files | Session work | `.claude/plans/active/#XXX.md` |
 
 Templates location: `.claude/workflow/templates/`
 Complete guide: `.claude/workflow/templates/README.md`
@@ -290,8 +290,8 @@ grep "^--space" app/src/styles.css
 
 ## Memory & Context
 
-- **Session tasks**: `.claude/TODO.md`
-- **Long-term memory**: `.claude/MEMORY.md` (write in English only)
+- **Active issue plans**: `.claude/plans/active/#XXX.md`
+- **Long-term memory**: `.claude/MEMORY.md` (ADR index only, English)
 - **Workflow guide**: `.claude/WORKFLOW.md`
 - **Design rules**: `.claude/rules/design-system.md` (read before UI coding)
 

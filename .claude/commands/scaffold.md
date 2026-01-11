@@ -34,7 +34,7 @@ Generate project structure from AI_DEV_PROT v15 templates
 **T3 (Saga)** - adds:
 - `workflows/{name}Saga.ts` ← @.prot/pillar-m/saga.ts
 
-4. Update TODO.md with generated files
+4. Update issue plan with generated files
 
 ### Domain Generation
 1. Create: `src/01_domains/{name}/`
