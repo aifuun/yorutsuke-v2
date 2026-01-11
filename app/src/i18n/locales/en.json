@@ -362,5 +362,10 @@
       "fri": "Fri",
       "sat": "Sat"
     }
+  },
+  "history": {
+    "title": "History",
+    "noTransactions": "No transactions on this date",
+    "transactions": "Transactions"
   }
 }

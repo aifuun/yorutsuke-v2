@@ -364,5 +364,10 @@
       "fri": "周五",
       "sat": "周六"
     }
+  },
+  "history": {
+    "title": "历史记录",
+    "noTransactions": "此日期没有交易",
+    "transactions": "交易"
   }
 }

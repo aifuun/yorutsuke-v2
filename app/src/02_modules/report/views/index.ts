@@ -1,6 +1,7 @@
 export * from './ReportView';
 export * from './DashboardView';
 export * from './CalendarView';
+export * from './HistoryModal';
 export * from './FilterBar';
 export * from './EmptyState';
 export * from './SummaryCards';

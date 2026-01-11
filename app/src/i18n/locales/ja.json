@@ -364,5 +364,10 @@
       "fri": "金",
       "sat": "土"
     }
+  },
+  "history": {
+    "title": "履歴",
+    "noTransactions": "この日付には取引がありません",
+    "transactions": "取引"
   }
 }
