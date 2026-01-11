@@ -5,12 +5,29 @@ Local-first AI accounting assistant for second-hand business users.
 ## Quick Start
 
 ```bash
-# Development
+# Development (default port 1420)
 cd app && npm run tauri dev
 
 # Build
 cd app && npm run tauri build
 ```
+
+### Multi-Branch Testing
+
+如需同时运行多个分支（避免端口冲突）：
+
+```bash
+# Branch 1 (port 1420)
+npm run tauri:dev
+
+# Branch 2 (port 1422)
+npm run tauri:1422
+
+# Branch 3 (port 1424)
+npm run tauri:1424
+```
+
+**完整指南**: `docs/operations/MULTI_BRANCH_DEV.md`
 
 ## Git Workflow (Git Flow)
 
