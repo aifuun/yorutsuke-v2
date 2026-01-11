@@ -100,11 +100,12 @@ Master index for all `.claude` directory contents. This directory contains confi
 
 **Check what I should be working on**
 → Read: [plans/active/](plans/active/) (current issue plans)  
-→ See also: [MEMORY.md](MEMORY.md) (key context)
+→ See also: [MEMORY.md](MEMORY.md) (architecture decisions)
 
 **Remember why we made a decision**
-→ Read: [MEMORY.md](MEMORY.md) (ADR index)  
-→ Also check: [inbox/OPEN-QUESTIONS-CLARIFIED.md](inbox/OPEN-QUESTIONS-CLARIFIED.md) (problem resolution)
+→ Read: [MEMORY.md](MEMORY.md) (ADR index, pure links only)  
+→ Details: Follow ADR links in MEMORY.md  
+→ Rules: [rules/memory-management.md](rules/memory-management.md) (prevent bloat)
 
 **Quick reference for entire workflow**
 → Visual: [workflow/quick-reference.md](workflow/quick-reference.md) (one-pager)

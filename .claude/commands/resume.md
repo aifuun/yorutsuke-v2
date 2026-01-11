@@ -17,13 +17,13 @@ Resume previous session with automatic sync and context loading
    ```
    - If conflicts, notify user and pause
 
-2. **Load context**: Read ADR links from .claude/MEMORY.md
+2. **Load context**: Read ADR index from `.claude/MEMORY.md` (architecture decisions only)
 
 3. **Check active plans**: List `.claude/plans/active/` for ongoing issues
 
 4. **Health check**:
    - If active plans are stale (>7 days), ask if still relevant
-   - If MEMORY.md seems large, suggest archiving old ADRs
+   - If MEMORY.md size > 50 lines, suggest creating ADRs for any embedded content
 
 5. **Remind workflow**: Mention workflow guide for new users
    - "For full workflow, see: @.claude/WORKFLOW.md"

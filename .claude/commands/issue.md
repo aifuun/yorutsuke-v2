@@ -109,7 +109,7 @@ Complete issue #n:
 7. Create/update ADR if major architectural decision made:
    - Check if decision fits ADR criteria (impacts multiple components)
    - Create `docs/architecture/ADR/NNN-title.md` if yes
-   - Link ADR from MEMORY.md
+   - Add ADR link to MEMORY.md (see @.claude/rules/memory-management.md)
 
 8. Move plan file from active → archive:
    - `mv .claude/plans/active/#<n>-*.md .claude/plans/archive/`

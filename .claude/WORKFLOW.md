@@ -245,11 +245,11 @@ Release a version                   → release.md
 
 ## ⚡ Pro Tips
 
-1. **Always start with `*resume`** - loads context from MEMORY.md and active plans
+1. **Always start with `*resume`** - loads architecture context from MEMORY.md and active plans
 2. **Use `*next` liberally** - it's the intelligent task navigator
 3. **Keep issue plans focused** - one issue per `.claude/plans/active/#xxx.md` file
-4. **Create ADRs for major decisions** - captures architecture knowledge for future sessions
-5. **Reference workflow files with `@`** - system loads them automatically
+4. **Create ADRs for architecture** - prevents MEMORY.md bloat (see @.claude/rules/memory-management.md)
+5. **MEMORY.md is read-only** for most work - only update with new ADR links (rare)
 
 ---
 

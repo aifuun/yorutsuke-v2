@@ -2,7 +2,7 @@
 name: sync
 category: workflow
 aliases: [save]
-requires: [MEMORY.md, feature branch]
+requires: [feature branch, MEMORY.md rule]
 ---
 
 # Command: *sync
@@ -63,8 +63,10 @@ Note: `*save` is an alias for `*sync --ask --memory`
      4. Run *sync again
      ```
 
-3. **Update memory** (if significant progress):
-   - Update `.claude/MEMORY.md` with ADR links if major decision made
+3. **Update memory** (if architectural decision made):
+   - **Only if**: Created new ADR or major architecture change
+   - **Action**: Add ADR link to `.claude/MEMORY.md` (see @.claude/rules/memory-management.md)
+   - **Example**: After closing #138, add ADR-006 link to MEMORY.md
 
 4. **Stage changes**: `git add -A`
 
@@ -82,20 +84,19 @@ Note: `*save` is an alias for `*sync --ask --memory`
 2. **Sync with development** (same as step 2 in default mode)
 3. **Show diff**: `git diff --stat` and present to user
 4. **Ask for summary**: Prompt user for one-line session summary
-5. **Update MEMORY.md**: If ADR created, link from MEMORY.md
+5. **Update MEMORY.md**: Only if ADR created (see @.claude/rules/memory-management.md)
 6. **Commit**: `git commit -m "feat: [user summary]"`
 7. **Push**: `git push`
 
 ### Memory-Only Mode (*sync --memory)
-1. **Check current branch**
-2. **Sync with development** (NEW)
-3. **Update MEMORY.md** first
-4. Then proceed with default sync flow
+**Deprecated**: Use MEMORY management rule instead (@.claude/rules/memory-management.md)
+- Only use to add ADR links when closing architectural issues
+- Never use for session tracking or progress logging
 
 ### Commit-Only Mode (*sync --no-push)
 1. **Check current branch**
 2. **Sync with development** (NEW)
-3. **Update memory** (if needed)
+3. **Update memory** (only if ADR created)
 4. **Stage changes**
 5. **Commit changes** locally
 6. Skip push step (useful for batching commits)
@@ -138,7 +139,7 @@ Please resolve manually:
 - **Sync with development**: ALWAYS sync before committing (ensures feature branch is up-to-date)
 - **Conflict handling**: If merge conflicts occur, MUST pause and guide user through resolution
 - **Interactive mode**: MUST ask user for summary, never auto-generate
-- **MEMORY.md**: Always append, never overwrite
+- **MEMORY.md**: Only add ADR links (see @.claude/rules/memory-management.md), never expand
 - **First push**: Use `git push -u origin <branch>` for new branches
 - **On development branch**: Skip merge step, only pull latest changes
 - **On main branch**: Warn user (should not work directly on main)

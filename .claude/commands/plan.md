@@ -112,9 +112,9 @@ Workflow
 
 6. **Wait for approval** before executing
 
-7. **Record decision** (if significant):
-   - Update `.claude/MEMORY.md` with approach chosen
-   - Note alternatives considered
+7. **Record decision** (if major architectural change):
+   - Create ADR in `docs/architecture/ADR/NNN-title.md`
+   - Add link to MEMORY.md (see @.claude/rules/memory-management.md)
 
 ## Plan Mode Explained
 
