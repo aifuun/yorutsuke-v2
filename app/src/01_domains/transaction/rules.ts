@@ -116,6 +116,35 @@ export function createDailySummaryWithBreakdown(
 }
 
 /**
+ * Create weekly summary for trend comparison
+ * Calculates net profit for a week starting from startDate
+ */
+export function createWeeklySummary(
+  startDate: string, // YYYY-MM-DD (Monday of the week)
+  transactions: Transaction[],
+): { net: number; income: number; expense: number; count: number } {
+  const start = new Date(startDate);
+  const end = new Date(startDate);
+  end.setDate(end.getDate() + 7); // 7 days later
+
+  const weekTransactions = transactions.filter(t => {
+    const txDate = new Date(t.date);
+    return txDate >= start && txDate < end;
+  });
+
+  const { income, expense } = categorizeByType(weekTransactions);
+  const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
+  const totalExpense = expense.reduce((sum, t) => sum + t.amount, 0);
+
+  return {
+    net: totalIncome - totalExpense,
+    income: totalIncome,
+    expense: totalExpense,
+    count: weekTransactions.length,
+  };
+}
+
+/**
  * Create monthly summary from all transactions
  * Uses current month by default
  */

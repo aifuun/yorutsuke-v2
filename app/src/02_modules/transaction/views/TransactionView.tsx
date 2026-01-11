@@ -13,6 +13,7 @@ import { on } from '../../../00_kernel/eventBus';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
+import { navigationStore } from '../../../00_kernel/navigation';
 import './ledger.css';
 
 type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
@@ -95,6 +96,22 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
     return options;
   }, [activeFilter, startDate, endDate, sortBy, sortOrder, currentPage, pageSize, statusFilter]);
+
+  // Check for navigation intent on mount
+  useEffect(() => {
+    const intent = navigationStore.getState().ledgerIntent;
+    if (intent) {
+      // Apply intent
+      if (intent.statusFilter) {
+        setStatusFilter(intent.statusFilter);
+      }
+      if (intent.quickFilter) {
+        setActiveFilter(intent.quickFilter);
+      }
+      // Clear intent after applying
+      navigationStore.getState().clearLedgerIntent();
+    }
+  }, []); // Run only on mount
 
   // Reload data when options change
   useEffect(() => {

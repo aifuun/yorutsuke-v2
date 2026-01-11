@@ -2,12 +2,13 @@
 import { useMemo, useState } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
-import { createDailySummaryWithBreakdown } from '../../../01_domains/transaction';
+import { createDailySummaryWithBreakdown, createWeeklySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
 import { EmptyState } from './EmptyState';
+import { navigationStore } from '../../../00_kernel/navigation';
 import '../styles/dashboard.css';
 
 interface DashboardViewProps {
@@ -42,11 +43,39 @@ function getYesterdayDate(): string {
   return yesterday.toLocaleDateString('sv-SE');
 }
 
+// Get Monday of current week (YYYY-MM-DD)
+function getThisWeekMonday(): string {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  return monday.toLocaleDateString('sv-SE');
+}
+
+// Get Monday of last week (YYYY-MM-DD)
+function getLastWeekMonday(): string {
+  const thisWeekMonday = new Date(getThisWeekMonday());
+  thisWeekMonday.setDate(thisWeekMonday.getDate() - 7);
+  return thisWeekMonday.toLocaleDateString('sv-SE');
+}
+
 export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const { t } = useTranslation();
 
   // Date selector with smart default
   const [selectedDate, setSelectedDate] = useState(getSmartDefaultDate());
+
+  // Helper: Navigate to ledger with optional filter intent
+  const navigateToLedger = (showPending: boolean = false) => {
+    if (showPending) {
+      navigationStore.getState().setLedgerIntent({
+        statusFilter: 'pending',
+        quickFilter: 'all',
+      });
+    }
+    onViewChange('ledger');
+  };
 
   const today = getTodayDate();
   const yesterday = getYesterdayDate();
@@ -78,6 +107,39 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
         time: formatRelativeTime(tx.createdAt),
       }));
   }, [transactions, t]);
+
+  // Phase 5: Trend comparison (weekly)
+  const trendData = useMemo(() => {
+    const thisWeekMonday = getThisWeekMonday();
+    const lastWeekMonday = getLastWeekMonday();
+
+    const thisWeek = createWeeklySummary(thisWeekMonday, transactions);
+    const lastWeek = createWeeklySummary(lastWeekMonday, transactions);
+
+    // Calculate week-over-week change (handle edge cases)
+    const weekChange = lastWeek.net !== 0
+      ? ((thisWeek.net - lastWeek.net) / Math.abs(lastWeek.net)) * 100
+      : thisWeek.net === 0 ? 0 : (thisWeek.net > 0 ? 100 : -100);
+
+    // Calculate day-over-day change (today vs yesterday)
+    const todaySummary = createDailySummaryWithBreakdown(today, transactions);
+    const yesterdaySummary = createDailySummaryWithBreakdown(yesterday, transactions);
+    const todayNet = todaySummary.totalIncome - todaySummary.totalExpense;
+    const yesterdayNet = yesterdaySummary.totalIncome - yesterdaySummary.totalExpense;
+
+    const dayChange = yesterdayNet !== 0
+      ? ((todayNet - yesterdayNet) / Math.abs(yesterdayNet)) * 100
+      : todayNet === 0 ? 0 : (todayNet > 0 ? 100 : -100);
+
+    return {
+      thisWeek,
+      lastWeek,
+      weekChange,
+      todayNet,
+      yesterdayNet,
+      dayChange,
+    };
+  }, [transactions, today, yesterday]);
 
   // Handle loading state
   if (!userId) {
@@ -162,29 +224,16 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <span className="hero-label">{t('report.netProfit')}</span>
             </div>
 
-            {/* Simplified Summary Row */}
-            <div className="hero-summary-row">
-              <div className="summary-item income">
-                <span className="summary-label">{t('report.income')}</span>
-                <span className="summary-value">+¥{dailySummary.totalIncome.toLocaleString()}</span>
-              </div>
-              <div className="summary-divider">|</div>
-              <div className="summary-item expense">
-                <span className="summary-label">{t('report.expense')}</span>
-                <span className="summary-value">-¥{dailySummary.totalExpense.toLocaleString()}</span>
-              </div>
-            </div>
-
             {/* Always show view details button */}
             <div className="hero-footer">
               <button
                 type="button"
                 className="view-details-btn"
-                onClick={() => onViewChange('ledger')}
+                onClick={() => navigateToLedger(dailySummary.unconfirmedCount > 0)}
                 aria-label={t('dashboard.viewDetails')}
               >
                 {dailySummary.unconfirmedCount > 0
-                  ? `${t('dashboard.viewDetails')} (${dailySummary.unconfirmedCount}件待确认) →`
+                  ? `${t('dashboard.viewDetails')} (${dailySummary.unconfirmedCount}${t('dashboard.itemsPending')}) →`
                   : `${t('dashboard.viewDetails')} →`
                 }
               </button>
@@ -207,7 +256,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <div className="breakdown-progress">
                 <div className="progress-row">
                   <span className="progress-icon">✓</span>
-                  <span className="progress-label">{t('common.confirm')}</span>
+                  <span className="progress-label">{t('dashboard.processed')}</span>
                   <span className="progress-value">¥{dailySummary.confirmedIncome.toLocaleString()}</span>
                   <span className="progress-percent">
                     {dailySummary.totalIncome > 0
@@ -263,7 +312,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <div className="breakdown-progress">
                 <div className="progress-row">
                   <span className="progress-icon">✓</span>
-                  <span className="progress-label">{t('common.confirm')}</span>
+                  <span className="progress-label">{t('dashboard.processed')}</span>
                   <span className="progress-value">¥{dailySummary.confirmedExpense.toLocaleString()}</span>
                   <span className="progress-percent">
                     {dailySummary.totalExpense > 0
@@ -311,14 +360,14 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             <div className="card card--summary is-pending">
               <p className="card--summary__label">{t('dashboard.pending')}</p>
               <p className="card--summary__value">{dailySummary.unconfirmedCount}</p>
-              <p className="card--summary__subtitle">{t('transaction.pendingConfirmation')}</p>
+              <p className="card--summary__subtitle">{t('dashboard.pending')}</p>
             </div>
             <div className="card card--summary is-count">
               <p className="card--summary__label">
-                {selectedDate === today ? '今日交易' : '昨日交易'}
+                {selectedDate === today ? t('dashboard.todayTransactions') : t('dashboard.yesterdayTransactions')}
               </p>
               <p className="card--summary__value">{dailySummary.count}</p>
-              <p className="card--summary__subtitle">{dailySummary.confirmedCount} 已确认</p>
+              <p className="card--summary__subtitle">{dailySummary.confirmedCount} {t('dashboard.processed')}</p>
             </div>
             <div className="card card--summary is-quota">
               <p className="card--summary__label">{t('dashboard.quotaRemaining')}</p>
@@ -326,14 +375,77 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <p className="card--summary__subtitle">{t('dashboard.queueReady')}</p>
             </div>
             <div className="card card--summary is-income">
-              <p className="card--summary__label">平均金额</p>
+              <p className="card--summary__label">{t('dashboard.averageAmount')}</p>
               <p className="card--summary__value">
                 {dailySummary.count > 0
                   ? `¥${Math.round((dailySummary.totalIncome + dailySummary.totalExpense) / dailySummary.count).toLocaleString()}`
                   : '¥0'
                 }
               </p>
-              <p className="card--summary__subtitle">Per Transaction</p>
+              <p className="card--summary__subtitle">{t('dashboard.perTransaction')}</p>
+            </div>
+          </div>
+
+          {/* Phase 5: Trend Comparison */}
+          <div className="card card--trend trend-card">
+            <div className="trend-header">
+              <h2 className="section-header">📊 {t('dashboard.trendComparison')}</h2>
+            </div>
+
+            <div className="trend-grid">
+              {/* Week-over-week comparison */}
+              <div className="trend-item">
+                <div className="trend-label">
+                  <span className="trend-icon">📅</span>
+                  <span>{t('dashboard.thisWeekVsLast')}</span>
+                </div>
+                <div className="trend-values">
+                  <div className="trend-value current">
+                    <span className="trend-label-mini">{t('dashboard.thisWeekNet')}</span>
+                    <span className={`trend-amount ${trendData.thisWeek.net >= 0 ? 'positive' : 'negative'}`}>
+                      ¥{Math.abs(trendData.thisWeek.net).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="trend-divider">→</div>
+                  <div className="trend-value previous">
+                    <span className="trend-label-mini">{t('dashboard.lastWeekNet')}</span>
+                    <span className="trend-amount muted">
+                      ¥{Math.abs(trendData.lastWeek.net).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className={`trend-change ${trendData.weekChange >= 0 ? 'positive' : 'negative'}`}>
+                  <span className="trend-arrow">{trendData.weekChange >= 0 ? '↑' : '↓'}</span>
+                  <span className="trend-percent">{Math.abs(trendData.weekChange).toFixed(1)}%</span>
+                </div>
+              </div>
+
+              {/* Day-over-day comparison */}
+              <div className="trend-item">
+                <div className="trend-label">
+                  <span className="trend-icon">📆</span>
+                  <span>{t('dashboard.todayVsYesterday')}</span>
+                </div>
+                <div className="trend-values">
+                  <div className="trend-value current">
+                    <span className="trend-label-mini">{t('dashboard.todayNet')}</span>
+                    <span className={`trend-amount ${trendData.todayNet >= 0 ? 'positive' : 'negative'}`}>
+                      ¥{Math.abs(trendData.todayNet).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="trend-divider">→</div>
+                  <div className="trend-value previous">
+                    <span className="trend-label-mini">{t('dashboard.yesterdayNet')}</span>
+                    <span className="trend-amount muted">
+                      ¥{Math.abs(trendData.yesterdayNet).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className={`trend-change ${trendData.dayChange >= 0 ? 'positive' : 'negative'}`}>
+                  <span className="trend-arrow">{trendData.dayChange >= 0 ? '↑' : '↓'}</span>
+                  <span className="trend-percent">{Math.abs(trendData.dayChange).toFixed(1)}%</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -351,8 +463,8 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             {pendingTransactions.length === 0 ? (
               <div className="pending-empty">
                 <div className="pending-empty-icon">✓</div>
-                <p className="pending-empty-text">所有交易已确认</p>
-                <p className="pending-empty-hint">当前没有需要处理的交易</p>
+                <p className="pending-empty-text">{t('dashboard.allProcessed')}</p>
+                <p className="pending-empty-hint">{t('dashboard.noTasksHint')}</p>
               </div>
             ) : (
               <div className="pending-list">
@@ -376,7 +488,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
                           <>
                             <span className="pending-separator">•</span>
                             <span className="pending-confidence">
-                              {Math.round(item.confidence * 100)}% 置信度
+                              {Math.round(item.confidence * 100)}% {t('transaction.confidence')}
                             </span>
                           </>
                         )}
@@ -388,10 +500,14 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             )}
 
             <div className="pending-footer">
-              <button type="button" className="activity-link" onClick={() => onViewChange('ledger')}>
+              <button
+                type="button"
+                className="activity-link"
+                onClick={() => navigateToLedger(pendingTransactions.length > 0)}
+              >
                 {pendingTransactions.length > 0
-                  ? `处理全部 ${pendingTransactions.length} 笔待确认交易 →`
-                  : '查看完整账本 →'
+                  ? `${t('dashboard.processAll')} ${pendingTransactions.length} ${t('dashboard.itemsPending')} →`
+                  : `${t('dashboard.viewFullLedger')} →`
                 }
               </button>
             </div>
