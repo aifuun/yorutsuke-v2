@@ -1,10 +1,9 @@
 // Pillar L: View - renders data from headless hook
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import type { UserId, TransactionId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { createDailySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
-import { seedMockTransactions } from '../../transaction';
 import { useTranslation } from '../../../i18n';
 import { SummaryCards } from './SummaryCards';
 import { CategoryBreakdown } from './CategoryBreakdown';
@@ -31,19 +30,7 @@ export function ReportView({ userId, date }: ReportViewProps) {
     save,
     confirm,
     remove,
-    load,
   } = useTransactionLogic(userId);
-  const seededRef = useRef(false);
-
-  // Seed mock data for development (only once)
-  useEffect(() => {
-    if (!seededRef.current && userId) {
-      seededRef.current = true;
-      seedMockTransactions(userId).then((seeded) => {
-        if (seeded) load(); // Reload if data was seeded
-      });
-    }
-  }, [userId, load]);
 
   // Compute summary from filtered transactions
   const summary = useMemo(

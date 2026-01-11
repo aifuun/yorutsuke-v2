@@ -5,6 +5,7 @@ import type { TransactionId, UserId } from '../../../00_kernel/types';
 import type { Transaction, TransactionFilters } from '../../../01_domains/transaction';
 import { filterTransactions } from '../../../01_domains/transaction';
 import { on } from '../../../00_kernel/eventBus';
+import { subscribeMockMode } from '../../../00_kernel/config/mock';
 import {
   loadTransactions,
   countTotalTransactions,
@@ -145,6 +146,16 @@ export function useTransactionLogic(userId: UserId | null) {
     const unsubscribe = on('data:refresh', ({ source }) => {
       if (userId && source === 'seed') {
         load();
+      }
+    });
+    return unsubscribe;
+  }, [userId, load]);
+
+  // Listen for mock mode changes and reload data when switching databases
+  useEffect(() => {
+    const unsubscribe = subscribeMockMode(() => {
+      if (userId) {
+        load(); // Reload from the correct database (production or mock)
       }
     });
     return unsubscribe;

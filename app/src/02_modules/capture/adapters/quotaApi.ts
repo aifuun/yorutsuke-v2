@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
+import { mockQuotaData, mockNetworkError } from '../../../00_kernel/mocks';
 import { countTodayUploads } from './imageDb';
 
 const QUOTA_URL = import.meta.env.VITE_LAMBDA_QUOTA_URL;
@@ -82,29 +83,15 @@ export async function fetchQuota(userId: UserId): Promise<QuotaResponse> {
   // Mocking offline - simulate network failure
   if (isMockingOffline()) {
     await mockDelay(100);
-    throw new Error('Network error: offline mode');
+    throw mockNetworkError('fetch quota');
   }
 
-  // Mocking online - query local DB for accurate count (not fully mocked)
+  // Mocking online - hybrid mock (query local DB for accurate count)
   if (isMockingOnline()) {
     await mockDelay();
     // Real count from local database, not hardcoded
     const used = await countTodayUploads(userId);
-    const tier: UserTier = 'guest';
-    const limit = TIER_LIMITS[tier];
-    const resetsAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-    return {
-      used,
-      limit,
-      remaining: Math.max(0, limit - used),
-      resetsAt,
-      tier,
-      guest: {
-        dataExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-        daysUntilExpiration: 60,
-      },
-    };
+    return mockQuotaData(used, 'guest');
   }
 
   if (!QUOTA_URL) {
