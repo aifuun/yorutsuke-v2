@@ -348,5 +348,21 @@
       "failed": "失败",
       "skipped": "重复"
     }
+  },
+  "calendar": {
+    "prevMonth": "上个月",
+    "nextMonth": "下个月",
+    "monthSummary": "查看月度汇总",
+    "transactions": "笔交易",
+    "monthlyView": "月度汇总 ({{month}})",
+    "days": {
+      "sun": "周日",
+      "mon": "周一",
+      "tue": "周二",
+      "wed": "周三",
+      "thu": "周四",
+      "fri": "周五",
+      "sat": "周六"
+    }
   }
 }

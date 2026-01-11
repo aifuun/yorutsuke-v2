@@ -346,5 +346,21 @@
       "failed": "Failed",
       "skipped": "Duplicate"
     }
+  },
+  "calendar": {
+    "prevMonth": "Previous Month",
+    "nextMonth": "Next Month",
+    "monthSummary": "View Monthly Summary",
+    "transactions": "transactions",
+    "monthlyView": "Monthly Summary ({{month}})",
+    "days": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    }
   }
 }

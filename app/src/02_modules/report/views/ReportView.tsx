@@ -1,8 +1,8 @@
 // Pillar L: View - renders data from headless hook
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { UserId, TransactionId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
-import { createDailySummary } from '../../../01_domains/transaction';
+import { createDailySummary, createMonthlySummary } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
 import { useTranslation } from '../../../i18n';
 import { SummaryCards } from './SummaryCards';
@@ -10,6 +10,7 @@ import { CategoryBreakdown } from './CategoryBreakdown';
 import { TransactionList } from './TransactionList';
 import { FilterBar } from './FilterBar';
 import { EmptyState } from './EmptyState';
+import { CalendarView } from './CalendarView';
 import '../styles/report.css';
 
 interface ReportViewProps {
@@ -19,7 +20,16 @@ interface ReportViewProps {
 
 export function ReportView({ userId, date }: ReportViewProps) {
   const { t } = useTranslation();
-  const targetDate = date || new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
+  const today = new Date();
+
+  // Calendar state
+  const [selectedDate, setSelectedDate] = useState(date || today.toLocaleDateString('sv-SE'));
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-indexed
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily'); // daily or monthly summary
+
+  const targetDate = selectedDate;
+
   const {
     state,
     transactions,
@@ -32,11 +42,35 @@ export function ReportView({ userId, date }: ReportViewProps) {
     remove,
   } = useTransactionLogic(userId);
 
-  // Compute summary from filtered transactions
-  const summary = useMemo(
+  // Aggregate transaction counts by date for calendar indicators
+  const transactionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    transactions.forEach(tx => {
+      counts[tx.date] = (counts[tx.date] || 0) + 1;
+    });
+    return counts;
+  }, [transactions]);
+
+  // Compute daily summary from filtered transactions
+  const dailySummary = useMemo(
     () => createDailySummary(targetDate, filteredTransactions),
     [targetDate, filteredTransactions]
   );
+
+  // Compute monthly summary
+  const monthlyYearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  const monthlySummary = useMemo(
+    () => createMonthlySummary(transactions, monthlyYearMonth),
+    [transactions, monthlyYearMonth]
+  );
+
+  const summary = viewMode === 'daily' ? dailySummary : {
+    ...dailySummary,
+    totalIncome: monthlySummary.income,
+    totalExpense: monthlySummary.expense,
+    netProfit: monthlySummary.net,
+    transactionCount: monthlySummary.count,
+  };
 
   // Determine empty state variant
   const hasFiltersApplied = filters.dateStart || filters.dateEnd ||
@@ -50,6 +84,21 @@ export function ReportView({ userId, date }: ReportViewProps) {
     : filteredTransactions.length === 0
     ? 'no-data-today'
     : null;
+
+  // Calendar handlers
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date);
+    setViewMode('daily'); // Switch back to daily view when selecting a date
+  };
+
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
+  };
+
+  const handleMonthHeaderClick = () => {
+    setViewMode(viewMode === 'daily' ? 'monthly' : 'daily'); // Toggle between daily and monthly
+  };
 
   // Action handlers
   const handleEdit = async (id: TransactionId, changes: Partial<Transaction>) => {
@@ -94,8 +143,21 @@ export function ReportView({ userId, date }: ReportViewProps) {
     <div className="morning-report">
       <header className="report-header">
         <h2>{t('report.title')}</h2>
-        <span className="report-date">{targetDate}</span>
+        <span className="report-date">
+          {viewMode === 'daily' ? targetDate : t('calendar.monthlyView', { month: monthlyYearMonth })}
+        </span>
       </header>
+
+      {/* Calendar for date navigation */}
+      <CalendarView
+        year={currentYear}
+        month={currentMonth}
+        selectedDate={viewMode === 'daily' ? selectedDate : null}
+        transactionCounts={transactionCounts}
+        onDateSelect={handleDateSelect}
+        onMonthChange={handleMonthChange}
+        onMonthHeaderClick={handleMonthHeaderClick}
+      />
 
       <FilterBar
         filters={filters}

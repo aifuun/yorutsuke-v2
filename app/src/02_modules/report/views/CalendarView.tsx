@@ -1,25 +1,28 @@
-// Simple calendar component for date selection
+// Pillar L: Pure UI component for calendar grid
 import { useMemo } from 'react';
 import { useTranslation } from '../../../i18n';
+import '../styles/calendar.css';
 
 interface CalendarViewProps {
   year: number;
   month: number; // 0-indexed (January = 0)
   selectedDate: string | null; // YYYY-MM-DD
-  transactionDates: Set<string>; // Dates that have transactions
+  transactionCounts: Record<string, number>; // date -> count
   onDateSelect: (date: string) => void;
   onMonthChange: (year: number, month: number) => void;
+  onMonthHeaderClick?: () => void; // Optional: click month title to show monthly summary
 }
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 export function CalendarView({
   year,
   month,
   selectedDate,
-  transactionDates,
+  transactionCounts,
   onDateSelect,
   onMonthChange,
+  onMonthHeaderClick,
 }: CalendarViewProps) {
   const { t } = useTranslation();
 
@@ -43,12 +46,17 @@ export function CalendarView({
       days.push({ date: dateStr, day });
     }
 
+    // Fill to complete 6 weeks (42 cells) for consistent height
+    while (days.length < 42) {
+      days.push({ date: null, day: null });
+    }
+
     return days;
   }, [year, month]);
 
   const monthLabel = useMemo(() => {
     const date = new Date(year, month);
-    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   }, [year, month]);
 
   const handlePrevMonth = () => {
@@ -70,52 +78,81 @@ export function CalendarView({
   const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
 
   return (
-    <div className="calendar-view">
+    <div className="calendar">
+      {/* Month Header */}
       <div className="calendar-header">
         <button
           type="button"
-          className="btn-nav"
+          className="calendar-nav calendar-nav--prev"
           onClick={handlePrevMonth}
-          aria-label={t('history.prevMonth')}
+          aria-label={t('calendar.prevMonth')}
         >
-          &lt;
+          ←
         </button>
-        <span className="month-label">{monthLabel}</span>
+
+        {onMonthHeaderClick ? (
+          <button
+            type="button"
+            className="calendar-month-title"
+            onClick={onMonthHeaderClick}
+            aria-label={t('calendar.monthSummary')}
+          >
+            {monthLabel}
+          </button>
+        ) : (
+          <span className="calendar-month-title calendar-month-title--static">
+            {monthLabel}
+          </span>
+        )}
+
         <button
           type="button"
-          className="btn-nav"
+          className="calendar-nav calendar-nav--next"
           onClick={handleNextMonth}
-          aria-label={t('history.nextMonth')}
+          aria-label={t('calendar.nextMonth')}
         >
-          &gt;
+          →
         </button>
       </div>
 
+      {/* Day Headers */}
       <div className="calendar-weekdays">
-        {WEEKDAYS.map(day => (
-          <div key={day} className="weekday">{day}</div>
+        {WEEKDAYS.map((day) => (
+          <div key={day} className="calendar-weekday">
+            {t(`calendar.days.${day}`)}
+          </div>
         ))}
       </div>
 
+      {/* Calendar Grid */}
       <div className="calendar-grid">
         {calendarDays.map((cell, index) => {
-          if (cell.date === null) {
-            return <div key={`empty-${index}`} className="calendar-day empty" />;
+          if (!cell.date || !cell.day) {
+            return <div key={`empty-${index}`} className="calendar-cell calendar-cell--empty" />;
           }
 
-          const hasTransactions = transactionDates.has(cell.date);
-          const isSelected = cell.date === selectedDate;
           const isToday = cell.date === today;
+          const isSelected = cell.date === selectedDate;
+          const count = transactionCounts[cell.date] || 0;
+          const hasData = count > 0;
 
           return (
             <button
               key={cell.date}
               type="button"
-              className={`calendar-day ${hasTransactions ? 'has-data' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
+              className={`calendar-cell ${isToday ? 'calendar-cell--today' : ''} ${isSelected ? 'calendar-cell--selected' : ''} ${hasData ? 'calendar-cell--has-data' : ''}`}
               onClick={() => onDateSelect(cell.date!)}
+              aria-label={`${cell.date}${count > 0 ? ` (${count} ${t('calendar.transactions')})` : ''}`}
+              aria-current={isToday ? 'date' : undefined}
+              aria-selected={isSelected ? 'true' : 'false'}
             >
-              <span className="day-number">{cell.day}</span>
-              {hasTransactions && <span className="data-indicator" />}
+              <span className="calendar-cell-day">{cell.day}</span>
+              {hasData && (
+                <span
+                  className={`calendar-cell-indicator ${count > 5 ? 'calendar-cell-indicator--high' : ''}`}
+                  aria-hidden="true"
+                />
+              )}
             </button>
           );
         })}
