@@ -69,7 +69,7 @@ Start working on issue #n:
 6. Start working on first step from plan (or create plan if missing)
 
 ### *issue close <n>
-Complete issue #n:
+Complete issue #n (with automatic branch cleanup):
 
 1. **Run post-code checklist**: @.prot/checklists/post-code.md
 
@@ -85,34 +85,44 @@ Complete issue #n:
    git push
    ```
 
-5. **Merge workflow** (follow @.claude/patterns/git-workflow.md):
+5. **Merge to development AND delete feature branch**:
+   ```bash
+   # Update development
    git checkout development
    git pull origin development
+   
+   # Merge feature branch
    git checkout feature/<n>-short-title
    git merge development  # Resolve conflicts if any
-
-   # Merge back to development
    git checkout development
    git merge --no-ff feature/<n>-short-title -m "Merge feature/<n>: <title> (#<n>)"
    git push origin development
-
-   # Delete feature branch
+   
+   # ⭐ DELETE FEATURE BRANCH (CRITICAL)
    git branch -d feature/<n>-short-title
    git push origin --delete feature/<n>-short-title
+   
+   # Clean up merged branches locally
+   git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d
    ```
 
-6. Close issue:
+6. **Close GitHub issue**:
    ```bash
    gh issue close <n> --comment "Completed and merged to development"
    ```
 
-7. Create/update ADR if major architectural decision made:
+7. **Create/update ADR if major architectural decision made**:
    - Check if decision fits ADR criteria (impacts multiple components)
    - Create `docs/architecture/ADR/NNN-title.md` if yes
    - Add ADR link to MEMORY.md (see @.claude/rules/memory-management.md)
 
-8. Move plan file from active → archive:
-   - `mv .claude/plans/active/#<n>-*.md .claude/plans/archive/`
+8. **Move plan file from active → archive**:
+   ```bash
+   mv .claude/plans/active/#<n>-*.md .claude/plans/archive/
+   git add .claude/plans/
+   git commit -m "Archive issue #<n> plan"
+   git push origin development
+   ```
 
 ### *issue new <title>
 Create new issue:

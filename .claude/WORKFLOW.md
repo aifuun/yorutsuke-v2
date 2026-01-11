@@ -192,6 +192,7 @@ Working on feature
   $ *next  (Phase 2-3: In-code, follow dev plan from issue)
   $ *review (Phase 4: Final check)
   $ *issue close 102
+  → ✅ Merges branch, deletes feature/102-*, closes issue, archives plan
 
 End of session
   $ *sync
@@ -203,6 +204,19 @@ Next day
   → Recommends Issue #103
   $ *issue pick 103
   ... (repeat)
+```
+
+### Branch Cleanup Rules
+
+**CRITICAL**: Always clean up feature branches after `*issue close`
+
+```bash
+# When you run *issue close #102, this happens automatically:
+git branch -d feature/102-short-title          # Delete locally
+git push origin --delete feature/102-short-title  # Delete on GitHub
+
+# Clean up any stale branches (ones marked "gone")
+git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d
 ```
 
 ---
