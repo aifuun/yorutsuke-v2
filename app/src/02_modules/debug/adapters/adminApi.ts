@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
+import { mockAdminDeleteData, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 // Timeouts
@@ -69,20 +70,14 @@ export async function deleteUserData(
   if (isMockingOffline()) {
     await mockDelay(100);
     logger.debug(EVENTS.APP_ERROR, { component: 'adminApi', phase: 'mock_offline' });
-    throw new Error('Network error: offline mode');
+    throw mockNetworkError('delete user data');
   }
 
   // Mocking online - return mock response
   if (isMockingOnline()) {
     await mockDelay(500);
     logger.debug(EVENTS.APP_ERROR, { component: 'adminApi', phase: 'mock_online' });
-    return {
-      userId,
-      deleted: {
-        transactions: types.includes('transactions') ? 5 : 0,
-        images: types.includes('images') ? 3 : 0,
-      },
-    };
+    return mockAdminDeleteData(userId, types);
   }
 
   // Build request body

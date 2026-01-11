@@ -5,6 +5,7 @@ import type { UserId } from '../../../00_kernel/types';
 import { TransactionId, ImageId, UserId as UserIdConstructor } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
+import { mockTransactionPull, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 // Transactions Lambda URL
@@ -87,40 +88,6 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
 }
 
 /**
- * Generate mock transactions for testing
- */
-function createMockTransactions(userId: UserId, count: number = 3): Transaction[] {
-  const now = new Date();
-  const transactions: Transaction[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-
-    transactions.push({
-      id: TransactionId(`mock-tx-${i + 1}`),
-      userId,
-      imageId: i % 2 === 0 ? ImageId(`mock-img-${i + 1}`) : null,
-      s3Key: null,
-      type: i % 2 === 0 ? 'expense' : 'income',
-      category: i % 2 === 0 ? 'purchase' : 'sale',
-      amount: 1000 + i * 500,
-      currency: 'JPY',
-      description: `Mock transaction ${i + 1}`,
-      merchant: `Mock Merchant ${i + 1}`,
-      date: date.toISOString().split('T')[0],
-      createdAt: date.toISOString(),
-      updatedAt: date.toISOString(),
-      confirmedAt: i === 0 ? date.toISOString() : null,
-      confidence: null,
-      rawText: null,
-    });
-  }
-
-  return transactions;
-}
-
-/**
  * Fetch transactions from cloud (DynamoDB via Lambda)
  * Pillar B: Validate response with Zod schema
  *
@@ -140,14 +107,14 @@ export async function fetchTransactions(
   if (isMockingOffline()) {
     await mockDelay(100);
     logger.debug(EVENTS.APP_ERROR, { component: 'transactionApi', phase: 'mock_offline' });
-    throw new Error('Network error: offline mode');
+    throw mockNetworkError('fetch transactions');
   }
 
   // Mocking online - return mock transactions
   if (isMockingOnline()) {
     await mockDelay(300);
     logger.debug(EVENTS.APP_ERROR, { component: 'transactionApi', phase: 'mock_online', count: 3 });
-    return createMockTransactions(userId, 3);
+    return mockTransactionPull(userId, 3);
   }
 
   // Build request body

@@ -187,17 +187,72 @@ return await realApiCall();
 | Add randomness | `Math.random()` for variety |
 | Log mock calls | `console.log('[Mock]', ...)` |
 
+### Centralized Mock Data (Issue #138)
+
+**Location**: `00_kernel/mocks/`
+
+All mock data generation is now centralized for consistency and maintainability:
+
+```
+00_kernel/mocks/
+├── mockOnline.ts   # Successful API responses (online mode)
+│   ├── mockPresignUrl()
+│   ├── mockQuotaData()
+│   ├── mockAdminDeleteData()
+│   ├── mockTransactionPull()
+│   └── mockBatchConfig()
+├── mockOffline.ts  # Error scenarios (offline mode)
+│   ├── mockNetworkError()
+│   ├── mockTimeoutError()
+│   ├── mockServerError()
+│   ├── mockAuthError()
+│   ├── mockRateLimitError()
+│   ├── mockValidationError()
+│   └── mockNotFoundError()
+└── index.ts        # Unified exports
+```
+
+**Adapter Pattern** (after #138):
+```typescript
+import { mockPresignUrl, mockNetworkError } from '00_kernel/mocks';
+
+// 1. Offline first (simulate network failure)
+if (isMockingOffline()) {
+  await mockDelay(100);
+  throw mockNetworkError('get presigned URL');
+}
+
+// 2. Online mock (return fake data)
+if (isMockingOnline()) {
+  await mockDelay(100);
+  return mockPresignUrl(userId, fileName);
+}
+
+// 3. Real API call
+const response = await fetch(PRESIGN_URL, ...);
+```
+
+**Benefits**:
+- ✅ No hard-coded mock data in adapters
+- ✅ Consistent mock responses across modules
+- ✅ Centralized error scenarios (easier to test edge cases)
+- ✅ Hybrid mock strategy support (e.g., `quotaApi` with real DB count)
+
+**Complex Mock Data**: `report/adapters/mockData.ts` remains separate as a rich transaction generator with scenarios (Pillar C implementation).
+
 ---
 
 ## Current Coverage
 
-| Adapter | Mock Status | Mock Behavior |
-|---------|-------------|---------------|
-| `uploadApi.ts` | ✅ Complete | Fake presign URL, simulated S3 upload |
-| `quotaApi.ts` | ✅ Complete | Queries local DB (real count), mock tier |
-| `reportApi.ts` | ✅ Complete | 8 random transactions |
-| `authApi.ts` | ⚠️ Partial | Guest mode only |
-| `imageIpc.ts` | ❌ None | Uses real Rust IPC (local) |
+| Adapter | Mock Status | Mock Source | Mock Behavior |
+|---------|-------------|-------------|---------------|
+| `uploadApi.ts` | ✅ Complete | `mockOnline.ts` | Fake presign URL, simulated S3 upload |
+| `quotaApi.ts` | ✅ Complete | `mockOnline.ts` | Hybrid mock (real DB count + mock tier) |
+| `reportApi.ts` | ✅ Complete | `report/mockData.ts` | Rich scenario-based transactions |
+| `transactionApi.ts` | ✅ Complete | `mockOnline.ts` | Simple transaction pull mock |
+| `adminApi.ts` | ✅ Complete | `mockOnline.ts` | Mock delete data response |
+| `authApi.ts` | ⚠️ Partial | Inline | Guest mode only |
+| `imageIpc.ts` | ❌ None | N/A | Uses real Rust IPC (local) |
 
 ### What's NOT Mocked
 

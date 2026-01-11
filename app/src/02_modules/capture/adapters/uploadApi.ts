@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId, IntentId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
+import { mockPresignUrl, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
@@ -36,16 +37,6 @@ function withTimeout<T>(
   ]);
 }
 
-// Mock presign response for UI development
-let mockKeyCounter = 0;
-function createMockPresign(userId: UserId, fileName: string): PresignResponse {
-  mockKeyCounter++;
-  return {
-    url: `https://mock-s3.local/uploads/${userId}/${Date.now()}-${fileName}?mock=true`,
-    key: `uploads/${userId}/${Date.now()}-${mockKeyCounter}-${fileName}`,
-  };
-}
-
 export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
@@ -55,14 +46,14 @@ export async function getPresignedUrl(
   // Mocking offline - simulate network failure
   if (isMockingOffline()) {
     await mockDelay(100);
-    throw new Error('Network error: offline mode');
+    throw mockNetworkError('get presigned URL');
   }
 
   // Mocking online - return mock presign URL
   if (isMockingOnline()) {
     await mockDelay(100);
     logger.debug(EVENTS.UPLOAD_STARTED, { phase: 'mock_presign', fileName });
-    return createMockPresign(userId, fileName);
+    return mockPresignUrl(userId, fileName);
   }
 
   const fetchPromise = fetch(PRESIGN_URL, {
