@@ -61,14 +61,6 @@ export type QuotaMockScenario =
   | 'basic-tier'    // Basic tier user
   | 'pro-tier';     // Pro tier user
 
-const TIER_LIMITS: Record<UserTier, number> = {
-  guest: 30,
-  free: 50,
-  basic: 100,
-  pro: 500,
-};
-
-
 /**
  * Fetch current quota status for user
  *
