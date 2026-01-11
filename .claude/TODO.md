@@ -4,12 +4,39 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 ## Current Session [2026-01-11]
 
-### Active: MVP3 Frontend Development
+### Active: #139 - TODO.md & MEMORY.md Migration
 
-**当前目标**: Complete MVP3 frontend core features (Issues #114-#118)
+**当前目标**: Refactor session tracking and memory management
+**Plan**: `.claude/plans/active/139-todo-memory-migration.md`
 
-### 当前无活跃 Issue
-**下一步**: 选择 #116 或 #117 继续 MVP3 Frontend
+**状态**: 🔄 In Progress
+
+#### Phase 1: Create ADRs [2-3h] ✅
+- [x] 006-mock-database-isolation.md (#138)
+- [x] 007-transaction-cloud-sync.md (#108)
+- [x] 008-component-library.md (#126-131)
+- [x] 009-branch-first-workflow.md (process improvement)
+
+#### Phase 2: Refactor MEMORY.md [1h] ⬅️
+- [ ] Create new lean MEMORY.md structure
+- [ ] Verify all ADR links
+
+#### Phase 3: Update Core Commands [3-4h]
+- [ ] next.md (5 refs)
+- [ ] issue.md (8 refs)
+- [ ] sync.md (8 refs)
+- [ ] resume.md (7 refs)
+- [ ] status.md (5 refs)
+- [ ] approve.md (1 ref)
+
+#### Phase 4: Update Supporting Files [2h]
+- [ ] Remaining 11 commands
+- [ ] 8 documentation files
+
+#### Phase 5: Validation [1h]
+- [ ] Test commands
+- [ ] Verify links
+- [ ] Spot check workflow
 
 ### Recently Completed: #115 - Transaction List: Type & Category Filters
 **状态**: ✅ 完成 (2026-01-11)
