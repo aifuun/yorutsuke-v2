@@ -128,11 +128,11 @@ export function HistoryModal({ transactions, onClose, initialDate }: HistoryModa
                     {dayTransactions.map(tx => (
                       <div key={tx.id} className="transaction-item">
                         <div className="transaction-info">
-                          <span className="transaction-merchant">
-                            {tx.merchant || tx.description}
-                          </span>
                           <span className="transaction-category">
                             {t(`transaction.categories.${tx.category}`)}
+                          </span>
+                          <span className="transaction-merchant">
+                            {tx.merchant || tx.description}
                           </span>
                         </div>
                         <span className={`transaction-amount ${tx.type === 'income' ? 'income' : 'expense'}`}>

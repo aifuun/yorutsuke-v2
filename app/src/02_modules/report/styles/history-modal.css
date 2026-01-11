@@ -109,6 +109,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  overflow: hidden;
+  height: 100%;
 }
 
 .summary-date {
@@ -118,6 +120,7 @@
   margin: 0;
   padding-bottom: var(--space-2);
   border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
 }
 
 /* Empty State */
@@ -145,13 +148,14 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .summary-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
+  gap: var(--space-1);
+  padding: var(--space-3);
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border-left: 4px solid transparent;
@@ -182,7 +186,7 @@
 }
 
 .summary-card-value {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: 700;
   color: var(--text-primary);
   font-family: 'JetBrains Mono', monospace;
@@ -193,6 +197,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  flex: 1;
+  overflow: hidden;
 }
 
 .summary-section-title {
@@ -202,56 +208,69 @@
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  flex-shrink: 0;
 }
 
 .transaction-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  max-height: 500px;
+  gap: var(--space-2);
   overflow-y: auto;
   padding-right: var(--space-2);
+  flex: 1;
 }
 
 .transaction-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3);
   background: var(--bg-card);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   transition: all var(--duration-fast) var(--ease-out);
-  height: 72px;
+  min-height: 48px;
 }
 
 .transaction-item:hover {
   background: var(--bg-hover);
-  transform: translateX(4px);
+  border-color: var(--color-primary);
 }
 
 .transaction-info {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
   flex: 1;
-}
-
-.transaction-merchant {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
+  min-width: 0;
 }
 
 .transaction-category {
   font-size: var(--text-xs);
   color: var(--text-secondary);
+  padding: 2px 8px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.transaction-merchant {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
 }
 
 .transaction-amount {
   font-size: var(--text-base);
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .transaction-amount.income {
