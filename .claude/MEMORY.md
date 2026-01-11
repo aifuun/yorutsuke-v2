@@ -18,6 +18,7 @@ This document is a pure index of architectural decisions. All implementation det
 - [007-transaction-cloud-sync.md](../docs/architecture/ADR/007-transaction-cloud-sync.md) - Cloud-to-local sync
 - [008-component-library.md](../docs/architecture/ADR/008-component-library.md) - Component library design
 - [009-branch-first-workflow.md](../docs/architecture/ADR/009-branch-first-workflow.md) - Git workflow rule
+- [010-three-layer-task-tracking.md](../docs/architecture/ADR/010-three-layer-task-tracking.md) - TODO/MEMORY migration (pure ADR index)
 
 ## References
 
@@ -27,6 +28,6 @@ This document is a pure index of architectural decisions. All implementation det
 
 ---
 
-**Last Updated**: 2026-01-11  
+**Last Updated**: 2026-01-11 (ADR-010 added)  
 **Purpose**: Pure ADR index (no project tracking)  
 **Update Rule**: Add ADR link when closing major architectural issues
