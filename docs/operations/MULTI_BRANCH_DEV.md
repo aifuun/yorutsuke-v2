@@ -205,13 +205,21 @@ VITE_PORT=1422 ENV_FILE=.env.feature-115 npm run tauri:1422
 Error: Port 1422 is already in use
 ```
 
-**解决**：
+**解决方式 1：一键清理所有端口（推荐）**：
 ```bash
-# 查看占用端口的进程
-lsof -i :1422
+cd app
+npm run clean:ports
+```
 
-# 杀掉进程
-kill -9 <PID>
+**解决方式 2：清理单个端口**：
+```bash
+# 方式 A: 使用脚本
+cd app
+bash scripts/kill-port.sh 1422
+
+# 方式 B: 手动清理
+lsof -i :1422        # 查看占用端口的进程
+kill -9 <PID>        # 杀掉进程
 ```
 
 ### 问题 2：Tauri 窗口无法打开
