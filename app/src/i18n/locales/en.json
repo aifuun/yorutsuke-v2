@@ -19,6 +19,7 @@
     "confirm": "Confirm",
     "edit": "Edit",
     "retry": "Retry",
+    "close": "Close",
     "view": "View"
   },
   "report": {
@@ -85,6 +86,7 @@
     "status": "Status",
     "confirmed": "Confirmed",
     "pending": "Pending confirmation",
+    "pendingConfirmation": "Pending Confirmation",
     "ocrText": "OCR Text",
     "type": "Type",
     "types": {
@@ -93,7 +95,7 @@
     },
     "details": "Transaction Details",
     "review": "Review",
-    "reviewAndConfirm": "Review & Confirm",
+    "reviewAndConfirm": "Review and Confirm",
     "viewDetails": "View Details",
     "clickToReview": "Click to review",
     "extractedText": "Extracted Text",
@@ -220,8 +222,16 @@
     "lastMonth": "Last Month",
     "thisYear": "This Year",
     "all": "All",
+    "allMonths": "All Months",
     "sortBy": "Sort By",
     "filter": "Filter",
+    "filters": "Filters",
+    "filterTime": "Time",
+    "filterType": "Type",
+    "filterCategory": "Category",
+    "filterStatus": "Status",
+    "newestFirst": "Newest First",
+    "oldestFirst": "Oldest First",
     "invoiceDate": "Invoice Date",
     "processingTime": "Processing Time",
     "pendingConfirmation": "Pending Confirmation",
@@ -234,7 +244,21 @@
     "sync": "Sync",
     "syncing": "Syncing...",
     "syncTooltip": "Sync transactions from cloud",
-    "lastSynced": "Last synced: {{time}}"
+    "lastSynced": "Last synced: {{time}}",
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    }
   },
   "history": {
     "title": "History",

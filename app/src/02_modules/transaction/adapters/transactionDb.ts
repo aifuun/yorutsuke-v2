@@ -55,6 +55,10 @@ export interface FetchTransactionsOptions {
   offset?: number;
   /** Filter by confirmation status: 'pending' (unconfirmed) or 'confirmed' */
   statusFilter?: 'pending' | 'confirmed';
+  /** Filter by transaction type: 'income' or 'expense' */
+  typeFilter?: 'income' | 'expense';
+  /** Filter by transaction category */
+  categoryFilter?: TransactionCategory;
 }
 
 export async function fetchTransactions(
@@ -62,7 +66,7 @@ export async function fetchTransactions(
   options: FetchTransactionsOptions = {},
 ): Promise<Transaction[]> {
   const database = await getDb();
-  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter } = options;
+  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter, typeFilter, categoryFilter } = options;
 
   // Filter out deleted transactions (Issue #109: Soft delete)
   let query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
@@ -82,6 +86,18 @@ export async function fetchTransactions(
     query += ' AND confirmed_at IS NULL';
   } else if (statusFilter === 'confirmed') {
     query += ' AND confirmed_at IS NOT NULL';
+  }
+
+  // Type filter (NEW: Issue #115)
+  if (typeFilter) {
+    query += ' AND type = ?';
+    params.push(typeFilter);
+  }
+
+  // Category filter (NEW: Issue #115)
+  if (categoryFilter) {
+    query += ' AND category = ?';
+    params.push(categoryFilter);
   }
 
   // Sorting (default: invoice date descending)
@@ -108,10 +124,16 @@ export async function fetchTransactions(
  */
 export async function countTransactions(
   userId: UserIdType,
-  options: { startDate?: string; endDate?: string; statusFilter?: 'pending' | 'confirmed' } = {},
+  options: {
+    startDate?: string;
+    endDate?: string;
+    statusFilter?: 'pending' | 'confirmed';
+    typeFilter?: 'income' | 'expense';
+    categoryFilter?: TransactionCategory;
+  } = {},
 ): Promise<number> {
   const database = await getDb();
-  const { startDate, endDate, statusFilter } = options;
+  const { startDate, endDate, statusFilter, typeFilter, categoryFilter } = options;
 
   // Filter out deleted transactions
   let query = 'SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
@@ -131,6 +153,18 @@ export async function countTransactions(
     query += ' AND confirmed_at IS NULL';
   } else if (statusFilter === 'confirmed') {
     query += ' AND confirmed_at IS NOT NULL';
+  }
+
+  // Type filter (NEW: Issue #115)
+  if (typeFilter) {
+    query += ' AND type = ?';
+    params.push(typeFilter);
+  }
+
+  // Category filter (NEW: Issue #115)
+  if (categoryFilter) {
+    query += ' AND category = ?';
+    params.push(categoryFilter);
   }
 
   const rows = await database.select<Array<{ count: number }>>(query, params);

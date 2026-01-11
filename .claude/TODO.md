@@ -8,28 +8,32 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 **当前目标**: Complete MVP3 frontend core features (Issues #114-#118)
 
-### Current Issue: #114 - Dashboard Daily Summary
-**状态**: ✅ 完成 | Plan: `.claude/plans/active/#114-dashboard-yesterday-summary.md`
-**复杂度**: T1 (read-only)
-**实际用时**: ~8h (超出预估，但完成了完整重构)
+### Current Issue: #115 - Transaction List: Type & Category Filters
+**状态**: 🔄 进行中 | Plan: `.claude/plans/active/#115-transaction-filters.md`
+**复杂度**: T1 (read-only, direct pattern)
+**预估用时**: 5h
 
 **进度**:
-- [x] Phase 1: UI Design with Mock Data (2h) - ✅ 已完成
-- [x] Phase 2: Data Integration (3h) - ✅ 已完成
-  - [x] Step 2.1: Create `createDailySummaryWithBreakdown` domain function - ✅
-  - [x] Step 2.2: Replace mock data with real data in DashboardView - ✅
-  - [x] Step 2.3: UI improvements (color-coded totals, queue status) - ✅
-  - [x] Step 2.4: Verify i18n translations (all languages complete) - ✅
-  - [x] Step 2.5: Build verification - ✅
-- [x] Phase 3-7: Complete Refactor (5h) - ✅ 已完成（超出原计划）
-  - [x] Hero Card 瘦身 - 精简信息层级
-  - [x] Independent breakdown cards - 进度条可视化
-  - [x] Today-focused statistics - 统一时间维度
-  - [x] Pending transactions list - 可操作列表
-  - [x] Trend comparison - 本周/上周，今日/昨日对比
-  - [x] Micro-interactions - 数字翻牌、进度条动画、3D悬停
-  - [x] Edge cases - 边界案例优化（除以0、空数据）
+- [x] Phase 0: Feature Planning (0.5h) - ✅ 已完成
+- [ ] Phase 1: Backend Support (1.5h)
+  - [ ] Update FetchTransactionsOptions interface
+  - [ ] Update fetchTransactions with type/category filters
+  - [ ] Update countTransactions with type/category filters
+- [ ] Phase 2: Frontend UI (2.5h)
+  - [ ] Add filter state variables (typeFilter, categoryFilter)
+  - [ ] Update buildFetchOptions
+  - [ ] Add filter change handlers
+  - [ ] Add filter UI controls (2 new select dropdowns)
+- [ ] Phase 3: i18n Updates (0.5h)
+  - [ ] Verify/add missing translations (en/ja/zh)
+- [ ] Phase 4: Testing & Verification (1h)
+  - [ ] Manual testing (SC-800~807, SC-820~821)
+  - [ ] Edge cases (empty results, combined filters)
+  - [ ] Build verification
 
+### Recently Completed: #114 - Dashboard Daily Summary
+**状态**: ✅ 完成 (2026-01-11)
+**实际用时**: ~8h (超出预估，但完成了完整重构)
 **完成内容**:
 - 新增函数: `createWeeklySummary()` (rules.ts:122-145)
 - 重构视图: DashboardView.tsx 完全重构
@@ -40,8 +44,8 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 **本周 Week 1**:
 - [x] #137: View Header 统一设计 (2-3h) - ✅ 已完成（验证通过）
-- [x] #114: Dashboard Daily Summary (8h) - ✅ 已完成（完整重构） ⬅️
-- [ ] #115: Transaction List & Filters (5h) - **下一步**
+- [x] #114: Dashboard Daily Summary (8h) - ✅ 已完成（完整重构）
+- [ ] #115: Transaction List & Filters (5h) - 🔄 **进行中** ⬅️
 - [ ] #117: Report History Calendar (6h) - 周三/周四 (可并行)
 - [ ] #116: Transaction Confirmation (6h) - 周四/周五 (depends on #115)
 

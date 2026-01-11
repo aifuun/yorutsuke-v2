@@ -165,32 +165,38 @@ export function ImageLightbox({
 
         {/* Actions */}
         <div className="lightbox-actions">
-          {onConfirm && !isConfirmed && (
+          {/* Left: Primary action or confirmed badge */}
+          {onConfirm && !isConfirmed ? (
             <button
               type="button"
-              className="btn btn--success btn--lg"
+              className="btn btn--success"
               onClick={handleConfirm}
             >
               ✓ {t('common.confirm') || 'Confirm'}
             </button>
-          )}
-          {isConfirmed && (
+          ) : isConfirmed ? (
             <div className="lightbox-confirmed-badge">
               ✓ {t('transaction.confirmed') || 'Confirmed'}
             </div>
+          ) : (
+            <div></div>
           )}
-          {onDelete && (
-            <button
-              type="button"
-              className="btn btn--danger btn--lg"
-              onClick={onDelete}
-            >
-              🗑 {t('common.delete') || 'Delete'}
+
+          {/* Right: Secondary actions */}
+          <div className="lightbox-actions-right">
+            {onDelete && (
+              <button
+                type="button"
+                className="btn btn--danger"
+                onClick={onDelete}
+              >
+                🗑 {t('common.delete') || 'Delete'}
+              </button>
+            )}
+            <button type="button" className="btn btn--secondary" onClick={onClose}>
+              {t('common.close') || 'Close'}
             </button>
-          )}
-          <button type="button" className="btn btn--secondary btn--lg" onClick={onClose}>
-            {t('common.close') || 'Close'}
-          </button>
+          </div>
         </div>
       </div>
     </div>,

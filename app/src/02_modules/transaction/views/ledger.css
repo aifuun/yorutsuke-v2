@@ -252,15 +252,7 @@
   backdrop-filter: blur(12px);
   border: 1px solid var(--slate-200);
   border-radius: var(--radius-2xl);
-  transition:
-    background-color var(--duration-fast) var(--ease-standard),
-    transform var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard);
-}
-
-.glass-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-2);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 /* Card List Header */

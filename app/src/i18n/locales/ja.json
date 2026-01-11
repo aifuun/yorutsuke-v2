@@ -89,6 +89,8 @@
     "pendingConfirmation": "確認待ち",
     "ocrText": "OCRテキスト",
     "type": "種類",
+    "income": "収入",
+    "expense": "支出",
     "types": {
       "income": "収入",
       "expense": "支出"
@@ -222,6 +224,7 @@
     "lastMonth": "先月",
     "thisYear": "今年",
     "all": "全て",
+    "allMonths": "すべての月",
     "annualInflow": "収入合計",
     "annualOutflow": "支出合計",
     "latestEntries": "取引一覧",
@@ -232,11 +235,32 @@
     "syncTooltip": "クラウドから取引を同期",
     "lastSynced": "最終同期: {{time}}",
     "sortBy": "並び替え",
+    "filters": "フィルター",
+    "filterTime": "期間",
+    "filterType": "種類",
+    "filterCategory": "カテゴリ",
+    "filterStatus": "ステータス",
+    "newestFirst": "新しい順",
+    "oldestFirst": "古い順",
     "invoiceDate": "発生日",
     "processingTime": "処理日時",
     "filter": "絞り込み",
     "pendingConfirmation": "確認待ち",
-    "confirmed": "確認済み"
+    "confirmed": "確認済み",
+    "months": {
+      "january": "1月",
+      "february": "2月",
+      "march": "3月",
+      "april": "4月",
+      "may": "5月",
+      "june": "6月",
+      "july": "7月",
+      "august": "8月",
+      "september": "9月",
+      "october": "10月",
+      "november": "11月",
+      "december": "12月"
+    }
   },
   "history": {
     "title": "履歴",

@@ -14,7 +14,7 @@
 import Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 import { runMigrations } from './migrations';
-import { isMockingOnline } from '../config/mock';
+import { isMockMode } from '../config/mock';
 
 const PRODUCTION_DB = 'sqlite:yorutsuke.db';
 const MOCK_DB = 'sqlite:yorutsuke-mock.db';
@@ -22,28 +22,44 @@ const MOCK_DB = 'sqlite:yorutsuke-mock.db';
 let productionDb: Database | null = null;
 let mockDb: Database | null = null;
 let initPromise: Promise<void> | null = null;
+let mockInitPromise: Promise<Database> | null = null;  // Race condition protection for mockDb
 
 /**
  * Get appropriate database connection based on current mock mode
- * Returns production db in production mode, mock db in mock mode
+ * Returns production db in production mode, mock db in both online and offline mock modes
  * Ensures queries always use the correct database without app restart
+ *
+ * Mock mode behavior:
+ * - 'off': production db (real data)
+ * - 'online': mock db (mock API responses)
+ * - 'offline': mock db (simulate network failure with local mock data)
  *
  * @example
  * const db = await getDb();
  * const rows = await db.select<ImageRow[]>('SELECT * FROM images');
  */
 export async function getDb(): Promise<Database> {
+  // Ensure production db is always initialized first (settings stored there)
   if (!productionDb) {
     await initDb();
   }
 
   // Dynamically select database based on current mock mode
-  // This allows runtime mode switching in Debug panel
-  if (isMockingOnline()) {
-    return await getMockDb();
+  // Both 'online' and 'offline' mock modes use the same mock db
+  // This allows testing network failure scenarios with seeded mock data
+  if (isMockMode()) {
+    if (!mockDb) {
+      // Initialize mock db on-demand with race condition protection
+      return getMockDb();
+    }
+    return mockDb;
   }
 
-  return productionDb!;
+  // Safe: productionDb guaranteed non-null after initDb()
+  if (!productionDb) {
+    throw new Error('Database initialization failed: productionDb is null');
+  }
+  return productionDb;
 }
 
 /**
@@ -111,32 +127,53 @@ export async function closeDb(): Promise<void> {
     mockDb = null;
   }
   initPromise = null;
+  mockInitPromise = null;
   logger.info('db_connections_closed');
 }
 
 /**
  * Get mock database connection
- * Initializes on-demand if needed
+ * Initializes on-demand if needed with race condition protection
  * Used both for seeding and for regular queries in mock mode via getDb()
  *
  * @internal
  */
 export async function getMockDb(): Promise<Database> {
-  if (!mockDb) {
+  // Race condition protection: if already initializing, wait for same promise
+  if (mockInitPromise) {
+    return mockInitPromise;
+  }
+
+  // If already initialized, return immediately
+  if (mockDb) {
+    return mockDb;
+  }
+
+  // Start initialization and store promise to prevent concurrent inits
+  mockInitPromise = (async () => {
     try {
       logger.debug('mock_db_initializing', { phase: 'start' });
       mockDb = await Database.load(MOCK_DB);
       await runMigrations(mockDb);
       logger.debug('mock_db_initializing', { phase: 'complete' });
+      return mockDb;
     } catch (error) {
       logger.error(EVENTS.APP_ERROR, {
         component: 'mock_database',
         error: String(error),
       });
+      // Don't clear mockInitPromise here - let finally handle it
+      // This prevents race condition with new concurrent calls
       throw error;
+    } finally {
+      // Clear promise after completion (success or error)
+      // This allows checking mockDb directly on subsequent calls
+      // and enables retry on error
+      mockInitPromise = null;
     }
-  }
-  return mockDb;
+  })();
+
+  return mockInitPromise;
 }
 
 /**

@@ -2,7 +2,7 @@
 // Seeds ALWAYS write to mock database for isolation from production data
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import { TransactionId, UserId } from '../../../00_kernel/types';
-import { isMockingOnline } from '../../../00_kernel/config/mock';
+import { isMockMode } from '../../../00_kernel/config/mock';
 import { getMockDb } from '../../../00_kernel/storage/db';
 import { clearAllTransactions } from './transactionDb';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
@@ -243,8 +243,11 @@ export function getSeedScenarios(): SeedScenario[] {
 
 /**
  * Seed mock transactions into mock SQLite database
- * Only works when mock mode = 'online' (safety check)
+ * Works in both 'online' and 'offline' mock modes
  * Seeds to mock database ONLY, never affects production data
+ *
+ * Both online and offline mock modes use the same mock database,
+ * allowing developers to seed data once and test both scenarios.
  *
  * @param userId User ID for seeding
  * @param scenario Scenario to seed (default: balanced)
@@ -257,12 +260,12 @@ export async function seedMockTransactions(
   scenario: SeedScenario = 'default',
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
-  // Safety check: Only allow seeding in mock mode
-  if (!isMockingOnline()) {
+  // Safety check: Only allow seeding in mock mode (online or offline)
+  if (!isMockMode()) {
     logger.warn(EVENTS.SEED_FAILED, {
       reason: 'not_in_mock_mode',
       current_mode: 'production',
-      required_mode: 'online'
+      required_mode: 'online_or_offline'
     });
     return { seeded: false, count: 0 };
   }

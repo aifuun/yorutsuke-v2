@@ -89,6 +89,8 @@
     "pendingConfirmation": "待确认",
     "ocrText": "OCR 文本",
     "type": "类型",
+    "income": "收入",
+    "expense": "支出",
     "types": {
       "income": "收入",
       "expense": "支出"
@@ -222,6 +224,7 @@
     "lastMonth": "上月",
     "thisYear": "今年",
     "all": "全部",
+    "allMonths": "全部月份",
     "annualInflow": "收入总计",
     "annualOutflow": "支出总计",
     "latestEntries": "交易列表",
@@ -232,11 +235,32 @@
     "syncTooltip": "从云端同步交易记录",
     "lastSynced": "上次同步: {{time}}",
     "sortBy": "排序方式",
+    "filters": "筛选",
+    "filterTime": "时间",
+    "filterType": "类型",
+    "filterCategory": "类别",
+    "filterStatus": "状态",
+    "newestFirst": "最新优先",
+    "oldestFirst": "最旧优先",
     "invoiceDate": "发生日期",
     "processingTime": "处理时间",
     "filter": "筛选",
     "pendingConfirmation": "待确认",
-    "confirmed": "已确认"
+    "confirmed": "已确认",
+    "months": {
+      "january": "1月",
+      "february": "2月",
+      "march": "3月",
+      "april": "4月",
+      "may": "5月",
+      "june": "6月",
+      "july": "7月",
+      "august": "8月",
+      "september": "9月",
+      "october": "10月",
+      "november": "11月",
+      "december": "12月"
+    }
   },
   "history": {
     "title": "历史记录",
