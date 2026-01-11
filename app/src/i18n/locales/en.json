@@ -351,7 +351,7 @@
     "rejectedLimit": "{{count}} file(s) rejected",
     "rejectedLimitHint": "Maximum 50 files at once",
     "processingQueue": "Processing Queue",
-    "aiProcessingLater": "AI processing later",
+    "aiProcessingSoon": "AI processing soon",
     "pending": "Pending",
     "uploaded": "Session",
     "offline": "Offline",

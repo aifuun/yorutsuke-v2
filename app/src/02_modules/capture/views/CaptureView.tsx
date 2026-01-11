@@ -202,7 +202,7 @@ export function CaptureView() {
               <div className="queue-header">
                 <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
                 {queue.some(img => img.status === 'uploaded') && (
-                  <span className="queue-header__hint">{t('capture.aiProcessingLater')}</span>
+                  <span className="queue-header__hint">{t('capture.aiProcessingSoon')}</span>
                 )}
               </div>
               <div className="card--list__items">
