@@ -135,30 +135,35 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
 
       <div className="dashboard-content">
         <div className="dashboard-container">
-          {/* Phase 1: Date Selector */}
-          <div className="date-selector">
-            <button
-              type="button"
-              className={`date-btn ${selectedDate === today ? 'active' : ''}`}
-              onClick={() => setSelectedDate(today)}
-            >
-              {t('dashboard.today')}
-            </button>
-            <button
-              type="button"
-              className={`date-btn ${selectedDate === yesterday ? 'active' : ''}`}
-              onClick={() => setSelectedDate(yesterday)}
-            >
-              {t('dashboard.yesterday')}
-            </button>
-          </div>
-
-          {/* Hero Card - Daily Summary with Breakdown */}
+          {/* Hero Card - Simplified with inline date selector */}
           <div className="card card--hero hero-card">
-            <p className="card--hero__title">
-              {selectedDate === today ? t('dashboard.todayBalance') : t('dashboard.yesterdayBalance')}
-              <span className="card--hero__date mono"> ({selectedDate})</span>
-            </p>
+            <div className="hero-header">
+              <div className="hero-title-group">
+                <h2 className="card--hero__title">
+                  {selectedDate === today ? t('dashboard.todayBalance') : t('dashboard.yesterdayBalance')}
+                  <span className="card--hero__date mono"> ({selectedDate})</span>
+                </h2>
+              </div>
+              {/* Date Selector - Inline */}
+              <div className="date-selector-inline">
+                <button
+                  type="button"
+                  className={`date-btn ${selectedDate === yesterday ? 'active' : ''}`}
+                  onClick={() => setSelectedDate(yesterday)}
+                >
+                  {t('dashboard.yesterday')}
+                </button>
+                <button
+                  type="button"
+                  className={`date-btn ${selectedDate === today ? 'active' : ''}`}
+                  onClick={() => setSelectedDate(today)}
+                >
+                  {t('dashboard.today')}
+                </button>
+              </div>
+            </div>
+
+            {/* Net Balance - Main Focus */}
             <div className="hero-balance">
               <span className={`hero-arrow ${isPositive ? 'positive' : 'negative'}`}>
                 {isPositive ? '↑' : '↓'}
@@ -169,98 +174,178 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <span className="hero-label">{t('report.netProfit')}</span>
             </div>
 
-            {/* Income & Expense Breakdown - Side by Side */}
-            <div className="hero-breakdown">
-              {/* Income Card */}
-              <div className="breakdown-section breakdown-card income-card">
-                <div className="breakdown-card-header">
-                  <span className="breakdown-icon">📈</span>
-                  <span className="breakdown-label">{t('report.income')}</span>
-                </div>
-                <div className="breakdown-amount income">
-                  +¥{dailySummary.totalIncome.toLocaleString()}
-                </div>
-                <div className="breakdown-rows">
-                  <div className="breakdown-row confirmed-row">
-                    <span className="breakdown-row-icon">✓</span>
-                    <span className="breakdown-row-label">{t('common.confirm')}</span>
-                    <span className="breakdown-row-value">¥{dailySummary.confirmedIncome.toLocaleString()}</span>
-                  </div>
-                  {dailySummary.unconfirmedIncome > 0 && (
-                    <div className="breakdown-row unconfirmed-row">
-                      <span className="breakdown-row-icon">⏳</span>
-                      <span className="breakdown-row-label">{t('dashboard.pending')}</span>
-                      <span className="breakdown-row-value">¥{dailySummary.unconfirmedIncome.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
+            {/* Simplified Summary Row */}
+            <div className="hero-summary-row">
+              <div className="summary-item income">
+                <span className="summary-label">{t('report.income')}</span>
+                <span className="summary-value">+¥{dailySummary.totalIncome.toLocaleString()}</span>
               </div>
-
-              {/* Expense Card */}
-              <div className="breakdown-section breakdown-card expense-card">
-                <div className="breakdown-card-header">
-                  <span className="breakdown-icon">📉</span>
-                  <span className="breakdown-label">{t('report.expense')}</span>
-                </div>
-                <div className="breakdown-amount expense">
-                  -¥{dailySummary.totalExpense.toLocaleString()}
-                </div>
-                <div className="breakdown-rows">
-                  <div className="breakdown-row confirmed-row">
-                    <span className="breakdown-row-icon">✓</span>
-                    <span className="breakdown-row-label">{t('common.confirm')}</span>
-                    <span className="breakdown-row-value">¥{dailySummary.confirmedExpense.toLocaleString()}</span>
-                  </div>
-                  {dailySummary.unconfirmedExpense > 0 && (
-                    <div className="breakdown-row unconfirmed-row">
-                      <span className="breakdown-row-icon">⏳</span>
-                      <span className="breakdown-row-label">{t('dashboard.pending')}</span>
-                      <span className="breakdown-row-value">¥{dailySummary.unconfirmedExpense.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
+              <div className="summary-divider">|</div>
+              <div className="summary-item expense">
+                <span className="summary-label">{t('report.expense')}</span>
+                <span className="summary-value">-¥{dailySummary.totalExpense.toLocaleString()}</span>
               </div>
             </div>
 
-            {/* Hero Footer - Unconfirmed Count & View Details */}
-            {dailySummary.unconfirmedCount > 0 && (
-              <div className="hero-footer">
-                {/* Unconfirmed Count */}
-                <div className="unconfirmed-count">
-                  ⏳ {t('dashboard.pending')}: {dailySummary.unconfirmedCount}件
-                </div>
-
-                {/* View Details Button */}
-                <button
-                  type="button"
-                  className="view-details-btn"
-                  onClick={() => onViewChange('ledger')}
-                  aria-label={t('dashboard.viewDetails')}
-                >
-                  {t('dashboard.viewDetails')} →
-                </button>
-              </div>
-            )}
+            {/* Always show view details button */}
+            <div className="hero-footer">
+              <button
+                type="button"
+                className="view-details-btn"
+                onClick={() => onViewChange('ledger')}
+                aria-label={t('dashboard.viewDetails')}
+              >
+                {dailySummary.unconfirmedCount > 0
+                  ? `${t('dashboard.viewDetails')} (${dailySummary.unconfirmedCount}件待确认) →`
+                  : `${t('dashboard.viewDetails')} →`
+                }
+              </button>
+            </div>
           </div>
 
-          {/* Quick Stats Grid */}
+          {/* Phase 2: Breakdown Cards - Moved outside Hero Card */}
+          <div className="breakdown-cards-grid">
+            {/* Income Card with Progress */}
+            <div className="breakdown-card income-card">
+              <div className="breakdown-card-header">
+                <span className="breakdown-icon">📈</span>
+                <span className="breakdown-label">{t('report.income')}</span>
+              </div>
+              <div className="breakdown-amount income">
+                +¥{dailySummary.totalIncome.toLocaleString()}
+              </div>
+
+              {/* Progress Bars */}
+              <div className="breakdown-progress">
+                <div className="progress-row">
+                  <span className="progress-icon">✓</span>
+                  <span className="progress-label">{t('common.confirm')}</span>
+                  <span className="progress-value">¥{dailySummary.confirmedIncome.toLocaleString()}</span>
+                  <span className="progress-percent">
+                    {dailySummary.totalIncome > 0
+                      ? Math.round((dailySummary.confirmedIncome / dailySummary.totalIncome) * 100)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill confirmed"
+                    style={{
+                      width: `${dailySummary.totalIncome > 0
+                        ? (dailySummary.confirmedIncome / dailySummary.totalIncome) * 100
+                        : 0}%`
+                    }}
+                  />
+                </div>
+
+                {dailySummary.unconfirmedIncome > 0 && (
+                  <>
+                    <div className="progress-row">
+                      <span className="progress-icon">⏳</span>
+                      <span className="progress-label">{t('dashboard.pending')}</span>
+                      <span className="progress-value">¥{dailySummary.unconfirmedIncome.toLocaleString()}</span>
+                      <span className="progress-percent">
+                        {Math.round((dailySummary.unconfirmedIncome / dailySummary.totalIncome) * 100)}%
+                      </span>
+                    </div>
+                    <div className="progress-bar">
+                      <div
+                        className="progress-fill unconfirmed"
+                        style={{
+                          width: `${(dailySummary.unconfirmedIncome / dailySummary.totalIncome) * 100}%`
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Expense Card with Progress */}
+            <div className="breakdown-card expense-card">
+              <div className="breakdown-card-header">
+                <span className="breakdown-icon">📉</span>
+                <span className="breakdown-label">{t('report.expense')}</span>
+              </div>
+              <div className="breakdown-amount expense">
+                -¥{dailySummary.totalExpense.toLocaleString()}
+              </div>
+
+              {/* Progress Bars */}
+              <div className="breakdown-progress">
+                <div className="progress-row">
+                  <span className="progress-icon">✓</span>
+                  <span className="progress-label">{t('common.confirm')}</span>
+                  <span className="progress-value">¥{dailySummary.confirmedExpense.toLocaleString()}</span>
+                  <span className="progress-percent">
+                    {dailySummary.totalExpense > 0
+                      ? Math.round((dailySummary.confirmedExpense / dailySummary.totalExpense) * 100)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill confirmed"
+                    style={{
+                      width: `${dailySummary.totalExpense > 0
+                        ? (dailySummary.confirmedExpense / dailySummary.totalExpense) * 100
+                        : 0}%`
+                    }}
+                  />
+                </div>
+
+                {dailySummary.unconfirmedExpense > 0 && (
+                  <>
+                    <div className="progress-row">
+                      <span className="progress-icon">⏳</span>
+                      <span className="progress-label">{t('dashboard.pending')}</span>
+                      <span className="progress-value">¥{dailySummary.unconfirmedExpense.toLocaleString()}</span>
+                      <span className="progress-percent">
+                        {Math.round((dailySummary.unconfirmedExpense / dailySummary.totalExpense) * 100)}%
+                      </span>
+                    </div>
+                    <div className="progress-bar">
+                      <div
+                        className="progress-fill unconfirmed"
+                        style={{
+                          width: `${(dailySummary.unconfirmedExpense / dailySummary.totalExpense) * 100}%`
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Phase 3: Quick Stats - Today's Statistics */}
           <div className="summary-grid">
             <div className="card card--summary is-pending">
               <p className="card--summary__label">{t('dashboard.pending')}</p>
-              <p className="card--summary__value">{pendingCount}</p>
+              <p className="card--summary__value">{dailySummary.unconfirmedCount}</p>
+              <p className="card--summary__subtitle">{t('transaction.pendingConfirmation')}</p>
             </div>
-            <div className="card card--summary is-count is-quota">
+            <div className="card card--summary is-count">
+              <p className="card--summary__label">
+                {selectedDate === today ? t('dashboard.today') : t('dashboard.yesterday')} {t('transaction.transactionCount', { count: '' })}
+              </p>
+              <p className="card--summary__value">{dailySummary.count}</p>
+              <p className="card--summary__subtitle">{dailySummary.confirmedCount} {t('transaction.confirmed')}</p>
+            </div>
+            <div className="card card--summary is-quota">
               <p className="card--summary__label">{t('dashboard.quotaRemaining')}</p>
               <p className="card--summary__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
               <p className="card--summary__subtitle">{t('dashboard.queueReady')}</p>
             </div>
             <div className="card card--summary is-income">
-              <p className="card--summary__label">{t('dashboard.monthlyIncome')}</p>
-              <p className="card--summary__value">¥{monthlySummary.income.toLocaleString()}</p>
-            </div>
-            <div className="card card--summary is-expense">
-              <p className="card--summary__label">{t('dashboard.monthlyExpense')}</p>
-              <p className="card--summary__value">¥{monthlySummary.expense.toLocaleString()}</p>
+              <p className="card--summary__label">平均金额</p>
+              <p className="card--summary__value">
+                {dailySummary.count > 0
+                  ? `¥${Math.round((dailySummary.totalIncome + dailySummary.totalExpense) / dailySummary.count).toLocaleString()}`
+                  : '¥0'
+                }
+              </p>
+              <p className="card--summary__subtitle">Per Transaction</p>
             </div>
           </div>
 
