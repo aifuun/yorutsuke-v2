@@ -6,7 +6,7 @@ Local-first AI accounting assistant for second-hand business users.
 
 ```bash
 # Development (default port 1420)
-cd app && npm run tauri dev
+cd app && npm run tauri:dev
 
 # Build
 cd app && npm run tauri build
