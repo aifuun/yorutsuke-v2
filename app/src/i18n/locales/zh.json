@@ -353,6 +353,7 @@
     "rejectedLimit": "{{count}} 个文件被拒绝",
     "rejectedLimitHint": "一次最多 50 个文件",
     "processingQueue": "处理队列",
+    "aiProcessingLater": "稍后AI处理",
     "pending": "待处理",
     "uploaded": "本次上传",
     "offline": "离线",

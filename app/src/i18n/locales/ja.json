@@ -353,6 +353,7 @@
     "rejectedLimit": "{{count}}ファイルが拒否されました",
     "rejectedLimitHint": "一度に最大50ファイルまで",
     "processingQueue": "処理キュー",
+    "aiProcessingLater": "AI処理は後ほど実行",
     "pending": "待機中",
     "uploaded": "今回",
     "offline": "オフライン",
