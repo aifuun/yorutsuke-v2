@@ -8,8 +8,8 @@
 
 ### Step 1: Understand Your Task
 ```bash
-# Read the issue
-cat .claude/TODO.md
+# Read the issue plan
+ls .claude/plans/active/#XXX-*
 
 # Example: Starting #114 Dashboard Today's Summary
 Issue: #114 Dashboard Today's Summary (T1, 4h)
