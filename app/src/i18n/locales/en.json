@@ -86,6 +86,19 @@
     "confirmed": "Confirmed",
     "pending": "Pending confirmation",
     "ocrText": "OCR Text",
+    "type": "Type",
+    "types": {
+      "income": "Income",
+      "expense": "Expense"
+    },
+    "details": "Transaction Details",
+    "review": "Review",
+    "reviewAndConfirm": "Review & Confirm",
+    "viewDetails": "View Details",
+    "clickToReview": "Click to review",
+    "extractedText": "Extracted Text",
+    "confidence": "AI Confidence",
+    "noImage": "No Image",
     "categories": {
       "purchase": "Purchase",
       "sale": "Sale",

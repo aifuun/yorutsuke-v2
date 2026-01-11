@@ -43,6 +43,32 @@ Mock mode can be changed at runtime via Debug tab:
 Debug → Mock Mode → [Off (Real API) / Online (Mock API) / Offline (Network Fail)]
 ```
 
+### Mock Database
+
+When mock mode is enabled (`'online'`), the system uses a separate mock database (`yorutsuke-mock.db`) that is isolated from production data:
+
+- **Isolated storage**: Mock db and production db are completely separate
+- **Empty by default**: No pre-seeded data (views show empty state)
+- **Auto-reload on mode switch**: Views automatically reload data when switching between mock/production mode
+- **Manual seeding**: Can be seeded via Debug panel with different scenarios
+- **Full CRUD support**: Supports all operations just like production database
+
+**Database switching behavior**:
+- Switch to mock mode → Views reload and show mock database data (empty initially)
+- Seed mock data → Data visible only in mock mode
+- Switch to production mode → Views reload and show production database data
+- Data never crosses between databases
+
+**Seeding options** (via Debug panel):
+- `default`: 7 days, 2-5 transactions/day, balanced
+- `empty`: No transactions
+- `sparse`: Very few transactions
+- `busy`: Lots of transactions
+- `profitable`: Mostly sales, high profit
+- `loss`: Mostly expenses, negative profit
+- `new-user`: Just started, only recent data
+- `veteran`: Long history, many transactions
+
 ---
 
 ## Design Decisions

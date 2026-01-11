@@ -27,7 +27,9 @@
         "enable": true,
         "scope": {
           "requireLiteralLeadingDot": false,
-          "allow": ["**/*"]
+          "allow": [
+            "**/*"
+          ]
         }
       }
     }
@@ -45,7 +47,9 @@
   },
   "plugins": {
     "sql": {
-      "preload": ["sqlite:yorutsuke.db"]
+      "preload": [
+        "sqlite:yorutsuke.db"
+      ]
     }
   }
 }
