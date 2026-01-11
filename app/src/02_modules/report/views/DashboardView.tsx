@@ -222,22 +222,15 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               </div>
             </div>
 
-            {/* Hero Footer - Unconfirmed Count & Queue Status */}
-            <div className="hero-footer">
-              {/* Unconfirmed Count */}
-              {dailySummary.unconfirmedCount > 0 && (
+            {/* Hero Footer - Unconfirmed Count & View Details */}
+            {dailySummary.unconfirmedCount > 0 && (
+              <div className="hero-footer">
+                {/* Unconfirmed Count */}
                 <div className="unconfirmed-count">
                   ⏳ {t('dashboard.pending')}: {dailySummary.unconfirmedCount}件
                 </div>
-              )}
 
-              {/* Queue Status */}
-              <div className="queue-status">
-                {t('dashboard.queue')}：{t('dashboard.queueReady')} ({quota?.remaining || 0}/{quota?.limit || 50})
-              </div>
-
-              {/* View Details Button */}
-              {dailySummary.unconfirmedCount > 0 && (
+                {/* View Details Button */}
                 <button
                   type="button"
                   className="view-details-btn"
@@ -246,8 +239,8 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
                 >
                   {t('dashboard.viewDetails')} →
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Stats Grid */}
@@ -256,9 +249,10 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <p className="card--summary__label">{t('dashboard.pending')}</p>
               <p className="card--summary__value">{pendingCount}</p>
             </div>
-            <div className="card card--summary is-count">
+            <div className="card card--summary is-count is-quota">
               <p className="card--summary__label">{t('dashboard.quotaRemaining')}</p>
               <p className="card--summary__value">{quota ? `${quota.remaining}/${quota.limit}` : '—'}</p>
+              <p className="card--summary__subtitle">{t('dashboard.queueReady')}</p>
             </div>
             <div className="card card--summary is-income">
               <p className="card--summary__label">{t('dashboard.monthlyIncome')}</p>
