@@ -4,6 +4,7 @@ import { useReducer, useCallback, useEffect, useState, useMemo } from 'react';
 import type { TransactionId, UserId } from '../../../00_kernel/types';
 import type { Transaction, TransactionFilters } from '../../../01_domains/transaction';
 import { filterTransactions } from '../../../01_domains/transaction';
+import { on } from '../../../00_kernel/eventBus';
 import {
   loadTransactions,
   countTotalTransactions,
@@ -137,6 +138,16 @@ export function useTransactionLogic(userId: UserId | null) {
     if (userId) {
       load();
     }
+  }, [userId, load]);
+
+  // Listen for data refresh events (e.g., after seeding in debug panel)
+  useEffect(() => {
+    const unsubscribe = on('data:refresh', ({ source }) => {
+      if (userId && source === 'seed') {
+        load();
+      }
+    });
+    return unsubscribe;
   }, [userId, load]);
 
   // Computed: all transactions

@@ -1,13 +1,12 @@
 // Pillar L: View - Dashboard with premium UI design
 import { useMemo, useState } from 'react';
-import { Check, Receipt } from 'lucide-react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
-import { createMonthlySummary, createDailySummaryWithBreakdown } from '../../../01_domains/transaction';
+import { createDailySummaryWithBreakdown } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
-import { Icon, ViewHeader } from '../../../components';
+import { ViewHeader } from '../../../components';
 import { EmptyState } from './EmptyState';
 import '../styles/dashboard.css';
 
@@ -62,31 +61,20 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     [selectedDate, transactions]
   );
 
-  // Monthly summary
-  const monthlySummary = useMemo(
-    () => createMonthlySummary(transactions),
-    [transactions]
-  );
-
-  // Count pending (unconfirmed) transactions
-  const pendingCount = useMemo(
-    () => transactions.filter(tx => !tx.confirmedAt).length,
-    [transactions]
-  );
-
-  // Recent activity (last 4 items)
-  const recentActivity = useMemo(() => {
+  // Phase 4: Pending transactions (unconfirmed only, limit 5)
+  const pendingTransactions = useMemo(() => {
     return transactions
-      .slice()
+      .filter(tx => !tx.confirmedAt)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 4)
+      .slice(0, 5)
       .map(tx => ({
         id: tx.id,
-        icon: tx.confirmedAt ? Check : Receipt,
-        iconLabel: tx.confirmedAt ? t('dashboard.activity.confirmed') : t('dashboard.activity.uploaded'),
-        iconBg: tx.confirmedAt ? 'bg-blue-100' : 'bg-emerald-100',
-        title: tx.confirmedAt ? t('dashboard.activity.confirmed') : t('dashboard.activity.uploaded'),
-        subtitle: `${tx.merchant || tx.category} - ¥${Math.abs(tx.amount).toLocaleString()}`,
+        merchant: tx.merchant || t(`transaction.categories.${tx.category}`),
+        amount: tx.amount,
+        type: tx.type,
+        date: tx.date,
+        imageId: tx.imageId,
+        confidence: tx.confidence,
         time: formatRelativeTime(tx.createdAt),
       }));
   }, [transactions, t]);
@@ -327,10 +315,10 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             </div>
             <div className="card card--summary is-count">
               <p className="card--summary__label">
-                {selectedDate === today ? t('dashboard.today') : t('dashboard.yesterday')} {t('transaction.transactionCount', { count: '' })}
+                {selectedDate === today ? '今日交易' : '昨日交易'}
               </p>
               <p className="card--summary__value">{dailySummary.count}</p>
-              <p className="card--summary__subtitle">{dailySummary.confirmedCount} {t('transaction.confirmed')}</p>
+              <p className="card--summary__subtitle">{dailySummary.confirmedCount} 已确认</p>
             </div>
             <div className="card card--summary is-quota">
               <p className="card--summary__label">{t('dashboard.quotaRemaining')}</p>
@@ -349,30 +337,62 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="card card--list activity-card">
-            <h2 className="section-header">{t('dashboard.recentActivity')}</h2>
-            {recentActivity.length === 0 ? (
-              <p className="activity-empty">{t('dashboard.noActivity')}</p>
+          {/* Phase 4: Pending Transactions List */}
+          <div className="card card--list pending-card">
+            <div className="pending-header">
+              <h2 className="section-header">
+                {t('dashboard.pending')}
+                {pendingTransactions.length > 0 && (
+                  <span className="pending-count-badge">{pendingTransactions.length}</span>
+                )}
+              </h2>
+            </div>
+
+            {pendingTransactions.length === 0 ? (
+              <div className="pending-empty">
+                <div className="pending-empty-icon">✓</div>
+                <p className="pending-empty-text">所有交易已确认</p>
+                <p className="pending-empty-hint">当前没有需要处理的交易</p>
+              </div>
             ) : (
-              <div className="activity-list">
-                {recentActivity.map(item => (
-                  <div key={item.id} className="activity-item">
-                    <div className={`activity-icon ${item.iconBg}`}>
-                      <Icon icon={item.icon} size="md" aria-label={item.iconLabel} />
+              <div className="pending-list">
+                {pendingTransactions.map(item => (
+                  <div key={item.id} className="pending-item">
+                    <div className="pending-status">
+                      <span className="pending-badge">⏳</span>
                     </div>
-                    <div className="activity-content">
-                      <div className="activity-title">{item.title}</div>
-                      <div className="activity-subtitle">{item.subtitle}</div>
+                    <div className="pending-content">
+                      <div className="pending-main">
+                        <span className="pending-merchant">{item.merchant}</span>
+                        <span className={`pending-amount ${item.type === 'income' ? 'income' : 'expense'}`}>
+                          {item.type === 'income' ? '+' : '-'}¥{item.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="pending-meta">
+                        <span className="pending-date">{item.date}</span>
+                        <span className="pending-separator">•</span>
+                        <span className="pending-time">{item.time}</span>
+                        {item.confidence && (
+                          <>
+                            <span className="pending-separator">•</span>
+                            <span className="pending-confidence">
+                              {Math.round(item.confidence * 100)}% 置信度
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="activity-time mono">{item.time}</div>
                   </div>
                 ))}
               </div>
             )}
-            <div className="activity-footer">
+
+            <div className="pending-footer">
               <button type="button" className="activity-link" onClick={() => onViewChange('ledger')}>
-                {t('dashboard.viewAllInLedger')} →
+                {pendingTransactions.length > 0
+                  ? `处理全部 ${pendingTransactions.length} 笔待确认交易 →`
+                  : '查看完整账本 →'
+                }
               </button>
             </div>
           </div>

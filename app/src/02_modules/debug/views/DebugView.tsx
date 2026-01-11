@@ -102,6 +102,11 @@ export function DebugView() {
     try {
       const result = await seedMockTransactions(effectiveUserId, seedScenario, true);
       setActionResult(result.seeded ? `Seeded ${result.count} items` : 'Skipped');
+
+      // Emit event to refresh transaction views
+      if (result.seeded && result.count > 0) {
+        emit('data:refresh', { source: 'seed' });
+      }
     } catch (e) {
       setActionResult('Error');
     }

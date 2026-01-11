@@ -288,37 +288,100 @@
   color: var(--blue-600);
 }
 
-/* Phase 1: Date Selector */
-.date-selector {
+/* Phase 1: Hero Header with Inline Date Selector */
+.hero-header {
   display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-bottom: 24px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+}
+
+.hero-title-group {
+  flex: 1;
+}
+
+.date-selector-inline {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .date-btn {
-  padding: 8px 24px;
+  padding: 6px 16px;
   border: 1px solid rgba(203, 213, 225, 0.6);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.6);
-  color: var(--slate-700);  /* Enhanced from slate-600 for better readability (#136) */
-  font-size: 13px;
+  color: var(--slate-700);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition:
     background-color var(--duration-fast) var(--ease-standard),
-    border-color var(--duration-fast) var(--ease-standard);
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+  white-space: nowrap;
 }
 
 .date-btn:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   border-color: var(--blue-500);
+  transform: translateY(-1px);
 }
 
 .date-btn.active {
   background: var(--blue-500);
   color: white;
   border-color: var(--blue-500);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Simplified Hero Summary Row */
+.hero-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(203, 213, 225, 0.3);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--slate-500);
+  font-weight: 500;
+}
+
+.summary-value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+.summary-item.income .summary-value {
+  color: var(--color-income);
+}
+
+.summary-item.expense .summary-value {
+  color: var(--color-expense);
+}
+
+.summary-divider {
+  font-size: 20px;
+  color: var(--slate-300);
+  font-weight: 300;
 }
 
 /* Phase 1: Hero Card Title & Value */
@@ -346,12 +409,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Hero Breakdown - Side by Side Layout */
-.hero-breakdown {
+/* Phase 2: Breakdown Cards Grid - Outside Hero Card */
+.breakdown-cards-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-6);
-  margin-top: var(--space-8);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .breakdown-section {
@@ -464,6 +527,72 @@
 
 .unconfirmed-row .breakdown-row-value {
   color: var(--amber-800);
+}
+
+/* Phase 2: Progress Bars */
+.breakdown-progress {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progress-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 11px;
+}
+
+.progress-icon {
+  text-align: center;
+  font-size: 14px;
+}
+
+.progress-label {
+  color: var(--slate-500);
+  font-weight: 500;
+}
+
+.progress-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--slate-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-percent {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--slate-400);
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--slate-100);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--space-2);
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 3px;
+}
+
+.progress-fill.confirmed {
+  background: linear-gradient(90deg, var(--blue-500), var(--blue-400));
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.progress-fill.unconfirmed {
+  background: linear-gradient(90deg, var(--amber-500), var(--amber-400));
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
 
 /* Hero Footer - Unconfirmed Count & Details Button */
@@ -579,6 +708,176 @@
   margin-top: 2px;
 }
 
+/* Phase 4: Pending Transactions List */
+.pending-card {
+  padding: 32px;
+}
+
+.pending-header {
+  margin-bottom: 24px;
+}
+
+.pending-header .section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.pending-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--amber-500);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pending-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-8);
+  text-align: center;
+}
+
+.pending-empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-4);
+  color: var(--emerald-500);
+}
+
+.pending-empty-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--slate-700);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.pending-empty-hint {
+  font-size: 13px;
+  color: var(--slate-400);
+  margin: 0;
+}
+
+.pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.pending-item:last-child {
+  border-bottom: none;
+}
+
+.pending-item:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: translateX(4px);
+  cursor: pointer;
+}
+
+.pending-status {
+  flex-shrink: 0;
+}
+
+.pending-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+}
+
+.pending-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pending-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pending-merchant {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-700);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pending-amount {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pending-amount.income {
+  color: var(--color-income);
+}
+
+.pending-amount.expense {
+  color: var(--color-expense);
+}
+
+.pending-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 11px;
+  color: var(--slate-400);
+}
+
+.pending-date,
+.pending-time,
+.pending-confidence {
+  white-space: nowrap;
+}
+
+.pending-separator {
+  color: var(--slate-300);
+}
+
+.pending-confidence {
+  font-weight: 600;
+  color: var(--amber-600);
+}
+
+.pending-footer {
+  margin-top: 24px;
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .stats-row {
@@ -605,17 +904,53 @@
   }
 
   /* Breakdown cards stack vertically on mobile */
-  .hero-breakdown {
+  .breakdown-cards-grid {
     grid-template-columns: 1fr;
-    gap: var(--space-4);
-  }
-
-  .breakdown-row {
-    grid-template-columns: 20px 80px 1fr;
-    gap: var(--space-1);
   }
 
   .breakdown-amount {
     font-size: 20px;
+  }
+
+  /* Hero header stacks on mobile */
+  .hero-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .date-selector-inline {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .date-btn {
+    flex: 1;
+  }
+
+  /* Summary row stacks on mobile */
+  .hero-summary-row {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .summary-divider {
+    display: none;
+  }
+
+  /* Summary grid becomes single column */
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Pending items adjust layout */
+  .pending-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+
+  .pending-meta {
+    flex-wrap: wrap;
   }
 }
