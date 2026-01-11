@@ -104,11 +104,12 @@
     "confidence": "AI 置信度",
     "noImage": "无图片",
     "categories": {
-      "purchase": "采购",
-      "sale": "销售",
-      "shipping": "运费",
-      "packaging": "包装",
-      "fee": "手续费",
+      "food": "餐饮",
+      "transport": "交通",
+      "shopping": "购物",
+      "entertainment": "娱乐",
+      "utilities": "水电费",
+      "health": "医疗",
       "other": "其他"
     }
   },
@@ -205,11 +206,12 @@
   },
   "category": {
     "all": "全部",
-    "purchase": "采购",
-    "sale": "销售",
-    "shipping": "运费",
-    "packaging": "包装",
-    "fee": "手续费",
+    "food": "餐饮",
+    "transport": "交通",
+    "shopping": "购物",
+    "entertainment": "娱乐",
+    "utilities": "水电费",
+    "health": "医疗",
     "other": "其他"
   },
   "type": {

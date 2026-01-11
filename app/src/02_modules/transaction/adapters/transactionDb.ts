@@ -278,11 +278,12 @@ export async function confirmTransaction(id: TransactionIdType): Promise<void> {
  * Issue #116: Transaction editing
  *
  * Supports partial updates of editable fields:
- * - amount, category, description, merchant, date
+ * - type, amount, category, description, merchant, date
  *
  * Sets dirty_sync flag for future cloud sync (MVP5)
  */
 export interface UpdateTransactionFields {
+  type?: TransactionType;
   amount?: number;
   category?: TransactionCategory;
   description?: string;
@@ -301,6 +302,10 @@ export async function updateTransaction(
   const updates: string[] = [];
   const params: unknown[] = [];
 
+  if (fields.type !== undefined) {
+    updates.push('type = ?');
+    params.push(fields.type);
+  }
   if (fields.amount !== undefined) {
     updates.push('amount = ?');
     params.push(fields.amount);

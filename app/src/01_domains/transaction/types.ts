@@ -1,13 +1,14 @@
 import type { TransactionId, ImageId, UserId } from '../../00_kernel/types';
 
-// Transaction categories
+// Transaction categories (General personal finance)
 export type TransactionCategory =
-  | 'purchase'    // Buying items for resale
-  | 'sale'        // Selling items
-  | 'shipping'    // Shipping costs
-  | 'packaging'   // Packaging materials
-  | 'fee'         // Platform fees (Mercari, Yahoo, etc.)
-  | 'other';      // Other expenses
+  | 'food'          // Food & Dining
+  | 'transport'     // Transportation
+  | 'shopping'      // Shopping & Retail
+  | 'entertainment' // Entertainment & Recreation
+  | 'utilities'     // Utilities & Bills
+  | 'health'        // Healthcare & Medical
+  | 'other';        // Other expenses
 
 // Transaction type
 export type TransactionType = 'income' | 'expense';

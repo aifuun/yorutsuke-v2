@@ -33,7 +33,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   imageId: ImageId('img-1'),
   s3Key: null,
   type: 'expense',
-  category: 'purchase',
+  category: 'shopping',
   amount: 1000,
   currency: 'JPY',
   description: 'Test transaction',

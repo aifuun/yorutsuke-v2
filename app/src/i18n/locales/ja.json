@@ -104,11 +104,12 @@
     "confidence": "AI信頼度",
     "noImage": "画像なし",
     "categories": {
-      "purchase": "仕入",
-      "sale": "売上",
-      "shipping": "送料",
-      "packaging": "梱包",
-      "fee": "手数料",
+      "food": "食事",
+      "transport": "交通費",
+      "shopping": "買い物",
+      "entertainment": "娯楽",
+      "utilities": "公共料金",
+      "health": "医療",
       "other": "その他"
     }
   },
@@ -205,11 +206,12 @@
   },
   "category": {
     "all": "すべて",
-    "purchase": "仕入",
-    "sale": "売上",
-    "shipping": "送料",
-    "packaging": "梱包",
-    "fee": "手数料",
+    "food": "食事",
+    "transport": "交通費",
+    "shopping": "買い物",
+    "entertainment": "娯楽",
+    "utilities": "公共料金",
+    "health": "医療",
     "other": "その他"
   },
   "type": {

@@ -4,7 +4,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../i18n';
-import type { Transaction, TransactionCategory } from '../../../01_domains/transaction';
+import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import './ImageLightbox.css';
 
 interface ImageLightboxProps {
@@ -42,6 +42,9 @@ export function ImageLightbox({
   const { t } = useTranslation();
 
   // Editable state (only used when unconfirmed)
+  const [editedType, setEditedType] = useState<TransactionType>(
+    transaction?.type || 'expense'
+  );
   const [editedAmount, setEditedAmount] = useState<string>(
     transaction?.amount.toString() || ''
   );
@@ -52,11 +55,17 @@ export function ImageLightbox({
     transaction?.description || ''
   );
   const [editedCategory, setEditedCategory] = useState<TransactionCategory>(
-    transaction?.category || 'other'
+    transaction?.category || 'food'
   );
   const [editedDate, setEditedDate] = useState<string>(
     transaction?.date || ''
   );
+
+  // Common merchants for autocomplete
+  const commonMerchants = [
+    'Amazon', 'Walmart', 'Target', 'Starbucks', 'McDonald\'s',
+    'Costco', '7-Eleven', 'Uber', 'Netflix', 'Spotify'
+  ];
 
   // Close on ESC key
   const handleKeyDown = useCallback(
@@ -84,6 +93,7 @@ export function ImageLightbox({
     if (!isConfirmed && transaction) {
       // Check if any fields were edited
       const edits: {
+        type?: TransactionType;
         amount?: number;
         merchant?: string | null;
         description?: string;
@@ -91,6 +101,9 @@ export function ImageLightbox({
         date?: string;
       } = {};
 
+      if (editedType !== transaction.type) {
+        edits.type = editedType;
+      }
       const parsedAmount = parseFloat(editedAmount);
       if (!isNaN(parsedAmount) && parsedAmount !== transaction.amount) {
         edits.amount = parsedAmount;
@@ -159,19 +172,28 @@ export function ImageLightbox({
             <div className="lightbox-details-section">
               <h3 className="lightbox-details-title">{t('transaction.details') || 'Transaction Details'}</h3>
 
-              {/* Merchant - editable if unconfirmed */}
+              {/* Type - editable toggle if unconfirmed */}
               <div className="lightbox-detail-row">
-                <span className="detail-label">{t('transaction.merchant') || 'Merchant'}:</span>
+                <span className="detail-label">{t('transaction.type') || 'Type'}:</span>
                 {!isConfirmed ? (
-                  <input
-                    type="text"
-                    className="detail-input"
-                    value={editedMerchant}
-                    onChange={(e) => setEditedMerchant(e.target.value)}
-                    placeholder={t('transaction.merchant') || 'Merchant'}
-                  />
+                  <div className="type-toggle">
+                    <button
+                      type="button"
+                      className={`type-toggle-btn ${editedType === 'expense' ? 'active' : ''}`}
+                      onClick={() => setEditedType('expense')}
+                    >
+                      {t('transaction.types.expense') || 'Expense'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`type-toggle-btn ${editedType === 'income' ? 'active' : ''}`}
+                      onClick={() => setEditedType('income')}
+                    >
+                      {t('transaction.types.income') || 'Income'}
+                    </button>
+                  </div>
                 ) : (
-                  <span className="detail-value">{transaction.merchant || transaction.description}</span>
+                  <span className="detail-value">{t(`transaction.types.${transaction.type}`)}</span>
                 )}
               </div>
 
@@ -190,6 +212,30 @@ export function ImageLightbox({
                   <span className={`detail-value detail-amount ${transaction.type === 'income' ? 'amount--income' : 'amount--expense'}`}>
                     {formatAmount(transaction.amount, transaction.type)}
                   </span>
+                )}
+              </div>
+
+              {/* Merchant - editable with autocomplete if unconfirmed */}
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.merchant') || 'Merchant'}:</span>
+                {!isConfirmed ? (
+                  <>
+                    <input
+                      type="text"
+                      className="detail-input"
+                      list="merchant-suggestions"
+                      value={editedMerchant}
+                      onChange={(e) => setEditedMerchant(e.target.value)}
+                      placeholder={t('transaction.merchant') || 'Merchant'}
+                    />
+                    <datalist id="merchant-suggestions">
+                      {commonMerchants.map((merchant) => (
+                        <option key={merchant} value={merchant} />
+                      ))}
+                    </datalist>
+                  </>
+                ) : (
+                  <span className="detail-value">{transaction.merchant || transaction.description}</span>
                 )}
               </div>
 
@@ -217,11 +263,12 @@ export function ImageLightbox({
                     value={editedCategory}
                     onChange={(e) => setEditedCategory(e.target.value as TransactionCategory)}
                   >
-                    <option value="purchase">{t('transaction.categories.purchase')}</option>
-                    <option value="sale">{t('transaction.categories.sale')}</option>
-                    <option value="shipping">{t('transaction.categories.shipping')}</option>
-                    <option value="packaging">{t('transaction.categories.packaging')}</option>
-                    <option value="fee">{t('transaction.categories.fee')}</option>
+                    <option value="food">{t('transaction.categories.food')}</option>
+                    <option value="transport">{t('transaction.categories.transport')}</option>
+                    <option value="shopping">{t('transaction.categories.shopping')}</option>
+                    <option value="entertainment">{t('transaction.categories.entertainment')}</option>
+                    <option value="utilities">{t('transaction.categories.utilities')}</option>
+                    <option value="health">{t('transaction.categories.health')}</option>
                     <option value="other">{t('transaction.categories.other')}</option>
                   </select>
                 ) : (
@@ -245,29 +292,6 @@ export function ImageLightbox({
                 )}
               </div>
 
-              <div className="lightbox-detail-row">
-                <span className="detail-label">{t('transaction.type') || 'Type'}:</span>
-                <span className="detail-value">{t(`transaction.types.${transaction.type}`)}</span>
-              </div>
-
-              {/* OCR Raw Text */}
-              {transaction.rawText && (
-                <div className="lightbox-ocr-section">
-                  <h4 className="lightbox-ocr-title">{t('transaction.extractedText') || 'Extracted Text'}</h4>
-                  <div className="lightbox-ocr-text">
-                    {transaction.rawText}
-                  </div>
-                </div>
-              )}
-
-              {/* Confidence */}
-              {transaction.confidence !== null && transaction.confidence !== undefined && (
-                <div className="lightbox-detail-row">
-                  <span className="detail-label">{t('transaction.confidence') || 'AI Confidence'}:</span>
-                  <span className="detail-value">{Math.round(transaction.confidence * 100)}%</span>
-                </div>
-              )}
-
               {/* Status */}
               <div className="lightbox-detail-row">
                 <span className="detail-label">{t('transaction.status') || 'Status'}:</span>
@@ -277,6 +301,26 @@ export function ImageLightbox({
                     : (t('transaction.pendingConfirmation') || '⏳ Pending')}
                 </span>
               </div>
+
+              {/* Confidence - compact display */}
+              {transaction.confidence !== null && transaction.confidence !== undefined && (
+                <div className="lightbox-detail-row">
+                  <span className="detail-label">{t('transaction.confidence') || 'AI Confidence'}:</span>
+                  <span className="detail-value">{Math.round(transaction.confidence * 100)}%</span>
+                </div>
+              )}
+
+              {/* OCR Raw Text - collapsible at bottom */}
+              {transaction.rawText && (
+                <details className="lightbox-ocr-details">
+                  <summary className="lightbox-ocr-summary">
+                    {t('transaction.extractedText') || 'Extracted Text'}
+                  </summary>
+                  <div className="lightbox-ocr-text">
+                    {transaction.rawText}
+                  </div>
+                </details>
+              )}
             </div>
           )}
         </div>

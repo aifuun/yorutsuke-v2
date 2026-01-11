@@ -44,13 +44,48 @@ Implement transaction confirmation, editing, and deletion with local SQLite pers
   - Editable fields become inputs when transaction is unconfirmed
   - On Confirm, edits are saved AND transaction is confirmed (streamlined UX)
 
-### Phase 3: Testing & Verification (1h)
-- [ ] Test SC-810: Confirm transaction → confirmedAt set, badge removed
-- [ ] Test SC-811: Delete transaction → confirmation dialog, then delete
-- [ ] Test edit flow: Update amount/category/description
-- [ ] Test error cases: DB write failure, invalid input
-- [ ] Verify IO-First pattern (no race conditions)
-- [ ] Build verification
+### Phase 3: Testing & Verification (1h) ⏳ READY FOR TESTING
+- [ ] **SC-810: Confirm transaction**
+  1. Open TransactionView (Ledger)
+  2. Click "Review" on an unconfirmed transaction
+  3. Modal opens with image + details
+  4. Click "Confirm" button
+  5. ✅ EXPECTED: Modal closes, badge changes from "Pending" to "✓", transaction moves to confirmed section
+  6. ✅ EXPECTED: Reopening shows "Confirmed" badge, no edit fields
+
+- [ ] **SC-811: Delete transaction**
+  1. Open transaction modal (confirmed or unconfirmed)
+  2. Click "Delete" button (red, right side)
+  3. ✅ EXPECTED: Native confirmation dialog appears
+  4. Click "Yes" to confirm
+  5. ✅ EXPECTED: Modal closes, transaction disappears from list
+
+- [ ] **Edit flow: Update fields**
+  1. Open an unconfirmed transaction
+  2. Edit amount (e.g., 1000 → 1500)
+  3. Edit merchant (e.g., "Amazon" → "Amazon JP")
+  4. Edit category (dropdown, e.g., purchase → sale)
+  5. Edit date (date picker)
+  6. Edit description (text field)
+  7. Click "Confirm"
+  8. ✅ EXPECTED: All edits saved + transaction confirmed
+  9. Reopen transaction
+  10. ✅ EXPECTED: All edits persisted, fields now read-only
+
+- [ ] **Error cases**
+  - [ ] Invalid amount (letters) → should not crash
+  - [ ] Empty fields → should handle gracefully
+  - [ ] DB write failure simulation (?)
+
+- [ ] **IO-First pattern verification**
+  - [ ] No race conditions between DB write and state update
+  - [ ] No flicker or intermediate states
+  - [ ] Confirm button disabled during operation (?)
+
+- [ ] **Build verification**
+  - [x] TypeScript compilation passes (pre-existing errors unrelated)
+  - [ ] App launches without errors
+  - [ ] No console warnings about missing translations
 
 ## Technical Notes
 

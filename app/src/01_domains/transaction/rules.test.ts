@@ -18,7 +18,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   imageId: null,
   s3Key: null,
   type: 'expense',
-  category: 'purchase',
+  category: 'shopping',
   amount: 1000,
   currency: 'JPY',
   description: 'Test transaction',
@@ -35,10 +35,10 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
 describe('transaction/rules', () => {
   describe('filterTransactions', () => {
     const transactions: Transaction[] = [
-      createTransaction({ id: TransactionId('tx-1'), date: '2024-01-10', type: 'income', category: 'sale' }),
-      createTransaction({ id: TransactionId('tx-2'), date: '2024-01-15', type: 'expense', category: 'purchase' }),
-      createTransaction({ id: TransactionId('tx-3'), date: '2024-01-20', type: 'expense', category: 'shipping' }),
-      createTransaction({ id: TransactionId('tx-4'), date: '2024-01-25', type: 'income', category: 'sale' }),
+      createTransaction({ id: TransactionId('tx-1'), date: '2024-01-10', type: 'income', category: 'other' }),
+      createTransaction({ id: TransactionId('tx-2'), date: '2024-01-15', type: 'expense', category: 'shopping' }),
+      createTransaction({ id: TransactionId('tx-3'), date: '2024-01-20', type: 'expense', category: 'transport' }),
+      createTransaction({ id: TransactionId('tx-4'), date: '2024-01-25', type: 'income', category: 'other' }),
     ];
 
     it('returns all when no filters', () => {
@@ -56,9 +56,9 @@ describe('transaction/rules', () => {
     });
 
     it('filters by category', () => {
-      const result = filterTransactions(transactions, { category: 'sale' });
+      const result = filterTransactions(transactions, { category: 'other' });
       expect(result).toHaveLength(2);
-      expect(result.every(t => t.category === 'sale')).toBe(true);
+      expect(result.every(t => t.category === 'other')).toBe(true);
     });
 
     it('filters by type', () => {
@@ -82,7 +82,7 @@ describe('transaction/rules', () => {
         dateStart: '2024-01-01',
         dateEnd: '2024-01-31',
         type: 'expense',
-        category: 'purchase',
+        category: 'shopping',
       });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(TransactionId('tx-2'));
@@ -126,36 +126,37 @@ describe('transaction/rules', () => {
 
   describe('summarizeByCategory', () => {
     const transactions: Transaction[] = [
-      createTransaction({ category: 'purchase', amount: 1000 }),
-      createTransaction({ category: 'purchase', amount: 2000 }),
-      createTransaction({ category: 'shipping', amount: 500 }),
-      createTransaction({ category: 'sale', amount: 3000 }),
+      createTransaction({ category: 'shopping', amount: 1000 }),
+      createTransaction({ category: 'shopping', amount: 2000 }),
+      createTransaction({ category: 'transport', amount: 500 }),
+      createTransaction({ category: 'other', amount: 3000 }),
     ];
 
     it('sums amounts by category', () => {
       const result = summarizeByCategory(transactions);
-      expect(result.purchase).toBe(3000);
-      expect(result.shipping).toBe(500);
-      expect(result.sale).toBe(3000);
+      expect(result.shopping).toBe(3000);
+      expect(result.transport).toBe(500);
+      expect(result.other).toBe(3000);
     });
 
     it('initializes all categories to 0', () => {
       const result = summarizeByCategory([]);
-      expect(result.purchase).toBe(0);
-      expect(result.sale).toBe(0);
-      expect(result.shipping).toBe(0);
-      expect(result.packaging).toBe(0);
-      expect(result.fee).toBe(0);
+      expect(result.food).toBe(0);
+      expect(result.transport).toBe(0);
+      expect(result.shopping).toBe(0);
+      expect(result.entertainment).toBe(0);
+      expect(result.utilities).toBe(0);
+      expect(result.health).toBe(0);
       expect(result.other).toBe(0);
     });
   });
 
   describe('createDailySummary', () => {
     const transactions: Transaction[] = [
-      createTransaction({ date: '2024-01-15', type: 'income', category: 'sale', amount: 5000 }),
-      createTransaction({ date: '2024-01-15', type: 'expense', category: 'purchase', amount: 2000 }),
-      createTransaction({ date: '2024-01-15', type: 'expense', category: 'shipping', amount: 500 }),
-      createTransaction({ date: '2024-01-16', type: 'income', category: 'sale', amount: 10000 }), // Different day
+      createTransaction({ date: '2024-01-15', type: 'income', category: 'other', amount: 5000 }),
+      createTransaction({ date: '2024-01-15', type: 'expense', category: 'shopping', amount: 2000 }),
+      createTransaction({ date: '2024-01-15', type: 'expense', category: 'transport', amount: 500 }),
+      createTransaction({ date: '2024-01-16', type: 'income', category: 'other', amount: 10000 }), // Different day
     ];
 
     it('creates summary for specific date', () => {
@@ -173,9 +174,9 @@ describe('transaction/rules', () => {
 
     it('summarizes by category', () => {
       const summary = createDailySummary('2024-01-15', transactions);
-      expect(summary.byCategory.sale).toBe(5000);
-      expect(summary.byCategory.purchase).toBe(2000);
-      expect(summary.byCategory.shipping).toBe(500);
+      expect(summary.byCategory.other).toBe(5000);
+      expect(summary.byCategory.shopping).toBe(2000);
+      expect(summary.byCategory.transport).toBe(500);
     });
 
     it('handles empty day', () => {

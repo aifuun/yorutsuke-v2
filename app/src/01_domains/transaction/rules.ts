@@ -46,11 +46,12 @@ export function summarizeByCategory(
   transactions: Transaction[],
 ): Record<TransactionCategory, number> {
   const summary: Record<TransactionCategory, number> = {
-    purchase: 0,
-    sale: 0,
-    shipping: 0,
-    packaging: 0,
-    fee: 0,
+    food: 0,
+    transport: 0,
+    shopping: 0,
+    entertainment: 0,
+    utilities: 0,
+    health: 0,
     other: 0,
   };
 

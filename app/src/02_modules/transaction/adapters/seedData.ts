@@ -23,27 +23,31 @@ function createSeededRandom(seed: number) {
 // Rich Mock Data Collections
 // =========================================================================
 
-// Merchants by category - realistic Japanese second-hand business
+// Merchants by category - realistic personal finance
 const MERCHANTS_BY_CATEGORY: Record<string, string[]> = {
-  sale: [
-    'Mercari', 'Yahoo Auction', 'Rakuten Fril', 'PayPay Flea Market',
-    'Jimoty', 'Booth', 'minne', 'Creema',
+  food: [
+    'Starbucks', 'McDonald\'s', '7-Eleven', 'Family Mart',
+    'Yoshinoya', 'Coco Ichibanya', 'Saizeriya', 'Gusto',
   ],
-  purchase: [
-    'Hard Off', 'Book Off', '2nd Street', 'Treasure Factory',
-    'Janpara', 'Sofmap', 'PC Depot', 'Geo',
+  transport: [
+    'JR East', 'Tokyo Metro', 'Uber', 'Taxi',
+    'Shell Gas Station', 'ENEOS', 'Yamato Parking', 'Airport Limousine',
   ],
-  shipping: [
-    'Yamato Transport', 'Sagawa Express', 'Japan Post', 'Neko Posu',
-    'Yu-Pack', 'Click Post', 'Nekopos', 'Yuyu Mail',
+  shopping: [
+    'Amazon', 'Uniqlo', 'Don Quijote', 'Tokyu Hands',
+    'Yodobashi Camera', 'Bic Camera', 'Daiso', 'Seria',
   ],
-  packaging: [
-    'Daiso', 'Seria', 'Can★Do', 'Amazon',
-    'MonotaRO', 'Askul', 'Hands', 'Yodobashi',
+  entertainment: [
+    'Netflix', 'Spotify', 'PlayStation Store', 'Nintendo eShop',
+    'TOHO Cinemas', 'Round1', 'Karaoke Kan', 'Book Off',
   ],
-  fee: [
-    'Mercari (Fee)', 'Yahoo Auction (Fee)', 'PayPay Flea Market (Fee)',
-    'Stripe', 'PayPal', 'Square', 'Credit Card Fee',
+  utilities: [
+    'TEPCO (Electric)', 'Tokyo Gas', 'NTT (Internet)', 'Softbank Mobile',
+    'AU Mobile', 'Water Bureau', 'NHK', 'City Tax Office',
+  ],
+  health: [
+    'Pharmacy', 'Hospital', 'Dental Clinic', 'Matsumoto Kiyoshi',
+    'Welcia', 'Sugi Pharmacy', 'Eye Clinic', 'Fitness Gym',
   ],
   other: [
     'Convenience Store', 'ATM', 'Bank Transfer', 'Cash',
@@ -51,77 +55,87 @@ const MERCHANTS_BY_CATEGORY: Record<string, string[]> = {
   ],
 };
 
-// Descriptions by category - more realistic entries
+// Descriptions by category - personal finance entries
 const DESCRIPTIONS_BY_CATEGORY: Record<string, string[]> = {
-  sale: [
-    'Sold MacBook Pro 2019',
-    'Sold iPhone 12 Pro',
-    'Sold Nintendo Switch',
-    'Sold PS5 Controller',
-    'Sold Camera Lens',
-    'Sold Vintage Watch',
-    'Sold Designer Bag',
-    'Sold Mechanical Keyboard',
-    'Sold Graphics Card',
-    'Sold Monitor Stand',
+  food: [
+    'Lunch at restaurant',
+    'Coffee and pastry',
+    'Groceries at supermarket',
+    'Dinner with friends',
+    'Convenience store meal',
+    'Fast food meal',
+    'Snacks and drinks',
+    'Weekend brunch',
   ],
-  purchase: [
-    'Purchased iPhone for resale',
-    'Purchased MacBook Air',
-    'Purchased Game Console',
-    'Purchased Camera Body',
-    'Purchased Vintage Item',
-    'Purchased Electronics Lot',
-    'Purchased Collectibles',
-    'Purchased Audio Equipment',
+  transport: [
+    'Train commute',
+    'Taxi to airport',
+    'Gas refill',
+    'Parking fee',
+    'IC card charge',
+    'Monthly train pass',
+    'Uber ride',
+    'Highway toll',
   ],
-  shipping: [
-    'Shipping for MacBook',
-    'Express shipping',
-    'Standard shipping',
-    'Nekopos shipping',
-    'Yu-Pack 60 size',
-    'Click Post',
-    'International shipping',
-    'Return shipping',
+  shopping: [
+    'Clothes shopping',
+    'Electronics purchase',
+    'Home supplies',
+    'Online shopping',
+    'Household items',
+    'Personal care products',
+    'Books and magazines',
+    'Gifts for family',
   ],
-  packaging: [
-    'Bubble wrap',
-    'Cardboard boxes (10 pcs)',
-    'Tape and labels',
-    'Padded envelopes',
-    'Anti-static bags',
-    'Packaging materials',
-    'Shipping supplies',
-    'Protective foam',
+  entertainment: [
+    'Movie ticket',
+    'Streaming subscription',
+    'Game purchase',
+    'Concert ticket',
+    'Karaoke session',
+    'Museum entrance',
+    'Sports event ticket',
+    'Hobby supplies',
   ],
-  fee: [
-    'Platform commission',
-    'Payment processing fee',
-    'Subscription fee',
-    'Premium listing fee',
-    'Featured listing',
-    'Transaction fee',
-    'Withdrawal fee',
+  utilities: [
+    'Electricity bill',
+    'Gas bill',
+    'Internet monthly',
+    'Mobile phone bill',
+    'Water bill',
+    'NHK subscription',
+    'City tax payment',
+    'Home insurance',
+  ],
+  health: [
+    'Doctor visit',
+    'Prescription medicine',
+    'Dental checkup',
+    'Gym membership',
+    'Vitamins and supplements',
+    'Eye exam',
+    'Health insurance',
+    'Medical supplies',
   ],
   other: [
     'Miscellaneous expense',
-    'Equipment maintenance',
-    'Storage rental',
-    'Photography supplies',
-    'Cleaning supplies',
-    'Office supplies',
-    'Refund processed',
+    'Bank fee',
+    'ATM withdrawal',
+    'Cash adjustment',
+    'Refund received',
+    'Other payment',
+    'Unknown transaction',
   ],
 };
 
 // Amount ranges by category (in JPY)
 const AMOUNT_RANGES: Record<string, { min: number; max: number }> = {
-  sale: { min: 1000, max: 150000 },
-  purchase: { min: 500, max: 80000 },
-  shipping: { min: 180, max: 2500 },
-  packaging: { min: 100, max: 3000 },
-  fee: { min: 50, max: 15000 },
+  food: { min: 300, max: 8000 },
+  transport: { min: 150, max: 15000 },
+  shopping: { min: 500, max: 50000 },
+  entertainment: { min: 800, max: 20000 },
+  utilities: { min: 2000, max: 25000 },
+  health: { min: 500, max: 30000 },
   other: { min: 100, max: 5000 },
 };
 
@@ -189,8 +203,8 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
 
   // Pick category based on type
   const categoryOptions: TransactionCategory[] = type === 'income'
-    ? ['sale']
-    : ['purchase', 'shipping', 'packaging', 'fee', 'other'];
+    ? ['other'] // Income typically doesn't have detailed categories in personal finance
+    : ['food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other'];
   const category = pickRandom(categoryOptions, random);
 
   // Get realistic amount based on category
