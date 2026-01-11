@@ -1,12 +1,15 @@
 // Database Connection Management
-// Singleton pattern for SQLite connection with mock db support
-// Mock db = development database (separate from production)
-// Production db = real data (single database)
+// Dual-database pattern with dynamic selection based on mock mode
+// Production db = real application data (always initialized)
+// Mock db = development test data (initialized if needed)
 //
 // Startup flow:
 // 1. loadMockMode() - reads mock_mode from production db
-// 2. initDb() - opens correct db (production or mock) based on mode
-// 3. All queries go to the selected db via getDb()
+// 2. initDb() - initializes both production and mock databases
+// 3. getDb() - dynamically returns production or mock based on isMockingOnline()
+//
+// This allows runtime mode switching without restarting the app.
+// When user toggles mock mode in Debug panel, subsequent queries use the correct db.
 
 import Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
@@ -16,31 +19,43 @@ import { isMockingOnline } from '../config/mock';
 const PRODUCTION_DB = 'sqlite:yorutsuke.db';
 const MOCK_DB = 'sqlite:yorutsuke-mock.db';
 
-let db: Database | null = null;
+let productionDb: Database | null = null;
+let mockDb: Database | null = null;
 let initPromise: Promise<void> | null = null;
 
 /**
- * Get database connection (lazy initialization)
- * Ensures singleton pattern - only one connection per app
- * Uses production or mock db based on startup mock mode
+ * Get appropriate database connection based on current mock mode
+ * Returns production db in production mode, mock db in mock mode
+ * Ensures queries always use the correct database without app restart
  *
  * @example
  * const db = await getDb();
  * const rows = await db.select<ImageRow[]>('SELECT * FROM images');
  */
 export async function getDb(): Promise<Database> {
-  if (!db) {
+  if (!productionDb) {
     await initDb();
   }
-  return db!;
+
+  // Dynamically select database based on current mock mode
+  // This allows runtime mode switching in Debug panel
+  if (isMockingOnline()) {
+    if (!mockDb) {
+      await initDb();
+    }
+    return mockDb!;
+  }
+
+  return productionDb!;
 }
 
 /**
- * Initialize database connection and run migrations
- * Chooses between production and mock db based on current mockMode
+ * Initialize database connections and run migrations
+ * Initializes both production and mock databases
  * Safe to call multiple times (idempotent)
  *
- * IMPORTANT: Must be called after loadMockMode() to use correct db
+ * Production db is always initialized (settings are stored there)
+ * Mock db is initialized on-demand for lazy loading
  */
 export async function initDb(): Promise<void> {
   // Prevent concurrent initialization
@@ -48,34 +63,31 @@ export async function initDb(): Promise<void> {
     return initPromise;
   }
 
-  if (db) {
+  if (productionDb) {
     return;
   }
 
   initPromise = (async () => {
     try {
-      // Select database based on mock mode
-      // If mockMode = 'online' or 'offline', use mock db
-      // Otherwise use production db
-      const isMock = isMockingOnline();
-      const dbPath = isMock ? MOCK_DB : PRODUCTION_DB;
-
+      // Always initialize production database first
+      // Settings (including mock_mode) are stored in production db
       logger.info(EVENTS.DB_INITIALIZED, {
-        path: dbPath,
-        mode: isMock ? 'mock' : 'production',
+        path: PRODUCTION_DB,
+        mode: 'production',
         phase: 'start'
       });
 
-      db = await Database.load(dbPath);
-
-      // Run all migrations
-      await runMigrations(db);
+      productionDb = await Database.load(PRODUCTION_DB);
+      await runMigrations(productionDb);
 
       logger.info(EVENTS.DB_INITIALIZED, {
-        path: dbPath,
-        mode: isMock ? 'mock' : 'production',
+        path: PRODUCTION_DB,
+        mode: 'production',
         phase: 'complete'
       });
+
+      // Initialize mock database on-demand (lazy)
+      // It will be created when getDb() is called in mock mode
     } catch (error) {
       logger.error(EVENTS.APP_ERROR, {
         component: 'database',
@@ -89,37 +101,45 @@ export async function initDb(): Promise<void> {
 }
 
 /**
- * Close database connection
+ * Close database connections
  * Call this on app shutdown
  */
 export async function closeDb(): Promise<void> {
-  if (db) {
-    await db.close();
-    db = null;
-    initPromise = null;
-    logger.info('db_connection_closed');
+  if (productionDb) {
+    await productionDb.close();
+    productionDb = null;
   }
+  if (mockDb) {
+    await mockDb.close();
+    mockDb = null;
+  }
+  initPromise = null;
+  logger.info('db_connections_closed');
 }
 
 /**
- * Get mock database explicitly (for seeding only)
- * Seeds ALWAYS write to mock db, regardless of current mock mode
- * This is safe because mock db is development-only
+ * Get mock database connection
+ * Initializes on-demand if needed
+ * Used both for seeding and for regular queries in mock mode via getDb()
  *
- * @internal Use only in seed operations
+ * @internal
  */
 export async function getMockDb(): Promise<Database> {
-  try {
-    const mockDb = await Database.load(MOCK_DB);
-    logger.debug('mock_db_opened', { for: 'seed_operation' });
-    return mockDb;
-  } catch (error) {
-    logger.error(EVENTS.APP_ERROR, {
-      component: 'mock_database',
-      error: String(error),
-    });
-    throw error;
+  if (!mockDb) {
+    try {
+      logger.debug('mock_db_initializing', { phase: 'start' });
+      mockDb = await Database.load(MOCK_DB);
+      await runMigrations(mockDb);
+      logger.debug('mock_db_initializing', { phase: 'complete' });
+    } catch (error) {
+      logger.error(EVENTS.APP_ERROR, {
+        component: 'mock_database',
+        error: String(error),
+      });
+      throw error;
+    }
   }
+  return mockDb;
 }
 
 /**
@@ -193,12 +213,17 @@ export async function select<T>(
 
 /**
  * Get a single setting value
+ * Settings are ALWAYS stored in production database, never in mock database
+ * This is critical for loadMockMode() to work during app initialization
  *
  * @example
  * const theme = await getSetting('theme');
  */
 export async function getSetting(key: string): Promise<string | null> {
-  const rows = await select<Array<{ value: string | null }>>(
+  if (!productionDb) {
+    await initDb();
+  }
+  const rows = await productionDb!.select<Array<{ value: string | null }>>(
     'SELECT value FROM settings WHERE key = ?',
     [key]
   );
@@ -207,12 +232,16 @@ export async function getSetting(key: string): Promise<string | null> {
 
 /**
  * Set a setting value
+ * Settings are ALWAYS stored in production database, never in mock database
  *
  * @example
  * await setSetting('theme', 'dark');
  */
 export async function setSetting(key: string, value: string | null): Promise<void> {
-  await execute(
+  if (!productionDb) {
+    await initDb();
+  }
+  await productionDb!.execute(
     'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
     [key, value]
   );
