@@ -1,10 +1,10 @@
 // Image Lightbox / Confirm Modal Component
 // Modal for reviewing receipt images, transaction details, and confirming/deleting
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../i18n';
-import type { Transaction } from '../../../01_domains/transaction';
+import type { Transaction, TransactionCategory } from '../../../01_domains/transaction';
 import './ImageLightbox.css';
 
 interface ImageLightboxProps {
@@ -14,8 +14,14 @@ interface ImageLightboxProps {
   alt?: string;
   /** Called when lightbox should close */
   onClose: () => void;
-  /** Called when user confirms the transaction */
-  onConfirm?: () => void;
+  /** Called when user confirms the transaction (with optional edits) */
+  onConfirm?: (edits?: {
+    amount?: number;
+    merchant?: string | null;
+    description?: string;
+    category?: TransactionCategory;
+    date?: string;
+  }) => void;
   /** Called when user deletes the transaction */
   onDelete?: () => void;
   /** Whether transaction is already confirmed */
@@ -34,6 +40,23 @@ export function ImageLightbox({
   transaction,
 }: ImageLightboxProps) {
   const { t } = useTranslation();
+
+  // Editable state (only used when unconfirmed)
+  const [editedAmount, setEditedAmount] = useState<string>(
+    transaction?.amount.toString() || ''
+  );
+  const [editedMerchant, setEditedMerchant] = useState<string>(
+    transaction?.merchant || transaction?.description || ''
+  );
+  const [editedDescription, setEditedDescription] = useState<string>(
+    transaction?.description || ''
+  );
+  const [editedCategory, setEditedCategory] = useState<TransactionCategory>(
+    transaction?.category || 'other'
+  );
+  const [editedDate, setEditedDate] = useState<string>(
+    transaction?.date || ''
+  );
 
   // Close on ESC key
   const handleKeyDown = useCallback(
@@ -56,11 +79,42 @@ export function ImageLightbox({
     };
   }, [handleKeyDown]);
 
-  // Handle confirm + close
+  // Handle confirm with optional edits
   const handleConfirm = () => {
-    onConfirm?.();
+    if (!isConfirmed && transaction) {
+      // Check if any fields were edited
+      const edits: {
+        amount?: number;
+        merchant?: string | null;
+        description?: string;
+        category?: TransactionCategory;
+        date?: string;
+      } = {};
+
+      const parsedAmount = parseFloat(editedAmount);
+      if (!isNaN(parsedAmount) && parsedAmount !== transaction.amount) {
+        edits.amount = parsedAmount;
+      }
+      if (editedMerchant !== (transaction.merchant || transaction.description)) {
+        edits.merchant = editedMerchant || null;
+      }
+      if (editedDescription !== transaction.description) {
+        edits.description = editedDescription;
+      }
+      if (editedCategory !== transaction.category) {
+        edits.category = editedCategory;
+      }
+      if (editedDate !== transaction.date) {
+        edits.date = editedDate;
+      }
+
+      // Pass edits to parent (will update + confirm)
+      onConfirm?.(Object.keys(edits).length > 0 ? edits : undefined);
+    } else {
+      // Already confirmed, just call confirm (no edits)
+      onConfirm?.();
+    }
     // Note: Parent handler (handleModalConfirm) already closes the modal
-    // No need to call onClose() here to avoid double-closing
   };
 
   // Format amount for display (no +/- prefix, color indicates type)
@@ -105,26 +159,90 @@ export function ImageLightbox({
             <div className="lightbox-details-section">
               <h3 className="lightbox-details-title">{t('transaction.details') || 'Transaction Details'}</h3>
 
+              {/* Merchant - editable if unconfirmed */}
               <div className="lightbox-detail-row">
                 <span className="detail-label">{t('transaction.merchant') || 'Merchant'}:</span>
-                <span className="detail-value">{transaction.merchant || transaction.description}</span>
+                {!isConfirmed ? (
+                  <input
+                    type="text"
+                    className="detail-input"
+                    value={editedMerchant}
+                    onChange={(e) => setEditedMerchant(e.target.value)}
+                    placeholder={t('transaction.merchant') || 'Merchant'}
+                  />
+                ) : (
+                  <span className="detail-value">{transaction.merchant || transaction.description}</span>
+                )}
               </div>
 
+              {/* Amount - editable if unconfirmed */}
               <div className="lightbox-detail-row">
                 <span className="detail-label">{t('transaction.amount') || 'Amount'}:</span>
-                <span className={`detail-value detail-amount ${transaction.type === 'income' ? 'amount--income' : 'amount--expense'}`}>
-                  {formatAmount(transaction.amount, transaction.type)}
-                </span>
+                {!isConfirmed ? (
+                  <input
+                    type="number"
+                    className="detail-input detail-amount"
+                    value={editedAmount}
+                    onChange={(e) => setEditedAmount(e.target.value)}
+                    placeholder="Amount"
+                  />
+                ) : (
+                  <span className={`detail-value detail-amount ${transaction.type === 'income' ? 'amount--income' : 'amount--expense'}`}>
+                    {formatAmount(transaction.amount, transaction.type)}
+                  </span>
+                )}
               </div>
 
+              {/* Date - editable if unconfirmed */}
               <div className="lightbox-detail-row">
                 <span className="detail-label">{t('transaction.date') || 'Date'}:</span>
-                <span className="detail-value">{transaction.date}</span>
+                {!isConfirmed ? (
+                  <input
+                    type="date"
+                    className="detail-input"
+                    value={editedDate}
+                    onChange={(e) => setEditedDate(e.target.value)}
+                  />
+                ) : (
+                  <span className="detail-value">{transaction.date}</span>
+                )}
               </div>
 
+              {/* Category - editable if unconfirmed */}
               <div className="lightbox-detail-row">
                 <span className="detail-label">{t('transaction.category') || 'Category'}:</span>
-                <span className="detail-value">{t(`transaction.categories.${transaction.category}`)}</span>
+                {!isConfirmed ? (
+                  <select
+                    className="detail-input"
+                    value={editedCategory}
+                    onChange={(e) => setEditedCategory(e.target.value as TransactionCategory)}
+                  >
+                    <option value="purchase">{t('transaction.categories.purchase')}</option>
+                    <option value="sale">{t('transaction.categories.sale')}</option>
+                    <option value="shipping">{t('transaction.categories.shipping')}</option>
+                    <option value="packaging">{t('transaction.categories.packaging')}</option>
+                    <option value="fee">{t('transaction.categories.fee')}</option>
+                    <option value="other">{t('transaction.categories.other')}</option>
+                  </select>
+                ) : (
+                  <span className="detail-value">{t(`transaction.categories.${transaction.category}`)}</span>
+                )}
+              </div>
+
+              {/* Description - editable if unconfirmed */}
+              <div className="lightbox-detail-row">
+                <span className="detail-label">{t('transaction.description') || 'Description'}:</span>
+                {!isConfirmed ? (
+                  <input
+                    type="text"
+                    className="detail-input"
+                    value={editedDescription}
+                    onChange={(e) => setEditedDescription(e.target.value)}
+                    placeholder={t('transaction.description') || 'Description'}
+                  />
+                ) : (
+                  <span className="detail-value">{transaction.description}</span>
+                )}
               </div>
 
               <div className="lightbox-detail-row">

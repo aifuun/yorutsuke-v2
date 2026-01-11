@@ -25,7 +25,7 @@ type StatusFilter = 'all' | 'pending' | 'confirmed';
 
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t } = useTranslation();
-  const { state, filteredTransactions, confirm, remove, load, totalCount } = useTransactionLogic(userId);
+  const { state, filteredTransactions, confirm, remove, update, load, totalCount } = useTransactionLogic(userId);
   const syncLogic = useSyncLogic(userId, true); // Auto-sync enabled
 
   // Sorting state
@@ -427,6 +427,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                       key={transaction.id}
                       transaction={transaction}
                       onConfirm={() => confirm(transaction.id)}
+                      onUpdate={(fields) => update(transaction.id, fields)}
                       onDelete={() => remove(transaction.id)}
                     />
                   ))}
@@ -453,10 +454,11 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 interface TransactionCardProps {
   transaction: Transaction;
   onConfirm: () => void;
+  onUpdate: (fields: any) => void; // TODO: import UpdateTransactionFields type
   onDelete: () => void;
 }
 
-function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardProps) {
+function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: TransactionCardProps) {
   const { t, i18n } = useTranslation();
   const date = new Date(transaction.date);
 
@@ -491,8 +493,12 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
     setIsConfirmModalOpen(true);
   };
 
-  // Handle actual confirmation from modal
-  const handleModalConfirm = () => {
+  // Handle actual confirmation from modal (with optional edits)
+  const handleModalConfirm = (edits?: any) => {
+    // If there are edits, update first, then confirm
+    if (edits) {
+      onUpdate(edits);
+    }
     onConfirm();
     setIsConfirmModalOpen(false);
   };

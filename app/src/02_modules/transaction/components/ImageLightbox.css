@@ -207,6 +207,28 @@
   line-height: 1.4;
 }
 
+.detail-input {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-800);
+  padding: 4px 8px;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-sm);
+  background: white;
+  width: 100%;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.detail-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.detail-input[type="number"] {
+  font-family: var(--font-mono);
+}
+
 .detail-amount {
   font-size: 24px;
   font-weight: 700;

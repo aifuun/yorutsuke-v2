@@ -274,6 +274,73 @@ export async function confirmTransaction(id: TransactionIdType): Promise<void> {
 }
 
 /**
+ * Update transaction fields (for editing)
+ * Issue #116: Transaction editing
+ *
+ * Supports partial updates of editable fields:
+ * - amount, category, description, merchant, date
+ *
+ * Sets dirty_sync flag for future cloud sync (MVP5)
+ */
+export interface UpdateTransactionFields {
+  amount?: number;
+  category?: TransactionCategory;
+  description?: string;
+  merchant?: string | null;
+  date?: string; // YYYY-MM-DD format
+}
+
+export async function updateTransaction(
+  id: TransactionIdType,
+  fields: UpdateTransactionFields,
+): Promise<void> {
+  const database = await getDb();
+  const now = new Date().toISOString();
+
+  // Build dynamic UPDATE query based on provided fields
+  const updates: string[] = [];
+  const params: unknown[] = [];
+
+  if (fields.amount !== undefined) {
+    updates.push('amount = ?');
+    params.push(fields.amount);
+  }
+  if (fields.category !== undefined) {
+    updates.push('category = ?');
+    params.push(fields.category);
+  }
+  if (fields.description !== undefined) {
+    updates.push('description = ?');
+    params.push(fields.description);
+  }
+  if (fields.merchant !== undefined) {
+    updates.push('merchant = ?');
+    params.push(fields.merchant);
+  }
+  if (fields.date !== undefined) {
+    updates.push('date = ?');
+    params.push(fields.date);
+  }
+
+  // Always update timestamp and dirty flag
+  updates.push('updated_at = ?');
+  params.push(now);
+  updates.push('dirty_sync = ?');
+  params.push(1);
+
+  // Add ID at end
+  params.push(id);
+
+  if (updates.length === 2) {
+    // Only timestamp and dirty_sync, no fields to update
+    return;
+  }
+
+  const query = `UPDATE transactions SET ${updates.join(', ')} WHERE id = ?`;
+  await database.execute(query, params);
+}
+
+/**
  * Delete all transactions for a user (for dev tools)
  */
 export async function clearAllTransactions(userId: UserIdType): Promise<number> {
