@@ -61,4 +61,4 @@ If Tier 3:
 
 ## Proceed When
 
-All applicable items checked → Create TODO.md breakdown → Start coding
+All applicable items checked → Create/update issue plan → Start coding

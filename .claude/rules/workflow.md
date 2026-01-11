@@ -1,30 +1,36 @@
 ---
 paths:
-  - .claude/TODO.md
+  - .claude/plans/active/
+  - .claude/MEMORY.md
 ---
 
-# Workflow Rule - MVP, Issues, TODO 协同机制
+# Workflow Rule - MVP, Issues, Plans 协同机制
 
 > **详细指南**: `.claude/WORKFLOW.md` (index & cheatsheet)
 > **Two-Step Planning**: `.claude/workflow/planning.md`
 
-## TODO.md 战术层 (Tactics)
+## Issue Plans 战术层 (Tactics)
 
-当你编辑 `.claude/TODO.md` 时，请使用模板结构：
+当你处理一个 Issue 时，使用 `.claude/plans/active/#XXX.md` 追踪任务：
 
-**Template**: `.claude/workflow/templates/TEMPLATE-todo.md`
+**Template**: `.claude/workflow/templates/TEMPLATE-feature-plan.md`
 
 **关键原则**:
-- 只跟踪当前 Session 的 1-3 个活跃 Issue
-- 从 Feature Plan 复制子任务到 TODO
+- 每个 GitHub Issue 对应一个 `.claude/plans/active/#XXX.md` 计划文件
+- 从 Feature Plan 复制子任务到计划文件
 - 实时更新进度（打勾）
-- Session 结束后清理，重要决策归档到 MEMORY.md
+- Issue 完成后存档计划文件，重要决策创建 ADR
 
 **结构**:
 ```markdown
-## Current Session
-### Active Issue: #xxx [Title]
-**状态**: 开发中 | Plan: `plans/active/#xxx.md`
+---
+issue: XXX
+status: in-progress
+---
+
+# Issue #XXX: Title
+
+### Steps
 - [x] 完成的步骤
 - [ ] **正在做** ← 当前
 - [ ] 下一步
@@ -35,10 +41,73 @@ paths:
 **以 Issues 为核心的三层工作流**：
 
 ```
-MVP 文件 (路标)  →  GitHub Issues (施工图)  →  TODO.md (今日清单)
+MVP 文件 (路标)  →  GitHub Issues (施工图)  →  Issue Plans (日常清单)
      ↓                    ↓                         ↓
-  目标/验收           技术任务/实现细节        Session 活跃任务
+  目标/验收           技术任务/实现细节        当前 Session 活跃任务
 ```
+
+## Branch-First Rule (CRITICAL)
+
+**BEFORE starting ANY code changes, ALWAYS create a feature branch.**
+
+### Branch Naming Convention
+```
+feature/#XXX-short-description   (new features)
+bugfix/#XXX-short-description    (bug fixes)
+hotfix/#XXX-short-description    (urgent production fixes)
+```
+
+### Checklist (MUST verify before coding)
+- [ ] NOT on `development` or `master` branch
+- [ ] Branch name follows convention
+- [ ] Created from latest `development`
+
+### Example Workflow
+```bash
+# 1. Check current branch
+git branch --show-current
+
+# 2. If on development/master, create feature branch
+git checkout development
+git pull origin development
+git checkout -b feature/115-unified-filter-bar
+
+# 3. NOW start coding
+```
+
+**Why?** Feature branches allow safe experimentation, easy rollback, clean history, and parallel development.
+
+**When to branch?** When `*next` picks up a new issue, IMMEDIATELY create a branch BEFORE planning or coding.
+
+## Branch-Cleanup Rule (CRITICAL)
+
+**AFTER issue is closed, ALWAYS delete the feature branch (locally AND on GitHub).**
+
+### Cleanup Checklist (MUST verify after `*issue close`)
+- [ ] Feature branch deleted locally: `git branch -d feature/XXX-*`
+- [ ] Feature branch deleted on GitHub: `git push origin --delete feature/XXX-*`
+- [ ] Stale branches cleaned: `git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d`
+- [ ] Plan file archived: `plans/active/#XXX.md` → `plans/archive/`
+
+### Why Clean Up Branches?
+
+| Reason | Impact |
+|--------|--------|
+| **Prevents clutter** | Too many branches = confusion about active work |
+| **Clear history** | Only merged branches remain = reflects actual timeline |
+| **Easier `*resume`** | No stale branches to skip over |
+| **Better PR hygiene** | Feature branch = one PR = one issue (clear causality) |
+| **Saves CI/CD resources** | GitHub doesn't run workflows on deleted branches |
+
+### Auto-Cleanup (in `*issue close` command)
+When you run `*issue close #XXX`, the command automatically:
+1. ✅ Merges feature/XXX-* to development
+2. ✅ Deletes feature/XXX-* (local + GitHub)
+3. ✅ Archives issue plan: plans/active/ → plans/archive/
+4. ✅ Closes GitHub issue
+
+**No manual work needed** - but verify completion!
+
 
 ## Two-Step Planning (新增)
 
@@ -132,36 +201,39 @@ echo "VITE_LAMBDA_PRESIGN_URL=..." >> .env.local
 - 包含足够的上下文让 AI 独立完成
 - 完成后关闭 Issue，归档到 MEMORY.md
 
-## 3. TODO.md 层 (Session Tracking)
+## 3. Issue Plans 层 (Session Tracking)
 
-**位置**: `.claude/TODO.md`
+**位置**: `.claude/plans/active/#XXX.md`
 
 **职责**:
-- 记录当前 Session 正在处理的 1-3 个 Issue
-- Session 的进度追踪（子任务打勾）
-- Session 结束后归档
+- 记录当前正在处理的 Issue 的详细执行计划
+- 追踪 Issue 的子任务进度（打勾）
+- Issue 完成后移到 `.claude/plans/archive/`
 
 **格式示例**:
 ```markdown
-## Current Session [2026-01-07]
+---
+issue: 102
+status: in-progress
+---
 
-### Active Issues
-- [x] #101 Presign URL 集成 (已完成)
-- [ ] #102 S3 字节流上传验证 (进行中...)
-  - [x] 实现基础 PUT 逻辑
-  - [x] 添加超时保护
-  - [ ] 大文件压力测试
-- [ ] #103 配额 API 云端同步 (待开始)
+# Issue #102: S3 字节流上传验证
 
-### Next Steps
-1. 完成 #102 的压力测试
-2. 启动 #103 的 Lambda 对接
+### Steps
+- [x] 实现基础 PUT 逻辑
+- [x] 添加超时保护
+- [ ] **进行中**: 大文件压力测试
+- [ ] 写入集成测试
+
+### Related
+- Depends on: #101
+- Blocks: #103
 ```
 
 **原则**:
-- 极简（只关注"现在"）
-- 不是 Issues 的镜像副本
-- Session 结束后清空，核心决策归档到 MEMORY.md
+- 一个 Issue 一个计划文件
+- 清晰的子任务列表和依赖关系
+- Issue 完成后存档，核心决策创建 ADR
 
 ## AI 工作流程
 
@@ -172,16 +244,17 @@ echo "VITE_LAMBDA_PRESIGN_URL=..." >> .env.local
 4. 在 MVP 文件中添加 Issues 的超链接引用
 
 ### 阶段 2: 执行 Session 开发
-1. 从 GitHub Issues 中选择 1-3 个活跃任务
-2. 在 TODO.md 中记录当前 Session 的活跃 Issue
-3. 专注完成这些 Issue，标记子任务进度
+1. 从 GitHub Issues 中选择一个 Issue
+2. 创建 `.claude/plans/active/#XXX.md` 或检查现有计划文件
+3. 专注完成这个 Issue，标记子任务进度
 4. 完成后在 GitHub 关闭 Issue
 
 ### 阶段 3: Session 收尾
-1. 将重要的技术决策归档到 MEMORY.md
-2. 更新 MVP 文件的验收标准（打勾）
-3. 清空 TODO.md 的 Active Issues 部分
-4. Commit 代码并关联 Issue ID
+1. 将重要的技术决策创建为 ADR（`docs/architecture/ADR/NNN-*.md`）
+2. 在 MEMORY.md 中链接新的 ADR
+3. 归档完成的计划文件到 `.claude/plans/archive/`
+4. 更新 MVP 文件的验收标准（打勾）
+5. Commit 代码并关联 Issue ID
 
 ## *next 命令 - 智能任务导航
 
@@ -189,14 +262,14 @@ echo "VITE_LAMBDA_PRESIGN_URL=..." >> .env.local
 
 ### 执行逻辑
 
-**Level 1: 检查 TODO.md**
-- 如果有活跃任务 → 继续执行下一个子任务
+**Level 1: 检查活跃计划文件**
+- 如果有 `.claude/plans/active/` 中的计划 → 继续执行下一个子任务
 - 如果任务完成 → 提示关闭 Issue，进入 Level 2
 
 **Level 2: 推荐 Issues**
 - 从当前 MVP 文件读取未完成的 Issues
 - 推荐优先级最高（P1）的 Issue
-- 用户确认后，在 TODO.md 创建新的活跃任务
+- 用户确认后，创建新的 `.claude/plans/active/#XXX.md` 计划文件
 
 **Level 3: 推荐 MVP**
 - 如果当前 MVP 所有 Issues 都完成 → 检查下一个 MVP
@@ -228,12 +301,12 @@ AI: 检测到活跃任务：
 **单一真相源原则**:
 - 技术细节只在 Issues 中维护
 - MVP 文件只做索引，不重复描述
-- TODO.md 是临时的，不是持久化存储
+- 计划文件是临时的，Issue 完成后存档
 
 **避免三处同步**:
 - Issue 完成 → 关闭 Issue（GitHub 自动记录时间）
 - MVP 验收 → 在 MVP 文件中打勾
-- Session 结束 → 清空 TODO.md
+- 计划完成 → 存档计划文件到 `.claude/plans/archive/`
 
 **决策归档**:
 - 关键 Bug 的修复 → MEMORY.md
@@ -264,14 +337,21 @@ AI: 检测到活跃任务：
 
 3. **开始 Session**:
    ```markdown
-   # TODO.md
-   ## Current Session
-   - [ ] #101 Presign URL 集成 (进行中)
+   # .claude/plans/active/2-presign-url-integration.md
+   ---
+   issue: 101
+   status: in-progress
+   ---
+   
+   ## Issue #101: Presign URL 集成
+   - [ ] 实现基础逻辑
+   - [ ] 添加错误处理
    ```
 
 4. **完成 Issue**:
    - 关闭 GitHub Issue #101
-   - 更新 MEMORY.md（如果有架构决策）
+   - 如果有架构决策，创建 ADR 并在 MEMORY.md 中链接
+   - 存档计划文件到 `.claude/plans/archive/`
    - Commit: `feat: integrate real presign URL (#101)`
 
 5. **验收 MVP**:
@@ -283,11 +363,11 @@ AI: 检测到活跃任务：
 
 此规则应在以下场景自动加载：
 - 处理 `docs/dev/MVP*.md` 文件时
-- 处理 `.claude/TODO.md` 文件时
+- 处理 `.claude/plans/active/` 文件时
 - 开始新的 Session 规划时
 
 ## 参考
 
-- 原 TODO.md 结构（已归档为参考）
 - GitHub Issues 最佳实践
+- ADR 模式 (`docs/architecture/ADR/`)
 - Pillar E: Explicit Over Implicit

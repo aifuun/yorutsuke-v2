@@ -11,7 +11,7 @@ Run automated compliance checks against AI_DEV_PROT v15 Pillars
 
 ## Usage
 ```bash
-*audit              # Run all applicable audits (based on TODO.md Tier)
+*audit              # Run pillar-based audits on current work
 *audit a d l        # Run specific Pillars only
 *audit --all        # Run all available audits
 *audit --fix        # Run and show fix suggestions
@@ -34,7 +34,7 @@ Run automated compliance checks against AI_DEV_PROT v15 Pillars
 ## Workflow
 
 1. **Determine which audits to run**:
-   - If TODO.md has Tier info, use recommended Pillars
+   - From active plan in `.claude/plans/active/`, check Tier field
    - If specific Pillars given, use those
    - If `--all`, run everything
 

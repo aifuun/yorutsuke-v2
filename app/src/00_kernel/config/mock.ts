@@ -28,6 +28,14 @@ let _initialized = false;
 const _listeners = new Set<() => void>();
 
 /**
+ * Check if in any mock mode (online or offline)
+ * Both modes use the same mock database for isolation from production data
+ */
+export function isMockMode(): boolean {
+  return _mockMode === 'online' || _mockMode === 'offline';
+}
+
+/**
  * Check if mocking online mode (API returns mock data, no real calls)
  */
 export function isMockingOnline(): boolean {

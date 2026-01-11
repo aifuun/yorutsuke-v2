@@ -129,9 +129,9 @@ Claude 提供了一套命令来简化 Git Flow 操作，自动处理分支创建
 *issue                            # 列出所有开放的 issues
 
 # 3. 开始处理某个 issue
-*issue pick 123                   # 自动创建 issue/123-<desc> 分支
+*issue pick 123                   # 自动创建 feature/123-<desc> 分支
                                   # 加载或创建开发计划
-                                  # 更新 TODO.md
+                                  # 创建 .claude/plans/active/123-desc.md
 
 # 4. 开发过程中保存进度
 *sync                             # 提交并推送到当前分支
@@ -200,7 +200,7 @@ Claude 提供了一套命令来简化 Git Flow 操作，自动处理分支创建
 相比手动 Git 命令，Claude 命令提供：
 
 - ✅ **自动分支命名** - 基于 issue 标题自动生成规范的分支名
-- ✅ **上下文管理** - 自动更新 TODO.md 和 MEMORY.md
+- ✅ **上下文管理** - 自动更新 plans/active 和 MEMORY.md
 - ✅ **错误预防** - 合并前自动检查和更新
 - ✅ **完整流程** - 一个命令完成多个 Git 操作
 - ✅ **任务追踪** - 与 GitHub Issues 集成

@@ -45,7 +45,6 @@
 
 .card:hover {
   box-shadow: var(--shadow-3);  /* Enhanced from shadow-2 (#136) */
-  transform: translateY(-1px);  /* Subtle lift effect (#136) */
 }
 
 .card--hero {
@@ -208,7 +207,6 @@
 }
 
 .activity-item:hover {
-  transform: translateX(4px);
   background: rgba(255, 255, 255, 0.5);
 }
 
@@ -326,7 +324,6 @@
 .date-btn:hover {
   background: rgba(255, 255, 255, 0.9);
   border-color: var(--blue-500);
-  transform: translateY(-1px);
 }
 
 .date-btn.active {
@@ -440,7 +437,6 @@
 
 .breakdown-card:hover {
   box-shadow: var(--shadow-3);  /* hover 加强阴影 */
-  transform: translateY(-1px);  /* 添加轻微上浮效果 */
 }
 
 .income-card {
@@ -634,7 +630,6 @@
 
 .view-details-btn:hover {
   background: var(--blue-600);
-  transform: translateX(2px);
 }
 
 .view-details-btn:focus-visible {
@@ -755,7 +750,6 @@
 .trend-item:hover {
   border-color: var(--blue-300);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-  transform: translateY(-2px);
 }
 
 .trend-label {
@@ -961,7 +955,6 @@
 
 .pending-item:hover {
   background: rgba(255, 255, 255, 0.5);
-  transform: translateX(4px);
   cursor: pointer;
 }
 
@@ -1206,7 +1199,6 @@
 
 /* Card 3D hover effect (subtle) */
 .card:hover {
-  transform: perspective(1000px) translateY(-2px) rotateX(1deg);
   box-shadow:
     0 8px 20px rgba(0, 0, 0, 0.08),
     0 4px 8px rgba(59, 130, 246, 0.1);
@@ -1214,7 +1206,6 @@
 
 /* Trend card hover enhancement */
 .trend-item:hover {
-  transform: perspective(1000px) translateY(-2px) rotateX(1deg) scale(1.01);
 }
 
 /* Disable animations for users with reduced motion preference */
@@ -1229,6 +1220,5 @@
 
   .card:hover,
   .trend-item:hover {
-    transform: translateY(-1px);
   }
 }

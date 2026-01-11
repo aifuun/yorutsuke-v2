@@ -1,7 +1,7 @@
 ---
 name: tidy
 category: workflow
-requires: [MEMORY.md, TODO.md]
+requires: [MEMORY.md, .claude/plans/active/]
 ---
 
 # Command: *tidy
@@ -11,7 +11,7 @@ Clean up memory and todo files by archiving old entries
 
 ## MEMORY.md
 
-1. Read .claude/MEMORY.md, count entries in each section
+1. Check MEMORY.md ADR links - are all ADRs current and relevant?
 2. Check if cleanup needed (any section >10 entries, or entries >3 months old)
 3. Cleanup actions:
    - Move expired/redundant content to .claude/archive/YYYY-MM.md
@@ -20,9 +20,9 @@ Clean up memory and todo files by archiving old entries
    - Keep valuable core information
 4. Report results: how many removed, how many kept
 
-## TODO.md
+## Plans
 
-1. Read .claude/TODO.md, count tasks by status
+1. Check `.claude/plans/active/` - any plans >7 days old?
 2. Check if cleanup needed:
    - Completed tasks >5 in "Recently Completed"
    - Stale tasks (no progress >2 weeks)
@@ -65,5 +65,5 @@ Clean up memory and todo files by archiving old entries
 
 ## Related
 - Commands: *resume, *sync
-- Files: @.claude/MEMORY.md, @.claude/TODO.md
+- Files: @.claude/MEMORY.md, @.claude/plans/active/
 - Patterns: Memory protection rules

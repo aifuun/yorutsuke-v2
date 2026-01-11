@@ -46,12 +46,12 @@ Start working on issue #n:
    # Extract short title from issue (e.g., "Add login feature" → "add-login")
    git checkout development
    git pull origin development
-   git checkout -b issue/<n>-<short-title>
-   git push -u origin issue/<n>-<short-title>
+   git checkout -b feature/<n>-short-title
+   git push -u origin feature/<n>-short-title
    ```
 
 3. **Check for existing feature plan**: `.claude/plans/active/#<n>-*.md`
-   - If exists → load steps from plan to TODO.md, proceed to step 6
+   - If exists → load steps from plan, proceed to step 6
    - If not exists → continue to step 4
 
 4. **Quick assessment** - Does this task involve:
@@ -66,29 +66,17 @@ Start working on issue #n:
 
    **If NO** (T1 read-only, pure UI/style) → Skip to step 6
 
-6. Break down into steps and update .claude/TODO.md:
-   ```markdown
-   ## Current Issue: #N - Title
-
-   **Branch**: issue/<n>-<short-title>
-   **Tier**: T[1/2/3] (if classified)
-
-   ### Steps
-   - [ ] Step 1
-   - [ ] Step 2
-   ```
-
-7. Start working on first step
+6. Start working on first step from plan (or create plan if missing)
 
 ### *issue close <n>
-Complete issue #n:
+Complete issue #n (with automatic branch cleanup):
 
 1. **Run post-code checklist**: @.prot/checklists/post-code.md
 
 2. **Optional: Run `*audit`** for automated verification
    - Ask user: "Run audit checks? (recommended for T2/T3)"
 
-3. Verify all steps in TODO.md are done
+3. **Verify all steps in issue plan are done** (`.claude/plans/active/#n-*.md`)
 
 4. **Commit final changes on feature branch**:
    ```bash
@@ -97,34 +85,44 @@ Complete issue #n:
    git push
    ```
 
-5. **Merge workflow** (follow @.claude/patterns/git-workflow.md):
+5. **Merge to development AND delete feature branch**:
    ```bash
-   # Update from development first
+   # Update development
    git checkout development
    git pull origin development
-   git checkout issue/<n>-<short-title>
+   
+   # Merge feature branch
+   git checkout feature/<n>-short-title
    git merge development  # Resolve conflicts if any
-
-   # Merge back to development
    git checkout development
-   git merge --no-ff issue/<n>-<short-title> -m "Merge issue/<n>: <title> (#<n>)"
+   git merge --no-ff feature/<n>-short-title -m "Merge feature/<n>: <title> (#<n>)"
    git push origin development
-
-   # Delete feature branch
-   git branch -d issue/<n>-<short-title>
-   git push origin --delete issue/<n>-<short-title>
+   
+   # ⭐ DELETE FEATURE BRANCH (CRITICAL)
+   git branch -d feature/<n>-short-title
+   git push origin --delete feature/<n>-short-title
+   
+   # Clean up merged branches locally
+   git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d
    ```
 
-6. Close issue:
+6. **Close GitHub issue**:
    ```bash
    gh issue close <n> --comment "Completed and merged to development"
    ```
 
-7. Update MEMORY.md:
-   - Record in "Solved Issues" if problems encountered
-   - Record in "Best Practices" if learnings worth keeping
+7. **Create/update ADR if major architectural decision made**:
+   - Check if decision fits ADR criteria (impacts multiple components)
+   - Create `docs/architecture/ADR/NNN-title.md` if yes
+   - Add ADR link to MEMORY.md (see @.claude/rules/memory-management.md)
 
-8. Clear "Current Issue" in TODO.md
+8. **Move plan file from active → archive**:
+   ```bash
+   mv .claude/plans/active/#<n>-*.md .claude/plans/archive/
+   git add .claude/plans/
+   git commit -m "Archive issue #<n> plan"
+   git push origin development
+   ```
 
 ### *issue new <title>
 Create new issue:
@@ -164,12 +162,12 @@ When creating new issue:
 ### *issue close <n> - Archive Plan
 When closing issue:
 1. Move feature plan: `plans/active/#<n>-*.md` → `plans/archive/`
-2. Update TODO.md - remove completed issue
-3. Record important decisions in MEMORY.md
+2. Create ADR if major decision (see step 7 above)
+3. Update MEMORY.md with ADR link
 
 ## Notes
 
-- One active issue at a time (tracked in TODO.md)
+- One active issue at a time (tracked in `.claude/plans/active/`)
 - Large issues should be broken into smaller ones
 - Use labels for categorization
 - For T2/T3 complexity → use `*plan #<n>` before `*issue pick <n>`
@@ -177,4 +175,4 @@ When closing issue:
 ## Related
 - Commands: *tier, *review, *sync, *plan
 - Templates: `.claude/workflow/templates/`
-- Files: `.claude/TODO.md`, `.claude/MEMORY.md`, `.claude/plans/`
+- Files: `.claude/plans/`, `.claude/MEMORY.md`, `docs/architecture/ADR/`
