@@ -169,39 +169,54 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               <span className="hero-label">{t('report.netProfit')}</span>
             </div>
 
-            {/* Income Breakdown */}
+            {/* Income & Expense Breakdown - Side by Side */}
             <div className="hero-breakdown">
-              <div className="breakdown-section">
-                <div className="breakdown-header">
-                  <span className="breakdown-total income">+¥{dailySummary.totalIncome.toLocaleString()}</span>
+              {/* Income Card */}
+              <div className="breakdown-section breakdown-card income-card">
+                <div className="breakdown-card-header">
+                  <span className="breakdown-icon">📈</span>
                   <span className="breakdown-label">{t('report.income')}</span>
                 </div>
-                <div className="breakdown-detail">
-                  <span className="breakdown-item confirmed">
-                    ✓ ¥{dailySummary.confirmedIncome.toLocaleString()}
-                  </span>
+                <div className="breakdown-amount income">
+                  +¥{dailySummary.totalIncome.toLocaleString()}
+                </div>
+                <div className="breakdown-rows">
+                  <div className="breakdown-row confirmed-row">
+                    <span className="breakdown-row-icon">✓</span>
+                    <span className="breakdown-row-label">{t('common.confirm')}</span>
+                    <span className="breakdown-row-value">¥{dailySummary.confirmedIncome.toLocaleString()}</span>
+                  </div>
                   {dailySummary.unconfirmedIncome > 0 && (
-                    <span className="breakdown-item unconfirmed">
-                      ⏳ ¥{dailySummary.unconfirmedIncome.toLocaleString()}
-                    </span>
+                    <div className="breakdown-row unconfirmed-row">
+                      <span className="breakdown-row-icon">⏳</span>
+                      <span className="breakdown-row-label">{t('dashboard.pending')}</span>
+                      <span className="breakdown-row-value">¥{dailySummary.unconfirmedIncome.toLocaleString()}</span>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Expense Breakdown */}
-              <div className="breakdown-section">
-                <div className="breakdown-header">
-                  <span className="breakdown-total expense">-¥{dailySummary.totalExpense.toLocaleString()}</span>
+              {/* Expense Card */}
+              <div className="breakdown-section breakdown-card expense-card">
+                <div className="breakdown-card-header">
+                  <span className="breakdown-icon">📉</span>
                   <span className="breakdown-label">{t('report.expense')}</span>
                 </div>
-                <div className="breakdown-detail">
-                  <span className="breakdown-item confirmed">
-                    ✓ ¥{dailySummary.confirmedExpense.toLocaleString()}
-                  </span>
+                <div className="breakdown-amount expense">
+                  -¥{dailySummary.totalExpense.toLocaleString()}
+                </div>
+                <div className="breakdown-rows">
+                  <div className="breakdown-row confirmed-row">
+                    <span className="breakdown-row-icon">✓</span>
+                    <span className="breakdown-row-label">{t('common.confirm')}</span>
+                    <span className="breakdown-row-value">¥{dailySummary.confirmedExpense.toLocaleString()}</span>
+                  </div>
                   {dailySummary.unconfirmedExpense > 0 && (
-                    <span className="breakdown-item unconfirmed">
-                      ⏳ ¥{dailySummary.unconfirmedExpense.toLocaleString()}
-                    </span>
+                    <div className="breakdown-row unconfirmed-row">
+                      <span className="breakdown-row-icon">⏳</span>
+                      <span className="breakdown-row-label">{t('dashboard.pending')}</span>
+                      <span className="breakdown-row-value">¥{dailySummary.unconfirmedExpense.toLocaleString()}</span>
+                    </div>
                   )}
                 </div>
               </div>

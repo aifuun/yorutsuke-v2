@@ -15,13 +15,17 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 
 **进度**:
 - [x] Phase 1: UI Design with Mock Data (2h) - ✅ 已完成
-- [ ] Phase 2: Data Integration (3h) - **进行中** ⬅️
-  - [x] Step 2.1: Create `createDailySummary` domain function with breakdown - ✅
+- [x] Phase 2: Data Integration (3h) - ✅ 已完成
+  - [x] Step 2.1: Create `createDailySummaryWithBreakdown` domain function - ✅
   - [x] Step 2.2: Replace mock data with real data in DashboardView - ✅
-  - [x] Step 2.3: Verify i18n translations (zh.json already complete) - ✅
-  - [ ] Step 2.4: Manual testing with real data - **当前**
-  - [ ] Step 2.5: Verify reactive updates (confirm/delete → report updates)
-- [ ] Phase 3: Testing & Edge Cases (1h)
+  - [x] Step 2.3: UI improvements (color-coded totals, queue status) - ✅
+  - [x] Step 2.4: Verify i18n translations (all languages complete) - ✅
+  - [x] Step 2.5: Build verification - ✅
+- [ ] Phase 3: Testing & Verification (1h) - **下一步** ⬅️
+  - [ ] Manual testing: Empty state, date switching, breakdown display
+  - [ ] Reactive updates: Confirm transaction → Dashboard auto-refresh
+  - [ ] Edge cases: Midnight boundary, all confirmed/unconfirmed scenarios
+  - [ ] Document behavior for user
 
 ### 执行计划（2 周）
 

@@ -1,4 +1,4 @@
-import type { Transaction, TransactionCategory, DailySummary, TransactionFilters } from './types';
+import type { Transaction, TransactionCategory, DailySummary, DailySummaryBreakdown, TransactionFilters } from './types';
 
 // Pure business rules - no side effects
 
@@ -78,6 +78,40 @@ export function createDailySummary(
     netProfit: calculateNetProfit(totalIncome, totalExpense),
     transactionCount: dayTransactions.length,
     byCategory: summarizeByCategory(dayTransactions),
+  };
+}
+
+/**
+ * Create daily summary with confirmed/unconfirmed breakdown
+ * Used for Dashboard daily view with reactive updates
+ */
+export function createDailySummaryWithBreakdown(
+  date: string,
+  transactions: Transaction[],
+): DailySummaryBreakdown {
+  const dayTransactions = transactions.filter(t => t.date === date);
+  const confirmed = dayTransactions.filter(t => t.confirmedAt !== null);
+  const unconfirmed = dayTransactions.filter(t => t.confirmedAt === null);
+
+  const { income: confIncome, expense: confExpense } = categorizeByType(confirmed);
+  const { income: unconfIncome, expense: unconfExpense } = categorizeByType(unconfirmed);
+
+  const confirmedIncomeTotal = confIncome.reduce((sum, t) => sum + t.amount, 0);
+  const confirmedExpenseTotal = confExpense.reduce((sum, t) => sum + t.amount, 0);
+  const unconfirmedIncomeTotal = unconfIncome.reduce((sum, t) => sum + t.amount, 0);
+  const unconfirmedExpenseTotal = unconfExpense.reduce((sum, t) => sum + t.amount, 0);
+
+  return {
+    date,
+    totalIncome: confirmedIncomeTotal + unconfirmedIncomeTotal,
+    totalExpense: confirmedExpenseTotal + unconfirmedExpenseTotal,
+    confirmedIncome: confirmedIncomeTotal,
+    confirmedExpense: confirmedExpenseTotal,
+    unconfirmedIncome: unconfirmedIncomeTotal,
+    unconfirmedExpense: unconfirmedExpenseTotal,
+    count: dayTransactions.length,
+    confirmedCount: confirmed.length,
+    unconfirmedCount: unconfirmed.length,
   };
 }
 

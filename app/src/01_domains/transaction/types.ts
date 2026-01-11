@@ -43,6 +43,20 @@ export interface DailySummary {
   byCategory: Record<TransactionCategory, number>;
 }
 
+// Daily summary with confirmed/unconfirmed breakdown
+export interface DailySummaryBreakdown {
+  date: string;
+  totalIncome: number;
+  totalExpense: number;
+  confirmedIncome: number;
+  confirmedExpense: number;
+  unconfirmedIncome: number;
+  unconfirmedExpense: number;
+  count: number;
+  confirmedCount: number;
+  unconfirmedCount: number;
+}
+
 // Transaction filters
 export interface TransactionFilters {
   dateStart?: string;    // YYYY-MM-DD
