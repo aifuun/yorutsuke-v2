@@ -20,6 +20,7 @@
     "lint:fix": "eslint src/ --fix",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
+    "check:i18n": "node scripts/check-i18n.js",
     "env:sync": "../scripts/sync-env.sh",
     "test": "vitest run",
     "test:watch": "vitest",

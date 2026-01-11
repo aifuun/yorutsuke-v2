@@ -14,7 +14,7 @@
 import Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 import { runMigrations } from './migrations';
-import { isMockingOnline } from '../config/mock';
+import { isMockMode } from '../config/mock';
 
 const PRODUCTION_DB = 'sqlite:yorutsuke.db';
 const MOCK_DB = 'sqlite:yorutsuke-mock.db';
@@ -26,8 +26,13 @@ let mockInitPromise: Promise<Database> | null = null;  // Race condition protect
 
 /**
  * Get appropriate database connection based on current mock mode
- * Returns production db in production mode, mock db in mock mode
+ * Returns production db in production mode, mock db in both online and offline mock modes
  * Ensures queries always use the correct database without app restart
+ *
+ * Mock mode behavior:
+ * - 'off': production db (real data)
+ * - 'online': mock db (mock API responses)
+ * - 'offline': mock db (simulate network failure with local mock data)
  *
  * @example
  * const db = await getDb();
@@ -40,8 +45,9 @@ export async function getDb(): Promise<Database> {
   }
 
   // Dynamically select database based on current mock mode
-  // This allows runtime mode switching in Debug panel
-  if (isMockingOnline()) {
+  // Both 'online' and 'offline' mock modes use the same mock db
+  // This allows testing network failure scenarios with seeded mock data
+  if (isMockMode()) {
     if (!mockDb) {
       // Initialize mock db on-demand with race condition protection
       return getMockDb();

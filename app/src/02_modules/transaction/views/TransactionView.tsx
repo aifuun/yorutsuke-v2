@@ -46,8 +46,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<'all' | number>('all');
 
-  // Layout toggle for mockup (TEMPORARY - for testing)
-  const [filterLayout, setFilterLayout] = useState<'compact' | 'grouped'>('compact');
+  // Layout: Option B - Two rows (Time+Sort | Filters)
 
   // Pagination state
   const pageSize = 20;
@@ -318,186 +317,92 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
       <div className="ledger-content">
         <div className="ledger-container">
-          {/* MOCKUP: Layout Toggle (TEMPORARY - for testing only) */}
-          <div style={{ padding: '8px', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-4)', display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>🎨 Mockup Toggle:</span>
-            <button
-              type="button"
-              className={`btn btn--sm ${filterLayout === 'compact' ? 'btn--primary' : 'btn--secondary'}`}
-              onClick={() => setFilterLayout('compact')}
-            >
-              Option A: Compact Row
-            </button>
-            <button
-              type="button"
-              className={`btn btn--sm ${filterLayout === 'grouped' ? 'btn--primary' : 'btn--secondary'}`}
-              onClick={() => setFilterLayout('grouped')}
-            >
-              Option B: Grouped Rows
-            </button>
-          </div>
-
-          {/* NEW: Unified Filter Bar */}
+          {/* Unified Filter Bar - Option B: Two rows (Time+Sort | Filters) */}
           <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-            {filterLayout === 'compact' ? (
-              /* Option A: Single Compact Row */
-              <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              {/* Row 1: Time Filters (left) + Sort Controls (right) */}
+              <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', justifyContent: 'space-between' }}>
                 {/* Time Filters */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📅</span>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '60px' }}>{t('ledger.filterTime')}:</span>
                   <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '100px' }}>
                     <option value={2024}>2024</option>
                     <option value={2025}>2025</option>
                     <option value={2026}>2026</option>
                   </select>
                   <select className="select" value={selectedMonth} onChange={handleMonthChange} style={{ width: '140px' }}>
-                    <option value="all">{t('ledger.all')} Months</option>
-                    <option value={0}>January</option>
-                    <option value={1}>February</option>
-                    <option value={2}>March</option>
-                    <option value={3}>April</option>
-                    <option value={4}>May</option>
-                    <option value={5}>June</option>
-                    <option value={6}>July</option>
-                    <option value={7}>August</option>
-                    <option value={8}>September</option>
-                    <option value={9}>October</option>
-                    <option value={10}>November</option>
-                    <option value={11}>December</option>
+                    <option value="all">{t('ledger.allMonths')}</option>
+                    <option value={0}>{t('ledger.months.january')}</option>
+                    <option value={1}>{t('ledger.months.february')}</option>
+                    <option value={2}>{t('ledger.months.march')}</option>
+                    <option value={3}>{t('ledger.months.april')}</option>
+                    <option value={4}>{t('ledger.months.may')}</option>
+                    <option value={5}>{t('ledger.months.june')}</option>
+                    <option value={6}>{t('ledger.months.july')}</option>
+                    <option value={7}>{t('ledger.months.august')}</option>
+                    <option value={8}>{t('ledger.months.september')}</option>
+                    <option value={9}>{t('ledger.months.october')}</option>
+                    <option value={10}>{t('ledger.months.november')}</option>
+                    <option value={11}>{t('ledger.months.december')}</option>
                   </select>
                 </div>
-
-                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
-
-                {/* Content Filters */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📊</span>
-                  <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '120px' }}>
-                    <option value="all">All Types</option>
-                    <option value="income">💰 Income</option>
-                    <option value="expense">💸 Expense</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>🏷️</span>
-                  <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '140px' }}>
-                    <option value="all">All Categories</option>
-                    <option value="purchase">Purchase</option>
-                    <option value="sale">Sale</option>
-                    <option value="shipping">Shipping</option>
-                    <option value="packaging">Packaging</option>
-                    <option value="fee">Fee</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>✓</span>
-                  <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '120px' }}>
-                    <option value="all">{t('ledger.all')}</option>
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                  </select>
-                </div>
-
-                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }} />
 
                 {/* Sort Controls */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '1.25rem' }}>⇅</span>
-                  <select className="select" value={sortBy} onChange={handleSortByChange} style={{ width: '140px' }}>
-                    <option value="date">Invoice Date</option>
-                    <option value="createdAt">Processing Time</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="btn btn--icon"
-                    onClick={toggleSortOrder}
-                    style={{ minWidth: '32px' }}
-                  >
-                    {sortOrder === 'DESC' ? '↓' : '↑'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Option B: Grouped Multi-Row */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                {/* Row 1: Time Filters */}
                 <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '80px' }}>📅 Time:</span>
-                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '100px' }}>
-                    <option value={2024}>2024</option>
-                    <option value={2025}>2025</option>
-                    <option value={2026}>2026</option>
-                  </select>
-                  <select className="select" value={selectedMonth} onChange={handleMonthChange} style={{ width: '140px' }}>
-                    <option value="all">{t('ledger.all')} Months</option>
-                    <option value={0}>January</option>
-                    <option value={1}>February</option>
-                    <option value={2}>March</option>
-                    <option value={3}>April</option>
-                    <option value={4}>May</option>
-                    <option value={5}>June</option>
-                    <option value={6}>July</option>
-                    <option value={7}>August</option>
-                    <option value={8}>September</option>
-                    <option value={9}>October</option>
-                    <option value={10}>November</option>
-                    <option value={11}>December</option>
-                  </select>
-                </div>
-
-                {/* Row 2: Content Filters */}
-                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '80px' }}>🔍 Filters:</span>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Type:</label>
-                    <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '120px' }}>
-                      <option value="all">All</option>
-                      <option value="income">💰 Income</option>
-                      <option value="expense">💸 Expense</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Category:</label>
-                    <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '140px' }}>
-                      <option value="all">All</option>
-                      <option value="purchase">Purchase</option>
-                      <option value="sale">Sale</option>
-                      <option value="shipping">Shipping</option>
-                      <option value="packaging">Packaging</option>
-                      <option value="fee">Fee</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Status:</label>
-                    <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '120px' }}>
-                      <option value="all">{t('ledger.all')}</option>
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Row 3: Sort Controls */}
-                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '80px' }}>⇅ Sort:</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('ledger.sortBy')}:</span>
                   <select className="select" value={sortBy} onChange={handleSortByChange} style={{ width: '160px' }}>
-                    <option value="date">Invoice Date</option>
-                    <option value="createdAt">Processing Time</option>
+                    <option value="date">{t('ledger.invoiceDate')}</option>
+                    <option value="createdAt">{t('ledger.processingTime')}</option>
                   </select>
                   <button
                     type="button"
                     className="btn btn--secondary btn--sm"
                     onClick={toggleSortOrder}
                   >
-                    {sortOrder === 'DESC' ? '↓ Newest First' : '↑ Oldest First'}
+                    {sortOrder === 'DESC' ? `↓ ${t('ledger.newestFirst')}` : `↑ ${t('ledger.oldestFirst')}`}
                   </button>
                 </div>
               </div>
-            )}
+
+              {/* Row 2: Content Filters */}
+              <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '60px' }}>{t('ledger.filters')}:</span>
+
+                {/* Type Filter */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('ledger.filterType')}:</label>
+                  <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '120px' }}>
+                    <option value="all">{t('ledger.all')}</option>
+                    <option value="income">{t('transaction.income')}</option>
+                    <option value="expense">{t('transaction.expense')}</option>
+                  </select>
+                </div>
+
+                {/* Category Filter */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('ledger.filterCategory')}:</label>
+                  <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '140px' }}>
+                    <option value="all">{t('ledger.all')}</option>
+                    <option value="purchase">{t('transaction.categories.purchase')}</option>
+                    <option value="sale">{t('transaction.categories.sale')}</option>
+                    <option value="shipping">{t('transaction.categories.shipping')}</option>
+                    <option value="packaging">{t('transaction.categories.packaging')}</option>
+                    <option value="fee">{t('transaction.categories.fee')}</option>
+                    <option value="other">{t('transaction.categories.other')}</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('ledger.filterStatus')}:</label>
+                  <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '120px' }}>
+                    <option value="all">{t('ledger.all')}</option>
+                    <option value="pending">{t('ledger.pendingConfirmation')}</option>
+                    <option value="confirmed">{t('ledger.confirmed')}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Transaction List */}
@@ -565,29 +470,21 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
   const isIncome = transaction.type === 'income';
   const categoryKey = `transaction.categories.${transaction.category}` as const;
 
-  // Image thumbnail state
+  // Image state for modal
   const [imageResult, setImageResult] = useState<ImageUrlResult | null>(null);
-  const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Load image URL when component mounts
   useEffect(() => {
     if (transaction.imageId) {
-      setIsLoadingImage(true);
       getImageUrl(transaction.imageId)
         .then(setImageResult)
         .catch((error) => {
           console.error('Failed to load image:', error);
           setImageResult({ url: null, source: 'missing', error: String(error) });
-        })
-        .finally(() => setIsLoadingImage(false));
+        });
     }
   }, [transaction.imageId]);
-
-  // Handle thumbnail click - opens confirm modal
-  const handleThumbnailClick = () => {
-    setIsConfirmModalOpen(true);
-  };
 
   // Handle confirm button click - opens confirm modal
   const handleConfirmClick = () => {
@@ -614,29 +511,6 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
 
   return (
     <div className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''}`}>
-      {/* Image Thumbnail */}
-      {transaction.imageId && (
-        <div className="transaction-thumbnail" onClick={handleThumbnailClick}>
-          {isLoadingImage ? (
-            <div className="thumbnail-placeholder thumbnail-loading">⏳</div>
-          ) : imageResult?.url ? (
-            <img
-              src={imageResult.url}
-              alt="Receipt"
-              className="thumbnail-image"
-              title={t('transaction.clickToReview')}
-            />
-          ) : (
-            <div
-              className="thumbnail-placeholder thumbnail-missing"
-              title={imageResult?.error || 'Image not available'}
-            >
-              📷
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Confirm Modal with Image, OCR text, and Transaction details */}
       {isConfirmModalOpen && (
         <ImageLightbox
