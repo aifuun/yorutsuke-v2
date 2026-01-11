@@ -1,9 +1,10 @@
 ---
 issue: 139
 title: Refactor TODO.md & MEMORY.md to ADR-based architecture
-status: in-progress
+status: completed
 tier: T2
 created: 2026-01-11
+completed: 2026-01-11
 ---
 
 # Issue #139: TODO.md & MEMORY.md Migration
