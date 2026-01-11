@@ -60,8 +60,8 @@ Template matching:
 ## Post-Execution Updates
 
 After completing a sub-task:
-1. **Update TODO.md**: Mark step as `[x]` complete
-2. **Check for archival**: If important decision, suggest MEMORY.md update
+1. **Update plan file**: Mark step as `[x]` complete in `.claude/plans/active/#XXX.md`
+2. **Check for archival**: If important decision, suggest creating an ADR
 3. **Trigger next round**: Ask "Continue with next sub-task? (yes/no)"
 
 If all sub-tasks complete:

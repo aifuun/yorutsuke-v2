@@ -76,7 +76,7 @@ Complete issue #n:
 2. **Optional: Run `*audit`** for automated verification
    - Ask user: "Run audit checks? (recommended for T2/T3)"
 
-3. Verify all steps in TODO.md are done
+3. **Verify all steps in issue plan are done** (`.claude/plans/active/#n-*.md`)
 
 4. **Commit final changes on feature branch**:
    ```bash
@@ -86,8 +86,6 @@ Complete issue #n:
    ```
 
 5. **Merge workflow** (follow @.claude/patterns/git-workflow.md):
-   ```bash
-   # Update from development first
    git checkout development
    git pull origin development
    git checkout feature/<n>-short-title

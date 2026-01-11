@@ -28,15 +28,23 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 - [x] resume.md (7 refs)
 - [x] status.md (5 refs)
 - [x] approve.md (1 ref)
+- [x] bugfix.md (3 refs)
+- [x] hotfix.md (3 refs)
 
-#### Phase 4: Update Supporting Files [2h] ⬅️ **NEXT**
-- [ ] Remaining 11 commands (bugfix, hotfix, plan, review, tidy, audit, scaffold, tier, issue, workflow/release)
-- [ ] 8 documentation files (CLAUDE.md, rules/workflow.md, WORKFLOW.md, README.md, .prot/STRUCTURE.md, dev docs)
+#### Phase 4: Update Documentation Files [2h] ✅
+- [x] CLAUDE.md (3 refs updated)
+- [x] .claude/rules/workflow.md (6 major sections refactored)
+- [x] .claude/WORKFLOW.md (5 refs updated)
+- [x] README.md (2 refs updated)
+- [x] .claude/README.md (8 refs updated)
+- [x] .claude/workflow/templates/README.md (4 refs updated)
 
-#### Phase 5: Validation [1h]
-- [ ] Test commands
-- [ ] Verify links
-- [ ] Spot check workflow
+#### Phase 5: Validation & Testing [1-2h] ⬅️ **CURRENT**
+- [ ] Verify all links work (MEMORY.md → ADRs, Commands → plans/active)
+- [ ] Test key commands (`*next`, `*issue pick`, `*sync`, `*resume`)
+- [ ] Spot check: No remaining TODO.md references in commands/docs
+- [ ] Verify plans/active/ structure is working
+- [ ] Final documentation review
 
 ### Recently Completed: #115 - Transaction List: Type & Category Filters
 **状态**: ✅ 完成 (2026-01-11)
