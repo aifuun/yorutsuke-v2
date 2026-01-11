@@ -1,7 +1,7 @@
 ---
 name: status
 category: workflow
-requires: [TODO.md, MEMORY.md]
+requires: [MEMORY.md, .claude/plans/active/]
 ---
 
 # Command: *status
@@ -21,8 +21,8 @@ Quick overview of current project state
 ### Default Mode (*status)
 1. **Git status**: `git status --short`
 2. **Last commit**: `git log -1 --oneline`
-3. **Memory summary**: Read first 3 lines from `.claude/MEMORY.md` Current Context
-4. **TODO progress**: Count completed/total tasks from `.claude/TODO.md`
+3. **Memory summary**: Read ADR index from `.claude/MEMORY.md`
+4. **Active plans**: List active plans in `.claude/plans/active/`
 5. **Open issues**: `gh issue list --limit 5` (if gh available)
 
 ### Diff Mode (*status --diff)
@@ -36,7 +36,7 @@ Includes all default info, plus:
 Includes all diff info, plus:
 8. **Recent commits**: `git log -5 --oneline --decorate`
 9. **Branch info**: Ahead/behind remote
-10. **MEMORY.md age**: Warn if last update >7 days
+10. **MEMORY.md health**: Check if ADR links are fresh (any stale references)
 
 ## Output Format
 
@@ -47,11 +47,11 @@ Includes all diff info, plus:
 **Branch**: main (clean/dirty)
 **Last commit**: abc1234 commit message
 
-**Context**: [one-line summary from MEMORY.md]
+**Recent decisions**: [top ADRs from MEMORY.md index]
 
-**Progress**: 3/5 tasks completed in current milestone
-- [x] Task 1
-- [ ] Task 2 (next)
+**Active plans**: 2
+- Issue #115: Transaction filters
+- Issue #118: Offline CRUD testing
 
 **Open Issues**: 2
 - #12 Bug: login fails

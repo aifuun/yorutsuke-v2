@@ -1,7 +1,7 @@
 ---
 name: resume
 category: workflow
-requires: [MEMORY.md, TODO.md]
+requires: [MEMORY.md, .claude/plans/active/]
 ---
 
 # Command: *resume
@@ -17,13 +17,13 @@ Resume previous session with automatic sync and context loading
    ```
    - If conflicts, notify user and pause
 
-2. **Load context**: Read "Current Context" from .claude/MEMORY.md
+2. **Load context**: Read ADR links from .claude/MEMORY.md
 
-3. **Check progress**: Read .claude/TODO.md for current milestone status
+3. **Check active plans**: List `.claude/plans/active/` for ongoing issues
 
 4. **Health check**:
-   - If TODO.md has stale tasks (>30 days), mention it
-   - If MEMORY.md seems large (>40KB), suggest manual cleanup
+   - If active plans are stale (>7 days), ask if still relevant
+   - If MEMORY.md seems large, suggest archiving old ADRs
 
 5. **Remind workflow**: Mention workflow guide for new users
    - "For full workflow, see: @.claude/WORKFLOW.md"
@@ -35,13 +35,13 @@ Resume previous session with automatic sync and context loading
 ```
 ## Session Resumed
 
-**Last session**: [summary from MEMORY.md]
-**Progress**: 3/5 tasks in current milestone
+**Recent decisions**: [top 3 ADRs from MEMORY.md]
+**Active plans**: 2 (Issues #115, #118 in progress)
 
 Ready to continue. What would you like to work on?
 ```
 
 ## Related
 - Commands: *status, *next
-- Files: @.claude/MEMORY.md, @.claude/TODO.md
+- Files: @.claude/MEMORY.md, @.claude/plans/active/
 - Workflow: @.claude/WORKFLOW.md

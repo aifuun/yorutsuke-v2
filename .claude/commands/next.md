@@ -1,26 +1,26 @@
 ---
 name: next
 category: workflow
-requires: [TODO.md, .claude/workflow/]
+requires: [.claude/plans/active/, .claude/workflow/]
 ---
 
 # Command: *next
 
 ## Purpose
-Intelligent task navigator with 3-level cascade: TODO → Issues → MVP
+Intelligent task navigator with 3-level cascade: Plans → Issues → MVP
 
 ## Workflow
 
-### Level 1: Active Tasks (TODO.md)
-Check `.claude/TODO.md` for active issues:
-- If active issue with pending steps → show next step, ask to continue
+### Level 1: Active Tasks (Plans)
+Check `.claude/plans/active/` for active issue plans:
+- If active plan with pending steps → show next step, ask to continue
 - If all steps complete → suggest `*review` or `*issue close`
-- If no active tasks → proceed to Level 2
+- If no active plans → proceed to Level 2
 
 **Example**: "Continue with #101 Presign URL integration?"
 
 ### Level 2: Recommend Issues (Current MVP)
-1. Infer current MVP from TODO.md milestone marker
+1. Infer current MVP from active plan (if any), or from issue list
 2. Read MVP file (e.g., `docs/dev/MVP2_UPLOAD.md`)
 3. Extract uncompleted issues (status `[ ]`)
 4. Prioritize P1 issues first
@@ -28,7 +28,7 @@ Check `.claude/TODO.md` for active issues:
    - Issue number and title
    - Related test scenarios
    - Estimated complexity (if tagged)
-6. On user confirm → create TODO.md entry, load dev plan from GitHub issue
+6. On user confirm → create feature branch, load dev plan from GitHub issue (or create new one)
 
 **Example**: "Recommend Issue #102: S3 upload verification [P1]. Start?"
 
@@ -78,12 +78,12 @@ See detailed scenarios: @.claude/workflow/examples/next-command.md
 
 ## Template Integration
 
-**Level 1 (TODO.md check)**:
-- If TODO.md empty or unstructured → suggest using `templates/TEMPLATE-todo.md`
-- Structure: Current Session → Active Issue → Steps with checkboxes
+**Level 1 (Plans check)**:
+- If no active plans → show available plans from `.claude/plans/active/`
+- If multiple plans → ask which to continue
 
 **Level 2 (Issue recommendation)**:
-- When picking Issue → check if feature plan exists in `plans/active/#<n>-*.md`
+- When picking Issue → check if plan exists in `plans/active/#<n>-*.md`
 - If T2/T3 complexity and no plan → prompt: "Create feature plan first?"
 - If yes → copy `templates/TEMPLATE-feature-plan.md` to `plans/active/`
 
@@ -94,15 +94,15 @@ See detailed scenarios: @.claude/workflow/examples/next-command.md
 **Architecture**:
 ```
 战略 (Strategy)  → Level 3: MVP      → TEMPLATE-mvp.md
-战役 (Campaign)  → Level 2: Issues   → TEMPLATE-feature-plan.md
-战术 (Tactics)   → Level 1: TODO     → TEMPLATE-todo.md
+战役 (Campaign)  → Level 2: Issues   → TEMPLATE-feature-plan.md (.claude/plans/active/)
+战术 (Tactics)   → Level 1: Plans    → Issue plans stored in .claude/plans/active/
 ```
 
 ## Notes
 
-- **Single focus**: One issue at a time
+- **Single focus**: One issue at a time (in active plan file)
 - **Small steps**: Break tasks into 30-min chunks
-- **Immediate updates**: Mark progress in TODO.md after each step
+- **Immediate updates**: Mark progress in plan file after each step
 - **Template compliance**: Auto-suggest templates for new files
 - **Smart prioritization**: Consider dependencies and priority tags
 

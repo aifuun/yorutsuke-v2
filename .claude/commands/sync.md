@@ -2,7 +2,7 @@
 name: sync
 category: workflow
 aliases: [save]
-requires: [MEMORY.md, TODO.md]
+requires: [MEMORY.md, feature branch]
 ---
 
 # Command: *sync
@@ -64,8 +64,7 @@ Note: `*save` is an alias for `*sync --ask --memory`
      ```
 
 3. **Update memory** (if significant progress):
-   - Update `.claude/MEMORY.md` Current Context
-   - Update `.claude/TODO.md` (mark completed tasks)
+   - Update `.claude/MEMORY.md` with ADR links if major decision made
 
 4. **Stage changes**: `git add -A`
 
@@ -83,10 +82,9 @@ Note: `*save` is an alias for `*sync --ask --memory`
 2. **Sync with development** (same as step 2 in default mode)
 3. **Show diff**: `git diff --stat` and present to user
 4. **Ask for summary**: Prompt user for one-line session summary
-5. **Update MEMORY.md**: Append summary to Current Context section
-6. **Update TODO.md**: Mark completed tasks
-7. **Commit**: `git commit -m "feat: [user summary]"`
-8. **Push**: `git push`
+5. **Update MEMORY.md**: If ADR created, link from MEMORY.md
+6. **Commit**: `git commit -m "feat: [user summary]"`
+7. **Push**: `git push`
 
 ### Memory-Only Mode (*sync --memory)
 1. **Check current branch**
