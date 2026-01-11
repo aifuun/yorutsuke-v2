@@ -1,5 +1,5 @@
 // Pillar L: View - Debug tools for development
-// 3 sections: Dev Actions, System & Config, Logs
+// Reorganized layout: Mock & Data Mode | Seed Data | System Info | Danger Zone | Logs
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useAuth, useEffectiveUserId } from '../../auth';
 import { useSettings } from '../../settings/headless';
