@@ -48,6 +48,9 @@
     "noActivity": "暂无最近活动",
     "viewAllInLedger": "在账本中查看全部",
     "viewDetails": "查看详情",
+    "queue": "队列",
+    "queueReady": "准备就绪",
+    "queueProcessing": "处理中",
     "activity": {
       "uploaded": "收据已上传",
       "confirmed": "交易已确认"

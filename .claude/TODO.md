@@ -2,18 +2,74 @@
 
 Source of truth: GitHub Issues. This file tracks session breakdown.
 
-## Current Session [2026-01-10]
+## Current Session [2026-01-11]
+
+### Active: MVP3 Frontend Development
+
+**当前目标**: Complete MVP3 frontend core features (Issues #114-#118)
+
+### Current Issue: #114 - Dashboard Daily Summary
+**状态**: 开发中 | Plan: `.claude/plans/active/#114-dashboard-yesterday-summary.md`
+**复杂度**: T1 (read-only)
+**预估**: 6h total
+
+**进度**:
+- [x] Phase 1: UI Design with Mock Data (2h) - ✅ 已完成
+- [ ] Phase 2: Data Integration (3h) - **进行中** ⬅️
+  - [x] Step 2.1: Create `createDailySummary` domain function with breakdown - ✅
+  - [x] Step 2.2: Replace mock data with real data in DashboardView - ✅
+  - [x] Step 2.3: Verify i18n translations (zh.json already complete) - ✅
+  - [ ] Step 2.4: Manual testing with real data - **当前**
+  - [ ] Step 2.5: Verify reactive updates (confirm/delete → report updates)
+- [ ] Phase 3: Testing & Edge Cases (1h)
+
+### 执行计划（2 周）
+
+**本周 Week 1**:
+- [x] #137: View Header 统一设计 (2-3h) - ✅ 已完成（验证通过）
+- [ ] #114: Dashboard Daily Summary (4h) - **进行中** ⬅️
+- [ ] #115: Transaction List & Filters (5h) - 周二/周三
+- [ ] #117: Report History Calendar (6h) - 周三/周四 (可并行)
+- [ ] #116: Transaction Confirmation (6h) - 周四/周五 (depends on #115)
+
+**下周 Week 2**:
+- [ ] #118: Offline CRUD Testing (3h) - 周一
+- [ ] #104: End-to-end batch testing (4h) - 周一/周二
+- [ ] #119: Dashboard Trend Charts (8h) - 周三/周四
+- [ ] #120: Dashboard UX Enhancements (4h) - 周五
+
+**Dependency Graph**:
+```
+Phase 1: #137 (2-3h) → 统一设计基础
+         ↓
+Phase 2: #114 (4h) + #115 (5h) + #117 (6h) → 并行开发
+         ↓
+Phase 3: #116 (6h) ← depends on #115
+         ↓
+Phase 4: #118 (3h) ← depends on #116
+         ↓
+Phase 5: #104 End-to-end testing (4h)
+```
+
+**预估**: Week 1 = 26-30h, Week 2 = 19h, Total = 45-49h
+
+---
+
+## Previous Session [2026-01-10]
+
+### Completed: UI/UX & i18n Fixes ✅
+
+**完成内容**:
+- [x] #136 UI/UX Optimization (深蓝商务风)
+- [x] Button component padding fix (扁按钮问题)
+- [x] i18n bugfix (ja.json 中文混合修复)
+- [x] 添加中文支持 (en/zh/ja 三语言)
+- [x] 修复硬编码英文 (DebugView, TransactionView)
+- [x] Created #137: View Header 设计统一
 
 ### Completed: MVP3 Frontend Decomposition (Step 1) ✅
 
 **任务**: `*plan mvp` - MVP-Level Decomposition for MVP3 Frontend
-
-**完成内容**:
-- [x] Analyzed MVP3 goal and remaining frontend scope
-- [x] Identified 5 features with dependencies
-- [x] Created 5 GitHub Issues (#114-#118)
-- [x] Updated MVP3_BATCH.md with Issue references
-- [x] Generated dependency graph and development roadmap
 
 **创建的 Issues**:
 - #114: Dashboard Today's Summary (T1, 4h) - Ready
@@ -21,18 +77,6 @@ Source of truth: GitHub Issues. This file tracks session breakdown.
 - #116: Transaction Confirmation (T2, 6h) - Blocked by #115
 - #117: Report History Calendar (T1, 6h) - Ready
 - #118: Offline CRUD Testing (T2, 3h) - Blocked by #116
-
-**Dependency Graph**:
-```
-Phase 1 (parallel): #114, #115, #117 → 6h
-Phase 2: #116 (after #115) → 6h
-Phase 3: #118 (after #116) → 3h
-Total: 15 hours
-```
-
-**下一步**:
-- Use `*issue pick #114` / `#115` / `#117` to start any ready issue
-- Consider `*plan #116` for detailed T2 planning before development
 
 ---
 

@@ -46,6 +46,9 @@
     "noActivity": "No recent activity",
     "viewAllInLedger": "View all in Ledger",
     "viewDetails": "View Details",
+    "queue": "Queue",
+    "queueReady": "Ready",
+    "queueProcessing": "Processing",
     "activity": {
       "uploaded": "Receipt uploaded",
       "confirmed": "Transaction confirmed"

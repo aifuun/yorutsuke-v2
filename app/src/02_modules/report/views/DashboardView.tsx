@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Check, Receipt } from 'lucide-react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
-import { createMonthlySummary } from '../../../01_domains/transaction'; // Phase 2: add createDailySummary
+import { createMonthlySummary, createDailySummaryWithBreakdown } from '../../../01_domains/transaction';
 import { useTransactionLogic } from '../../transaction';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
@@ -16,45 +16,6 @@ interface DashboardViewProps {
   onViewChange: (view: ViewType) => void;
 }
 
-// Phase 1: Mock data scenarios for UI development
-const MOCK_SCENARIOS = {
-  typical: {
-    totalIncome: 50000,
-    totalExpense: 30000,
-    confirmedIncome: 45000,
-    confirmedExpense: 28000,
-    unconfirmedIncome: 5000,
-    unconfirmedExpense: 2000,
-    unconfirmedCount: 3,
-  },
-  allConfirmed: {
-    totalIncome: 50000,
-    totalExpense: 30000,
-    confirmedIncome: 50000,
-    confirmedExpense: 30000,
-    unconfirmedIncome: 0,
-    unconfirmedExpense: 0,
-    unconfirmedCount: 0,
-  },
-  allUnconfirmed: {
-    totalIncome: 50000,
-    totalExpense: 30000,
-    confirmedIncome: 0,
-    confirmedExpense: 0,
-    unconfirmedIncome: 50000,
-    unconfirmedExpense: 30000,
-    unconfirmedCount: 5,
-  },
-  empty: {
-    totalIncome: 0,
-    totalExpense: 0,
-    confirmedIncome: 0,
-    confirmedExpense: 0,
-    unconfirmedIncome: 0,
-    unconfirmedExpense: 0,
-    unconfirmedCount: 0,
-  },
-};
 
 // Smart default: 0:00-12:00 → yesterday, 12:00-24:00 → today
 function getSmartDefaultDate(): string {
@@ -85,9 +46,8 @@ function getYesterdayDate(): string {
 export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const { t } = useTranslation();
 
-  // Phase 1: Date selector with smart default
+  // Date selector with smart default
   const [selectedDate, setSelectedDate] = useState(getSmartDefaultDate());
-  const [mockScenario] = useState<keyof typeof MOCK_SCENARIOS>('typical');
 
   const today = getTodayDate();
   const yesterday = getYesterdayDate();
@@ -96,14 +56,11 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const { state, transactions } = useTransactionLogic(userId);
   const { quota } = useQuota();
 
-  // Phase 1: Use mock data (Phase 2 will use real data)
-  const mockData = MOCK_SCENARIOS[mockScenario];
-
-  // Phase 2: Replace mock with real data
-  // const todaySummary = useMemo(
-  //   () => createDailySummary(selectedDate, transactions),
-  //   [selectedDate, transactions]
-  // );
+  // Phase 2: Use real data with breakdown (local-first reactive)
+  const dailySummary = useMemo(
+    () => createDailySummaryWithBreakdown(selectedDate, transactions),
+    [selectedDate, transactions]
+  );
 
   // Monthly summary
   const monthlySummary = useMemo(
@@ -168,8 +125,8 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     );
   }
 
-  // Phase 1: Use mock data for hero card
-  const netBalance = mockData.totalIncome - mockData.totalExpense;
+  // Calculate net balance from real data
+  const netBalance = dailySummary.totalIncome - dailySummary.totalExpense;
   const isPositive = netBalance >= 0;
 
   return (
@@ -216,16 +173,16 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
             <div className="hero-breakdown">
               <div className="breakdown-section">
                 <div className="breakdown-header">
-                  <span className="breakdown-total">+¥{mockData.totalIncome.toLocaleString()}</span>
+                  <span className="breakdown-total income">+¥{dailySummary.totalIncome.toLocaleString()}</span>
                   <span className="breakdown-label">{t('report.income')}</span>
                 </div>
                 <div className="breakdown-detail">
                   <span className="breakdown-item confirmed">
-                    ✓ ¥{mockData.confirmedIncome.toLocaleString()}
+                    ✓ ¥{dailySummary.confirmedIncome.toLocaleString()}
                   </span>
-                  {mockData.unconfirmedIncome > 0 && (
+                  {dailySummary.unconfirmedIncome > 0 && (
                     <span className="breakdown-item unconfirmed">
-                      ⏳ ¥{mockData.unconfirmedIncome.toLocaleString()}
+                      ⏳ ¥{dailySummary.unconfirmedIncome.toLocaleString()}
                     </span>
                   )}
                 </div>
@@ -234,37 +191,48 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
               {/* Expense Breakdown */}
               <div className="breakdown-section">
                 <div className="breakdown-header">
-                  <span className="breakdown-total">-¥{mockData.totalExpense.toLocaleString()}</span>
+                  <span className="breakdown-total expense">-¥{dailySummary.totalExpense.toLocaleString()}</span>
                   <span className="breakdown-label">{t('report.expense')}</span>
                 </div>
                 <div className="breakdown-detail">
                   <span className="breakdown-item confirmed">
-                    ✓ ¥{mockData.confirmedExpense.toLocaleString()}
+                    ✓ ¥{dailySummary.confirmedExpense.toLocaleString()}
                   </span>
-                  {mockData.unconfirmedExpense > 0 && (
+                  {dailySummary.unconfirmedExpense > 0 && (
                     <span className="breakdown-item unconfirmed">
-                      ⏳ ¥{mockData.unconfirmedExpense.toLocaleString()}
+                      ⏳ ¥{dailySummary.unconfirmedExpense.toLocaleString()}
                     </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Unconfirmed Count & View Details */}
-            {mockData.unconfirmedCount > 0 && (
-              <div className="hero-footer">
-                <span className="unconfirmed-count">
-                  {t('dashboard.pending')}: {mockData.unconfirmedCount}件
-                </span>
+            {/* Hero Footer - Unconfirmed Count & Queue Status */}
+            <div className="hero-footer">
+              {/* Unconfirmed Count */}
+              {dailySummary.unconfirmedCount > 0 && (
+                <div className="unconfirmed-count">
+                  ⏳ {t('dashboard.pending')}: {dailySummary.unconfirmedCount}件
+                </div>
+              )}
+
+              {/* Queue Status */}
+              <div className="queue-status">
+                {t('dashboard.queue')}：{t('dashboard.queueReady')} ({quota?.remaining || 0}/{quota?.limit || 50})
+              </div>
+
+              {/* View Details Button */}
+              {dailySummary.unconfirmedCount > 0 && (
                 <button
                   type="button"
                   className="view-details-btn"
                   onClick={() => onViewChange('ledger')}
+                  aria-label={t('dashboard.viewDetails')}
                 >
                   {t('dashboard.viewDetails')} →
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Quick Stats Grid */}

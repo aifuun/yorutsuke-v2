@@ -67,8 +67,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .hero-arrow {
@@ -304,81 +304,123 @@
   border-color: var(--blue-500);
 }
 
-/* Phase 1: Hero Card Breakdown */
+/* Phase 1: Hero Card Title & Value */
+.card--hero__title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: var(--space-4);
+}
+
 .card--hero__date {
   font-size: 12px;
   color: var(--slate-400);
   font-weight: 400;
 }
 
+.card--hero__value {
+  font-family: var(--font-mono);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--slate-800);
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}
+
 .hero-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  margin-top: 32px;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
 }
 
 .breakdown-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .breakdown-header {
   display: flex;
   justify-content: center;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .breakdown-total {
+  font-family: var(--font-mono);
   font-size: 20px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown-total.income {
+  color: var(--color-income);
+}
+
+.breakdown-total.expense {
+  color: var(--color-expense);
 }
 
 .breakdown-label {
   font-size: 14px;
-  color: var(--slate-400);
+  color: var(--slate-500);
+  font-weight: 400;
 }
 
 .breakdown-detail {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-4);
   font-size: 12px;
 }
 
 .breakdown-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .breakdown-item.confirmed {
-  color: var(--slate-700);  /* Enhanced from slate-600 for financial data (#136) */
+  color: var(--slate-600);
 }
 
 .breakdown-item.unconfirmed {
-  color: var(--amber-600);
+  color: var(--amber-800);
 }
 
-/* Phase 1: Hero Footer */
+/* Phase 1: Hero Footer - Unconfirmed & Queue Status */
 .hero-footer {
-  margin-top: 24px;
-  padding-top: 24px;
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
   border-top: 1px solid rgba(203, 213, 225, 0.3);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .unconfirmed-count {
   font-size: 12px;
+  font-weight: 600;
+  color: var(--amber-800);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.queue-status {
+  font-size: 12px;
+  font-weight: 400;
   color: var(--slate-500);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .view-details-btn {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   background: var(--blue-500);
   color: white;
   border: none;
@@ -394,6 +436,11 @@
 .view-details-btn:hover {
   background: var(--blue-600);
   transform: translateX(2px);
+}
+
+.view-details-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Action Card (Phase 1 - New) */
@@ -473,21 +520,30 @@
     gap: 12px;
   }
 
-  .hero-amount {
+  .card--hero__value {
     font-size: 36px;
   }
 
   .dashboard-content {
-    padding: 24px;
+    padding: var(--space-6);
   }
 
   .hero-footer {
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
     align-items: stretch;
   }
 
   .view-details-btn {
     width: 100%;
+  }
+
+  .hero-breakdown {
+    gap: var(--space-4);
+  }
+
+  .breakdown-detail {
+    flex-direction: column;
+    gap: var(--space-2);
   }
 }
