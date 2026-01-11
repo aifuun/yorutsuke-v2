@@ -1,7 +1,10 @@
 // Seed mock data for development (Pillar C)
+// Seeds ALWAYS write to mock database for isolation from production data
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import { TransactionId, UserId } from '../../../00_kernel/types';
-import { fetchTransactions, saveTransaction, clearAllTransactions } from './transactionDb';
+import { isMockingOnline } from '../../../00_kernel/config/mock';
+import { getMockDb } from '../../../00_kernel/storage/db';
+import { clearAllTransactions } from './transactionDb';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 
 // =========================================================================
@@ -239,18 +242,47 @@ export function getSeedScenarios(): SeedScenario[] {
 }
 
 /**
- * Seed mock transactions into SQLite for development
- * Only seeds if no transactions exist for the user (unless force=true)
+ * Seed mock transactions into mock SQLite database
+ * Only works when mock mode = 'online' (safety check)
+ * Seeds to mock database ONLY, never affects production data
+ *
+ * @param userId User ID for seeding
+ * @param scenario Scenario to seed (default: balanced)
+ * @param force If true, clears existing data first
+ *
+ * @returns { seeded: true/false, count: number of transactions created }
  */
 export async function seedMockTransactions(
   userId: UserId,
   scenario: SeedScenario = 'default',
   force = false,
 ): Promise<{ seeded: boolean; count: number }> {
-  logger.info(EVENTS.SEED_STARTED, { userId: userId.slice(0, 8), scenario, force });
+  // Safety check: Only allow seeding in mock mode
+  if (!isMockingOnline()) {
+    logger.warn(EVENTS.SEED_FAILED, {
+      reason: 'not_in_mock_mode',
+      current_mode: 'production',
+      required_mode: 'online'
+    });
+    return { seeded: false, count: 0 };
+  }
+
+  logger.info(EVENTS.SEED_STARTED, {
+    userId: userId.slice(0, 8),
+    scenario,
+    force,
+    database: 'mock'
+  });
 
   try {
-    const existing = await fetchTransactions(userId);
+    // Use mock database for all seed operations
+    const mockDb = await getMockDb();
+
+    // Query existing transactions from mock db
+    const existing = await mockDb.select<Array<{ id: string }>>(
+      'SELECT id FROM transactions WHERE user_id = ?',
+      [userId]
+    );
     logger.debug(EVENTS.SEED_STARTED, { phase: 'existing', count: existing.length });
 
     if (existing.length > 0 && !force) {
@@ -260,8 +292,8 @@ export async function seedMockTransactions(
 
     // Clear existing data when force=true
     if (force && existing.length > 0) {
-      const cleared = await clearAllTransactions(userId);
-      logger.info(EVENTS.SEED_CLEARED, { count: cleared });
+      await mockDb.execute('DELETE FROM transactions WHERE user_id = ?', [userId]);
+      logger.info(EVENTS.SEED_CLEARED, { count: existing.length, database: 'mock' });
     }
 
     const config = SCENARIO_CONFIG[scenario];
@@ -298,15 +330,42 @@ export async function seedMockTransactions(
           confirmRatio: config.confirmRatio,
         });
 
-        await saveTransaction(tx);
+        // Insert directly to mock db
+        await mockDb.execute(
+          `INSERT INTO transactions (
+            id, user_id, image_id, s3_key, type, category, amount, currency,
+            description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            tx.id,
+            tx.userId,
+            tx.imageId,
+            tx.s3Key,
+            tx.type,
+            tx.category,
+            tx.amount,
+            tx.currency,
+            tx.description,
+            tx.merchant,
+            tx.date,
+            tx.createdAt,
+            tx.updatedAt,
+            tx.confirmedAt,
+            tx.confidence,
+            tx.rawText,
+          ]
+        );
         totalCount++;
       }
     }
 
-    logger.info(EVENTS.SEED_COMPLETED, { count: totalCount });
+    logger.info(EVENTS.SEED_COMPLETED, { count: totalCount, database: 'mock' });
     return { seeded: true, count: totalCount };
   } catch (e) {
-    logger.error(EVENTS.SEED_FAILED, { error: String(e) });
+    logger.error(EVENTS.SEED_FAILED, {
+      error: String(e),
+      database: 'mock'
+    });
     return { seeded: false, count: 0 };
   }
 }

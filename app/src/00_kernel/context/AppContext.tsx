@@ -18,17 +18,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<UserIdType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize: load device ID on mount
+  // Initialize: load mock mode first, then database, then device ID
   useEffect(() => {
     async function init() {
       try {
-        // Ensure database is initialized first
-        await initDb();
-
-        // Load persisted mock mode from database
+        // Step 1: Load persisted mock mode from production database
+        // This must happen FIRST so initDb() knows which db to use
         await loadMockMode();
 
-        // Get device ID - used directly as guest userId
+        // Step 2: Initialize database connection (production or mock based on mockMode)
+        // After loadMockMode(), initDb() will select the correct db path
+        await initDb();
+
+        // Step 3: Get device ID - used directly as guest userId
         // Format: device-{machineId} (stable across app reinstalls)
         const deviceId = await getDeviceId();
         setUserId(deviceId);

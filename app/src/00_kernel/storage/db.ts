@@ -1,11 +1,20 @@
 // Database Connection Management
-// Singleton pattern for SQLite connection
+// Singleton pattern for SQLite connection with mock db support
+// Mock db = development database (separate from production)
+// Production db = real data (single database)
+//
+// Startup flow:
+// 1. loadMockMode() - reads mock_mode from production db
+// 2. initDb() - opens correct db (production or mock) based on mode
+// 3. All queries go to the selected db via getDb()
 
 import Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 import { runMigrations } from './migrations';
+import { isMockingOnline } from '../config/mock';
 
-const DB_NAME = 'sqlite:yorutsuke.db';
+const PRODUCTION_DB = 'sqlite:yorutsuke.db';
+const MOCK_DB = 'sqlite:yorutsuke-mock.db';
 
 let db: Database | null = null;
 let initPromise: Promise<void> | null = null;
@@ -13,6 +22,7 @@ let initPromise: Promise<void> | null = null;
 /**
  * Get database connection (lazy initialization)
  * Ensures singleton pattern - only one connection per app
+ * Uses production or mock db based on startup mock mode
  *
  * @example
  * const db = await getDb();
@@ -27,7 +37,10 @@ export async function getDb(): Promise<Database> {
 
 /**
  * Initialize database connection and run migrations
+ * Chooses between production and mock db based on current mockMode
  * Safe to call multiple times (idempotent)
+ *
+ * IMPORTANT: Must be called after loadMockMode() to use correct db
  */
 export async function initDb(): Promise<void> {
   // Prevent concurrent initialization
@@ -41,14 +54,28 @@ export async function initDb(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      logger.info(EVENTS.DB_INITIALIZED, { name: DB_NAME, phase: 'start' });
+      // Select database based on mock mode
+      // If mockMode = 'online' or 'offline', use mock db
+      // Otherwise use production db
+      const isMock = isMockingOnline();
+      const dbPath = isMock ? MOCK_DB : PRODUCTION_DB;
 
-      db = await Database.load(DB_NAME);
+      logger.info(EVENTS.DB_INITIALIZED, {
+        path: dbPath,
+        mode: isMock ? 'mock' : 'production',
+        phase: 'start'
+      });
+
+      db = await Database.load(dbPath);
 
       // Run all migrations
       await runMigrations(db);
 
-      logger.info(EVENTS.DB_INITIALIZED, { name: DB_NAME, phase: 'complete' });
+      logger.info(EVENTS.DB_INITIALIZED, {
+        path: dbPath,
+        mode: isMock ? 'mock' : 'production',
+        phase: 'complete'
+      });
     } catch (error) {
       logger.error(EVENTS.APP_ERROR, {
         component: 'database',
@@ -71,6 +98,27 @@ export async function closeDb(): Promise<void> {
     db = null;
     initPromise = null;
     logger.info('db_connection_closed');
+  }
+}
+
+/**
+ * Get mock database explicitly (for seeding only)
+ * Seeds ALWAYS write to mock db, regardless of current mock mode
+ * This is safe because mock db is development-only
+ *
+ * @internal Use only in seed operations
+ */
+export async function getMockDb(): Promise<Database> {
+  try {
+    const mockDb = await Database.load(MOCK_DB);
+    logger.debug('mock_db_opened', { for: 'seed_operation' });
+    return mockDb;
+  } catch (error) {
+    logger.error(EVENTS.APP_ERROR, {
+      component: 'mock_database',
+      error: String(error),
+    });
+    throw error;
   }
 }
 
