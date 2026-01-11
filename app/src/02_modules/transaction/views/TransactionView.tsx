@@ -43,8 +43,11 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // Year/Month filters (NEW - replacing DatePicker)
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<'all' | number>('all');
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all'); // Default: すべての年
+  const [selectedMonth, setSelectedMonth] = useState<'all' | number>('all'); // Default: すべての月
+
+  // Generate dynamic year list (current year and 3 years back)
+  const availableYears = Array.from({ length: 4 }, (_, i) => currentYear - i);
 
   // Layout: Option B - Two rows (Time+Sort | Filters)
 
@@ -62,19 +65,23 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     };
 
     // Year/Month filters (NEW)
-    if (selectedMonth !== 'all') {
-      // Specific month selected
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0); // Last day of month
-      options.startDate = startDate.toLocaleDateString('sv-SE');
-      options.endDate = endDate.toLocaleDateString('sv-SE');
-    } else {
-      // Full year selected
-      const startDate = new Date(selectedYear, 0, 1);
-      const endDate = new Date(selectedYear, 11, 31);
-      options.startDate = startDate.toLocaleDateString('sv-SE');
-      options.endDate = endDate.toLocaleDateString('sv-SE');
+    if (selectedYear !== 'all') {
+      // Specific year selected
+      if (selectedMonth !== 'all') {
+        // Specific month selected
+        const startDate = new Date(selectedYear, selectedMonth, 1);
+        const endDate = new Date(selectedYear, selectedMonth + 1, 0); // Last day of month
+        options.startDate = startDate.toLocaleDateString('sv-SE');
+        options.endDate = endDate.toLocaleDateString('sv-SE');
+      } else {
+        // Full year selected
+        const startDate = new Date(selectedYear, 0, 1);
+        const endDate = new Date(selectedYear, 11, 31);
+        options.startDate = startDate.toLocaleDateString('sv-SE');
+        options.endDate = endDate.toLocaleDateString('sv-SE');
+      }
     }
+    // If selectedYear === 'all', don't set date filters (query all data)
 
     // Status filter
     if (statusFilter !== 'all') {
@@ -140,7 +147,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // NEW: Handle year change
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedYear(Number(e.target.value));
+    const value = e.target.value;
+    setSelectedYear(value === 'all' ? 'all' : Number(value));
     setCurrentPage(1);
   };
 
@@ -325,10 +333,11 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                 {/* Time Range */}
                 <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('ledger.filterTime')}:</span>
-                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '100px' }}>
-                    <option value={2024}>2024</option>
-                    <option value={2025}>2025</option>
-                    <option value={2026}>2026</option>
+                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '120px' }}>
+                    <option value="all">{t('ledger.allYears')}</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
                   </select>
                   <select className="select" value={selectedMonth} onChange={handleMonthChange} style={{ width: '140px' }}>
                     <option value="all">{t('ledger.allMonths')}</option>
