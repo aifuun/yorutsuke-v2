@@ -61,10 +61,83 @@ export function ImageLightbox({
     transaction?.date || ''
   );
 
-  // Common merchants for autocomplete
+  // Common merchants for autocomplete (Japanese + English)
   const commonMerchants = [
-    'Amazon', 'Walmart', 'Target', 'Starbucks', 'McDonald\'s',
-    'Costco', '7-Eleven', 'Uber', 'Netflix', 'Spotify'
+    // 便利店 (Convenience Stores)
+    'セブン-イレブン (7-Eleven)',
+    'ローソン (Lawson)',
+    'ファミリーマート (FamilyMart)',
+    'ミニストップ (MiniStop)',
+    'デイリーヤマザキ (Daily Yamazaki)',
+    'ニューデイズ (NewDays)',
+    // 综合超市 (Supermarkets)
+    'イオン (AEON)',
+    'イトーヨーカドー (Ito-Yokado)',
+    'ライフ (Life)',
+    '西友 (Seiyu)',
+    'マルエツ (Maruetsu)',
+    'サミット (Summit)',
+    '業務スーパー (Gyomu Super)',
+    'オーケー (OK Store)',
+    'マックスバリュ (MaxValu)',
+    '東急ストア (Tokyu Store)',
+    '成城石井 (Seijo Ishii)',
+    'ダイエー (Daiei)',
+    // 百货店 (Department Stores)
+    '伊勢丹 (Isetan)',
+    '三越 (Mitsukoshi)',
+    '高島屋 (Takashimaya)',
+    '東急ハンズ (Tokyu Hands)',
+    'ロフト (Loft)',
+    'パルコ (PARCO)',
+    'ルミネ (LUMINE)',
+    'マルイ (OIOI)',
+    // 快餐 (Fast Food)
+    'マクドナルド (McDonald\'s)',
+    'モスバーガー (Mos Burger)',
+    'ケンタッキー (KFC)',
+    '吉野家 (Yoshinoya)',
+    'すき家 (Sukiya)',
+    '松屋 (Matsuya)',
+    'なか卯 (Nakau)',
+    '餃子の王将 (Gyoza no Ohsho)',
+    'サブウェイ (Subway)',
+    'バーガーキング (Burger King)',
+    // 家庭餐厅 (Family Restaurants)
+    'サイゼリヤ (Saizeriya)',
+    'ガスト (Gusto)',
+    'ジョナサン (Jonathan\'s)',
+    'デニーズ (Denny\'s)',
+    'ロイヤルホスト (Royal Host)',
+    'びっくりドンキー (Bikkuri Donkey)',
+    'ココス (Coco\'s)',
+    '大戸屋 (Ootoya)',
+    'やよい軒 (Yayoi-ken)',
+    // 咖啡 (Cafes)
+    'スターバックス (Starbucks)',
+    'ドトール (Doutor)',
+    'タリーズ (Tully\'s)',
+    'サンマルクカフェ (St.Marc Cafe)',
+    'ミスタードーナツ (Mister Donut)',
+    'コメダ珈琲店 (Komeda\'s Coffee)',
+    '星乃珈琲店 (Hoshino Coffee)',
+    // 药妆店 (Drugstores)
+    'マツモトキヨシ (Matsumotokiyoshi)',
+    'ウエルシア (Welcia)',
+    'ツルハドラッグ (Tsuruha Drug)',
+    'スギ薬局 (Sugi Pharmacy)',
+    'サンドラッグ (Sun Drug)',
+    'ココカラファイン (Cocokara Fine)',
+    // 家居折扣店 (Home & Discount)
+    'ドン・キホーテ (Don Quijote)',
+    'ダイソー (DAISO)',
+    'セリア (Seria)',
+    'キャンドゥ (Can Do)',
+    '無印良品 (MUJI)',
+    'ニトリ (Nitori)',
+    'カインズ (CAINZ)',
+    'コーナン (Kohnan)',
+    'コメリ (Komeri)',
   ];
 
   // Close on ESC key
