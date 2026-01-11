@@ -6,6 +6,43 @@ Long-term project knowledge. Session context comes from `git log` + `gh issue li
 
 Record important decisions with context.
 
+### [2026-01] Mock Database Isolation (#138)
+- **Decision**: Implemented dual-database pattern with proper isolation and auto-reload on mode switch
+- **Trigger**: Mock and production data were mixing - seeded mock data appeared in production mode; views showed errors when mock database was empty
+- **Root Causes**:
+  1. `getDb()` didn't properly initialize mock database (called `initDb()` which only initializes production db)
+  2. Views cached transactions in memory and didn't reload when switching mock modes
+  3. ReportView had auto-seeding that ran regardless of mode
+- **Architecture**:
+  - **db.ts**: `getDb()` now calls `getMockDb()` to properly initialize mock database
+  - **useTransactionLogic.ts**: Added `subscribeMockMode()` listener to reload data when mode changes
+  - **00_kernel/mocks/**: Centralized all mock data generators (mockOnline.ts, mockOffline.ts)
+- **Database Switching Behavior**:
+  - Switch to mock mode → Views reload from mock database (empty initially)
+  - Seed data → Written to mock database only
+  - Switch to production mode → Views reload from production database
+  - Data never crosses between databases
+- **Centralized Mock Data** (Pillar C):
+  - **mockOnline.ts**: Successful API responses (presign URLs, quota data, transactions, batch config)
+  - **mockOffline.ts**: Error scenarios (network errors, timeouts, auth errors, rate limits)
+  - Adapters now import from centralized location instead of inline generation
+- **Key Design Decisions**:
+  - **Empty by default**: Mock database starts empty (views handle empty state gracefully)
+  - **No auto-seeding**: Users must manually seed via Debug panel (prevents confusion)
+  - **Auto-reload**: Views subscribe to mock mode changes and reload data automatically
+  - **Settings in production**: `mock_mode` setting always stored in production db (for app initialization)
+- **Pillar Compliance**:
+  - **C (Mocking)**: Centralized mock data generation from schema
+  - **L (Headless)**: Views handle empty state gracefully
+- **Testing**: All 105 tests passing
+- **Files**:
+  - `app/src/00_kernel/storage/db.ts` (fixed getDb)
+  - `app/src/00_kernel/mocks/mockOnline.ts` (new, 167 lines)
+  - `app/src/00_kernel/mocks/mockOffline.ts` (new, 86 lines)
+  - `app/src/02_modules/transaction/headless/useTransactionLogic.ts` (added mock mode subscription)
+  - `app/src/02_modules/report/views/ReportView.tsx` (removed auto-seeding)
+  - `docs/tests/MOCKING.md` (updated documentation)
+
 ### [2026-01] Transaction Cloud Sync (#108)
 - **Decision**: Implemented pull-only cloud-to-local transaction sync with conflict resolution
 - **Trigger**: Transactions processed in cloud (Lambda → DynamoDB) but app reads from local SQLite; gap broke "local-first" promise

@@ -123,6 +123,16 @@ Phase 5: #104 End-to-end testing (4h)
 
 ## Recently Completed
 
+- **#138 Split Mock Data by Mode & Fix Database Isolation** (2026-01-11)
+  - ✅ Centralized mock data into 00_kernel/mocks/ (mockOnline.ts, mockOffline.ts)
+  - ✅ Fixed critical bug: getDb() now properly initializes mock database
+  - ✅ Added mock mode subscription to useTransactionLogic for auto-reload on mode switch
+  - ✅ Removed auto-seeding from views (views handle empty state gracefully)
+  - ✅ Added missing i18n translation keys for transaction.review
+  - ✅ Updated MOCKING.md with correct database switching behavior
+  - Modified: db.ts, useTransactionLogic.ts, ReportView.tsx, en.json, MOCKING.md
+  - Created: mockOnline.ts (167 lines), mockOffline.ts (86 lines), index.ts
+  - All 105 tests passing
 - **#110 Admin: Clear Cloud Data for Debug Panel** (2026-01-11)
   - ✅ Verified complete implementation (Lambda, CDK, Frontend, Tests)
   - All components: adminApi.ts, ConfirmDialog.tsx, DebugView.tsx
