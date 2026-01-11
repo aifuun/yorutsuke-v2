@@ -14,6 +14,11 @@ const TRANSACTIONS_URL = 'https://yy2xogwnhx4sxu7tbmt6ax67r40zhzzo.lambda-url.ap
 // Timeouts
 const FETCH_TIMEOUT_MS = 10_000; // 10 seconds
 
+// Zod schema for transaction category
+const TransactionCategorySchema = z.enum([
+  'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other'
+]);
+
 // Zod schema for transaction response (Cloud DynamoDB format)
 const CloudTransactionSchema = z.object({
   userId: z.string(),
@@ -24,7 +29,7 @@ const CloudTransactionSchema = z.object({
   type: z.enum(['income', 'expense']),
   date: z.string(), // YYYY-MM-DD
   merchant: z.string(),
-  category: z.string(),
+  category: TransactionCategorySchema,
   description: z.string(),
   status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
   createdAt: z.string(), // ISO 8601
@@ -73,7 +78,7 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     imageId: cloudTx.imageId ? ImageId(cloudTx.imageId) : null,
     s3Key: cloudTx.s3Key ?? null, // S3 object key for image sync
     type: cloudTx.type,
-    category: cloudTx.category as Transaction['category'],
+    category: cloudTx.category,
     amount: cloudTx.amount,
     currency: 'JPY',
     description: cloudTx.description,

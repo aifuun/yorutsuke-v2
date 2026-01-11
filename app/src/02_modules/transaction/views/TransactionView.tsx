@@ -25,7 +25,7 @@ type StatusFilter = 'all' | 'pending' | 'confirmed';
 
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t } = useTranslation();
-  const { state, filteredTransactions, confirm, remove, load, totalCount } = useTransactionLogic(userId);
+  const { state, filteredTransactions, confirm, remove, update, load, totalCount } = useTransactionLogic(userId);
   const syncLogic = useSyncLogic(userId, true); // Auto-sync enabled
 
   // Sorting state
@@ -43,8 +43,11 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // Year/Month filters (NEW - replacing DatePicker)
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState<'all' | number>('all');
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all'); // Default: すべての年
+  const [selectedMonth, setSelectedMonth] = useState<'all' | number>('all'); // Default: すべての月
+
+  // Generate dynamic year list (current year and 3 years back)
+  const availableYears = Array.from({ length: 4 }, (_, i) => currentYear - i);
 
   // Layout: Option B - Two rows (Time+Sort | Filters)
 
@@ -62,19 +65,23 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     };
 
     // Year/Month filters (NEW)
-    if (selectedMonth !== 'all') {
-      // Specific month selected
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0); // Last day of month
-      options.startDate = startDate.toLocaleDateString('sv-SE');
-      options.endDate = endDate.toLocaleDateString('sv-SE');
-    } else {
-      // Full year selected
-      const startDate = new Date(selectedYear, 0, 1);
-      const endDate = new Date(selectedYear, 11, 31);
-      options.startDate = startDate.toLocaleDateString('sv-SE');
-      options.endDate = endDate.toLocaleDateString('sv-SE');
+    if (selectedYear !== 'all') {
+      // Specific year selected
+      if (selectedMonth !== 'all') {
+        // Specific month selected
+        const startDate = new Date(selectedYear, selectedMonth, 1);
+        const endDate = new Date(selectedYear, selectedMonth + 1, 0); // Last day of month
+        options.startDate = startDate.toLocaleDateString('sv-SE');
+        options.endDate = endDate.toLocaleDateString('sv-SE');
+      } else {
+        // Full year selected
+        const startDate = new Date(selectedYear, 0, 1);
+        const endDate = new Date(selectedYear, 11, 31);
+        options.startDate = startDate.toLocaleDateString('sv-SE');
+        options.endDate = endDate.toLocaleDateString('sv-SE');
+      }
     }
+    // If selectedYear === 'all', don't set date filters (query all data)
 
     // Status filter
     if (statusFilter !== 'all') {
@@ -140,7 +147,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // NEW: Handle year change
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedYear(Number(e.target.value));
+    const value = e.target.value;
+    setSelectedYear(value === 'all' ? 'all' : Number(value));
     setCurrentPage(1);
   };
 
@@ -317,18 +325,19 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
       <div className="ledger-content">
         <div className="ledger-container">
-          {/* Unified Filter Bar - Option B: Two rows (Time+Sort | Filters) */}
+          {/* Unified Filter Bar - Compact Layout */}
           <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {/* Row 1: Time Filters (left) + Sort Controls (right) */}
-              <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', justifyContent: 'space-between' }}>
-                {/* Time Filters */}
-                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '60px' }}>{t('ledger.filterTime')}:</span>
-                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '100px' }}>
-                    <option value={2024}>2024</option>
-                    <option value={2025}>2025</option>
-                    <option value={2026}>2026</option>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              {/* Row 1: Time Range + Sort */}
+              <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                {/* Time Range */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('ledger.filterTime')}:</span>
+                  <select className="select" value={selectedYear} onChange={handleYearChange} style={{ width: '120px' }}>
+                    <option value="all">{t('ledger.allYears')}</option>
+                    {availableYears.map((year) => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
                   </select>
                   <select className="select" value={selectedMonth} onChange={handleMonthChange} style={{ width: '140px' }}>
                     <option value="all">{t('ledger.allMonths')}</option>
@@ -347,10 +356,10 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                   </select>
                 </div>
 
-                {/* Sort Controls */}
-                <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+                {/* Sort */}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('ledger.sortBy')}:</span>
-                  <select className="select" value={sortBy} onChange={handleSortByChange} style={{ width: '160px' }}>
+                  <select className="select" value={sortBy} onChange={handleSortByChange} style={{ width: '140px' }}>
                     <option value="date">{t('ledger.invoiceDate')}</option>
                     <option value="createdAt">{t('ledger.processingTime')}</option>
                   </select>
@@ -358,49 +367,42 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                     type="button"
                     className="btn btn--secondary btn--sm"
                     onClick={toggleSortOrder}
+                    style={{ minWidth: '100px' }}
                   >
                     {sortOrder === 'DESC' ? `↓ ${t('ledger.newestFirst')}` : `↑ ${t('ledger.oldestFirst')}`}
                   </button>
                 </div>
               </div>
 
-              {/* Row 2: Content Filters */}
+              {/* Row 2: Filters - Compact Grid */}
               <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '60px' }}>{t('ledger.filters')}:</span>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('ledger.filters')}:</span>
 
-                {/* Type Filter */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('ledger.filterType')}:</label>
-                  <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '120px' }}>
-                    <option value="all">{t('ledger.all')}</option>
-                    <option value="income">{t('transaction.income')}</option>
-                    <option value="expense">{t('transaction.expense')}</option>
-                  </select>
-                </div>
+                {/* Type */}
+                <select className="select" value={typeFilter} onChange={handleTypeFilterChange} style={{ width: '110px' }}>
+                  <option value="all">{t('type.all')}</option>
+                  <option value="income">{t('type.income')}</option>
+                  <option value="expense">{t('type.expense')}</option>
+                </select>
 
-                {/* Category Filter */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('ledger.filterCategory')}:</label>
-                  <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '140px' }}>
-                    <option value="all">{t('ledger.all')}</option>
-                    <option value="purchase">{t('transaction.categories.purchase')}</option>
-                    <option value="sale">{t('transaction.categories.sale')}</option>
-                    <option value="shipping">{t('transaction.categories.shipping')}</option>
-                    <option value="packaging">{t('transaction.categories.packaging')}</option>
-                    <option value="fee">{t('transaction.categories.fee')}</option>
-                    <option value="other">{t('transaction.categories.other')}</option>
-                  </select>
-                </div>
+                {/* Category */}
+                <select className="select" value={categoryFilter} onChange={handleCategoryFilterChange} style={{ width: '130px' }}>
+                  <option value="all">{t('category.all')}</option>
+                  <option value="food">{t('category.food')}</option>
+                  <option value="transport">{t('category.transport')}</option>
+                  <option value="shopping">{t('category.shopping')}</option>
+                  <option value="entertainment">{t('category.entertainment')}</option>
+                  <option value="utilities">{t('category.utilities')}</option>
+                  <option value="health">{t('category.health')}</option>
+                  <option value="other">{t('category.other')}</option>
+                </select>
 
-                {/* Status Filter */}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{t('ledger.filterStatus')}:</label>
-                  <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '120px' }}>
-                    <option value="all">{t('ledger.all')}</option>
-                    <option value="pending">{t('ledger.pendingConfirmation')}</option>
-                    <option value="confirmed">{t('ledger.confirmed')}</option>
-                  </select>
-                </div>
+                {/* Status */}
+                <select className="select" value={statusFilter} onChange={handleStatusFilterChange} style={{ width: '110px' }}>
+                  <option value="all">{t('ledger.all')}</option>
+                  <option value="pending">{t('transaction.pending')}</option>
+                  <option value="confirmed">{t('transaction.confirmed')}</option>
+                </select>
               </div>
             </div>
           </div>
@@ -427,6 +429,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                       key={transaction.id}
                       transaction={transaction}
                       onConfirm={() => confirm(transaction.id)}
+                      onUpdate={(fields) => update(transaction.id, fields)}
                       onDelete={() => remove(transaction.id)}
                     />
                   ))}
@@ -453,10 +456,11 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 interface TransactionCardProps {
   transaction: Transaction;
   onConfirm: () => void;
+  onUpdate: (fields: any) => void; // TODO: import UpdateTransactionFields type
   onDelete: () => void;
 }
 
-function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardProps) {
+function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: TransactionCardProps) {
   const { t, i18n } = useTranslation();
   const date = new Date(transaction.date);
 
@@ -491,8 +495,12 @@ function TransactionCard({ transaction, onConfirm, onDelete }: TransactionCardPr
     setIsConfirmModalOpen(true);
   };
 
-  // Handle actual confirmation from modal
-  const handleModalConfirm = () => {
+  // Handle actual confirmation from modal (with optional edits)
+  const handleModalConfirm = (edits?: any) => {
+    // If there are edits, update first, then confirm
+    if (edits) {
+      onUpdate(edits);
+    }
     onConfirm();
     setIsConfirmModalOpen(false);
   };

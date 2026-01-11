@@ -12,7 +12,9 @@ import {
   saveNewTransaction,
   removeTransaction,
   confirmExistingTransaction,
+  updateExistingTransaction,
   type FetchTransactionsOptions,
+  type UpdateTransactionFields,
 } from '../services/transactionService';
 
 const DEFAULT_FILTERS: TransactionFilters = {};
@@ -32,6 +34,7 @@ type Action =
   | { type: 'SAVE_SUCCESS'; transaction: Transaction }
   | { type: 'DELETE_SUCCESS'; id: TransactionId }
   | { type: 'CONFIRM_SUCCESS'; id: TransactionId }
+  | { type: 'UPDATE_SUCCESS'; id: TransactionId; fields: UpdateTransactionFields }
   | { type: 'ERROR'; error: string };
 
 function reducer(state: State, action: Action): State {
@@ -68,6 +71,15 @@ function reducer(state: State, action: Action): State {
         status: 'success',
         transactions: state.transactions.map(t =>
           t.id === action.id ? { ...t, confirmedAt: new Date().toISOString() } : t
+        ),
+      };
+
+    case 'UPDATE_SUCCESS':
+      if (state.status !== 'success' && state.status !== 'error') return state;
+      return {
+        status: 'success',
+        transactions: state.transactions.map(t =>
+          t.id === action.id ? { ...t, ...action.fields, updatedAt: new Date().toISOString() } : t
         ),
       };
 
@@ -134,6 +146,15 @@ export function useTransactionLogic(userId: UserId | null) {
     }
   }, []);
 
+  const update = useCallback(async (id: TransactionId, fields: UpdateTransactionFields) => {
+    try {
+      await updateExistingTransaction(id, fields);
+      dispatch({ type: 'UPDATE_SUCCESS', id, fields });
+    } catch (e) {
+      dispatch({ type: 'ERROR', error: String(e) });
+    }
+  }, []);
+
   // Auto-load on mount
   useEffect(() => {
     if (userId) {
@@ -186,6 +207,7 @@ export function useTransactionLogic(userId: UserId | null) {
     save,
     remove,
     confirm,
+    update,
     // Filter management
     filters,
     setFilters,

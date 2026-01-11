@@ -9,7 +9,7 @@ interface FilterBarProps {
 }
 
 const CATEGORIES: Array<TransactionCategory | 'all'> = [
-  'all', 'purchase', 'sale', 'shipping', 'packaging', 'fee', 'other'
+  'all', 'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other'
 ];
 
 const TYPES: Array<TransactionType | 'all'> = ['all', 'income', 'expense'];

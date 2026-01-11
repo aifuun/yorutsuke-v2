@@ -7,7 +7,7 @@ import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
 
 const CATEGORIES: TransactionCategory[] = [
-  'purchase', 'sale', 'shipping', 'packaging', 'fee', 'other',
+  'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other',
 ];
 
 interface TransactionItemProps {

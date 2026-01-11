@@ -102,11 +102,12 @@
     "confidence": "AI Confidence",
     "noImage": "No Image",
     "categories": {
-      "purchase": "Purchase",
-      "sale": "Sale",
-      "shipping": "Shipping",
-      "packaging": "Packaging",
-      "fee": "Fee",
+      "food": "Food & Dining",
+      "transport": "Transportation",
+      "shopping": "Shopping",
+      "entertainment": "Entertainment",
+      "utilities": "Utilities",
+      "health": "Healthcare",
       "other": "Other"
     }
   },
@@ -203,11 +204,12 @@
   },
   "category": {
     "all": "All",
-    "purchase": "Purchase",
-    "sale": "Sale",
-    "shipping": "Shipping",
-    "packaging": "Packaging",
-    "fee": "Fee",
+    "food": "Food & Dining",
+    "transport": "Transportation",
+    "shopping": "Shopping",
+    "entertainment": "Entertainment",
+    "utilities": "Utilities",
+    "health": "Healthcare",
     "other": "Other"
   },
   "type": {
@@ -222,6 +224,7 @@
     "lastMonth": "Last Month",
     "thisYear": "This Year",
     "all": "All",
+    "allYears": "All Years",
     "allMonths": "All Months",
     "sortBy": "Sort By",
     "filter": "Filter",
@@ -349,6 +352,7 @@
     "rejectedLimit": "{{count}} file(s) rejected",
     "rejectedLimitHint": "Maximum 50 files at once",
     "processingQueue": "Processing Queue",
+    "aiProcessingSoon": "AI processing soon",
     "pending": "Pending",
     "uploaded": "Session",
     "offline": "Offline",

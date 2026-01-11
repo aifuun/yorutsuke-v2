@@ -5,6 +5,7 @@
 // Example: if (isMockingOnline()) return mockPresignUrl(userId, fileName);
 
 import { UserId, ImageId, TransactionId } from '../types';
+import type { TransactionCategory } from '../../01_domains/transaction';
 
 /**
  * Mock presign URL response
@@ -36,12 +37,12 @@ export function mockPresignUrl(
  */
 export function mockQuotaData(
   used: number,
-  tier: 'guest' | 'free' | 'pro' = 'guest'
+  tier: 'guest' | 'free' | 'basic' | 'pro' = 'guest'
 ): {
   used: number;
   limit: number;
   remaining: number;
-  tier: string;
+  tier: 'guest' | 'free' | 'basic' | 'pro';
   resetsAt: string;
   guest?: {
     dataExpiresAt: string;
@@ -51,6 +52,7 @@ export function mockQuotaData(
   const TIER_LIMITS = {
     guest: 50,
     free: 100,
+    basic: 200,
     pro: 1000,
   };
 
@@ -108,16 +110,16 @@ export function mockTransactionPull(
   imageId: ImageId | null;
   s3Key: string | null;
   type: 'income' | 'expense';
-  category: string;
+  category: TransactionCategory;
   amount: number;
-  currency: string;
+  currency: 'JPY';
   description: string;
   merchant: string;
   date: string;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
-  confidence: number;
+  confidence: number | null;
   rawText: string | null;
 }> {
   const now = new Date();
@@ -133,9 +135,9 @@ export function mockTransactionPull(
       imageId: i % 2 === 0 ? ImageId(`mock-img-${i + 1}`) : null,
       s3Key: null,
       type: (i % 2 === 0 ? 'expense' : 'income') as 'income' | 'expense',
-      category: i % 2 === 0 ? 'purchase' : 'sale',
+      category: (i % 2 === 0 ? 'shopping' : 'food') as TransactionCategory,
       amount: 1000 + i * 500,
-      currency: 'JPY',
+      currency: 'JPY' as 'JPY',
       description: `Mock transaction ${i + 1}`,
       merchant: `Mock Merchant ${i + 1}`,
       date: date.toISOString().split('T')[0],

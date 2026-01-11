@@ -104,11 +104,12 @@
     "confidence": "AI 置信度",
     "noImage": "无图片",
     "categories": {
-      "purchase": "采购",
-      "sale": "销售",
-      "shipping": "运费",
-      "packaging": "包装",
-      "fee": "手续费",
+      "food": "餐饮",
+      "transport": "交通",
+      "shopping": "购物",
+      "entertainment": "娱乐",
+      "utilities": "水电费",
+      "health": "医疗",
       "other": "其他"
     }
   },
@@ -205,11 +206,12 @@
   },
   "category": {
     "all": "全部",
-    "purchase": "采购",
-    "sale": "销售",
-    "shipping": "运费",
-    "packaging": "包装",
-    "fee": "手续费",
+    "food": "餐饮",
+    "transport": "交通",
+    "shopping": "购物",
+    "entertainment": "娱乐",
+    "utilities": "水电费",
+    "health": "医疗",
     "other": "其他"
   },
   "type": {
@@ -224,6 +226,7 @@
     "lastMonth": "上月",
     "thisYear": "今年",
     "all": "全部",
+    "allYears": "所有年份",
     "allMonths": "全部月份",
     "annualInflow": "收入总计",
     "annualOutflow": "支出总计",
@@ -351,6 +354,7 @@
     "rejectedLimit": "{{count}} 个文件被拒绝",
     "rejectedLimitHint": "一次最多 50 个文件",
     "processingQueue": "处理队列",
+    "aiProcessingSoon": "即将AI处理",
     "pending": "待处理",
     "uploaded": "本次上传",
     "offline": "离线",

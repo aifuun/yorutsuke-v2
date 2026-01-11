@@ -10,7 +10,7 @@ const CONFIG_URL = import.meta.env.VITE_LAMBDA_CONFIG_URL;
 
 // Zod schemas for report response validation
 const TransactionCategorySchema = z.enum([
-  'purchase', 'sale', 'shipping', 'packaging', 'fee', 'other'
+  'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other'
 ]);
 
 const TransactionTypeSchema = z.enum(['income', 'expense']);

@@ -7,12 +7,13 @@ interface CategoryBreakdownProps {
 }
 
 const CATEGORY_COLORS: Record<TransactionCategory, string> = {
-  purchase: '#4A90D9',
-  sale: '#22C55E',
-  shipping: '#F59E0B',
-  packaging: '#8B5CF6',
-  fee: '#EF4444',
-  other: '#6B7280',
+  food: '#F59E0B',          // Amber - food & dining
+  transport: '#3B82F6',     // Blue - transportation
+  shopping: '#EC4899',      // Pink - shopping
+  entertainment: '#8B5CF6', // Purple - entertainment
+  utilities: '#10B981',     // Emerald - utilities
+  health: '#EF4444',        // Red - healthcare
+  other: '#6B7280',         // Gray - other
 };
 
 export function CategoryBreakdown({ byCategory }: CategoryBreakdownProps) {

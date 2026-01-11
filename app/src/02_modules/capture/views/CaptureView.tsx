@@ -45,14 +45,14 @@ function getStatusIndex(status: string): number {
   return idx;
 }
 
-// Status label mapping
-const STATUS_LABELS: Record<string, { text: string; hint?: string }> = {
-  pending: { text: 'Compressing' },
-  compressed: { text: 'To Upload' },
-  uploading: { text: 'Uploading' },
-  uploaded: { text: 'Uploaded' },
-  failed: { text: 'Failed' },
-  skipped: { text: 'Duplicate' },
+// Status label key mapping (to be translated with t())
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  pending: 'capture.status.compressing',
+  compressed: 'capture.status.compressed',
+  uploading: 'capture.status.uploading',
+  uploaded: 'capture.status.uploaded',
+  failed: 'capture.status.failed',
+  skipped: 'capture.status.skipped',
 };
 
 // Status Dots Component (dots only, no label)
@@ -202,12 +202,13 @@ export function CaptureView() {
               <div className="queue-header">
                 <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
                 {queue.some(img => img.status === 'uploaded') && (
-                  <span className="queue-header__hint">AI processing later</span>
+                  <span className="queue-header__hint">{t('capture.aiProcessingSoon')}</span>
                 )}
               </div>
               <div className="card--list__items">
                 {[...queue].reverse().map((image) => {
-                  const labelInfo = STATUS_LABELS[image.status] || { text: image.status };
+                  const labelKey = STATUS_LABEL_KEYS[image.status];
+                  const labelText = labelKey ? t(labelKey) : image.status;
                   const isFailed = image.status === 'failed';
                   const isSkipped = image.status === 'skipped';
                   return (
@@ -237,7 +238,7 @@ export function CaptureView() {
                       {/* Column 2: Status Label + Size/Error */}
                       <div className="queue-item__center">
                         <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
-                          {labelInfo.text}
+                          {labelText}
                         </span>
                         {isFailed && image.error ? (
                           <span className="queue-item__error">{image.error}</span>

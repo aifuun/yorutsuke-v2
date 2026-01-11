@@ -10,11 +10,13 @@ import {
   saveTransaction,
   deleteTransaction,
   confirmTransaction,
+  updateTransaction,
   type FetchTransactionsOptions,
+  type UpdateTransactionFields,
 } from '../adapters';
 
 // Re-export types for views/hooks (Pillar I: Firewall)
-export type { FetchTransactionsOptions };
+export type { FetchTransactionsOptions, UpdateTransactionFields };
 
 /**
  * Load transactions for a user with optional filters
@@ -55,4 +57,15 @@ export async function removeTransaction(id: TransactionId): Promise<void> {
  */
 export async function confirmExistingTransaction(id: TransactionId): Promise<void> {
   return confirmTransaction(id);
+}
+
+/**
+ * Update transaction fields (Issue #116: Transaction editing)
+ * Supports partial updates: amount, category, description, merchant, date
+ */
+export async function updateExistingTransaction(
+  id: TransactionId,
+  fields: UpdateTransactionFields
+): Promise<void> {
+  return updateTransaction(id, fields);
 }
