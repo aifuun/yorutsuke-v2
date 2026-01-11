@@ -28,18 +28,27 @@ Before proceeding, verify:
 
 ## Workflow
 
-1. **Verify clean state**
+1. **Verify clean state on development**
    ```bash
+   git checkout development
+   git pull origin development
    git status
    npm test
    ```
 
-2. **Bump version**
+2. **Merge development to main**
+   ```bash
+   git checkout main
+   git pull origin main
+   git merge --no-ff development -m "Release v<version>"
+   ```
+
+3. **Bump version** (on main)
    ```bash
    npm version <patch|minor|major>
    ```
 
-3. **Update CHANGELOG.md**
+4. **Update CHANGELOG.md**
    ```markdown
    ## [x.y.z] - YYYY-MM-DD
 
@@ -53,19 +62,26 @@ Before proceeding, verify:
    - Bug fixes
    ```
 
-4. **Commit and tag**
+5. **Commit and tag**
    ```bash
    git add CHANGELOG.md
    git commit --amend --no-edit
    git push origin main --tags
    ```
 
-5. **Create GitHub release**
+6. **Sync release back to development**
+   ```bash
+   git checkout development
+   git merge main
+   git push origin development
+   ```
+
+7. **Create GitHub release**
    ```bash
    gh release create v<version> --notes-file CHANGELOG.md
    ```
 
-6. **Publish** (if applicable)
+8. **Publish** (if applicable)
    ```bash
    npm publish          # npm package
    cargo publish        # Rust crate

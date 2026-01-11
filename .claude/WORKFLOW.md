@@ -105,18 +105,45 @@ Code Execution
 
 ---
 
+## 🌿 Branch Strategy (Git Flow)
+
+```
+main (production)
+ │
+ ├── hotfix/xxx ────────────┐
+ │                          │
+development (integration) ◄─┘
+ │
+ ├── issue/xxx ─────────────┐
+ ├── feature/xxx            │
+ └── bugfix/xxx ────────────┘
+```
+
+| Branch Type | Base | Command | Use Case |
+|-------------|------|---------|----------|
+| `issue/<n>` | development | `*issue pick <n>` | Feature work |
+| `bugfix/<desc>` | development | `*bugfix start <desc>` | Dev bug fix |
+| `hotfix/<desc>` | main | `*hotfix start <desc>` | Production fix |
+
+**Full guide**: `.claude/workflow/branch-strategy.md`
+
+---
+
 ## 📋 Session Commands Cheatsheet
 
 | Command | Purpose | When |
 |---------|---------|------|
 | `*status` | Git + issue overview | Start of session |
 | `*resume` | Pull + load MEMORY.md | Session start |
-| `*issue pick <N>` | Start working on #N | Beginning of feature work |
+| `*issue pick <N>` | Start working on #N (creates branch) | Beginning of feature work |
+| `*issue close <N>` | Complete issue (merges branch) | End of feature |
+| `*bugfix start` | Fix bug on development | Bug in dev |
+| `*hotfix start` | Fix production issue | Critical prod bug |
 | `*tier` | Classify complexity | Optional, for complex tasks |
 | `*next` | Show next step | During coding (Phase 1-4) |
 | `*review` | Final audit | Before `*issue close` |
-| `*issue close <N>` | Complete issue | End of feature |
 | `*sync` | Commit + push | End of session |
+| `*release` | Merge dev → main + tag | Release time |
 
 ---
 

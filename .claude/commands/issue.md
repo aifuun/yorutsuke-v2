@@ -36,31 +36,41 @@ Analyze requirements and suggest approach.
 ### *issue pick <n>
 Start working on issue #n:
 
-1. View issue details:
+1. **View issue details**:
    ```bash
    gh issue view <n>
    ```
 
-2. **Check for existing feature plan**: `.claude/plans/active/#<n>-*.md`
-   - If exists → load steps from plan to TODO.md, proceed to step 5
-   - If not exists → continue to step 3
+2. **Create feature branch from development**:
+   ```bash
+   # Extract short title from issue (e.g., "Add login feature" → "add-login")
+   git checkout development
+   git pull origin development
+   git checkout -b issue/<n>-<short-title>
+   git push -u origin issue/<n>-<short-title>
+   ```
 
-3. **Quick assessment** - Does this task involve:
+3. **Check for existing feature plan**: `.claude/plans/active/#<n>-*.md`
+   - If exists → load steps from plan to TODO.md, proceed to step 6
+   - If not exists → continue to step 4
+
+4. **Quick assessment** - Does this task involve:
    - Data writes / mutations?
    - State management (forms, wizards)?
    - Payment / critical operations?
 
-4. **If YES to any** (T2/T3 complexity):
+5. **If YES to any** (T2/T3 complexity):
    - Suggest: "Complex task detected. Create feature plan first? → `*plan #<n>`"
    - If user agrees → exit and run `*plan #<n>`
    - If user declines → proceed with simple breakdown
 
-   **If NO** (T1 read-only, pure UI/style) → Skip to step 5
+   **If NO** (T1 read-only, pure UI/style) → Skip to step 6
 
-5. Break down into steps and update .claude/TODO.md:
+6. Break down into steps and update .claude/TODO.md:
    ```markdown
    ## Current Issue: #N - Title
 
+   **Branch**: issue/<n>-<short-title>
    **Tier**: T[1/2/3] (if classified)
 
    ### Steps
@@ -68,7 +78,7 @@ Start working on issue #n:
    - [ ] Step 2
    ```
 
-6. Start working on first step
+7. Start working on first step
 
 ### *issue close <n>
 Complete issue #n:
@@ -80,18 +90,41 @@ Complete issue #n:
 
 3. Verify all steps in TODO.md are done
 
-4. Close issue:
+4. **Commit final changes on feature branch**:
    ```bash
-   gh issue close <n> --comment "Completed"
+   git add -A
+   git commit -m "feat: complete issue #<n>"
+   git push
    ```
 
-5. Update MEMORY.md:
+5. **Merge workflow** (follow @.claude/patterns/git-workflow.md):
+   ```bash
+   # Update from development first
+   git checkout development
+   git pull origin development
+   git checkout issue/<n>-<short-title>
+   git merge development  # Resolve conflicts if any
+
+   # Merge back to development
+   git checkout development
+   git merge --no-ff issue/<n>-<short-title> -m "Merge issue/<n>: <title> (#<n>)"
+   git push origin development
+
+   # Delete feature branch
+   git branch -d issue/<n>-<short-title>
+   git push origin --delete issue/<n>-<short-title>
+   ```
+
+6. Close issue:
+   ```bash
+   gh issue close <n> --comment "Completed and merged to development"
+   ```
+
+7. Update MEMORY.md:
    - Record in "Solved Issues" if problems encountered
    - Record in "Best Practices" if learnings worth keeping
 
-6. Clear "Current Issue" in TODO.md
-
-7. **Auto-sync**: Run `*sync` to commit and push changes
+8. Clear "Current Issue" in TODO.md
 
 ### *issue new <title>
 Create new issue:

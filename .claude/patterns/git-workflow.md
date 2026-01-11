@@ -2,6 +2,120 @@
 
 Shared git operations for commands (sync, release, cdk).
 
+## Branch Strategy (Git Flow)
+
+```
+main (production releases)
+ │
+ ├── hotfix/xxx ──────────────────┐
+ │   └── From main, merge back    │
+ │       to main + development    │
+ │                                │
+ ▼                                │
+development (integration)  ◄──────┘
+ │
+ ├── feature/xxx ─────────────────┐
+ ├── issue/xxx                    │ From development,
+ └── bugfix/xxx                   │ merge back to development
+     └──────────────────────────────┘
+```
+
+### Branch Types
+
+| Branch | Base | Purpose | Merge To |
+|--------|------|---------|----------|
+| `main` | - | Production releases | - |
+| `development` | main | Integration branch | main (release) |
+| `feature/<n>-desc` | development | New features | development |
+| `issue/<n>-desc` | development | Issue work | development |
+| `bugfix/<desc>` | development | Bug fixes (dev) | development |
+| `hotfix/<desc>` | main | Production fixes | main + development |
+
+### Branch Naming
+
+```bash
+feature/123-add-login      # Feature with issue number
+issue/456-fix-typo         # Issue work
+bugfix/navbar-overflow     # Bug fix on development
+hotfix/critical-auth       # Production hotfix
+```
+
+### Feature/Issue Branch Workflow
+
+```bash
+# 1. Create from development
+git checkout development
+git pull origin development
+git checkout -b issue/123-feature-name
+
+# 2. Develop and commit
+git add -A
+git commit -m "feat: add feature (#123)"
+
+# 3. Before merge: update from development
+git checkout development
+git pull origin development
+git checkout issue/123-feature-name
+git merge development  # Resolve conflicts if any
+
+# 4. Merge back to development
+git checkout development
+git merge --no-ff issue/123-feature-name -m "Merge issue/123-feature-name"
+git push origin development
+
+# 5. Delete feature branch
+git branch -d issue/123-feature-name
+git push origin --delete issue/123-feature-name
+```
+
+### Hotfix Workflow
+
+```bash
+# 1. Create from main
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-fix
+
+# 2. Fix and commit
+git commit -m "fix: critical security issue"
+
+# 3. Merge to main
+git checkout main
+git merge --no-ff hotfix/critical-fix
+git tag -a v1.0.1 -m "Hotfix release"
+git push origin main --tags
+
+# 4. Sync to development (IMPORTANT!)
+git checkout development
+git merge main
+git push origin development
+
+# 5. Delete hotfix branch
+git branch -d hotfix/critical-fix
+```
+
+### Release Workflow
+
+```bash
+# 1. Ensure development is ready
+git checkout development
+git pull origin development
+
+# 2. Merge to main
+git checkout main
+git pull origin main
+git merge --no-ff development -m "Release v1.1.0"
+
+# 3. Tag release
+git tag -a v1.1.0 -m "Release v1.1.0"
+git push origin main --tags
+
+# 4. Sync tag to development
+git checkout development
+git merge main
+git push origin development
+```
+
 ## Standard Commit Flow
 
 1. **Check status**: `git status --short`

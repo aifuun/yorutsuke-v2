@@ -23,12 +23,27 @@ Note: `*save` is an alias for `*sync --ask --memory`
 ## Workflow
 
 ### Default Mode (*sync)
-1. **Update memory** (if significant progress):
+1. **Check current branch**:
+   ```bash
+   git branch --show-current
+   ```
+   - Show branch name to user
+   - Warn if on `main` or `development` directly (should use feature branch)
+
+2. **Update memory** (if significant progress):
    - Update `.claude/MEMORY.md` Current Context
    - Update `.claude/TODO.md` (mark completed tasks)
-2. **Stage changes**: `git add -A`
-3. **Auto-generate commit message** from git diff
-4. **Commit and push**: Follow @.claude/patterns/git-workflow.md
+
+3. **Stage changes**: `git add -A`
+
+4. **Auto-generate commit message** from git diff
+
+5. **Commit and push to current branch**:
+   ```bash
+   git commit -m "<message>"
+   git push origin $(git branch --show-current)
+   ```
+   Follow @.claude/patterns/git-workflow.md
 
 ### Interactive Mode (*sync --ask)
 1. **Show diff**: `git diff --stat` and present to user
