@@ -8,6 +8,7 @@ import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
 import { EmptyState } from './EmptyState';
+import { CalendarView } from './CalendarView';
 import { navigationStore } from '../../../00_kernel/navigation';
 import '../styles/dashboard.css';
 
@@ -66,6 +67,11 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   // Date selector with smart default
   const [selectedDate, setSelectedDate] = useState(getSmartDefaultDate());
 
+  // Calendar state
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth()); // 0-indexed
+
   // Helper: Navigate to ledger with optional filter intent
   const navigateToLedger = (showPending: boolean = false) => {
     if (showPending) {
@@ -89,6 +95,25 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     () => createDailySummaryWithBreakdown(selectedDate, transactions),
     [selectedDate, transactions]
   );
+
+  // Calendar: Transaction counts by date for indicators
+  const transactionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    transactions.forEach(tx => {
+      counts[tx.date] = (counts[tx.date] || 0) + 1;
+    });
+    return counts;
+  }, [transactions]);
+
+  // Calendar handlers
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date);
+  };
+
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
+  };
 
   // Phase 4: Pending transactions (unconfirmed only, limit 5)
   const pendingTransactions = useMemo(() => {
@@ -147,6 +172,15 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
       <div className="dashboard">
         <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
         <div className="dashboard-content">
+          {/* Show calendar even without user */}
+          <CalendarView
+            year={currentYear}
+            month={currentMonth}
+            selectedDate={null}
+            transactionCounts={{}}
+            onDateSelect={handleDateSelect}
+            onMonthChange={handleMonthChange}
+          />
           <EmptyState variant="first-use" />
         </div>
       </div>
@@ -158,6 +192,15 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
       <div className="dashboard">
         <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
         <div className="dashboard-content">
+          {/* Show calendar while loading */}
+          <CalendarView
+            year={currentYear}
+            month={currentMonth}
+            selectedDate={selectedDate}
+            transactionCounts={{}}
+            onDateSelect={handleDateSelect}
+            onMonthChange={handleMonthChange}
+          />
           <div className="dashboard-loading">{t('common.loading')}</div>
         </div>
       </div>
@@ -169,6 +212,15 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
       <div className="dashboard">
         <DashboardHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
         <div className="dashboard-content">
+          {/* Show calendar even on error */}
+          <CalendarView
+            year={currentYear}
+            month={currentMonth}
+            selectedDate={selectedDate}
+            transactionCounts={{}}
+            onDateSelect={handleDateSelect}
+            onMonthChange={handleMonthChange}
+          />
           <div className="dashboard-error">{t('common.error')}</div>
         </div>
       </div>
@@ -184,6 +236,16 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
       <DashboardHeaderComponent date={selectedDate} dayOfWeek={dayOfWeek} title={t('nav.dashboard')} />
 
       <div className="dashboard-content">
+        {/* Calendar for date navigation */}
+        <CalendarView
+          year={currentYear}
+          month={currentMonth}
+          selectedDate={selectedDate}
+          transactionCounts={transactionCounts}
+          onDateSelect={handleDateSelect}
+          onMonthChange={handleMonthChange}
+        />
+
         <div className="dashboard-container">
           {/* Hero Card - Simplified with inline date selector */}
           <div className="card card--hero hero-card">
