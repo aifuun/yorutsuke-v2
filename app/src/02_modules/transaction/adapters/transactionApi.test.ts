@@ -50,7 +50,7 @@ describe('transactionApi', () => {
             type: 'expense',
             date: '2026-01-01',
             merchant: 'Test Merchant',
-            category: 'purchase',
+            category: 'shopping',
             description: 'Test description',
             status: 'unconfirmed',
             createdAt: '2026-01-01T10:00:00Z',
@@ -66,7 +66,7 @@ describe('transactionApi', () => {
             type: 'income',
             date: '2026-01-02',
             merchant: 'Another Merchant',
-            category: 'sale',
+            category: 'other',
             description: 'Sale description',
             status: 'confirmed',
             createdAt: '2026-01-02T10:00:00Z',
@@ -241,7 +241,7 @@ describe('transactionApi', () => {
             type: 'expense',
             date: '2026-01-05',
             merchant: 'Cloud Merchant',
-            category: 'shipping',
+            category: 'transport',
             description: 'Shipping cost',
             status: 'confirmed',
             createdAt: '2026-01-05T08:00:00Z',
@@ -275,7 +275,7 @@ describe('transactionApi', () => {
       expect(tx.imageId).toBe('img-cloud');
       expect(tx.amount).toBe(5000);
       expect(tx.type).toBe('expense');
-      expect(tx.category).toBe('shipping');
+      expect(tx.category).toBe('transport');
       expect(tx.currency).toBe('JPY'); // Default
       expect(tx.confidence).toBe(null); // Not in cloud
       expect(tx.rawText).toBe(null); // Not in cloud
