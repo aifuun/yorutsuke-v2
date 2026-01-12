@@ -7,10 +7,13 @@ import {
   PutItemCommand,
   BatchWriteItemCommand,
 } from "@aws-sdk/client-dynamodb";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 const ddb = new DynamoDBClient({});
+const s3 = new S3Client({});
 const TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
+const IMAGES_BUCKET = process.env.IMAGES_BUCKET_NAME;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 500;
 
@@ -282,12 +285,41 @@ async function fetchAllTransactions(userId, startDate, endDate) {
 }
 
 /**
+ * Delete S3 image for a transaction
+ * Called when transaction status is 'deleted'
+ */
+async function deleteS3Image(s3Key, transactionId) {
+  if (!s3Key || !IMAGES_BUCKET) {
+    console.log(`[S3] Skip delete: no s3Key or bucket (txId: ${transactionId})`);
+    return;
+  }
+
+  try {
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: IMAGES_BUCKET,
+        Key: s3Key,
+      })
+    );
+    console.log(`[S3] Deleted: ${s3Key} (txId: ${transactionId})`);
+  } catch (error) {
+    // Log but don't fail - S3 cleanup is best-effort
+    // Image may already be deleted or not exist
+    console.error(`[S3] Delete failed: ${s3Key} (txId: ${transactionId})`, error.message);
+  }
+}
+
+/**
  * Sync transactions from local to cloud (Issue #86 - Push Sync)
  * POST /transactions/sync
  * Body: { userId, transactions: [...] }
  *
  * Uses PutItem with condition to prevent overwriting newer data (Last-Write-Wins)
  * Pillar Q: Idempotent - safe to retry
+ *
+ * When status='deleted':
+ * - Updates DynamoDB record with deleted status (soft delete)
+ * - Deletes S3 image if s3Key exists (hard delete for storage cleanup)
  */
 async function syncTransactionsFromLocal(body) {
   const { userId, transactions } = body;
@@ -317,12 +349,14 @@ async function syncTransactionsFromLocal(body) {
         userId: tx.userId,
         transactionId: tx.transactionId,
         imageId: tx.imageId,
+        s3Key: tx.s3Key || null,
         date: tx.date,
         amount: tx.amount,
         type: tx.type,
         category: tx.category,
         merchant: tx.merchant || "",
         description: tx.description || "",
+        status: tx.status || "unconfirmed",
         confirmedAt: tx.confirmedAt || null,
         createdAt: tx.createdAt,
         updatedAt: tx.updatedAt,
@@ -342,8 +376,13 @@ async function syncTransactionsFromLocal(body) {
         })
       );
 
+      // If transaction is deleted, also delete the S3 image
+      if (tx.status === "deleted" && tx.s3Key) {
+        await deleteS3Image(tx.s3Key, tx.transactionId);
+      }
+
       synced.push(tx.transactionId);
-      console.log(`[SYNC] Success: ${tx.transactionId}`);
+      console.log(`[SYNC] Success: ${tx.transactionId} (status: ${tx.status || "unconfirmed"})`);
     } catch (error) {
       if (error.name === "ConditionalCheckFailedException") {
         // Cloud version is newer - skip this transaction (not a failure)
