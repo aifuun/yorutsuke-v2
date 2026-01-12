@@ -109,8 +109,6 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
    * Only runs once per userId, doesn't depend on sync callback
    */
   useEffect(() => {
-    console.log('[useSyncLogic] useEffect triggered:', { autoSync, userId, shouldAutoSync: shouldAutoSync(), hasAutoSynced: hasAutoSynced.current });
-
     // Reset flag when userId changes
     hasAutoSynced.current = false;
 
@@ -119,7 +117,6 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
     }
 
     if (shouldAutoSync()) {
-      console.log('[useSyncLogic] Triggering auto-sync');
       logger.info('sync_auto_triggered', { userId, reason: 'mount' });
       hasAutoSynced.current = true;
       sync();

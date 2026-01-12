@@ -27,20 +27,8 @@ function AppContent() {
   const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
 
-  // DEBUG: Log view changes
-  useEffect(() => {
-    console.log('[App] activeView changed to:', activeView);
-  }, [activeView]);
-
-  // DEBUG: Log component mount/unmount
-  useEffect(() => {
-    console.log('[App] AppContent mounted');
-    return () => console.log('[App] AppContent unmounted');
-  }, []);
-
   // Set user ID in transaction sync service when it changes
   useEffect(() => {
-    console.log('[App] Setting userId in transactionSyncService:', userId);
     transactionSyncService.setUser(userId);
   }, [userId]);
 
@@ -53,11 +41,8 @@ function AppContent() {
     const unsubscribe = networkMonitor.subscribe((isOnline) => {
       if (isOnline) {
         // Network reconnected - process offline queue
-        console.log('[App] Network reconnected, processing offline queue');
         const traceId = createTraceId();
-        transactionPushService.processQueue(userId, traceId).catch((error) => {
-          console.error('[App] Failed to process offline queue:', error);
-        });
+        transactionPushService.processQueue(userId, traceId);
       }
     });
 
@@ -104,23 +89,18 @@ function AppContent() {
   // In development, controlled by VITE_DEBUG_PANEL environment variable (.env.local)
   const isDebugUnlocked = isDebugEnabled();
 
-  // DEBUG: Wrap setActiveView to log caller
   const handleViewChange = useCallback((view: ViewType) => {
-    console.log('[App] setActiveView called with:', view, 'from:', new Error().stack?.split('\n')[2]);
     setActiveView(view);
   }, []);
 
   // Show loading state during initialization (after all Hooks)
   if (isLoading) {
-    console.log('[App] Still loading...');
     return (
       <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
         <div>Loading...</div>
       </div>
     );
   }
-
-  console.log('[App] Rendering with userId:', userId, 'activeView:', activeView);
 
   return (
     <div className="app-shell">

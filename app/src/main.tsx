@@ -19,8 +19,6 @@ import "./components/Progress/Progress.css";
 // Initialize i18n before rendering
 import "./i18n";
 
-console.log('[MAIN] Starting initialization...');
-
 // Disable right-click context menu in production app
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -32,27 +30,17 @@ import { quotaService } from "./02_modules/capture/services/quotaService";
 import { transactionSyncService } from "./02_modules/transaction/services/transactionSyncService";
 import { networkMonitor } from "./02_modules/sync";
 
-console.log('[MAIN] Initializing services...');
 captureService.init();
 quotaService.init();
 transactionSyncService.init(); // Issue #108: Auto-sync after upload
 networkMonitor.initialize(); // Issue #86: Network monitoring for offline queue
 
-console.log('[MAIN] Services initialized, mounting React...');
 const rootElement = document.getElementById("root");
-console.log('[MAIN] Root element:', rootElement);
 
-if (!rootElement) {
-  console.error('[MAIN] ERROR: Root element not found!');
-} else {
-  try {
-    ReactDOM.createRoot(rootElement).render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>,
-    );
-    console.log('[MAIN] React mounted successfully');
-  } catch (error) {
-    console.error('[MAIN] ERROR: Failed to mount React:', error);
-  }
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
 }
