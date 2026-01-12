@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "node scripts/tauri-dev.js 1420",
+    "tauri:1420": "node scripts/tauri-dev.js 1420",
     "tauri:1422": "node scripts/tauri-dev.js 1422",
     "tauri:1424": "node scripts/tauri-dev.js 1424",
     "tauri:1426": "node scripts/tauri-dev.js 1426",
