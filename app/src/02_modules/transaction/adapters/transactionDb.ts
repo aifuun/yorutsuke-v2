@@ -183,6 +183,20 @@ export async function countTransactions(
   return rows[0]?.count ?? 0;
 }
 
+/**
+ * Get transaction by ID
+ * Returns null if not found
+ */
+export async function getTransactionById(id: TransactionIdType): Promise<Transaction | null> {
+  const database = await getDb();
+  const rows = await database.select<DbTransaction[]>(
+    'SELECT * FROM transactions WHERE id = ?',
+    [id],
+  );
+  if (rows.length === 0) return null;
+  return mapDbToTransaction(rows[0]);
+}
+
 export async function saveTransaction(transaction: Transaction): Promise<void> {
   const database = await getDb();
 

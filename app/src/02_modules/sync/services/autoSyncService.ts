@@ -1,11 +1,24 @@
 /**
  * Auto Sync Service (Issue #86)
- * Automatically triggers Push sync after local operations with debouncing
+ * Continuously syncs local and cloud data with 3-second intervals
  *
  * Features:
- * - Debounce: Waits 3 seconds after last operation before syncing
- * - Network check: Only syncs when online
- * - Push-first: Uses fullSync to ensure local changes are pushed first
+ * - Continuous Loop: Runs every 3 seconds indefinitely
+ * - Alternating Operations: Push (if dirty) → Pull → Push → Pull ...
+ * - Conditional Execution: Only pushes if dirty data exists
+ * - Network Aware: Pauses when offline, resumes when online
+ *
+ * Workflow:
+ * 1. Timer fires every 3 seconds
+ * 2. If nextOperation === 'push':
+ *    - Check for dirty transactions
+ *    - If exists: push to cloud
+ *    - If not: skip silently
+ *    - Switch to 'pull' for next cycle
+ * 3. If nextOperation === 'pull':
+ *    - Fetch and merge cloud data
+ *    - Switch to 'push' for next cycle
+ * 4. Repeat until user logs out or network goes offline
  *
  * Pillar L: Pure orchestration, no React dependencies
  * Pillar R: Observability - logs all sync events
@@ -15,7 +28,6 @@ import type { UserId } from '../../../00_kernel/types';
 import { on, emit } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { networkMonitor } from '../utils/networkMonitor';
-import { fullSync } from './syncCoordinator';
 
 // Debounce delay after local operation
 const AUTO_SYNC_DELAY_MS = 3000; // 3 seconds
@@ -29,10 +41,12 @@ const RETRY_BASE_DELAY_MS = 5000; // 5 seconds
 class AutoSyncService {
   private initialized = false;
   private userId: UserId | null = null;
-  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private syncTimer: ReturnType<typeof setInterval> | null = null;
+  private nextOperation: 'push' | 'pull' = 'push'; // Alternating schedule
+  private syncInProgress = false; // ✅ Prevent concurrent execution
   private retryCount = 0;
   private cleanupListeners: Array<() => void> = [];
+  private activeSyncUserId: UserId | null = null; // ⚠️ Detect user switching
 
   /**
    * Initialize auto-sync service
@@ -47,18 +61,18 @@ class AutoSyncService {
 
     logger.debug('auto_sync_service_init', { phase: 'start' });
 
-    // Listen to local transaction changes
+    // Listen to local transaction changes - mark that sync is needed
     this.cleanupListeners.push(
-      on('transaction:confirmed', () => this.scheduleSync('confirm')),
-      on('transaction:updated', () => this.scheduleSync('update')),
-      on('transaction:deleted', () => this.scheduleSync('delete')),
+      on('transaction:confirmed', () => this.markDirty()),
+      on('transaction:updated', () => this.markDirty()),
+      on('transaction:deleted', () => this.markDirty()),
     );
 
-    // Listen to network status changes - sync when reconnecting
+    // Listen to network status changes - restart timer when reconnecting
     const unsubNetwork = networkMonitor.subscribe((online) => {
       if (online) {
-        logger.info('auto_sync_network_reconnect', { action: 'trigger_sync' });
-        this.scheduleSync('network_reconnect');
+        logger.info('auto_sync_network_reconnect', { action: 'restart_timer' });
+        this.restartSyncTimer();
       }
     });
     this.cleanupListeners.push(unsubNetwork);
@@ -68,174 +82,266 @@ class AutoSyncService {
 
   /**
    * Set current user for sync operations
+   * ⚠️ Resets state to prevent data leakage between users
    */
   setUser(userId: UserId | null): void {
     this.userId = userId;
     // Reset retry count when user changes
     this.retryCount = 0;
+    // Reset active sync user ID (prevents user switching mid-sync)
+    this.activeSyncUserId = null;
+    // Reset operation (force pull first for new user = safety)
+    this.nextOperation = 'pull';
+    // Restart the sync timer for new user
+    if (userId) {
+      this.restartSyncTimer();
+    } else {
+      this.stopSyncTimer();
+    }
   }
 
   /**
-   * Schedule a sync after debounce delay
-   * Resets timer on each call (debounce pattern)
-   *
-   * @param reason - Trigger reason for logging
+   * Mark that sync is needed (data has changed locally)
    */
-  scheduleSync(reason: string): void {
-    // Check if user is set
-    if (!this.userId) {
-      logger.debug('auto_sync_skipped', { reason: 'no_user' });
-      return;
-    }
-
-    // Check network status - don't start timer if offline
-    if (!networkMonitor.getStatus()) {
-      logger.debug('auto_sync_skipped', { reason: 'offline' });
-      return;
-    }
-
-    // Cancel any pending sync (debounce)
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      logger.debug('auto_sync_debounced', { reason });
-    }
-
-    // Cancel any retry timer
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
-
-    // Schedule new sync
-    logger.info('auto_sync_scheduled', {
-      reason,
-      delayMs: AUTO_SYNC_DELAY_MS,
+  private markDirty(): void {
+    logger.debug('auto_sync_dirty_marked', {
       userId: this.userId,
+      nextOperation: this.nextOperation,
+    });
+    // Timer is always running, so it will pick this up in next cycle
+  }
+
+  /**
+   * Restart the sync timer
+   * Every 3 seconds: Check if operation is needed, execute, then alternate
+   * ✅ Force next operation to 'pull' on restart (network recovery)
+   */
+  private restartSyncTimer(): void {
+    // Clear any existing timer
+    this.stopSyncTimer();
+
+    if (!this.userId || !networkMonitor.getStatus()) {
+      logger.debug('auto_sync_timer_not_started', {
+        reason: !this.userId ? 'no_user' : 'offline',
+      });
+      return;
+    }
+
+    // ⚠️ NETWORK RECOVERY: Force next operation to pull
+    // This ensures we pull latest cloud state after network recovery
+    this.nextOperation = 'pull';
+
+    logger.info('auto_sync_timer_started', {
+      userId: this.userId,
+      intervalMs: AUTO_SYNC_DELAY_MS,
+      nextOperation: this.nextOperation,
     });
 
-    this.debounceTimer = setTimeout(() => {
-      this.performSync();
-      this.debounceTimer = null;
-    }, AUTO_SYNC_DELAY_MS);
+    // Start interval timer: execute every 3 seconds
+    this.syncTimer = setInterval(
+      () => {
+        this.executeSyncCycle();
+      },
+      AUTO_SYNC_DELAY_MS,
+    );
   }
 
   /**
-   * Perform full sync (Push + Pull)
+   * Stop the sync timer
    */
-  private async performSync(): Promise<void> {
-    if (!this.userId) {
-      logger.warn('auto_sync_aborted', { reason: 'no_user' });
+  private stopSyncTimer(): void {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
+      logger.info('auto_sync_timer_stopped');
+    }
+  }
+
+  /**
+   * Execute one sync cycle: alternate between push and pull
+   * ⚠️ Protected against concurrent execution
+   * ⚠️ Protected against user switching mid-sync
+   */
+  private async executeSyncCycle(): Promise<void> {
+    // ✅ Prevent concurrent execution (Timer overflow protection)
+    if (this.syncInProgress) {
+      logger.debug('auto_sync_cycle_skipped', {
+        reason: 'sync_already_in_progress',
+        userId: this.userId,
+      });
       return;
     }
 
-    // Double-check network before sync
-    if (!networkMonitor.getStatus()) {
-      logger.info('auto_sync_aborted', { reason: 'offline_at_sync_time' });
+    if (!this.userId || !networkMonitor.getStatus()) {
       return;
     }
 
-    logger.info('auto_sync_started', { userId: this.userId, retryCount: this.retryCount });
+    // ⚠️ SECURITY: Detect user switching (user logged out and logged in as someone else)
+    // This prevents User A's push from going to User B's account
+    if (this.activeSyncUserId && this.activeSyncUserId !== this.userId) {
+      logger.warn('auto_sync_user_mismatch', {
+        expected: this.activeSyncUserId,
+        current: this.userId,
+      });
+      // Reset and restart timer with new user
+      this.restartSyncTimer();
+      return;
+    }
+
+    // ✅ Mark sync as in progress
+    this.syncInProgress = true;
+    this.activeSyncUserId = this.userId;
+
+    logger.info('auto_sync_cycle_execute', {
+      userId: this.userId,
+      operation: this.nextOperation,
+    });
 
     try {
-      const result = await fullSync(this.userId);
+      if (this.nextOperation === 'push') {
+        // Try to push dirty transactions
+        const pushResult = await this.executePush();
+        logger.info('auto_sync_push_cycle_complete', {
+          synced: pushResult.synced,
+          failed: pushResult.failed.length,
+          userId: this.userId,
+        });
 
-      // Reset retry count on success
+        // ⚠️ Only advance if push succeeded (no failed transactions)
+        // If push failed, keep push for next cycle to retry
+        if (pushResult.failed.length === 0) {
+          this.nextOperation = 'pull';
+        } else {
+          logger.debug('auto_sync_push_failed', {
+            failedCount: pushResult.failed.length,
+            retryCount: this.retryCount,
+          });
+        }
+      } else {
+        // Pull transactions from cloud
+        const pullResult = await this.executePull();
+        logger.info('auto_sync_pull_cycle_complete', {
+          synced: pullResult.synced,
+          conflicts: pullResult.conflicts,
+          userId: this.userId,
+        });
+
+        // Alternate back to push for next cycle
+        this.nextOperation = 'push';
+      }
+
+      // Reset retry count on successful cycle
       this.retryCount = 0;
-
-      logger.info('auto_sync_complete', {
-        userId: this.userId,
-        pushSynced: result.push.synced,
-        pushFailed: result.push.failed.length,
-        pullSynced: result.pull.synced,
-        pullConflicts: result.pull.conflicts,
-      });
-
-      // Emit event to notify UI
-      emit('sync:complete', {
-        push: result.push,
-        pull: result.pull,
-        source: 'auto',
-      });
-
     } catch (error) {
       const errorMsg = String(error);
-      logger.error('auto_sync_failed', {
+      logger.error('auto_sync_cycle_failed', {
         userId: this.userId,
+        operation: this.nextOperation,
         error: errorMsg,
         retryCount: this.retryCount,
       });
 
-      // Emit error event for UI
-      emit('sync:error', {
-        error: errorMsg,
-        source: 'auto',
-      });
-
-      // Schedule retry with exponential backoff
-      this.scheduleRetry();
+      // Schedule retry after max attempts
+      if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
+        logger.warn('auto_sync_max_retries_reached', {
+          maxAttempts: MAX_RETRY_ATTEMPTS,
+          userId: this.userId,
+        });
+        this.retryCount = 0;
+      } else {
+        this.retryCount++;
+      }
+    } finally {
+      // ✅ CRITICAL: Always reset the flag, even if error or early return
+      // This prevents timer overflow deadlock
+      this.syncInProgress = false;
     }
   }
 
   /**
-   * Schedule retry with exponential backoff
+   * Execute push operation: sync dirty transactions to cloud
    */
-  private scheduleRetry(): void {
-    if (this.retryCount >= MAX_RETRY_ATTEMPTS) {
-      logger.warn('auto_sync_max_retries', {
-        maxAttempts: MAX_RETRY_ATTEMPTS,
+  private async executePush(): Promise<{ synced: number; failed: string[] }> {
+    if (!this.userId) return { synced: 0, failed: [] };
+
+    const { transactionPushService } = await import('./transactionPushService');
+    const { createTraceId } = await import('../../../00_kernel/types');
+
+    const traceId = createTraceId();
+
+    // Check if there's dirty data to push
+    const { fetchDirtyTransactions } = await import('../../transaction/adapters/transactionDb');
+    const dirtyTxs = await fetchDirtyTransactions(this.userId);
+
+    if (dirtyTxs.length === 0) {
+      logger.debug('auto_sync_push_skip', {
+        reason: 'no_dirty_data',
         userId: this.userId,
       });
-      this.retryCount = 0;
-      return;
+      return { synced: 0, failed: [] };
     }
 
-    // Exponential backoff: 5s, 10s, 20s
-    const delay = RETRY_BASE_DELAY_MS * Math.pow(2, this.retryCount);
-    this.retryCount++;
-
-    logger.info('auto_sync_retry_scheduled', {
-      attempt: this.retryCount,
-      delayMs: delay,
+    logger.info('auto_sync_push_execute', {
+      dirtyCount: dirtyTxs.length,
+      userId: this.userId,
     });
 
-    this.retryTimer = setTimeout(() => {
-      this.retryTimer = null;
-      this.performSync();
-    }, delay);
+    // Process offline queue first
+    await transactionPushService.processQueue(this.userId, traceId);
+
+    // Push dirty transactions
+    const result = await transactionPushService.syncDirtyTransactions(this.userId, traceId);
+
+    return {
+      synced: result.synced,
+      failed: result.failed.map((id) => String(id)),
+    };
   }
+
+  /**
+   * Execute pull operation: fetch and merge cloud transactions
+   */
+  private async executePull(): Promise<{ synced: number; conflicts: number; errors: string[] }> {
+    if (!this.userId) return { synced: 0, conflicts: 0, errors: [] };
+
+    const { pullTransactions } = await import('./transactionPullService');
+    const { createTraceId } = await import('../../../00_kernel/types');
+
+    const traceId = createTraceId();
+
+    logger.info('auto_sync_pull_execute', { userId: this.userId });
+
+    const result = await pullTransactions(this.userId, traceId);
+
+    return {
+      synced: result.synced,
+      conflicts: result.conflicts,
+      errors: result.errors,
+    };
+  }
+
+
 
   /**
    * Manually trigger sync (for UI sync button)
    */
   async triggerManualSync(): Promise<void> {
-    // Cancel any pending auto-sync
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
-    }
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
+    if (!this.userId) {
+      logger.warn('manual_sync_skipped', { reason: 'no_user' });
+      return;
     }
 
-    // Reset retry count for manual sync
-    this.retryCount = 0;
+    logger.info('manual_sync_triggered', { userId: this.userId });
 
-    await this.performSync();
+    // Execute current operation immediately
+    await this.executeSyncCycle();
   }
 
   /**
    * Cleanup resources
    */
   destroy(): void {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
-    }
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
+    this.stopSyncTimer();
     this.cleanupListeners.forEach((cleanup) => cleanup());
     this.cleanupListeners = [];
     this.initialized = false;

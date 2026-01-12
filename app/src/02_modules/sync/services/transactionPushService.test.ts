@@ -177,11 +177,8 @@ describe('transactionPushService', () => {
       ).rejects.toThrow('Network error');
 
       expect(mockSetSyncStatus).toHaveBeenCalledWith('error');
-      expect(mockAddToQueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          transactionId: 'tx-1',
-        })
-      );
+      // Note: No longer re-queues on failure - dirty flags remain for next sync
+      expect(mockAddToQueue).not.toHaveBeenCalled();
     });
 
     it('should update lastSyncedAt on success', async () => {
@@ -210,9 +207,11 @@ describe('transactionPushService', () => {
 
       await transactionPushService.processQueue(userId, traceId);
 
+      // Should not clear queue if already empty
+      expect(mockClearQueue).not.toHaveBeenCalled();
     });
 
-    it('should process queue actions', async () => {
+    it('should clear queue immediately to prevent re-queueing loop', async () => {
       const queueAction = {
         id: 'sync-tx-1-123',
         type: 'update' as const,
@@ -222,42 +221,11 @@ describe('transactionPushService', () => {
       };
 
       mockGetQueue.mockReturnValue([queueAction]);
-      mockFetchDirtyTransactions.mockResolvedValue([]);
 
       await transactionPushService.processQueue(userId, traceId);
 
-      expect(mockRemoveFromQueue).toHaveBeenCalledWith('sync-tx-1-123');
-    });
-
-    it('should continue processing on action failure', async () => {
-      const action1 = {
-        id: 'sync-tx-1-123',
-        type: 'update' as const,
-        transactionId: TransactionId('tx-1'),
-        timestamp: '2026-01-15T10:00:00Z',
-        payload: createTransaction({ id: TransactionId('tx-1') }),
-      };
-
-      const action2 = {
-        id: 'sync-tx-2-456',
-        type: 'update' as const,
-        transactionId: TransactionId('tx-2'),
-        timestamp: '2026-01-15T10:00:00Z',
-        payload: createTransaction({ id: TransactionId('tx-2') }),
-      };
-
-      mockGetQueue.mockReturnValue([action1, action2]);
-      mockFetchDirtyTransactions
-        .mockResolvedValueOnce([createTransaction({ id: TransactionId('tx-1') })])
-        .mockRejectedValueOnce(new Error('Sync failed'));
-
-      mockGetStatus.mockReturnValue(true);
-      mockSyncTransactions.mockRejectedValue(new Error('Sync failed'));
-
-      await transactionPushService.processQueue(userId, traceId);
-
-      // Should attempt to process both actions despite first failure
-      expect(mockRemoveFromQueue).not.toHaveBeenCalled(); // Failed actions stay in queue
+      // Queue should be cleared immediately (not processed individually)
+      expect(mockClearQueue).toHaveBeenCalled();
     });
   });
 

@@ -40,6 +40,12 @@ class TransactionPushService {
     const dirty = await transactionDb.fetchDirtyTransactions(userId);
 
     if (dirty.length === 0) {
+      // No dirty transactions - clear any stale queue items
+      const queueSize = syncStore.getState().queue.length;
+      if (queueSize > 0) {
+        logger.info('sync_clearing_stale_queue', { module: 'sync', userId, queueSize, traceId });
+        syncStore.getState().clearQueue();
+      }
       logger.info('sync_no_dirty', { module: 'sync', userId, traceId });
       return { synced: 0, failed: [], queued: 0 };
     }
@@ -109,6 +115,11 @@ class TransactionPushService {
       syncStore.getState().setLastSyncedAt(timestamp);
       syncStore.getState().setSyncStatus('success');
 
+      // Clear queue if all synced successfully (no failures)
+      if (failedTxs.length === 0) {
+        syncStore.getState().clearQueue();
+      }
+
       logger.info('sync_completed', {
         module: 'sync',
         event: 'SYNC_COMPLETED',
@@ -125,18 +136,9 @@ class TransactionPushService {
         queued: failedTxs.length,
       };
     } catch (error) {
-      // Queue all for retry (before store updates)
-      dirty.forEach((tx) => {
-        this.queueSyncAction({
-          id: `sync-${tx.id}-${Date.now()}`,
-          type: 'update',
-          transactionId: tx.id,
-          timestamp: new Date().toISOString(),
-          payload: tx,
-        });
-      });
+      // Don't re-queue - dirty flags remain on transactions for next sync attempt
+      // Re-queueing here caused exponential queue growth bug
 
-      // ✅ Update store after queueing
       syncStore.getState().setSyncStatus('error');
       syncStore.getState().setLastError(String(error));
 
@@ -156,67 +158,40 @@ class TransactionPushService {
    * Process offline queue when network reconnects
    * (Issue #86 Phase 1: Offline Queue)
    *
+   * Note: Queue items are markers that "sync is needed", not individual work items.
+   * We clear the queue first, then sync once. If sync fails, dirty transactions
+   * remain marked and will be synced next time.
+   *
    * @param userId - User ID
    * @param traceId - Trace ID for observability
    */
   async processQueue(userId: UserId, traceId: TraceId): Promise<void> {
-    const queue = syncStore.getState().queue;
+    const queueSize = syncStore.getState().queue.length;
 
-    if (queue.length === 0) {
+    if (queueSize === 0) {
       return;
     }
 
     logger.info('queue_process_started', {
       module: 'sync',
       event: 'QUEUE_PROCESS_STARTED',
-      queueSize: queue.length,
+      queueSize,
       traceId,
     });
 
-    syncStore.getState().setSyncStatus('syncing');
+    // Clear queue FIRST to prevent re-queueing loop
+    // If sync fails, dirty flags remain on transactions for next sync attempt
+    syncStore.getState().clearQueue();
 
-    for (const action of queue) {
-      try {
-        await this.processSyncAction(userId, action, traceId);
-        syncStore.getState().removeFromQueue(action.id);
-
-        logger.debug('queue_action_processed', {
-          module: 'sync',
-          actionId: action.id,
-          type: action.type,
-          traceId,
-        });
-      } catch (error) {
-        logger.error('queue_action_failed', {
-          module: 'sync',
-          event: 'QUEUE_ACTION_FAILED',
-          actionId: action.id,
-          error: String(error),
-          traceId,
-        });
-        // Keep in queue for next retry
-      }
-    }
-
-    // Reset to idle after queue processing (success or partial success)
-    syncStore.getState().setSyncStatus('idle');
-
-    logger.info('queue_process_completed', {
+    logger.info('queue_cleared', {
       module: 'sync',
-      event: 'QUEUE_PROCESS_COMPLETED',
-      remaining: syncStore.getState().queue.length,
+      event: 'QUEUE_CLEARED',
+      clearedCount: queueSize,
       traceId,
     });
-  }
 
-  /**
-   * Process a single sync action from queue
-   * @private
-   */
-  private async processSyncAction(userId: UserId, _action: SyncAction, traceId: TraceId): Promise<void> {
-    // For now, re-sync all dirty transactions
-    // In future, can optimize to sync only the specific transaction
-    await this.syncDirtyTransactions(userId, traceId);
+    // Note: syncDirtyTransactions will be called separately by fullSync
+    // No need to call it here - the queue is just a marker that sync is needed
   }
 
   /**

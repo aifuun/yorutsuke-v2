@@ -49,8 +49,8 @@ export function DebugView() {
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [slowUpload, setSlowUploadState] = useState(isSlowUpload);
 
-  // Clear cloud data state
-  const [showClearCloudDialog, setShowClearCloudDialog] = useState(false);
+  // Clear all data (local + cloud) state
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
 
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
@@ -135,44 +135,6 @@ export function DebugView() {
     setActionStatus('idle');
   };
 
-  const handleClearBusinessData = async () => {
-    const confirmed = await ask(t('debug.clearBusinessDataConfirm'), {
-      title: 'Clear Business Data',
-      kind: 'warning',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    setActionStatus('running');
-    setActionResult('Clearing data...');
-
-    try {
-      // 1. Stop background services to prevent race conditions
-      captureService.destroy();
-
-      // 2. Clear DB business tables (preserves settings)
-      const results = await clearBusinessData();
-
-      // 3. Clear memory stores
-      captureStore.getState().clearQueue();
-      uploadStore.getState().clearTasks();
-
-      const total = Object.values(results).reduce((a, b) => a + b, 0);
-      setActionResult(`Cleared ${total} rows. Restarting...`);
-
-      // 4. Reload to reinitialize
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (e) {
-      setActionResult('Error: ' + String(e));
-      setActionStatus('idle');
-      captureService.init();
-    }
-  };
-
   const handleClearSettings = async () => {
     const confirmed = await ask(t('debug.clearSettingsConfirm'), {
       title: 'Clear Settings',
@@ -206,38 +168,57 @@ export function DebugView() {
     setSlowUpload(newValue);
   };
 
-  const handleOpenClearCloudDialog = () => {
+  const handleOpenClearAllDialog = () => {
     if (!effectiveUserId) {
       setActionResult('No user ID');
       return;
     }
-    setShowClearCloudDialog(true);
+    setShowClearAllDialog(true);
   };
 
-  const handleConfirmClearCloud = async () => {
+  const handleConfirmClearAll = async () => {
     if (!effectiveUserId) {
       setActionResult('No user ID');
       return;
     }
 
-    setShowClearCloudDialog(false);
+    setShowClearAllDialog(false);
     setActionStatus('running');
-    setActionResult('Deleting cloud data...');
+    setActionResult('Clearing all data...');
 
     try {
-      const result = await deleteUserData(effectiveUserId as UserId, ['transactions', 'images']);
+      // Stop background services to prevent race conditions
+      captureService.destroy();
+
+      // Step 1: Delete from cloud
+      const cloudResult = await deleteUserData(effectiveUserId as UserId, ['transactions', 'images']);
+
+      // Step 2: Clear local database
+      const localResults = await clearBusinessData();
+
+      // Step 3: Clear memory stores
+      captureStore.getState().clearQueue();
+      uploadStore.getState().clearTasks();
+
+      const localCleared = Object.values(localResults).reduce((a, b) => a + b, 0);
       setActionResult(
-        `Deleted ${result.deleted.transactions || 0} transactions and ${result.deleted.images || 0} images from cloud`
+        `Deleted ${cloudResult.deleted.transactions || 0} transactions and ${cloudResult.deleted.images || 0} from cloud, ` +
+        `cleared ${localCleared} local rows. Restarting...`
       );
+
+      // Step 4: Reload to reinitialize
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (e) {
       setActionResult('Error: ' + String(e));
+      setActionStatus('idle');
+      captureService.init();
     }
-
-    setActionStatus('idle');
   };
 
-  const handleCancelClearCloud = () => {
-    setShowClearCloudDialog(false);
+  const handleCancelClearAll = () => {
+    setShowClearAllDialog(false);
   };
 
   return (
@@ -334,34 +315,17 @@ export function DebugView() {
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.clearBusinessData')}</p>
-                <p className="setting-row__hint">{t('debug.clearBusinessDataHint')}</p>
+                <p className="setting-row__label">{t('debug.clearAllData')}</p>
+                <p className="setting-row__hint">{t('debug.clearAllDataHint')}</p>
               </div>
               <div className="setting-row__control">
                 <button
                   type="button"
                   className="btn btn--danger btn--sm"
-                  onClick={handleClearBusinessData}
-                  disabled={actionStatus === 'running'}
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            <div className="setting-row setting-row--danger">
-              <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.clearCloudData')}</p>
-                <p className="setting-row__hint">{t('debug.clearCloudDataHint')}</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
-                  onClick={handleOpenClearCloudDialog}
+                  onClick={handleOpenClearAllDialog}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
-                  {t('debug.clearCloudDataButton')}
+                  {t('debug.clearAllDataButton')}
                 </button>
               </div>
             </div>
@@ -472,17 +436,17 @@ export function DebugView() {
         </div>
       </div>
 
-      {/* Clear Cloud Data Confirmation Dialog */}
+      {/* Clear All Data (Local + Cloud) Confirmation Dialog */}
       <ConfirmDialog
-        isOpen={showClearCloudDialog}
-        title={t('debug.clearCloudDataConfirmTitle')}
-        message={t('debug.clearCloudDataConfirmMessage')}
-        checkboxLabel={t('debug.clearCloudDataConfirmCheckbox')}
-        confirmText={t('debug.clearCloudDataButton')}
+        isOpen={showClearAllDialog}
+        title={t('debug.clearAllDataConfirmTitle')}
+        message={t('debug.clearAllDataConfirmMessage')}
+        checkboxLabel={t('debug.clearAllDataConfirmCheckbox')}
+        confirmText={t('debug.clearAllDataButton')}
         cancelText={t('common.cancel')}
         variant="danger"
-        onConfirm={handleConfirmClearCloud}
-        onCancel={handleCancelClearCloud}
+        onConfirm={handleConfirmClearAll}
+        onCancel={handleCancelClearAll}
       />
     </div>
   );

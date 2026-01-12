@@ -256,7 +256,7 @@ export async function syncTransactions(
   logger.info('transaction_sync_started', { userId, count: transactions.length });
 
   try {
-    const fetchPromise = fetch(`${TRANSACTIONS_URL}/sync`, {
+    const fetchPromise = fetch(`${TRANSACTIONS_URL}sync`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),

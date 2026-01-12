@@ -2,9 +2,8 @@
 // Pillar D: FSM - explicit state machine for sync
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { UserId } from '../../../00_kernel/types';
-import { createTraceId } from '../../../00_kernel/types';
-import type { PullSyncResult } from '../../sync';
-import { pullTransactions } from '../../sync';
+import type { FullSyncResult } from '../../sync';
+import { fullSync } from '../../sync';
 import { logger } from '../../../00_kernel/telemetry/logger';
 
 const LAST_SYNCED_KEY = 'transaction_last_synced_at';
@@ -14,7 +13,7 @@ const AUTO_SYNC_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 type State =
   | { status: 'idle' }
   | { status: 'syncing' }
-  | { status: 'success'; result: PullSyncResult }
+  | { status: 'success'; result: FullSyncResult }
   | { status: 'error'; error: string };
 
 /**
@@ -44,7 +43,7 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
   }, []);
 
   /**
-   * Sync transactions from cloud to local
+   * Full bidirectional sync (Push + Pull)
    * Pillar Q: Idempotent - safe to call multiple times
    */
   const sync = useCallback(
@@ -58,12 +57,13 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
       logger.info('sync_started', { userId, startDate, endDate });
 
       try {
-        const traceId = createTraceId();
-        const result = await pullTransactions(userId, traceId, startDate, endDate);
+        // Full sync: Push local changes + Pull cloud changes
+        const result = await fullSync(userId, startDate, endDate);
 
-        if (result.errors.length > 0) {
+        // Check for errors in pull result
+        if (result.pull.errors.length > 0) {
           // Partial failure - show error but keep result
-          setState({ status: 'error', error: result.errors.join('; ') });
+          setState({ status: 'error', error: result.pull.errors.join('; ') });
           logger.warn('sync_partial_failure', { userId, result });
         } else {
           setState({ status: 'success', result });

@@ -268,7 +268,7 @@ class FileService {
   }
 
   /**
-   * Delete a file and its DB record
+   * Delete a file and its DB record (queue-based)
    */
   async deleteFile(id: ImageId): Promise<void> {
     const image = captureStore.getState().queue.find(img => img.id === id);
@@ -280,6 +280,38 @@ class FileService {
       }
     }
     captureStore.getState().removeImage(id);
+  }
+
+  /**
+   * Complete deletion of image from all storage locations
+   * Used when transaction is deleted to clean up associated image
+   *
+   * @param id - Image ID to delete
+   * @param traceId - Trace ID for logging
+   */
+  async deleteImageComplete(id: ImageId, traceId: TraceId): Promise<void> {
+    logger.debug(EVENTS.IMAGE_CLEANUP, { imageId: id, traceId, phase: 'complete_delete_start' });
+
+    // 1. Get image from DB to find file path
+    const image = await getImageById(id);
+
+    // 2. Delete local file if exists
+    if (image?.compressed_path) {
+      try {
+        await deleteLocalImage(image.compressed_path);
+        logger.debug(EVENTS.IMAGE_CLEANUP, { imageId: id, path: image.compressed_path, reason: 'transaction_deleted' });
+      } catch {
+        // Ignore cleanup errors - file may not exist
+      }
+    }
+
+    // 3. Delete from imageDb
+    await deleteImageRecord(id, traceId);
+
+    // 4. Remove from captureStore queue (if present)
+    captureStore.getState().removeImage(id);
+
+    logger.info(EVENTS.IMAGE_CLEANUP, { imageId: id, traceId, phase: 'complete_delete_done' });
   }
 
   /**
