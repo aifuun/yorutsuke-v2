@@ -453,21 +453,81 @@ export function DebugView() {
                       <span className="debug-tx-number">#{idx + 1}</span>
                       <span className="debug-tx-amount mono">¥{tx.amount}</span>
                       <span className="debug-tx-category">{tx.category}</span>
+                      <span className={`debug-tx-status debug-tx-status--${tx.status}`}>
+                        {tx.status}
+                      </span>
                       <span className="debug-tx-date mono">
                         {new Date(tx.updatedAt || tx.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <div className="debug-tx-row">
-                      <span className="debug-tx-label">Merchant:</span>
-                      <span className="debug-tx-value mono">{tx.merchant || 'N/A'}</span>
-                    </div>
-                    <div className="debug-tx-row">
-                      <span className="debug-tx-label">Description:</span>
-                      <span className="debug-tx-value">{tx.description || '-'}</span>
-                    </div>
-                    <div className="debug-tx-row">
-                      <span className="debug-tx-label">ID:</span>
-                      <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>{tx.id}</span>
+
+                    <div className="debug-tx-grid">
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Type:</span>
+                        <span className="debug-tx-value">{tx.type}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Status:</span>
+                        <span className="debug-tx-value">{tx.status}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Confirmed:</span>
+                        <span className="debug-tx-value">
+                          {tx.confirmedAt ? new Date(tx.confirmedAt).toLocaleString() : 'No'}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Date:</span>
+                        <span className="debug-tx-value mono">{tx.date}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Merchant:</span>
+                        <span className="debug-tx-value">{tx.merchant || '-'}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Description:</span>
+                        <span className="debug-tx-value">{tx.description || '-'}</span>
+                      </div>
+                      {tx.confidence !== null && (
+                        <div className="debug-tx-row">
+                          <span className="debug-tx-label">Confidence:</span>
+                          <span className="debug-tx-value">
+                            {(tx.confidence * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                      {tx.imageId && (
+                        <div className="debug-tx-row">
+                          <span className="debug-tx-label">Image ID:</span>
+                          <span className="debug-tx-value mono" style={{ fontSize: '10px' }}>
+                            {tx.imageId}
+                          </span>
+                        </div>
+                      )}
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Created:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>
+                          {new Date(tx.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Updated:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>
+                          {new Date(tx.updatedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">TX ID:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '10px' }}>
+                          {tx.id}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">User ID:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '10px' }}>
+                          {tx.userId}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
