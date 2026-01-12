@@ -215,16 +215,6 @@ export function ImageLightbox({
   return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <div className="lightbox-content lightbox-content--with-details" onClick={(e) => e.stopPropagation()}>
-        {/* Close button */}
-        <button
-          type="button"
-          className="lightbox-close"
-          onClick={onClose}
-          title={t('common.close') || 'Close'}
-        >
-          ✕
-        </button>
-
         <div className="lightbox-body">
           {/* Left: Image */}
           <div className="lightbox-image-section">
@@ -400,25 +390,17 @@ export function ImageLightbox({
 
         {/* Actions */}
         <div className="lightbox-actions">
-          {/* Left: Primary action or confirmed badge */}
-          {onConfirm && !isConfirmed ? (
-            <button
-              type="button"
-              className="btn btn--success"
-              onClick={handleConfirm}
-            >
-              ✓ {t('common.confirm') || 'Confirm'}
-            </button>
-          ) : isConfirmed ? (
-            <div className="lightbox-confirmed-badge">
-              ✓ {t('transaction.confirmed') || 'Confirmed'}
-            </div>
-          ) : (
-            <div></div>
-          )}
-
-          {/* Right: Secondary actions */}
+          {/* Right: Confirm + Delete buttons */}
           <div className="lightbox-actions-right">
+            {onConfirm && !isConfirmed && (
+              <button
+                type="button"
+                className="btn btn--success"
+                onClick={handleConfirm}
+              >
+                ✓ {t('common.confirm') || 'Confirm'}
+              </button>
+            )}
             {onDelete && (
               <button
                 type="button"
@@ -428,9 +410,6 @@ export function ImageLightbox({
                 {t('common.delete') || 'Delete'}
               </button>
             )}
-            <button type="button" className="btn btn--secondary" onClick={onClose}>
-              {t('common.close') || 'Close'}
-            </button>
           </div>
         </div>
       </div>

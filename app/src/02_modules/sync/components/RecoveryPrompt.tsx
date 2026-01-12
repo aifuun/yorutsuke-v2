@@ -50,14 +50,14 @@ export function RecoveryPrompt({ status, onSyncNow, onDiscard, onClose }: Recove
 
   return (
     <div className="modal-overlay">
-      <div className="modal recovery-prompt">
+      <div className="modal modal--sm recovery-prompt" role="dialog" aria-modal="true" aria-labelledby="recovery-title">
         {/* Header */}
-        <div className="modal-header">
-          <h2 className="modal-title">📦 Pending Changes Detected</h2>
+        <div className="modal__header">
+          <h2 id="recovery-title" className="modal__title">📦 Pending Changes Detected</h2>
         </div>
 
         {/* Content */}
-        <div className="modal-content">
+        <div className="modal__body">
           <p className="recovery-message">
             You have <strong>{totalPending}</strong> pending change{totalPending !== 1 ? 's' : ''} that haven't been synced to the cloud.
           </p>
@@ -97,7 +97,7 @@ export function RecoveryPrompt({ status, onSyncNow, onDiscard, onClose }: Recove
         </div>
 
         {/* Actions */}
-        <div className="modal-actions">
+        <div className="modal__footer">
           <button
             type="button"
             className="btn btn--secondary"

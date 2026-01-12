@@ -45,7 +45,10 @@ export async function fullSync(
     traceId,
   });
 
-  // Step 1: Push local changes (Local → Cloud)
+  // Step 1a: Process offline queue first (queued items from previous failures)
+  await transactionPushService.processQueue(userId, traceId);
+
+  // Step 1b: Push local changes (Local → Cloud)
   const pushResult = await transactionPushService.syncDirtyTransactions(userId, traceId);
 
   logger.info('full_sync_push_complete', {
