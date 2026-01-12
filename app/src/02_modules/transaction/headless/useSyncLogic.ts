@@ -1,6 +1,6 @@
 // Pillar L: Headless - logic without UI
 // Pillar D: FSM - explicit state machine for sync
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import { createTraceId } from '../../../00_kernel/types';
 import type { PullSyncResult } from '../../sync';
@@ -28,6 +28,7 @@ type State =
 export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
   const [state, setState] = useState<State>({ status: 'idle' });
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const hasAutoSynced = useRef(false);
 
   // Load last synced timestamp from localStorage on mount
   useEffect(() => {
@@ -105,17 +106,26 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
 
   /**
    * Auto-sync on mount if enabled and conditions are met
-   * Note: shouldAutoSync is called but not in deps to avoid infinite loop
+   * Only runs once per userId, doesn't depend on sync callback
    */
   useEffect(() => {
-    console.log('[useSyncLogic] useEffect triggered:', { autoSync, userId, shouldAutoSync: shouldAutoSync() });
-    if (autoSync && userId && shouldAutoSync()) {
+    console.log('[useSyncLogic] useEffect triggered:', { autoSync, userId, shouldAutoSync: shouldAutoSync(), hasAutoSynced: hasAutoSynced.current });
+
+    // Reset flag when userId changes
+    hasAutoSynced.current = false;
+
+    if (!autoSync || !userId) {
+      return;
+    }
+
+    if (shouldAutoSync()) {
       console.log('[useSyncLogic] Triggering auto-sync');
       logger.info('sync_auto_triggered', { userId, reason: 'mount' });
+      hasAutoSynced.current = true;
       sync();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, autoSync, sync]); // Removed shouldAutoSync to prevent infinite loop
+  }, [autoSync, userId]); // Removed sync from deps to prevent infinite loop
 
   /**
    * Get time since last sync in human-readable format
