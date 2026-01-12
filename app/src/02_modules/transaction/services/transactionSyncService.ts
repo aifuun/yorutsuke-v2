@@ -3,6 +3,7 @@
 // Pillar L: Pure orchestration, no React dependencies
 
 import type { UserId } from '../../../00_kernel/types';
+import { createTraceId } from '../../../00_kernel/types';
 import { on, emit } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { pullTransactions } from '../../sync';
@@ -82,7 +83,8 @@ class TransactionSyncService {
     logger.info('transaction_sync_auto_started', { userId: this.userId });
 
     try {
-      const result = await pullTransactions(this.userId);
+      const traceId = createTraceId();
+      const result = await pullTransactions(this.userId, traceId);
       logger.info('transaction_sync_auto_complete', {
         userId: this.userId,
         synced: result.synced,
