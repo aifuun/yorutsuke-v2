@@ -3,22 +3,40 @@
  * Tests UI component for sync status display
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { STATUS_I18N, formatPending } from '../__tests__/i18n';
 
-// Mock syncStore
+// Mock store state
 const mockStoreState = {
   isOnline: true,
   pendingCount: 0,
-  lastSyncedAt: null,
+  lastSyncedAt: null as string | null,
   status: 'idle' as 'idle' | 'syncing' | 'success' | 'error',
+  // Mock actions (not used in component)
+  setSyncStatus: vi.fn(),
+  setLastSyncedAt: vi.fn(),
+  setLastError: vi.fn(),
+  addToQueue: vi.fn(),
+  removeFromQueue: vi.fn(),
+  clearQueue: vi.fn(),
+  setOnlineStatus: vi.fn(),
+  getStatus: () => mockStoreState.status,
+  getQueue: () => [],
+  getIsOnline: () => mockStoreState.isOnline,
+  lastError: null,
+  queue: [],
 };
 
+// Mock syncStore (vanilla store)
 vi.mock('../stores/syncStore', () => ({
-  useSyncStore: (selector: (state: typeof mockStoreState) => any) => {
-    return selector(mockStoreState);
+  syncStore: {
+    getState: () => mockStoreState,
+    subscribe: () => {
+      // Return unsubscribe function
+      return () => {};
+    },
   },
 }));
 
@@ -29,6 +47,10 @@ describe('SyncStatusIndicator', () => {
     mockStoreState.pendingCount = 0;
     mockStoreState.lastSyncedAt = null;
     mockStoreState.status = 'idle';
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   describe('online status', () => {

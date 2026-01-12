@@ -39,7 +39,7 @@ const mockSetLastError = vi.fn();
 const mockAddToQueue = vi.fn();
 const mockRemoveFromQueue = vi.fn();
 const mockClearQueue = vi.fn();
-const mockGetQueue = vi.fn(() => []);
+const mockGetQueue = vi.fn((): unknown[] => []);
 
 vi.mock('../stores/syncStore', () => ({
   syncStore: {
@@ -83,7 +83,6 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   confirmedAt: null,
   confidence: null,
   rawText: null,
-  version: 1,
   ...overrides,
 });
 

@@ -3,7 +3,7 @@
  * Tests Zustand store for sync state management
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { syncStore } from './syncStore';
 import type { SyncAction } from './syncStore';
 import { TransactionId } from '../../../00_kernel/types';

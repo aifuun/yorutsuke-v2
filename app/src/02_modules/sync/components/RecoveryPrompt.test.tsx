@@ -58,7 +58,7 @@ describe('RecoveryPrompt', () => {
       );
 
       // Text is split across elements: "You have <strong>1</strong> pending change"
-      expect(screen.getByText((content, element) => {
+      expect(screen.getByText((_content, element) => {
         return element?.textContent === formatPendingCount(1);
       })).toBeInTheDocument();
     });
@@ -74,7 +74,7 @@ describe('RecoveryPrompt', () => {
       );
 
       // Text is split across elements: "You have <strong>3</strong> pending changes"
-      expect(screen.getByText((content, element) => {
+      expect(screen.getByText((_content, element) => {
         return element?.textContent === formatPendingCount(3);
       })).toBeInTheDocument();
     });
@@ -265,7 +265,7 @@ describe('RecoveryPrompt', () => {
       fireEvent.click(syncButton);
 
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
+        expect(screen.getByText((_content, element) => {
           return element?.textContent === `⚠️ ${RECOVERY_I18N.ERROR_SYNC}`;
         })).toBeInTheDocument();
       });
@@ -417,7 +417,7 @@ describe('RecoveryPrompt', () => {
       fireEvent.click(discardButton);
 
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
+        expect(screen.getByText((_content, element) => {
           return element?.textContent === `⚠️ ${RECOVERY_I18N.ERROR_DISCARD}`;
         })).toBeInTheDocument();
       });
@@ -518,7 +518,7 @@ describe('RecoveryPrompt', () => {
       fireEvent.click(syncButton);
 
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
+        expect(screen.getByText((_content, element) => {
           return element?.textContent === `⚠️ ${RECOVERY_I18N.ERROR_SYNC}`;
         })).toBeInTheDocument();
       });
@@ -553,7 +553,7 @@ describe('RecoveryPrompt', () => {
       fireEvent.click(discardButton);
 
       await waitFor(() => {
-        expect(screen.getByText((content, element) => {
+        expect(screen.getByText((_content, element) => {
           return element?.textContent === `⚠️ ${RECOVERY_I18N.ERROR_DISCARD}`;
         })).toBeInTheDocument();
       });

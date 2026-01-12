@@ -3,9 +3,14 @@
  * Shows online/offline status, pending sync queue count, and last synced timestamp
  *
  * Pillar L: Pure JSX, data from syncStore
+ *
+ * IMPORTANT: Uses manual subscription to avoid infinite re-render loop.
+ * Object selectors with useSyncStore cause new reference every render.
+ * Manual subscription with useState is the safest pattern for vanilla stores.
  */
 
-import { useSyncStore } from '../stores/syncStore';
+import { useState, useEffect } from 'react';
+import { syncStore, type SyncState } from '../stores/syncStore';
 import './sync-status.css';
 
 interface SyncStatusIndicatorProps {
@@ -13,16 +18,35 @@ interface SyncStatusIndicatorProps {
   hideWhenIdle?: boolean;
 }
 
-export function SyncStatusIndicator({ hideWhenIdle = false }: SyncStatusIndicatorProps) {
-  const { isOnline, pendingCount, lastSyncedAt, status } = useSyncStore((state) => ({
+/**
+ * Extract only the primitive values we need from store state.
+ * This function is called once per store update, not during render.
+ */
+function selectSyncData(state: SyncState) {
+  return {
     isOnline: state.isOnline,
     pendingCount: state.pendingCount,
     lastSyncedAt: state.lastSyncedAt,
     status: state.status,
-  }));
+  };
+}
 
-  console.log('[SyncStatusIndicator] render:', { isOnline, pendingCount, lastSyncedAt, status });
+export function SyncStatusIndicator({ hideWhenIdle = false }: SyncStatusIndicatorProps) {
+  // Manual subscription pattern - safest for vanilla stores
+  // useState with initializer function runs once
+  const [syncData, setSyncData] = useState(() => selectSyncData(syncStore.getState()));
 
+  // Subscribe to store changes
+  useEffect(() => {
+    // Subscribe returns unsubscribe function
+    const unsubscribe = syncStore.subscribe((state) => {
+      setSyncData(selectSyncData(state));
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const { isOnline, pendingCount, lastSyncedAt, status } = syncData;
   const isSyncing = status === 'syncing';
 
   // Hide if idle and hideWhenIdle is true

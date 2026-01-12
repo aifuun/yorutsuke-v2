@@ -44,17 +44,16 @@ function AppContent() {
     transactionSyncService.setUser(userId);
   }, [userId]);
 
-  // Initialize network monitor on mount (Issue #86 Phase 2)
+  // Subscribe to network status changes for queue processing (Issue #86 Phase 2)
+  // Note: networkMonitor.initialize() is called once in main.tsx (ADR-001: Service Pattern)
   useEffect(() => {
-    console.log('[App] Initializing network monitor, userId:', userId);
-    networkMonitor.initialize();
+    if (!userId) return;
 
-    // Subscribe to network status changes
+    // Subscribe to network reconnect events to process offline queue
     const unsubscribe = networkMonitor.subscribe((isOnline) => {
-      console.log('[App] Network status changed:', isOnline, 'userId:', userId);
-      if (isOnline && userId) {
+      if (isOnline) {
         // Network reconnected - process offline queue
-        console.log('[App] Processing offline queue after reconnect');
+        console.log('[App] Network reconnected, processing offline queue');
         const traceId = createTraceId();
         transactionPushService.processQueue(userId, traceId).catch((error) => {
           console.error('[App] Failed to process offline queue:', error);
@@ -62,11 +61,7 @@ function AppContent() {
       }
     });
 
-    return () => {
-      console.log('[App] Cleaning up network monitor');
-      unsubscribe();
-      networkMonitor.cleanup();
-    };
+    return unsubscribe;
   }, [userId]);
 
   // Check for recovery on mount (Issue #86 Phase 4)

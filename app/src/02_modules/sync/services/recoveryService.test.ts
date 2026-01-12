@@ -19,9 +19,9 @@ vi.mock('../../transaction/adapters/transactionDb', () => ({
 }));
 
 // Mock syncStore
-const mockGetQueue = vi.fn(() => []);
+const mockGetQueue = vi.fn((): unknown[] => []);
 const mockClearQueue = vi.fn();
-const mockGetLastSyncedAt = vi.fn(() => null);
+const mockGetLastSyncedAt = vi.fn((): string | null => null);
 
 vi.mock('../stores/syncStore', () => ({
   syncStore: {
@@ -62,7 +62,6 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   confirmedAt: null,
   confidence: null,
   rawText: null,
-  version: 1,
   ...overrides,
 });
 

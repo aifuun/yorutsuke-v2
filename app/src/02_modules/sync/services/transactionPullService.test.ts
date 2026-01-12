@@ -55,7 +55,6 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   confirmedAt: null,
   confidence: null,
   rawText: null,
-  version: 1,
   ...overrides,
 });
 
