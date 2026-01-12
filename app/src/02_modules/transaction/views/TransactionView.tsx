@@ -204,7 +204,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <SyncStatusIndicator hideWhenIdle />
+              {/* Temporarily disabled to debug infinite loop */}
+              {/* <SyncStatusIndicator hideWhenIdle /> */}
               {syncLogic.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                   {syncLogic.getTimeSinceLastSync()}
@@ -239,7 +240,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <SyncStatusIndicator hideWhenIdle />
+              {/* Temporarily disabled to debug infinite loop */}
+              {/* <SyncStatusIndicator hideWhenIdle /> */}
               {syncLogic.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                   {syncLogic.getTimeSinceLastSync()}
@@ -274,7 +276,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <SyncStatusIndicator hideWhenIdle />
+              {/* Temporarily disabled to debug infinite loop */}
+              {/* <SyncStatusIndicator hideWhenIdle /> */}
               {syncLogic.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                   {syncLogic.getTimeSinceLastSync()}
@@ -308,7 +311,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
         title={t('nav.ledger')}
         rightContent={
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <SyncStatusIndicator hideWhenIdle />
+            {/* Temporarily disabled to debug infinite loop */}
+            {/* <SyncStatusIndicator hideWhenIdle /> */}
             {syncLogic.getTimeSinceLastSync() && (
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                 {syncLogic.getTimeSinceLastSync()}
