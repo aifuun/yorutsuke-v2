@@ -23,18 +23,6 @@ function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
-  // Show loading state during initialization
-  if (isLoading) {
-    console.log('[App] Still loading...');
-    return (
-      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <div>Loading...</div>
-      </div>
-    );
-  }
-
-  console.log('[App] Rendering with userId:', userId, 'activeView:', activeView);
-
   // Recovery state (Issue #86 Phase 4)
   const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
@@ -121,6 +109,18 @@ function AppContent() {
     console.log('[App] setActiveView called with:', view, 'from:', new Error().stack?.split('\n')[2]);
     setActiveView(view);
   }, []);
+
+  // Show loading state during initialization (after all Hooks)
+  if (isLoading) {
+    console.log('[App] Still loading...');
+    return (
+      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  console.log('[App] Rendering with userId:', userId, 'activeView:', activeView);
 
   return (
     <div className="app-shell">
