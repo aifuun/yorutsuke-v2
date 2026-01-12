@@ -12,7 +12,7 @@ import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
 import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
-import { networkMonitor, transactionPushService, recoveryService, RecoveryPrompt } from './02_modules/sync';
+import { networkMonitor, transactionPushService, recoveryService, RecoveryPrompt, autoSyncService } from './02_modules/sync';
 import type { RecoveryStatus } from './02_modules/sync';
 
 // @security: Check once at module load - cannot change at runtime
@@ -27,9 +27,10 @@ function AppContent() {
   const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
 
-  // Set user ID in transaction sync service when it changes
+  // Set user ID in sync services when it changes
   useEffect(() => {
     transactionSyncService.setUser(userId);
+    autoSyncService.setUser(userId);
   }, [userId]);
 
   // Subscribe to network status changes for queue processing (Issue #86 Phase 2)

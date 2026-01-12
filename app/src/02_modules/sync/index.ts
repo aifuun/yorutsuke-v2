@@ -7,6 +7,9 @@
 export { fullSync, pushTransactions, pullTransactions } from './services/syncCoordinator';
 export type { FullSyncResult } from './services/syncCoordinator';
 
+// Auto-sync service (debounced push after local operations)
+export { autoSyncService } from './services/autoSyncService';
+
 // Individual services (advanced usage)
 export { transactionPushService } from './services/transactionPushService';
 export { pullTransactions as transactionPullService } from './services/transactionPullService';

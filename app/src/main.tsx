@@ -28,11 +28,12 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 import { captureService } from "./02_modules/capture/services/captureService";
 import { quotaService } from "./02_modules/capture/services/quotaService";
 import { transactionSyncService } from "./02_modules/transaction/services/transactionSyncService";
-import { networkMonitor } from "./02_modules/sync";
+import { networkMonitor, autoSyncService } from "./02_modules/sync";
 
 captureService.init();
 quotaService.init();
 transactionSyncService.init(); // Issue #108: Auto-sync after upload
+autoSyncService.init(); // Issue #86: Auto-sync after local operations (confirm/edit/delete)
 networkMonitor.initialize(); // Issue #86: Network monitoring for offline queue
 
 const rootElement = document.getElementById("root");
