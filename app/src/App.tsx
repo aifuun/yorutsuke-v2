@@ -19,9 +19,21 @@ import type { RecoveryStatus } from './02_modules/sync';
 const IS_DEVELOPMENT = !import.meta.env.PROD;
 
 function AppContent() {
-  const { userId } = useAppContext();
+  const { userId, isLoading } = useAppContext();
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
+
+  // Show loading state during initialization
+  if (isLoading) {
+    console.log('[App] Still loading...');
+    return (
+      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  console.log('[App] Rendering with userId:', userId, 'activeView:', activeView);
 
   // Recovery state (Issue #86 Phase 4)
   const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null);
