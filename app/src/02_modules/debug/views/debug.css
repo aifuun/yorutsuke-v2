@@ -359,3 +359,76 @@
     height: 300px;
   }
 }
+
+/* ===================================================================
+ * Latest Cloud Transactions
+ * =================================================================== */
+
+.debug-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.debug-tx-item {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: 6px;
+  padding: var(--space-3);
+  font-size: 12px;
+}
+
+.debug-tx-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.debug-tx-number {
+  font-weight: 600;
+  color: var(--slate-600);
+  min-width: 24px;
+}
+
+.debug-tx-amount {
+  font-weight: 600;
+  color: var(--emerald-600);
+  min-width: 60px;
+}
+
+.debug-tx-category {
+  padding: 2px 6px;
+  background: var(--slate-200);
+  border-radius: 3px;
+  color: var(--slate-700);
+  white-space: nowrap;
+}
+
+.debug-tx-date {
+  flex: 1;
+  text-align: right;
+  color: var(--slate-500);
+  white-space: nowrap;
+}
+
+.debug-tx-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: 4px;
+  align-items: flex-start;
+}
+
+.debug-tx-label {
+  font-weight: 500;
+  color: var(--slate-600);
+  min-width: 70px;
+}
+
+.debug-tx-value {
+  flex: 1;
+  color: var(--slate-700);
+  word-break: break-all;
+}

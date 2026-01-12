@@ -19,6 +19,7 @@ import { uploadStore } from '../../capture/stores/uploadStore';
 import type { UserId } from '../../../00_kernel/types';
 import { deleteUserData } from '../adapters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import type { Transaction } from '../../../01_domains/transaction';
 import './debug.css';
 
 // App version from package.json
@@ -51,6 +52,10 @@ export function DebugView() {
 
   // Clear all data (local + cloud) state
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+
+  // Latest cloud transactions state
+  const [latestCloudTransactions, setLatestCloudTransactions] = useState<Transaction[]>([]);
+  const [cloudTxLoading, setCloudTxLoading] = useState(false);
 
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
@@ -221,6 +226,40 @@ export function DebugView() {
     setShowClearAllDialog(false);
   };
 
+  const handleFetchLatestCloudTransactions = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+
+    setCloudTxLoading(true);
+    setActionResult(null);
+
+    try {
+      // Import the function to fetch from cloud directly
+      const { fetchTransactionsFromCloud } = await import('../../transaction/adapters');
+      
+      const cloudTxs = await fetchTransactionsFromCloud(effectiveUserId as UserId);
+      
+      // Sort by updatedAt descending and take last 3
+      const sorted = [...cloudTxs]
+        .sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, 3);
+      
+      setLatestCloudTransactions(sorted);
+      setActionResult(`Fetched ${sorted.length} latest transactions from cloud`);
+    } catch (e) {
+      setActionResult('Error: ' + String(e));
+      setLatestCloudTransactions([]);
+    }
+
+    setCloudTxLoading(false);
+  };
+
   return (
     <div className="debug">
       <ViewHeader title={t('debug.title')} rightContent={<VersionBadge version={APP_VERSION} />} />
@@ -385,6 +424,55 @@ export function DebugView() {
                 <span className="debug-value mono">v3</span>
               </div>
             </div>
+          </div>
+
+          {/* Section 2.5: Latest Cloud Transactions */}
+          <div className="card card--settings">
+            <div className="setting-row" style={{ marginBottom: '12px' }}>
+              <div className="setting-row__info">
+                <p className="setting-row__label">Latest Cloud Transactions</p>
+                <p className="setting-row__hint">Fetch last 3 updated transactions from cloud</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--primary btn--sm"
+                  onClick={handleFetchLatestCloudTransactions}
+                  disabled={cloudTxLoading || !effectiveUserId}
+                >
+                  {cloudTxLoading ? 'Fetching...' : 'Fetch'}
+                </button>
+              </div>
+            </div>
+
+            {latestCloudTransactions.length > 0 && (
+              <div className="debug-tx-list">
+                {latestCloudTransactions.map((tx, idx) => (
+                  <div key={tx.id} className="debug-tx-item">
+                    <div className="debug-tx-header">
+                      <span className="debug-tx-number">#{idx + 1}</span>
+                      <span className="debug-tx-amount mono">¥{tx.amount}</span>
+                      <span className="debug-tx-category">{tx.category}</span>
+                      <span className="debug-tx-date mono">
+                        {new Date(tx.updatedAt || tx.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="debug-tx-row">
+                      <span className="debug-tx-label">Merchant:</span>
+                      <span className="debug-tx-value mono">{tx.merchant || 'N/A'}</span>
+                    </div>
+                    <div className="debug-tx-row">
+                      <span className="debug-tx-label">Description:</span>
+                      <span className="debug-tx-value">{tx.description || '-'}</span>
+                    </div>
+                    <div className="debug-tx-row">
+                      <span className="debug-tx-label">ID:</span>
+                      <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>{tx.id}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Section 3: Logs */}
