@@ -28,7 +28,7 @@ const formatAmount = (amount: number, type: 'income' | 'expense'): string => {
 
 // Get status indicator
 const getStatusIcon = (tx: Transaction): string => {
-  if (tx.confirmedAt) return '✓';
+  if (tx.status === 'confirmed') return '✓';
   if (isHighConfidence(tx.confidence)) return '○';
   return '?';
 };
@@ -42,7 +42,7 @@ export function TransactionItem({
   onDelete,
 }: TransactionItemProps) {
   const { t } = useTranslation();
-  const { id, type, category, amount, merchant, confidence, confirmedAt, description, date, rawText } = transaction;
+  const { id, type, category, amount, merchant, confidence, status, description, date, rawText } = transaction;
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -129,7 +129,7 @@ export function TransactionItem({
                 {t('common.edit')}
               </button>
             )}
-            {onConfirm && !confirmedAt && (
+            {onConfirm && status !== 'confirmed' && (
               <button type="button" onClick={handleContextConfirm}>
                 {t('common.confirm')}
               </button>
@@ -145,7 +145,7 @@ export function TransactionItem({
 
       <div className="tx-main" onClick={onToggle}>
         <div className="tx-left">
-          <span className={`status-icon ${confirmedAt ? 'confirmed' : ''}`}>
+          <span className={`status-icon ${status === 'confirmed' ? 'confirmed' : ''}`}>
             {getStatusIcon(transaction)}
           </span>
           <div className="tx-info">
@@ -218,7 +218,7 @@ export function TransactionItem({
               <div className="detail-row">
                 <span className="detail-label">{t('transaction.status')}</span>
                 <span className="detail-value">
-                  {confirmedAt ? t('transaction.confirmed') : t('transaction.pending')}
+                  {status === 'confirmed' ? t('transaction.confirmed') : t('transaction.pending')}
                 </span>
               </div>
               {rawText && (
@@ -239,7 +239,7 @@ export function TransactionItem({
                     {t('common.edit')}
                   </button>
                 )}
-                {onConfirm && !confirmedAt && (
+                {onConfirm && status !== 'confirmed' && (
                   <button type="button" className="btn btn--success btn--sm" onClick={handleConfirm}>
                     {t('common.confirm')}
                   </button>

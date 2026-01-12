@@ -34,7 +34,6 @@ const CloudTransactionSchema = z.object({
   status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
   createdAt: z.string(), // ISO 8601
   updatedAt: z.string(), // ISO 8601
-  confirmedAt: z.string().nullable().optional(),
   version: z.number().default(1),
   // Additional fields we don't sync locally
   aiProcessed: z.boolean().optional(),
@@ -86,7 +85,6 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     date: cloudTx.date,
     createdAt: cloudTx.createdAt,
     updatedAt: cloudTx.updatedAt,
-    confirmedAt: cloudTx.confirmedAt ?? null,
     status: cloudTx.status,
     confidence: null, // Not stored in DynamoDB
     rawText: null, // Not stored in DynamoDB
@@ -246,7 +244,7 @@ export async function syncTransactions(
       merchant: tx.merchant,
       description: tx.description,
       date: tx.date,
-      confirmedAt: tx.confirmedAt,
+      confirmedAt: tx.status === 'confirmed' ? tx.updatedAt : null,
       updatedAt: tx.updatedAt,
       createdAt: tx.createdAt,
       status: tx.status,

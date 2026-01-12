@@ -18,7 +18,6 @@ interface DbTransaction {
   date: string;
   created_at: string;
   updated_at: string;
-  confirmed_at: string | null;
   confidence: number | null;
   raw_text: string | null;
   status: string | null; // v6: Cloud sync support
@@ -40,7 +39,6 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     date: row.date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    confirmedAt: row.confirmed_at,
     status: (row.status as TransactionStatus) || 'unconfirmed',
     confidence: row.confidence,
     rawText: row.raw_text,
@@ -95,9 +93,11 @@ export async function fetchTransactions(
 
   // Status filter: pending (unconfirmed) or confirmed
   if (statusFilter === 'pending') {
-    query += ' AND confirmed_at IS NULL';
+    query += ' AND status != ?';
+    params.push('confirmed');
   } else if (statusFilter === 'confirmed') {
-    query += ' AND confirmed_at IS NOT NULL';
+    query += ' AND status = ?';
+    params.push('confirmed');
   }
 
   // Type filter (NEW: Issue #115)
@@ -162,9 +162,11 @@ export async function countTransactions(
 
   // Status filter: pending (unconfirmed) or confirmed
   if (statusFilter === 'pending') {
-    query += ' AND confirmed_at IS NULL';
+    query += ' AND status != ?';
+    params.push('confirmed');
   } else if (statusFilter === 'confirmed') {
-    query += ' AND confirmed_at IS NOT NULL';
+    query += ' AND status = ?';
+    params.push('confirmed');
   }
 
   // Type filter (NEW: Issue #115)
@@ -202,8 +204,8 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
 
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confidence, raw_text, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
@@ -218,10 +220,9 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
       transaction.date,
       transaction.createdAt,
       transaction.updatedAt,
-      transaction.confirmedAt,
       transaction.confidence,
       transaction.rawText,
-      'unconfirmed', // Default status for new transactions
+      transaction.status || 'unconfirmed', // Use transaction status or default to unconfirmed
       1, // Default version for new transactions
     ],
   );
@@ -236,6 +237,7 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
  */
 export async function upsertTransaction(transaction: Transaction): Promise<void> {
   const database = await getDb();
+  const confirmedAtValue = transaction.status === 'confirmed' ? transaction.updatedAt : null;
 
   // INSERT OR REPLACE will update all fields if transaction.id already exists
   await database.execute(
@@ -256,7 +258,7 @@ export async function upsertTransaction(transaction: Transaction): Promise<void>
       transaction.date,
       transaction.createdAt,
       transaction.updatedAt,
-      transaction.confirmedAt,
+      confirmedAtValue,
       transaction.confidence,
       transaction.rawText,
       transaction.status,
@@ -287,15 +289,15 @@ export async function deleteTransaction(id: TransactionIdType): Promise<void> {
  * Confirm transaction (mark as confirmed with dirty flag for sync)
  * Issue #109: Confirm changes need cloud sync
  *
- * MVP4: Set dirty_sync flag to mark for future sync
+ * Sets status = 'confirmed' and dirty_sync flag to mark for future sync
  * MVP5: Bidirectional sync will push confirmed status to cloud
  */
 export async function confirmTransaction(id: TransactionIdType): Promise<void> {
   const database = await getDb();
   const now = new Date().toISOString();
   await database.execute(
-    'UPDATE transactions SET confirmed_at = ?, updated_at = ?, dirty_sync = ? WHERE id = ?',
-    [now, now, 1, id],
+    'UPDATE transactions SET status = ?, updated_at = ?, dirty_sync = ? WHERE id = ?',
+    ['confirmed', now, 1, id],
   );
 }
 
@@ -424,6 +426,7 @@ export async function bulkUpsertTransactions(transactions: Transaction[]): Promi
 
   // Execute upserts in sequence (SQLite doesn't support batch well in Tauri)
   for (const tx of transactions) {
+    const confirmedAtValue = tx.status === 'confirmed' ? tx.updatedAt : null;
     await database.execute(
       `INSERT OR REPLACE INTO transactions
        (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version, dirty_sync)
@@ -442,7 +445,7 @@ export async function bulkUpsertTransactions(transactions: Transaction[]): Promi
         tx.date,
         tx.createdAt,
         tx.updatedAt,
-        tx.confirmedAt,
+        confirmedAtValue,
         tx.confidence,
         tx.rawText,
         tx.status,

@@ -34,12 +34,12 @@ export interface SyncResult {
  */
 function resolveConflict(cloudTx: Transaction, localTx: Transaction): Transaction {
   // Rule 1: Local confirmed takes priority over unconfirmed cloud
-  if (localTx.confirmedAt && !cloudTx.confirmedAt) {
+  if (localTx.status === 'confirmed' && cloudTx.status !== 'confirmed') {
     logger.debug('sync_conflict_resolved', {
       txId: localTx.id,
       strategy: 'local_confirmed_wins',
-      localConfirmedAt: localTx.confirmedAt,
-      cloudConfirmedAt: cloudTx.confirmedAt,
+      localStatus: localTx.status,
+      cloudStatus: cloudTx.status,
     });
     return localTx;
   }

@@ -70,7 +70,7 @@ function reducer(state: State, action: Action): State {
       return {
         status: 'success',
         transactions: state.transactions.map(t =>
-          t.id === action.id ? { ...t, confirmedAt: new Date().toISOString() } : t
+          t.id === action.id ? { ...t, status: 'confirmed', updatedAt: new Date().toISOString() } : t
         ),
       };
 
@@ -197,7 +197,7 @@ export function useTransactionLogic(userId: UserId | null) {
   );
 
   const unconfirmedCount = (state.status === 'success' || state.status === 'error')
-    ? state.transactions.filter(t => !t.confirmedAt).length
+    ? state.transactions.filter(t => t.status !== 'confirmed').length
     : 0;
 
   const clearFilters = useCallback(() => {

@@ -98,7 +98,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   // Phase 4: Pending transactions (unconfirmed only, limit 5)
   const pendingTransactions = useMemo(() => {
     return transactions
-      .filter(tx => !tx.confirmedAt)
+      .filter(tx => tx.status !== 'confirmed')
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 5)
       .map(tx => ({

@@ -477,7 +477,7 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
     { year: 'numeric', month: 'short', day: '2-digit' }
   );
 
-  const isConfirmed = !!transaction.confirmedAt;
+  const isConfirmed = transaction.status === 'confirmed';
   const isIncome = transaction.type === 'income';
   const categoryKey = `transaction.categories.${transaction.category}` as const;
 
