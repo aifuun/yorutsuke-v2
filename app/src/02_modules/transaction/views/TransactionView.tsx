@@ -188,11 +188,13 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   useEffect(() => {
     const cleanup = on('transaction:synced', () => {
       // Auto-sync completed - reload transactions to show new data
+      // Note: Using latest buildFetchOptions without adding to deps to avoid infinite loop
       load(buildFetchOptions());
     });
 
     return cleanup;
-  }, [load, buildFetchOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load]); // Only depend on load, buildFetchOptions will be captured from closure
 
   // Handle all states (Pillar D: FSM)
   if (state.status === 'idle') {
