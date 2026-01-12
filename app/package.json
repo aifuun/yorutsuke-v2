@@ -17,6 +17,7 @@
     "tauri:1424": "node scripts/tauri-dev.js 1424",
     "tauri:1426": "node scripts/tauri-dev.js 1426",
     "clean:ports": "bash scripts/clean-ports.sh",
+    "clear:ports": "bash scripts/clean-ports.sh",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "lint:css": "stylelint \"src/**/*.css\"",
