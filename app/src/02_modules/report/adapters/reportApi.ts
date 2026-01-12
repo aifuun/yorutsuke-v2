@@ -28,7 +28,7 @@ const TransactionSchema = z.object({
   date: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  confirmedAt: z.string().nullable(),
+  status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
   confidence: z.number().min(0).max(1).nullable(),
   rawText: z.string().nullable(),
 });

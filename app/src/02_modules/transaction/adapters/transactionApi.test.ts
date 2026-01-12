@@ -55,7 +55,7 @@ describe('transactionApi', () => {
             status: 'unconfirmed',
             createdAt: '2026-01-01T10:00:00Z',
             updatedAt: '2026-01-01T10:00:00Z',
-            confirmedAt: null,
+            status: 'unconfirmed',
             version: 1,
           },
           {
@@ -71,7 +71,7 @@ describe('transactionApi', () => {
             status: 'confirmed',
             createdAt: '2026-01-02T10:00:00Z',
             updatedAt: '2026-01-02T10:00:00Z',
-            confirmedAt: '2026-01-02T12:00:00Z',
+            status: 'confirmed',
             version: 1,
           },
         ],
@@ -246,7 +246,7 @@ describe('transactionApi', () => {
             status: 'confirmed',
             createdAt: '2026-01-05T08:00:00Z',
             updatedAt: '2026-01-05T09:00:00Z',
-            confirmedAt: '2026-01-05T10:00:00Z',
+            status: 'confirmed',
             version: 2,
             // Extra cloud-only fields (should be ignored)
             aiProcessed: true,

@@ -471,12 +471,6 @@ export function DebugView() {
                         <span className="debug-tx-value">{tx.status}</span>
                       </div>
                       <div className="debug-tx-row">
-                        <span className="debug-tx-label">Confirmed:</span>
-                        <span className="debug-tx-value">
-                          {tx.confirmedAt ? new Date(tx.confirmedAt).toLocaleString() : 'No'}
-                        </span>
-                      </div>
-                      <div className="debug-tx-row">
                         <span className="debug-tx-label">Date:</span>
                         <span className="debug-tx-value mono">{tx.date}</span>
                       </div>

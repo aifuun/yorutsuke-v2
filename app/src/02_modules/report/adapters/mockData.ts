@@ -244,7 +244,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     date,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    confirmedAt: random() < confirmRatio ? new Date().toISOString() : null,
+    status: random() < confirmRatio ? 'confirmed' : 'unconfirmed',
     confidence,
     rawText: null,
   };

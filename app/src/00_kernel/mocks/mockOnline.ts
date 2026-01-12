@@ -118,7 +118,6 @@ export function mockTransactionPull(
   date: string;
   createdAt: string;
   updatedAt: string;
-  confirmedAt: string | null;
   confidence: number | null;
   rawText: string | null;
 }> {
@@ -143,7 +142,7 @@ export function mockTransactionPull(
       date: date.toISOString().split('T')[0],
       createdAt: date.toISOString(),
       updatedAt: date.toISOString(),
-      confirmedAt: i % 3 === 0 ? date.toISOString() : null,
+      status: i % 3 === 0 ? 'confirmed' : 'unconfirmed',
       confidence: 0.85 + Math.random() * 0.15,
       rawText: null,
     });

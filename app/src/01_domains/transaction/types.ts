@@ -30,7 +30,6 @@ export interface Transaction {
   date: string;             // YYYY-MM-DD
   createdAt: string;
   updatedAt: string;
-  confirmedAt: string | null;
   status: TransactionStatus; // Sync status (unconfirmed/confirmed/deleted/needs_review)
 
   // AI extraction metadata

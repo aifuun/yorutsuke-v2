@@ -41,7 +41,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   date: '2026-01-15',
   createdAt: '2026-01-15T10:00:00Z',
   updatedAt: '2026-01-15T10:00:00Z',
-  confirmedAt: null,
+  status: 'unconfirmed',
   confidence: null,
   rawText: null,
   ...overrides,
@@ -83,14 +83,14 @@ describe('syncService', () => {
         id: TransactionId('tx-conflict'),
         amount: 5000,
         updatedAt: '2026-01-15T12:00:00Z', // Newer
-        confirmedAt: null,
+        status: 'unconfirmed',
       });
 
       const localTx = createTransaction({
         id: TransactionId('tx-conflict'),
         amount: 3000,
         updatedAt: '2026-01-15T10:00:00Z', // Older
-        confirmedAt: null,
+        status: 'unconfirmed',
       });
 
       mockFetchFromCloud.mockResolvedValue([cloudTx]);
@@ -115,14 +115,14 @@ describe('syncService', () => {
         id: TransactionId('tx-confirmed'),
         amount: 5000,
         updatedAt: '2026-01-15T12:00:00Z', // Newer timestamp
-        confirmedAt: null, // Not confirmed
+        status: 'unconfirmed', // Not confirmed
       });
 
       const localTx = createTransaction({
         id: TransactionId('tx-confirmed'),
         amount: 3000,
         updatedAt: '2026-01-15T10:00:00Z', // Older timestamp
-        confirmedAt: '2026-01-15T11:00:00Z', // But confirmed by user!
+        status: 'confirmed', // But confirmed by user!
       });
 
       mockFetchFromCloud.mockResolvedValue([cloudTx]);
@@ -235,7 +235,7 @@ describe('syncService', () => {
         createTransaction({
           id: TransactionId('tx-local-confirmed'),
           amount: 3000,
-          confirmedAt: null,
+          status: 'unconfirmed',
         }),
       ];
 
@@ -251,7 +251,7 @@ describe('syncService', () => {
         createTransaction({
           id: TransactionId('tx-local-confirmed'),
           amount: 2500,
-          confirmedAt: '2026-01-15T11:00:00Z',
+          status: 'confirmed',
         }),
       ];
 

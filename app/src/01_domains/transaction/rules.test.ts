@@ -26,7 +26,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   date: '2024-01-15',
   createdAt: '2024-01-15T10:00:00Z',
   updatedAt: '2024-01-15T10:00:00Z',
-  confirmedAt: null,
+  status: 'unconfirmed',
   confidence: 0.95,
   rawText: null,
   ...overrides,
