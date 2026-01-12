@@ -6,7 +6,7 @@
 
 ## Decision
 
-Replace TODO.md-based session tracking with a three-layer architecture:
+Replace plans/active/-based session tracking with a three-layer architecture:
 1. **Strategy Layer**: MVP files (`docs/dev/MVP*.md`)
 2. **Tactical Layer**: GitHub Issues + Issue Plans (`.claude/plans/active/#XXX.md`)
 3. **Operational Layer**: Long-term architecture index (`.claude/MEMORY.md` - ADR links only)
@@ -15,7 +15,7 @@ Replace TODO.md-based session tracking with a three-layer architecture:
 
 ### Problem
 The original system had bloated documentation:
-- **TODO.md**: 204 lines of session tracking (temporary)
+- **plans/active/**: 204 lines of session tracking (temporary)
 - **MEMORY.md**: 451 lines mixing decisions, learnings, bugs, and current progress (permanent)
 
 This created maintenance burden:
@@ -58,14 +58,14 @@ This created maintenance burden:
 | Risk | Mitigation |
 |------|-----------|
 | Losing decision history | ADRs are permanent (never deleted) |
-| TODO.md disappears without warning | Deleted deliberately (not accidental) |
+| plans/active/ disappears without warning | Deleted deliberately (not accidental) |
 | Plans not archived | Automated in `*issue close` command |
 | MEMORY.md still bloats | Size limit < 50 lines + enforcement rule |
 
 ## Implementation
 
 ### What Changed
-1. **Deleted**: `.claude/TODO.md` (session tracking now in issue plans)
+1. **Deleted**: `.claude/plans/active/` (session tracking now in issue plans)
 2. **Refactored**: `.claude/MEMORY.md` (451 → 32 lines, ADR index only)
 3. **Created**: `.claude/rules/memory-management.md` (enforcement rules)
 4. **Updated**: 14 command files + 6 documentation files
@@ -99,7 +99,7 @@ This created maintenance burden:
 
 ✅ Verified:
 - All 9 ADRs created and linked from MEMORY.md
-- TODO.md successfully deleted, no broken references
+- plans/active/ successfully deleted, no broken references
 - plans/active/ contains 7 active issue plans
 - MEMORY.md < 50 lines (32 lines)
 - No dangling references in commands or docs

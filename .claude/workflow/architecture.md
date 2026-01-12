@@ -12,7 +12,7 @@
 
 - Understand the three-layer hierarchy (MVP → Issues → TODO)
 - Learn what information lives in each layer
-- See how phases connect: Phase B (planning) → GitHub Issues, Phase C (dev) → TODO.md
+- See how phases connect: Phase B (planning) → GitHub Issues, Phase C (dev) → plans/active/
 - Grasp the `*next` command flow
 
 ### 🟡 Want a detailed example?
@@ -38,7 +38,7 @@ GitHub Issues (Tactical)
 ├─ WHEN: Feature planning (1-7 days)
 └─ EXAMPLE: "#99 batch-result-handler" with Dev Plan comment
 
-TODO.md (Operational)
+plans/active/ (Operational)
 ├─ WHAT: Today's work + progress tracking
 ├─ WHEN: Coding session (same day)
 └─ EXAMPLE: "- [ ] #99 Step 1: Fix timestamp bug"
@@ -57,7 +57,7 @@ GitHub Issues (tactical)
    ↓ (loads from)
 *issue pick
    ↓ (populates)
-TODO.md (operational)
+plans/active/ (operational)
    ↓ (executes)
 *next (Phase 1-4)
    ↓ (completes)
@@ -109,7 +109,7 @@ MVP (acceptance criteria checked)
 
 ---
 
-### Layer 3: TODO.md (.claude/TODO.md)
+### Layer 3: plans/active/ (.claude/plans/active/)
 
 **Lifecycle**: Coding session (same day)  
 **Updates**: Per session  
@@ -176,7 +176,7 @@ Comments:
 Labels: status/planned, tier/t2, pillar/l
 ```
 
-**3. TODO.md** (when you `*issue pick 42`)
+**3. plans/active/** (when you `*issue pick 42`)
 ```markdown
 ## Current Session [2026-01-09]
 
@@ -236,7 +236,7 @@ Mark: [x] Step 1 complete
 | "What's the feature goal?" | MVP goal statement | `docs/dev/MVP*.md` |
 | "How do I implement it?" | Dev plan with steps | GitHub Issue comment |
 | "What tests do I write?" | Test cases | GitHub Issue comment |
-| "What should I do next?" | Next sub-task | `TODO.md` |
+| "What should I do next?" | Next sub-task | `plans/active/` |
 | "Is it done?" | Acceptance criteria | MVP file (checkboxes) |
 | "How do I start coding?" | `*issue pick <n>` | Terminal command |
 
@@ -261,7 +261,7 @@ Mark: [x] Step 1 complete
 - [ ] You can name the three layers (MVP, Issues, TODO)
 - [ ] You know what lifecycle each layer has
 - [ ] You understand Phase B creates Issues from MVP
-- [ ] You understand Phase C executes Issues via TODO.md
+- [ ] You understand Phase C executes Issues via plans/active/
 - [ ] You know when to check each layer
 - [ ] You understand how `*next` navigates between them
 

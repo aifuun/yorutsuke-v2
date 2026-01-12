@@ -4,7 +4,7 @@ Detailed dialogue examples for the `*next` intelligent task navigator.
 
 ## Scenario 1: Active Task with Pending Steps
 
-**Context**: TODO.md has an active issue with uncompleted sub-tasks
+**Context**: plans/active/ has an active issue with uncompleted sub-tasks
 
 ```
 AI: Detected active task:
@@ -37,10 +37,10 @@ Proceeding...
 
 ## Scenario 2: TODO Empty, Recommend Issue
 
-**Context**: TODO.md has no active tasks, current MVP has open issues
+**Context**: plans/active/ has no active tasks, current MVP has open issues
 
 ```
-AI: TODO.md currently has no active tasks.
+AI: plans/active/ currently has no active tasks.
 
 Detected MVP2 (Cloud Upload) with uncompleted issues:
 
@@ -61,7 +61,7 @@ Start #102? (yes/103/104/show-all)
 ```
 AI: Loading Issue #102 details from GitHub...
 
-Creating TODO.md entry:
+Creating plans/active/ entry:
 
 ## Current Session
 ### Active Issue: #102 - S3 Byte Stream Upload Verification
@@ -131,10 +131,10 @@ Select: (a/b/c)
 
 ## Scenario 4: Multiple Active Issues (Edge Case)
 
-**Context**: User has multiple active issues in TODO.md (not recommended)
+**Context**: User has multiple active issues in plans/active/ (not recommended)
 
 ```
-AI: Warning: Multiple active issues detected in TODO.md
+AI: Warning: Multiple active issues detected in plans/active/
 
 #101 Presign URL Integration [In Progress]
 - [x] Remove Mock branch
@@ -223,7 +223,7 @@ AI: Pausing #101...
 Available actions:
 1. Pick different issue from current MVP
 2. Start new issue from backlog
-3. Resume later (keep #101 in TODO.md as paused)
+3. Resume later (keep #101 in plans/active/ as paused)
 
 Select: (1/2/3)
 ```
@@ -247,6 +247,6 @@ Select: (102/103/104)
 - **Cascade logic**: Level 1 → Level 2 → Level 3 (waterfall)
 - **Single focus**: Encourage one active issue at a time
 - **Smart suggestions**: Always show next logical action
-- **Context preservation**: Keep TODO.md as session tracker
+- **Context preservation**: Keep plans/active/ as session tracker
 
 **Reference**: See `.claude/commands/next.md` for workflow specification.

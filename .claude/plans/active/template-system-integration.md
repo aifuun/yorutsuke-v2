@@ -24,7 +24,7 @@
 **验收标准**:
 - [ ] 编辑 MVP 文件时自动提示相关模板
 - [ ] 编辑 Feature Plan 时自动提示工作流指南
-- [ ] 编辑 TODO.md 时自动提示结构模板
+- [ ] 编辑 plans/active/ 时自动提示结构模板
 - [ ] `*plan` 命令显示可用模板列表
 - [ ] `*next` 命令集成模板推荐逻辑
 - [ ] `*issue pick` 提示创建 feature plan
@@ -40,7 +40,7 @@
 | 文件 | 类型 | 改动 |
 |------|------|------|
 | `.claude/rules/planning-context.md` | 新增 | 自动加载规则（paths: MVP + plans） |
-| `.claude/rules/workflow.md` | 修改 | 添加 paths: TODO.md |
+| `.claude/rules/workflow.md` | 修改 | 添加 paths: plans/active/ |
 | `.claude/commands/plan.md` | 修改 | 添加 "Templates Available" 部分 |
 | `.claude/commands/next.md` | 修改 | 添加 "Template Integration" 部分 |
 | `.claude/commands/issue.md` | 修改 | 添加 "Issue Planning Templates" 部分 |
@@ -57,8 +57,8 @@
   - [ ] 编写 Feature Plan 上下文说明
   - [ ] 引用 Two-Step Planning 流程
 - [ ] 更新 `.claude/rules/workflow.md`
-  - [ ] 添加 `paths: .claude/TODO.md`
-  - [ ] 添加 TODO.md 模板引用
+  - [ ] 添加 `paths: .claude/plans/active/`
+  - [ ] 添加 plans/active/ 模板引用
   - [ ] 添加战术层说明
 
 **Phase 2: Command Integration** (~1.5h)
@@ -98,9 +98,9 @@
 |----|------|------|
 | IT-001 | 编辑 `docs/dev/MVP3_BATCH.md` | Claude 提示: "You are working on MVP planning. Template: TEMPLATE-mvp.md" |
 | IT-002 | 编辑 `.claude/plans/active/xxx.md` | Claude 提示: "Feature planning context loaded. Template: TEMPLATE-feature-plan.md" |
-| IT-003 | 编辑 `.claude/TODO.md` | Claude 提示: "Use templates/TEMPLATE-todo.md for structure" |
+| IT-003 | 编辑 `.claude/plans/active/` | Claude 提示: "Use templates/TEMPLATE-todo.md for structure" |
 | IT-004 | 运行 `*plan` | 显示 "Templates Available" section 包含 3 个模板 |
-| IT-005 | 运行 `*next` (TODO.md 为空) | 提示: "Copy templates/TEMPLATE-todo.md" |
+| IT-005 | 运行 `*next` (plans/active/ 为空) | 提示: "Copy templates/TEMPLATE-todo.md" |
 | IT-006 | 运行 `*issue pick 100` (无 feature plan) | 提示: "Create feature plan? templates/TEMPLATE-feature-plan.md" |
 | IT-007 | 查看 `.claude/README.md` | 看到 "📋 Template System (Quick Start)" section |
 | IT-008 | 查看 `CLAUDE.md` | 看到 "Templates & Planning" 表格 |
@@ -186,7 +186,7 @@ You are working on planning documents. Relevant templates and workflows:
 
 战略 (Strategy) → MVP 文件 → 整体方向
 战役 (Campaign) → Feature Plans → 达成目标的系列任务
-战术 (Tactics) → TODO.md → 当前执行的动作
+战术 (Tactics) → plans/active/ → 当前执行的动作
 ```
 
 ### 示例 2: `.claude/commands/plan.md` 更新
@@ -248,7 +248,7 @@ When creating a plan, use the appropriate template:
 
 **Track session tasks**
 → Use: `workflow/templates/TEMPLATE-todo.md`
-→ Update: `TODO.md` during session
+→ Update: `plans/active/` during session
 
 **Triage external issue**
 → Copy: `workflow/templates/TEMPLATE-issue-triage.md`

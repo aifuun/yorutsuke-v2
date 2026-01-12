@@ -1,21 +1,21 @@
 ---
 issue: 139
-title: Refactor TODO.md & MEMORY.md to ADR-based architecture
+title: Refactor plans/active/ & MEMORY.md to ADR-based architecture
 status: completed
 tier: T2
 created: 2026-01-11
 completed: 2026-01-11
 ---
 
-# Issue #139: TODO.md & MEMORY.md Migration
+# Issue #139: plans/active/ & MEMORY.md Migration
 
 ## Objective
-Restructure session tracking and long-term memory to use ADR (Architecture Decision Records) pattern, keeping TODO.md minimal for daily tracking while offloading decisions to formal ADRs.
+Restructure session tracking and long-term memory to use ADR (Architecture Decision Records) pattern, keeping plans/active/ minimal for daily tracking while offloading decisions to formal ADRs.
 
 ## Acceptance Criteria
 - ✅ MEMORY.md reduced from 451 → <100 lines (index + ADR links only)
 - ✅ 4 new ADRs created for major decisions
-- ✅ TODO.md kept as minimal daily checklist (10-15 lines max)
+- ✅ plans/active/ kept as minimal daily checklist (10-15 lines max)
 - ✅ Core commands updated (*next, *issue close, *sync)
 - ✅ All 40+ file references reviewed and updated
 - ✅ No broken links in commands
@@ -100,21 +100,21 @@ Links to formal ADRs in `docs/architecture/ADR/`.
 ---
 
 ### Phase 3: Update Core Commands [3-4 hours]
-**Goal**: Update 6 critical commands that reference TODO.md + MEMORY.md
+**Goal**: Update 6 critical commands that reference plans/active/ + MEMORY.md
 
 **Commands** (in priority order):
 
 1. **`next.md`** (5 references)
-   - [ ] Update "Level 1: Active Tasks (TODO.md)" section
-   - [ ] Change to: Check TODO.md for today's active issues (minimal format)
-   - [ ] Add: If TODO.md empty, scan `.claude/plans/active/` for active issues
+   - [ ] Update "Level 1: Active Tasks (plans/active/)" section
+   - [ ] Change to: Check plans/active/ for today's active issues (minimal format)
+   - [ ] Add: If plans/active/ empty, scan `.claude/plans/active/` for active issues
    - [ ] Update examples
 
 2. **`issue.md`** (8 references)
    - [ ] Line 54: When picking issue, check if plan exists
-   - [ ] Line 69: Create plan file instead of TODO.md entry
+   - [ ] Line 69: Create plan file instead of plans/active/ entry
    - [ ] Line 123: Link to "Create ADR" step
-   - [ ] Line 127: Clear "Current Issue" from TODO.md (still applies)
+   - [ ] Line 127: Clear "Current Issue" from plans/active/ (still applies)
    - [ ] Line 168: Specify "record important ADR"
 
 3. **`sync.md`** (8 references)
@@ -124,12 +124,12 @@ Links to formal ADRs in `docs/architecture/ADR/`.
    - [ ] Simplify example (shorter)
 
 4. **`resume.md`** (7 references)
-   - [ ] Update: Read TODO.md (now minimal)
+   - [ ] Update: Read plans/active/ (now minimal)
    - [ ] Add: Scan `.claude/plans/active/` for context
    - [ ] Update example output
 
 5. **`status.md`** (5 references)
-   - [ ] Update: Show TODO.md + active plans
+   - [ ] Update: Show plans/active/ + active plans
    - [ ] Update: Show MEMORY.md age (link check only)
    - [ ] Remove: Full MEMORY.md scan logic
 
@@ -147,24 +147,24 @@ Links to formal ADRs in `docs/architecture/ADR/`.
 **Goal**: Update remaining references (11 commands + 8 docs)
 
 **Remaining Commands** (11 files):
-- [ ] `bugfix.md` (3 refs) - Update TODO.md references
-- [ ] `hotfix.md` (4 refs) - Update TODO.md references
+- [ ] `bugfix.md` (3 refs) - Update plans/active/ references
+- [ ] `hotfix.md` (4 refs) - Update plans/active/ references
 - [ ] `plan.md` (2 refs) - Output should suggest plan files
 - [ ] `review.md` (1 ref) - Reference plan files
-- [ ] `tidy.md` (7 refs) - Remove TODO.md section entirely
+- [ ] `tidy.md` (7 refs) - Remove plans/active/ section entirely
 - [ ] `audit.md` (2 refs) - Update task tier reference
-- [ ] `scaffold.md` (1 ref) - Update TODO.md output reference
+- [ ] `scaffold.md` (1 ref) - Update plans/active/ output reference
 - [ ] `tier.md` (2 refs) - Update task output format
 - [ ] `issue.md` - (already covered above)
 - [ ] `workflow/release.md` (1 ref) - Update MEMORY.md reference
 - [ ] Commands in workflows/ (next-command.md, etc.)
 
 **Documentation Files** (8 files):
-- [ ] `CLAUDE.md` - Remove TODO.md section, update Memory & Context (lines 50, 63, 293, 294)
-- [ ] `.claude/rules/workflow.md` - Refactor "TODO.md 战术层" to "Issue Plans" (10 refs)
+- [ ] `CLAUDE.md` - Remove plans/active/ section, update Memory & Context (lines 50, 63, 293, 294)
+- [ ] `.claude/rules/workflow.md` - Refactor "plans/active/ 战术层" to "Issue Plans" (10 refs)
 - [ ] `.claude/WORKFLOW.md` - Update all references (architecture section)
 - [ ] `README.md` - Update context management section (2 refs)
-- [ ] `.prot/STRUCTURE.md` - Remove TODO.md, update MEMORY.md (4 refs)
+- [ ] `.prot/STRUCTURE.md` - Remove plans/active/, update MEMORY.md (4 refs)
 - [ ] `docs/dev/OPTIMIZATION_SUMMARY.md` - Update workflow references (2 refs)
 - [ ] `docs/dev/MVP3.1_ROADMAP.md` - Update workflow table (1 ref)
 - [ ] `.claude/workflow/templates/README.md` - Update template references (1 ref)
@@ -180,18 +180,18 @@ Links to formal ADRs in `docs/architecture/ADR/`.
 **Goal**: Ensure workflow still works after changes
 
 **Testing Checklist**:
-- [ ] `*next` command works: Reads TODO.md, suggests issues
+- [ ] `*next` command works: Reads plans/active/, suggests issues
 - [ ] `*issue close` creates ADR properly
 - [ ] `*sync` command updates correctly
 - [ ] `*resume` loads context from plans/
 - [ ] All ADR links in MEMORY.md resolve
-- [ ] No dangling TODO.md references
+- [ ] No dangling plans/active/ references
 - [ ] MEMORY.md renders properly (<100 lines)
 
 **Spot Checks**:
 - [ ] Pick an active issue from `.claude/plans/active/`
 - [ ] Verify issue has corresponding plan file
-- [ ] Run `git grep "TODO.md" | grep -v ".git"` → no unexpected matches
+- [ ] Run `git grep "plans/active/" | grep -v ".git"` → no unexpected matches
 - [ ] Run `git grep "MEMORY.md" | grep -v ".git"` → only expected references
 
 **Final Review**:
@@ -203,7 +203,7 @@ Links to formal ADRs in `docs/architecture/ADR/`.
 
 ## Implementation Notes
 
-### Decision: Keep TODO.md Minimal (Hybrid Approach)
+### Decision: Keep plans/active/ Minimal (Hybrid Approach)
 - **Why**: Session continuity is important
 - **Format**: Just today's active issues (5-10 lines max)
 - **Example**:
@@ -240,7 +240,7 @@ Links to formal ADRs in `docs/architecture/ADR/`.
 - See MIGRATION_TODO_MEMORY_PLAN.md for complete list
 
 **Deleted Files**:
-- None (TODO.md stays as minimal daily checklist)
+- None (plans/active/ stays as minimal daily checklist)
 
 ---
 
@@ -259,7 +259,7 @@ Links to formal ADRs in `docs/architecture/ADR/`.
 
 1. ✅ All 4 ADRs created and linked
 2. ✅ MEMORY.md ≤ 100 lines
-3. ✅ `git grep "TODO.md"` only shows expected locations
+3. ✅ `git grep "plans/active/"` only shows expected locations
 4. ✅ `*next` command works without errors
 5. ✅ `*issue close` creates ADR properly
 6. ✅ All docs updated and links verify

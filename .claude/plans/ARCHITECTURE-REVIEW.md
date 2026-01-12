@@ -35,7 +35,7 @@
 │
 ├── README.md (Master .claude index)
 ├── QUICK-NOTES.md (Quick idea capture)
-├── TODO.md (Current session tasks)
+├── plans/active/ (Current session tasks)
 ├── MEMORY.md (Key decisions)
 └── inbox/
     └── OPEN-QUESTIONS-CLARIFIED.md (Q&A logs)
@@ -59,7 +59,7 @@
 ### 3. Three-Layer Architecture
 ✅ **Layer 1**: MVP (Strategic)
 ✅ **Layer 2**: GitHub Issues (Tactical)
-✅ **Layer 3**: TODO.md (Operational)
+✅ **Layer 3**: plans/active/ (Operational)
 
 ### 4. Navigation & Indexing
 ✅ **WORKFLOW.md** - Quick start + cheatsheet
@@ -93,7 +93,7 @@
 ### Outbound Links (Who it references)
 - **planning.md** → planning-mvp.md, planning-feature.md, planning-reference.md
 - **architecture.md** → architecture-core.md, quick-reference.md, planning.md
-- **development.md** → TODO.md, MEMORY.md, quick-reference.md
+- **development.md** → plans/active/, MEMORY.md, quick-reference.md
 - **feature-development.md** → docs.md, planning.md, development.md
 
 All major links appear to be present and correct.

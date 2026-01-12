@@ -476,5 +476,5 @@ Week 3 (Jan 27-31):
 | MVP3 Plan | [.claude/batch-result-handler-PLAN.md](.claude/batch-result-handler-PLAN.md) | 详细设计 |
 | MVP3 实现 | [.claude/IMPLEMENTATION-COMPLETE-#99.md](.claude/IMPLEMENTATION-COMPLETE-#99.md) | 实现总结 |
 | MVP3 PILLAR | [docs/architecture/](../architecture/) | 架构对齐 |
-| TODO 追踪 | [.claude/TODO.md](.claude/TODO.md) | 会话跟踪 |
+| TODO 追踪 | [.claude/plans/active/](.claude/plans/active/) | 会话跟踪 |
 

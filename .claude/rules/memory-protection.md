@@ -17,7 +17,7 @@ These rules protect project memory files from accidental corruption.
   - **Alternatives**: What was considered
   ```
 
-## TODO.md
+## plans/active/
 
 **Mode**: MODIFY WITH CARE
 

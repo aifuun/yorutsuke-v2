@@ -12,7 +12,7 @@
 │  *resume    →    *issue pick    →    Phase 1-4  →   *sync   │
 │                       │                  │                   │
 │                       ▼                  ▼                   │
-│                   TODO.md           MEMORY.md                │
+│                   plans/active/           MEMORY.md                │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -31,7 +31,7 @@
 1. Pull latest changes
 2. Load `.claude/MEMORY.md` context
 3. Load `.prot/CHEATSHEET.md`
-4. Check `.claude/TODO.md` for pending tasks
+4. Check `.claude/plans/active/` for pending tasks
 
 ### *sync Flow
 1. Stage changes
@@ -78,7 +78,7 @@
 4. **If YES** → Run `*tier` for classification
    **If NO** (pure UI/style) → Skip to step breakdown
 
-5. Break down plan into TODO.md steps
+5. Break down plan into plans/active/ steps
 6. Start execution
 
 ### Execution Flow
@@ -110,7 +110,7 @@
 
 ## Context Management
 
-### TODO.md (Session Tasks)
+### plans/active/ (Session Tasks)
 
 ```markdown
 ## Current Issue: #N - Title
@@ -166,7 +166,7 @@
 | T2 | Local state | `View → Headless → Adapter` | A, D, I, J, L |
 | T3 | Distributed | `View → Saga` | A, B, D, F, M, Q, R |
 
-**Output**: Update TODO.md with Tier + Pillars (if classified)
+**Output**: Update plans/active/ with Tier + Pillars (if classified)
 
 ---
 
@@ -198,7 +198,7 @@
 **Checklist**: @.prot/checklists/in-code.md
 
 For each step:
-1. Check Pillar from TODO.md
+1. Check Pillar from plans/active/
 2. Copy from Template if creating new file
 3. Verify rule compliance
 4. Run tests

@@ -441,7 +441,7 @@ await ddb.send(new UpdateItemCommand({
 5. **文档**
    - [ ] 更新 MVP3_BATCH.md (添加 batch-result-handler 流程图)
    - [ ] 更新 MEMORY.md (决策记录)
-   - [ ] 更新 TODO.md
+   - [ ] 更新 plans/active/
 
 ---
 

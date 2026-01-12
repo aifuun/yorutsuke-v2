@@ -85,7 +85,7 @@ Template for triaging GitHub issues with sections:
 .claude/
 ├── 📋 Session Context (Updated Regularly)
 │   ├── README.md (this structure's master index)
-│   ├── TODO.md (current session tasks)
+│   ├── plans/active/ (current session tasks)
 │   ├── INBOX.md (quick notes)
 │   ├── MEMORY.md (key decisions)
 │   ├── OPEN-QUESTIONS-CLARIFIED.md (Q&A)
@@ -197,7 +197,7 @@ find .claude/plans -name "*auth*" -type f
 2. Start using `plans/active/` for current feature planning
 3. Move future completed features to `plans/archive/`
 4. Keep `plans/backlog/` organized for upcoming features
-5. Update `TODO.md` and `MEMORY.md` regularly
+5. Update `plans/active/` and `MEMORY.md` regularly
 
 ### Optional Enhancements
 - [ ] Add quick-start examples to templates

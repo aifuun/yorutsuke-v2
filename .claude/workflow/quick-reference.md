@@ -8,7 +8,7 @@
 
 ```
 LAYER 1: MVP (Strategic)          LAYER 2: Issues (Tactical)        LAYER 3: TODO (Operational)
-docs/dev/MVP*.md                  GitHub #N + comments              .claude/TODO.md
+docs/dev/MVP*.md                  GitHub #N + comments              .claude/plans/active/
 
 Goal: Shopping Cart               Goal: Cart state management       Goal: Today's work
 
@@ -48,11 +48,11 @@ GitHub Issue #N is READY (has plan, test cases, labels)
      ▼
 PHASE C: Development (workflow/development.md)
      │
-     ├─ *issue pick #N → LOADS GitHub Issue, CREATES TODO.md entry ← CREATES TODO.md Layer
+     ├─ *issue pick #N → LOADS GitHub Issue, CREATES plans/active/ entry ← CREATES plans/active/ Layer
      ├─ *next (Phase 1) → Pre-code checklist
      ├─ *next (Phase 2-3) → Execute steps from dev plan (from Issue comment)
      ├─ *review (Phase 4) → Final check
-     └─ *issue close #N → CLOSES Issue, CLEARS TODO.md, UPDATES MVP
+     └─ *issue close #N → CLOSES Issue, CLEARS plans/active/, UPDATES MVP
      │
      ▼
 MVP file updated (acceptance criteria checked)
@@ -68,7 +68,7 @@ MVP file updated (acceptance criteria checked)
 | Step 2: Open Issues | Feature requirement | GitHub Issue #N | L2: Issues |
 | Step 4: Create plan | Feature decomposition | .claude/*-PLAN.md | L2: Issues (comment) |
 | Step 7: Test cases | Dev plan | .claude/*-TEST-CASES.md | L2: Issues (comment) |
-| *issue pick | GitHub Issue #N | TODO.md entry | L3: TODO |
+| *issue pick | GitHub Issue #N | plans/active/ entry | L3: TODO |
 | *next Phase 1-4 | Dev plan + tests | Code + commits | L3: TODO |
 | *issue close | Complete code | Close Issue + update MVP | L1: MVP |
 
@@ -79,11 +79,11 @@ MVP file updated (acceptance criteria checked)
 ```
 *next command logic:
 
-├─ LEVEL 1: Check TODO.md (Current Session)
+├─ LEVEL 1: Check plans/active/ (Current Session)
 │  ├─ Active issue?
 │  │  ├─ YES → Show next sub-task from dev plan
 │  │  │        Execute it (Phase 1-4)
-│  │  │        Update TODO.md checklist
+│  │  │        Update plans/active/ checklist
 │  │  └─ NO → Go to Level 2
 │  └─ All steps done? → *issue close #N
 │
@@ -92,7 +92,7 @@ MVP file updated (acceptance criteria checked)
 │  │  ├─ YES → Recommend next priority issue
 │  │  │        Ask: "Start #M? (y/n)"
 │  │  │        Load plan from Issue comment
-│  │  │        Create TODO.md entry
+│  │  │        Create plans/active/ entry
 │  │  └─ NO → Go to Level 3
 │  └─ Load dev plan from Issue comment
 │
@@ -110,7 +110,7 @@ MVP file updated (acceptance criteria checked)
 ```bash
 Session 1:
 $ *issue pick 99
-# TODO.md created with #99, loads dev plan from Issue comment
+# plans/active/ created with #99, loads dev plan from Issue comment
 
 $ *next
 # Level 1: Shows "Step 1: Fix timestamp bug", ready to code
@@ -122,7 +122,7 @@ $ *next (after all steps done)
 # Recommends: *issue close 99
 
 $ *issue close 99
-# Closes #99 in GitHub, clears TODO.md entry
+# Closes #99 in GitHub, clears plans/active/ entry
 
 ---
 
@@ -131,12 +131,12 @@ $ *resume
 # Loads MEMORY.md
 
 $ *next
-# Level 2: No active issue in TODO.md
+# Level 2: No active issue in plans/active/
 # Checks GitHub for MVP3.1 issues
 # Recommends: "Start #102 SQS+DLQ? (y/n)"
 
 $ *issue pick 102
-# Loads #102, creates new TODO.md entry with dev plan from comment
+# Loads #102, creates new plans/active/ entry with dev plan from comment
 
 $ *next
 # Level 1: Shows first step from #102 dev plan
@@ -168,7 +168,7 @@ Step 4: Issue is READY
 ```
 Step 1: *issue pick #N
         ├─ Loads: GitHub Issue + comments (dev plan + tests)
-        ├─ Creates: TODO.md entry with sub-tasks from dev plan
+        ├─ Creates: plans/active/ entry with sub-tasks from dev plan
         └─ Status: Issue = in-progress
         ↓
 Step 2: *next (Phase 1: Pre-code)
@@ -177,12 +177,12 @@ Step 2: *next (Phase 1: Pre-code)
         └─ Prepare environment
         ↓
 Step 3: *next (Phase 2: In-code)
-        ├─ For each sub-task in TODO.md:
+        ├─ For each sub-task in plans/active/:
         │  ├─ Execute step from dev plan
         │  ├─ Follow Pillar template
         │  ├─ Run tests
         │  └─ Mark complete ☑️
-        └─ Status: TODO.md checklist progresses
+        └─ Status: plans/active/ checklist progresses
         ↓
 Step 4: *review (Phase 4: Post-code)
         ├─ Final audit
@@ -190,7 +190,7 @@ Step 4: *review (Phase 4: Post-code)
         ↓
 Step 5: *issue close #N
         ├─ Closes: GitHub Issue #N
-        ├─ Clears: TODO.md entry
+        ├─ Clears: plans/active/ entry
         ├─ Commits: With Issue ID
         ├─ Archives: Decision to MEMORY.md
         └─ Updates: MVP acceptance criteria
@@ -227,7 +227,7 @@ Step 6: *sync
        │ *issue pick #N: Load Issue
        ▼
 ┌──────────────────────────┐
-│  TODO.md (Session)       │
+│  plans/active/ (Session)       │
 │  - Issue title           │
 │  - Sub-tasks checklist   │
 │  (Operational)           │
@@ -285,7 +285,7 @@ Step 6: *sync
 - Missing dev plan/test cases
 - No pillar alignment
 
-### TODO Layer (.claude/TODO.md)
+### Issue Plan Layer (.claude/plans/active/)
 
 ✅ DO:
 - Current session date

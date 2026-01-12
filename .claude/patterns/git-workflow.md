@@ -170,7 +170,7 @@ Before committing:
 
 After successful push:
 - Update MEMORY.md with session summary (if significant)
-- Clear TODO.md completed tasks
+- Clear plans/active/ completed tasks
 - Close related GitHub issues
 
 ## Common Scenarios

@@ -170,7 +170,7 @@ development (integration) ◄─┘
 
 **In `.claude/`** (quick access, minimal):
 - `WORKFLOW.md` - This index/cheatsheet (for quick lookup)
-- `TODO.md` - Current session tasks
+- `plans/active/` - Current session tasks
 - `MEMORY.md` - Decisions & learnings
 
 **In `.claude/rules/`** (standards & principles):

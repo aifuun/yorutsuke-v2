@@ -12,8 +12,8 @@ LONG-TERM ORGANIZATION        SESSION TRACKING           EXECUTION
     │                             │                          │
     ▼                             ▼                          ▼
 
-MVP 文件 (路标)          GitHub Issues               TODO.md (清单)
-docs/dev/MVP*.md        + Dev Plan Comments         .claude/TODO.md
+MVP 文件 (路标)          GitHub Issues               plans/active/ (清单)
+docs/dev/MVP*.md        + Dev Plan Comments         .claude/plans/active/
      │                        │                          │
      ├─ 业务目标          ├─ Issue #N              ├─ Current
      ├─ 验收标准          │  ├─ Description       │   Issue
@@ -105,9 +105,9 @@ Labels: status/planned, tier/t3, pillar/b, pillar/q, pillar/r
 
 ---
 
-### Layer 3: TODO.md (Session Tracking)
+### Layer 3: plans/active/ (Session Tracking)
 
-**位置**: `.claude/TODO.md`  
+**位置**: `.claude/plans/active/`  
 **所有者**: AI  
 **更新频率**: Per session  
 **生命周期**: 当日（Session 结束清空或关闭 Issues）  
@@ -131,7 +131,7 @@ Labels: status/planned, tier/t3, pillar/b, pillar/q, pillar/r
 - [ ] #104 migrateImageFiles (4-6h)
 ```
 
-**TODO.md 的职责**:
+**plans/active/ 的职责**:
 - ✅ 记录当前 Session 的 1-3 个活跃 Issue
 - ✅ Session 内的进度追踪（子任务打勾）
 - ✅ 记录下一个要开始的 Issue
@@ -140,7 +140,7 @@ Labels: status/planned, tier/t3, pillar/b, pillar/q, pillar/r
 - ❌ Session 结束后清空
 
 **与 Workflow 的关系**:
-- `workflow/development.md` *issue pick: 创建 TODO.md 条目
+- `workflow/development.md` *issue pick: 创建 plans/active/ 条目
 - `workflow/development.md` *next: 推荐下一个 Sub-task 或 Issue
 
 ---
@@ -160,7 +160,7 @@ GitHub Issues (detailed plan + tests)
 *issue pick
      │
      ▼
-TODO.md (今日工作，operational)
+plans/active/ (今日工作，operational)
      │
      ▼
 *next (执行步骤，execute)
@@ -199,7 +199,7 @@ Step 4-8: Plan → Evaluate → Confirm → Test Cases → Prioritize
 GitHub Issue #N is now READY
 ```
 
-### PHASE C: Development → TODO.md (Execution)
+### PHASE C: Development → plans/active/ (Execution)
 
 ```
 *issue pick #N
@@ -209,7 +209,7 @@ GitHub Issue #N is now READY
      ├─ Dev Plan Comment (from .claude/*-PLAN.md)
      └─ Test Cases Comment (from .claude/*-TEST-CASES.md)
   ↓
-  📝 在 TODO.md 创建活跃任务条目
+  📝 在 plans/active/ 创建活跃任务条目
      ├─ Issue Title
      ├─ Acceptance Criteria (打勾列表)
      └─ Steps from Dev Plan (打勾列表)
@@ -219,17 +219,17 @@ GitHub Issue #N is now READY
 *next (Phase 1-4)
   ↓
   🔨 For each step in dev plan:
-     1. Check Pillar from TODO.md
+     1. Check Pillar from plans/active/
      2. Execute step
      3. Run tests
-     4. Mark step complete in TODO.md
+     4. Mark step complete in plans/active/
   ↓
 *issue close #N
   ↓
   ✅ Close Issue in GitHub
   ✅ Commit with Issue ID
   ✅ Archive decision to MEMORY.md
-  ✅ Clear TODO.md entry
+  ✅ Clear plans/active/ entry
 ```
 
 ---
@@ -240,7 +240,7 @@ GitHub Issue #N is now READY
 |-------|------|------|-------|-----------|---------|
 | **MVP** | `docs/dev/MVP*.md` | Planning release | Tech Lead | 1-4 weeks | Big picture, goals, acceptance |
 | **Issues** | GitHub #N + comments | Planning feature | AI/Tech Lead | 1-7 days | Detailed plan, technical approach |
-| **TODO** | `.claude/TODO.md` | Development session | AI | Same day | Today's work, progress tracking |
+| **TODO** | `.claude/plans/active/` | Development session | AI | Same day | Today's work, progress tracking |
 
 ---
 
@@ -251,7 +251,7 @@ GitHub Issue #N is now READY
 ```
 *next
   │
-  ├─ Level 1: Check TODO.md
+  ├─ Level 1: Check plans/active/
   │  ├─ Active issue?
   │  │  ├─ Yes → Show next sub-task from dev plan
   │  │  │        Execute Phase 1-4
@@ -262,7 +262,7 @@ GitHub Issue #N is now READY
   │  ├─ Uncompleted issues?
   │  │  ├─ Yes → Recommend highest priority issue
   │  │  │        Prompt: "Start #N? (y/n)"
-  │  │  │        Create TODO.md entry on confirm
+  │  │  │        Create plans/active/ entry on confirm
   │  │  └─ No → Go to Level 3
   │  └─ Pull plan from Issue comments
   │
@@ -280,10 +280,10 @@ GitHub Issue #N is now READY
 
 ✅ **You understand the architecture when:**
 
-- [ ] You can explain MVP → Issues → TODO layers
+- [ ] You can explain MVP → Issues → Issue Plan layers
 - [ ] You know what information lives in each layer
 - [ ] You understand Phase B creates Issues from MVP
-- [ ] You understand Phase C executes Issues via TODO.md
+- [ ] You understand Phase C executes Issues via plans/active/
 - [ ] You know when to check each layer (strategic vs tactical vs operational)
 
 ---

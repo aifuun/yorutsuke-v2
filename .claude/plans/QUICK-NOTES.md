@@ -27,7 +27,7 @@ When saving or tidying up (typically at end of session):
 1. **Convert to GitHub Issue** → `*issue new <title>`
    - For bugs or features needing tracking
 
-2. **Add to TODO.md** → Move to TODO.md
+2. **Add to plans/active/** → Move to plans/active/
    - For immediate tasks needing action
 
 3. **Archive to MEMORY.md** → Move to MEMORY.md

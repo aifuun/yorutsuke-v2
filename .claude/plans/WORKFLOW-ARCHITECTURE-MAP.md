@@ -51,7 +51,7 @@
 │  Tactical plans, 1-7 days          Populated by: planning.md         │
 │  (created during Phase B)           Used by: *issue pick              │
 │       ↓                                                                │
-│  Layer 3: TODO.md                                                     │
+│  Layer 3: plans/active/                                                     │
 │  ──────────────                                                       │
 │  Operational tasks, same day        Updated by: *next command        │
 │  (session context)                                                    │
@@ -122,7 +122,7 @@ architecture.md (Architecture Index)
 development.md (Development Execution)
 ├── → architecture.md (Three-layer context)
 ├── → MEMORY.md (Session context)
-├── → TODO.md (Current tasks)
+├── → plans/active/ (Current tasks)
 └── → *next command (AI guidance)
 
 feature-development.md (Lifecycle Guide)

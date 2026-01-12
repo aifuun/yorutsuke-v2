@@ -12,7 +12,7 @@ Master index for all `.claude` directory contents. This directory contains confi
 │   ├── README.md (this file)
 │   ├── WORKFLOW.md (master workflow reference)
 │   ├── MEMORY.md (key decisions & architecture links)
-│   └── TODO.md (session tracking - minimal)
+│   └── plans/active/ (session tracking - minimal)
 │
 ├── 📑 Session Context & Inbox
 │   ├── QUICK-NOTES.md (capture quick ideas, not disruptive)
@@ -215,7 +215,7 @@ Phase D: Release
 | Plan templates | 2 templates | `plans/TEMPLATE-*.md` |
 | Current plans | 1 | `plans/active/` |
 | Archived plans | 4 | `plans/archive/` |
-| Session context | 4 files | `TODO.md`, `INBOX.md`, etc. |
+| Session context | 4 files | `plans/active/`, `INBOX.md`, etc. |
 
 ---
 

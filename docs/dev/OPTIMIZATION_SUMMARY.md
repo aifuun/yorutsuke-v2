@@ -102,7 +102,7 @@ Total workflow docs: 116K across 11 files (well-organized)
 │   ├── release.md (68 lines, 4K) - Phase D guidance
 │   └── quick-reference.md (357 lines, 12K) - Visual one-pager
 │
-├── TODO.md - Current session tracking
+├── plans/active/ - Current session tracking
 └── MEMORY.md - Key decisions and learnings
 ```
 

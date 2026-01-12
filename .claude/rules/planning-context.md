@@ -37,7 +37,7 @@ You are working on planning documents. Relevant templates and workflows:
 ```
 战略 (Strategy)  → MVP 文件        → 整体方向和目标
 战役 (Campaign)  → Feature Plans  → 达成目标的系列任务
-战术 (Tactics)   → TODO.md        → 当前执行的动作
+战术 (Tactics)   → plans/active/        → 当前执行的动作
 ```
 
 ## Quick Actions
