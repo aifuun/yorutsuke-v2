@@ -3,10 +3,10 @@
  * Tests push sync (Local → Cloud) with offline queue
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { transactionPushService } from './transactionPushService';
 import type { Transaction } from '../../../01_domains/transaction';
-import { TransactionId, UserId, ImageId } from '../../../00_kernel/types';
+import { TransactionId, UserId, ImageId, TraceId } from '../../../00_kernel/types';
 
 // Mock dependencies
 const mockFetchDirtyTransactions = vi.fn();
@@ -94,11 +94,12 @@ describe('transactionPushService', () => {
 
   describe('syncDirtyTransactions', () => {
     const userId = UserId('user-1');
+    const traceId = TraceId('test-trace-id');
 
     it('should return early if no dirty transactions', async () => {
       mockFetchDirtyTransactions.mockResolvedValue([]);
 
-      const result = await transactionPushService.syncDirtyTransactions(userId);
+      const result = await transactionPushService.syncDirtyTransactions(userId, traceId);
 
       expect(result).toEqual({ synced: 0, failed: [], queued: 0 });
       expect(mockSyncTransactions).not.toHaveBeenCalled();
@@ -109,7 +110,7 @@ describe('transactionPushService', () => {
       mockFetchDirtyTransactions.mockResolvedValue([dirtyTx]);
       mockGetStatus.mockReturnValue(false); // Offline
 
-      const result = await transactionPushService.syncDirtyTransactions(userId);
+      const result = await transactionPushService.syncDirtyTransactions(userId, traceId);
 
       expect(result.synced).toBe(0);
       expect(result.queued).toBe(1);
@@ -133,7 +134,7 @@ describe('transactionPushService', () => {
         failed: [],
       });
 
-      const result = await transactionPushService.syncDirtyTransactions(userId);
+      const result = await transactionPushService.syncDirtyTransactions(userId, traceId);
 
       expect(result.synced).toBe(2);
       expect(result.failed).toEqual([]);
@@ -153,7 +154,7 @@ describe('transactionPushService', () => {
         failed: ['tx-2'],
       });
 
-      const result = await transactionPushService.syncDirtyTransactions(userId);
+      const result = await transactionPushService.syncDirtyTransactions(userId, traceId);
 
       expect(result.synced).toBe(1);
       expect(result.failed).toEqual([TransactionId('tx-2')]);
@@ -173,7 +174,7 @@ describe('transactionPushService', () => {
       mockSyncTransactions.mockRejectedValue(new Error('Network error'));
 
       await expect(
-        transactionPushService.syncDirtyTransactions(userId)
+        transactionPushService.syncDirtyTransactions(userId, traceId)
       ).rejects.toThrow('Network error');
 
       expect(mockSetSyncStatus).toHaveBeenCalledWith('error');
@@ -193,7 +194,7 @@ describe('transactionPushService', () => {
         failed: [],
       });
 
-      await transactionPushService.syncDirtyTransactions(userId);
+      await transactionPushService.syncDirtyTransactions(userId, traceId);
 
       expect(mockSetLastSyncedAt).toHaveBeenCalledWith(
         expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)
@@ -203,11 +204,12 @@ describe('transactionPushService', () => {
 
   describe('processQueue', () => {
     const userId = UserId('user-1');
+    const traceId = TraceId('test-trace-id');
 
     it('should return early if queue is empty', async () => {
       mockGetQueue.mockReturnValue([]);
 
-      await transactionPushService.processQueue(userId);
+      await transactionPushService.processQueue(userId, traceId);
 
     });
 
@@ -223,7 +225,7 @@ describe('transactionPushService', () => {
       mockGetQueue.mockReturnValue([queueAction]);
       mockFetchDirtyTransactions.mockResolvedValue([]);
 
-      await transactionPushService.processQueue(userId);
+      await transactionPushService.processQueue(userId, traceId);
 
       expect(mockRemoveFromQueue).toHaveBeenCalledWith('sync-tx-1-123');
     });
@@ -253,7 +255,7 @@ describe('transactionPushService', () => {
       mockGetStatus.mockReturnValue(true);
       mockSyncTransactions.mockRejectedValue(new Error('Sync failed'));
 
-      await transactionPushService.processQueue(userId);
+      await transactionPushService.processQueue(userId, traceId);
 
       // Should attempt to process both actions despite first failure
       expect(mockRemoveFromQueue).not.toHaveBeenCalled(); // Failed actions stay in queue
