@@ -20,3 +20,6 @@ export type { ImageSyncResult } from './services/imageSyncService';
 export { useSyncStore } from './stores/syncStore';
 export type { SyncStatus, SyncAction } from './stores/syncStore';
 export { networkMonitor } from './utils/networkMonitor';
+
+// Components
+export { SyncStatusIndicator } from './components';

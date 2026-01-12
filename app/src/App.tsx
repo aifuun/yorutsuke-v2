@@ -11,6 +11,7 @@ import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
 import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
+import { networkMonitor, transactionPushService } from './02_modules/sync';
 
 // @security: Check once at module load - cannot change at runtime
 const IS_DEVELOPMENT = !import.meta.env.PROD;
@@ -34,6 +35,26 @@ function AppContent() {
   // Set user ID in transaction sync service when it changes
   useEffect(() => {
     transactionSyncService.setUser(userId);
+  }, [userId]);
+
+  // Initialize network monitor on mount (Issue #86 Phase 2)
+  useEffect(() => {
+    networkMonitor.initialize();
+
+    // Subscribe to network status changes
+    const unsubscribe = networkMonitor.subscribe((isOnline) => {
+      if (isOnline && userId) {
+        // Network reconnected - process offline queue
+        transactionPushService.processQueue(userId).catch((error) => {
+          console.error('[App] Failed to process offline queue:', error);
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      networkMonitor.cleanup();
+    };
   }, [userId]);
 
   // @security CRITICAL: Debug panel is ALWAYS disabled in production
