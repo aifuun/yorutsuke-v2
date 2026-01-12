@@ -73,8 +73,13 @@ export const syncStore = createStore<SyncStore>((set, get) => ({
   setSyncStatus: (status) => set({ status }),
 
   setLastSyncedAt: (timestamp) => {
-    // Persist to localStorage
-    localStorage.setItem('sync:lastSyncedAt', timestamp);
+    // Persist to localStorage (with error handling for private browsing)
+    try {
+      localStorage.setItem('sync:lastSyncedAt', timestamp);
+    } catch {
+      // localStorage may fail in private browsing mode or quota exceeded
+      // Continue without persistence - sync still works
+    }
     set({ lastSyncedAt: timestamp });
   },
 

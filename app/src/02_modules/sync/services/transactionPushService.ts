@@ -13,7 +13,8 @@
  */
 
 import { logger } from '../../../00_kernel/telemetry/logger';
-import type { UserId, TransactionId, TraceId } from '../../../00_kernel/types';
+import type { UserId, TraceId } from '../../../00_kernel/types';
+import { TransactionId } from '../../../00_kernel/types';
 import * as transactionDb from '../../transaction/adapters/transactionDb';
 import * as transactionApi from '../../transaction/adapters/transactionApi';
 import { syncStore } from '../stores/syncStore';
@@ -75,10 +76,10 @@ class TransactionPushService {
     }
 
     // Online: Sync to cloud
-    // Set syncing state before IO operations (UI feedback)
-    syncStore.getState().setSyncStatus('syncing');
-
     try {
+      // Set syncing state for UI feedback (inside try block)
+      syncStore.getState().setSyncStatus('syncing');
+
       // ✅ IO-First: Execute all IO operations first
       const result = await transactionApi.syncTransactions(userId, dirty);
 
@@ -117,9 +118,10 @@ class TransactionPushService {
         traceId,
       });
 
+      // ✅ Use branded type constructor instead of unsafe cast
       return {
         synced: result.synced,
-        failed: result.failed.map((id) => id as TransactionId),
+        failed: result.failed.map((id) => TransactionId(String(id))),
         queued: failedTxs.length,
       };
     } catch (error) {

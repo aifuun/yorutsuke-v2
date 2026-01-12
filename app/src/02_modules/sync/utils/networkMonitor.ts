@@ -8,6 +8,7 @@
 
 import { syncStore } from '../stores/syncStore';
 import { logger } from '../../../00_kernel/telemetry/logger';
+import { createTraceId } from '../../../00_kernel/types';
 
 class NetworkMonitor {
   private isInitialized = false;
@@ -31,10 +32,12 @@ class NetworkMonitor {
 
     this.isInitialized = true;
 
+    const traceId = createTraceId();
     logger.info('Network monitor initialized', {
       module: 'sync',
       event: 'NETWORK_MONITOR_INIT',
       isOnline: navigator.onLine,
+      traceId,
     });
   }
 
@@ -49,9 +52,11 @@ class NetworkMonitor {
   }
 
   private handleOnline = (): void => {
+    const traceId = createTraceId();
     logger.info('Network status changed: ONLINE', {
       module: 'sync',
       event: 'NETWORK_ONLINE',
+      traceId,
     });
 
     syncStore.getState().setOnlineStatus(true);
@@ -64,9 +69,11 @@ class NetworkMonitor {
   };
 
   private handleOffline = (): void => {
+    const traceId = createTraceId();
     logger.info('Network status changed: OFFLINE', {
       module: 'sync',
       event: 'NETWORK_OFFLINE',
+      traceId,
     });
 
     syncStore.getState().setOnlineStatus(false);
