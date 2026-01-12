@@ -29,6 +29,7 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
   const [state, setState] = useState<State>({ status: 'idle' });
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const hasAutoSynced = useRef(false);
+  const syncRef = useRef<() => Promise<void>>();
 
   // Load last synced timestamp from localStorage on mount
   useEffect(() => {
@@ -86,6 +87,9 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
     [userId]
   );
 
+  // Keep ref updated with latest sync function (for useEffect without stale closure)
+  syncRef.current = sync;
+
   /**
    * Check if auto-sync should run
    * Returns true if last sync was more than 5 minutes ago
@@ -106,7 +110,7 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
 
   /**
    * Auto-sync on mount if enabled and conditions are met
-   * Only runs once per userId, doesn't depend on sync callback
+   * Uses ref pattern to avoid stale closure and infinite loop issues
    */
   useEffect(() => {
     // Reset flag when userId changes
@@ -119,10 +123,10 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
     if (shouldAutoSync()) {
       logger.info('sync_auto_triggered', { userId, reason: 'mount' });
       hasAutoSynced.current = true;
-      sync();
+      // Use ref to get latest sync function without adding to deps
+      syncRef.current?.();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSync, userId]); // Removed sync from deps to prevent infinite loop
+  }, [autoSync, userId, shouldAutoSync]);
 
   /**
    * Get time since last sync in human-readable format

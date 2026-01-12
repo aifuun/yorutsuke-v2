@@ -10,6 +10,10 @@
 import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand';
 import type { TransactionId } from '../../../00_kernel/types';
+import { logger } from '../../../00_kernel/telemetry/logger';
+
+// Max queue size to prevent unbounded memory growth
+const MAX_QUEUE_SIZE = 1000;
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -92,7 +96,19 @@ export const syncStore = createStore<SyncStore>((set, get) => ({
         return state;
       }
 
-      const newQueue = [...state.queue, action];
+      let newQueue = [...state.queue, action];
+
+      // Enforce max size (FIFO eviction) to prevent unbounded memory growth
+      if (newQueue.length > MAX_QUEUE_SIZE) {
+        const evictedCount = newQueue.length - MAX_QUEUE_SIZE;
+        logger.warn('sync_queue_overflow', {
+          module: 'sync',
+          maxSize: MAX_QUEUE_SIZE,
+          evicted: evictedCount,
+        });
+        newQueue = newQueue.slice(-MAX_QUEUE_SIZE);
+      }
+
       return {
         queue: newQueue,
         pendingCount: newQueue.length,

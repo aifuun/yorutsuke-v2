@@ -98,9 +98,16 @@ class TransactionSyncService {
         source: 'auto',
       });
     } catch (error) {
+      const errorMsg = String(error);
       logger.error('transaction_sync_auto_failed', {
         userId: this.userId,
-        error: String(error),
+        error: errorMsg,
+      });
+
+      // Emit error event so UI can show notification
+      emit('transaction:sync-error', {
+        error: errorMsg,
+        source: 'auto',
       });
     }
   }
