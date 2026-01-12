@@ -215,6 +215,16 @@ export function ImageLightbox({
   return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <div className="lightbox-content lightbox-content--with-details" onClick={(e) => e.stopPropagation()}>
+        {/* Close button - top right corner */}
+        <button
+          type="button"
+          className="lightbox-close"
+          onClick={onClose}
+          aria-label={t('common.close') || 'Close'}
+        >
+          ✕
+        </button>
+
         <div className="lightbox-body">
           {/* Left: Image */}
           <div className="lightbox-image-section">
