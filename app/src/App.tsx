@@ -11,6 +11,8 @@ import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
 import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
+import { networkMonitor, transactionPushService, recoveryService, RecoveryPrompt } from './02_modules/sync';
+import type { RecoveryStatus } from './02_modules/sync';
 
 // @security: Check once at module load - cannot change at runtime
 const IS_DEVELOPMENT = !import.meta.env.PROD;
@@ -19,6 +21,10 @@ function AppContent() {
   const { userId } = useAppContext();
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
+
+  // Recovery state (Issue #86 Phase 4)
+  const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null);
+  const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
 
   // DEBUG: Log view changes
   useEffect(() => {
@@ -36,6 +42,61 @@ function AppContent() {
     transactionSyncService.setUser(userId);
   }, [userId]);
 
+  // Initialize network monitor on mount (Issue #86 Phase 2)
+  useEffect(() => {
+    networkMonitor.initialize();
+
+    // Subscribe to network status changes
+    const unsubscribe = networkMonitor.subscribe((isOnline) => {
+      if (isOnline && userId) {
+        // Network reconnected - process offline queue
+        transactionPushService.processQueue(userId).catch((error) => {
+          console.error('[App] Failed to process offline queue:', error);
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      networkMonitor.cleanup();
+    };
+  }, [userId]);
+
+  // Check for recovery on mount (Issue #86 Phase 4)
+  useEffect(() => {
+    const checkRecovery = async () => {
+      if (!userId) return;
+
+      const status = await recoveryService.checkRecoveryStatus(userId);
+      if (status.needsRecovery) {
+        setRecoveryStatus(status);
+        setShowRecoveryPrompt(true);
+      }
+    };
+
+    checkRecovery();
+  }, [userId]);
+
+  // Recovery handlers
+  const handleSyncNow = useCallback(async () => {
+    if (!userId) return;
+
+    // Trigger full sync
+    await transactionPushService.processQueue(userId);
+    await transactionPushService.syncDirtyTransactions(userId);
+  }, [userId]);
+
+  const handleDiscard = useCallback(async () => {
+    if (!userId) return;
+
+    await recoveryService.clearPendingData(userId);
+  }, [userId]);
+
+  const handleCloseRecovery = useCallback(() => {
+    setShowRecoveryPrompt(false);
+    setRecoveryStatus(null);
+  }, []);
+
   // @security CRITICAL: Debug panel is ALWAYS disabled in production
   // In development, controlled by VITE_DEBUG_PANEL environment variable (.env.local)
   const isDebugUnlocked = isDebugEnabled();
@@ -48,6 +109,16 @@ function AppContent() {
 
   return (
     <div className="app-shell">
+      {/* Recovery Prompt (Issue #86 Phase 4) */}
+      {showRecoveryPrompt && recoveryStatus && (
+        <RecoveryPrompt
+          status={recoveryStatus}
+          onSyncNow={handleSyncNow}
+          onDiscard={handleDiscard}
+          onClose={handleCloseRecovery}
+        />
+      )}
+
       {mockMode !== 'off' && (
         <div className="mock-banner">
           {mockMode === 'online' ? 'MOCK MODE - Data is simulated' : 'OFFLINE MODE - Network disabled'}

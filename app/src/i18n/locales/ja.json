@@ -397,5 +397,34 @@
     "title": "履歴",
     "noTransactions": "この日付には取引がありません",
     "transactions": "取引"
+  },
+  "sync": {
+    "recovery": {
+      "title": "未同期の変更を検出しました",
+      "message": "<strong>{{count}}</strong>件の変更{{plural}}がクラウドに同期されていません。",
+      "localChanges": "ローカルの変更:",
+      "queuedItems": "キューに入っている項目:",
+      "lastSynced": "最終同期:",
+      "hint": "今すぐ同期して変更をアップロードするか、破棄して最初からやり直すか選択してください。",
+      "syncNow": "今すぐ同期",
+      "syncNowLoading": "同期中...",
+      "discard": "変更を破棄",
+      "discardLoading": "破棄中...",
+      "errorSync": "同期に失敗しました。もう一度お試しください。",
+      "errorDiscard": "変更の破棄に失敗しました。もう一度お試しください。"
+    },
+    "status": {
+      "online": "オンライン",
+      "offline": "オフライン",
+      "syncing": "同期中...",
+      "pending": "{{count}}件保留中",
+      "justNow": "たった今",
+      "minuteAgo": "{{count}}分前",
+      "minutesAgo": "{{count}}分前",
+      "hourAgo": "{{count}}時間前",
+      "hoursAgo": "{{count}}時間前",
+      "dayAgo": "{{count}}日前",
+      "daysAgo": "{{count}}日前"
+    }
   }
 }

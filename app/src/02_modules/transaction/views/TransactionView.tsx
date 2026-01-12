@@ -11,6 +11,7 @@ import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
 import { navigationStore } from '../../../00_kernel/navigation';
+import { SyncStatusIndicator } from '../../sync';
 import './ledger.css';
 
 type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
@@ -201,6 +202,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <SyncStatusIndicator hideWhenIdle />
               {syncLogic.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                   {syncLogic.getTimeSinceLastSync()}
@@ -235,6 +237,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <SyncStatusIndicator hideWhenIdle />
               {syncLogic.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                   {syncLogic.getTimeSinceLastSync()}
@@ -269,6 +272,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <SyncStatusIndicator hideWhenIdle />
               {syncLogic.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                   {syncLogic.getTimeSinceLastSync()}
@@ -302,6 +306,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
         title={t('nav.ledger')}
         rightContent={
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <SyncStatusIndicator hideWhenIdle />
             {syncLogic.getTimeSinceLastSync() && (
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
                 {syncLogic.getTimeSinceLastSync()}

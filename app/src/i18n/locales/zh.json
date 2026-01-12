@@ -397,5 +397,34 @@
     "title": "历史记录",
     "noTransactions": "此日期没有交易",
     "transactions": "交易"
+  },
+  "sync": {
+    "recovery": {
+      "title": "检测到未同步的更改",
+      "message": "您有<strong>{{count}}</strong>个{{plural}}更改尚未同步到云端。",
+      "localChanges": "本地更改:",
+      "queuedItems": "队列中的项目:",
+      "lastSynced": "最后同步:",
+      "hint": "选择立即同步以上传您的更改，或丢弃它们重新开始。",
+      "syncNow": "立即同步",
+      "syncNowLoading": "同步中...",
+      "discard": "丢弃更改",
+      "discardLoading": "丢弃中...",
+      "errorSync": "同步失败。请重试。",
+      "errorDiscard": "丢弃更改失败。请重试。"
+    },
+    "status": {
+      "online": "在线",
+      "offline": "离线",
+      "syncing": "同步中...",
+      "pending": "{{count}}个待处理",
+      "justNow": "刚刚",
+      "minuteAgo": "{{count}}分钟前",
+      "minutesAgo": "{{count}}分钟前",
+      "hourAgo": "{{count}}小时前",
+      "hoursAgo": "{{count}}小时前",
+      "dayAgo": "{{count}}天前",
+      "daysAgo": "{{count}}天前"
+    }
   }
 }

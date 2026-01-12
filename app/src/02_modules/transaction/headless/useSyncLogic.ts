@@ -2,8 +2,8 @@
 // Pillar D: FSM - explicit state machine for sync
 import { useState, useCallback, useEffect } from 'react';
 import type { UserId } from '../../../00_kernel/types';
-import type { SyncResult } from '../services/syncService';
-import { syncTransactions } from '../services/syncService';
+import type { PullSyncResult } from '../../sync';
+import { pullTransactions } from '../../sync';
 import { logger } from '../../../00_kernel/telemetry/logger';
 
 const LAST_SYNCED_KEY = 'transaction_last_synced_at';
@@ -13,7 +13,7 @@ const AUTO_SYNC_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 type State =
   | { status: 'idle' }
   | { status: 'syncing' }
-  | { status: 'success'; result: SyncResult }
+  | { status: 'success'; result: PullSyncResult }
   | { status: 'error'; error: string };
 
 /**
@@ -55,7 +55,7 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
       logger.info('sync_started', { userId, startDate, endDate });
 
       try {
-        const result = await syncTransactions(userId, startDate, endDate);
+        const result = await pullTransactions(userId, startDate, endDate);
 
         if (result.errors.length > 0) {
           // Partial failure - show error but keep result
