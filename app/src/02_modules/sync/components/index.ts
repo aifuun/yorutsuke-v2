@@ -3,3 +3,4 @@
  */
 
 export { SyncStatusIndicator } from './SyncStatusIndicator';
+export { RecoveryPrompt } from './RecoveryPrompt';

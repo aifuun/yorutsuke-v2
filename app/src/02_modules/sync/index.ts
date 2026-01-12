@@ -10,6 +10,8 @@ export type { FullSyncResult } from './services/syncCoordinator';
 // Individual services (advanced usage)
 export { transactionPushService } from './services/transactionPushService';
 export { pullTransactions as transactionPullService } from './services/transactionPullService';
+export { recoveryService } from './services/recoveryService';
+export type { RecoveryStatus } from './services/recoveryService';
 
 // Types
 export type { PushSyncResult } from './services/transactionPushService';
@@ -22,4 +24,4 @@ export type { SyncStatus, SyncAction } from './stores/syncStore';
 export { networkMonitor } from './utils/networkMonitor';
 
 // Components
-export { SyncStatusIndicator } from './components';
+export { SyncStatusIndicator, RecoveryPrompt } from './components';
