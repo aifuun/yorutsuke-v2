@@ -21,6 +21,8 @@ export function SyncStatusIndicator({ hideWhenIdle = false }: SyncStatusIndicato
     status: state.status,
   }));
 
+  console.log('[SyncStatusIndicator] render:', { isOnline, pendingCount, lastSyncedAt, status });
+
   const isSyncing = status === 'syncing';
 
   // Hide if idle and hideWhenIdle is true

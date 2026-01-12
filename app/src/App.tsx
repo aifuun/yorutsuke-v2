@@ -40,17 +40,21 @@ function AppContent() {
 
   // Set user ID in transaction sync service when it changes
   useEffect(() => {
+    console.log('[App] Setting userId in transactionSyncService:', userId);
     transactionSyncService.setUser(userId);
   }, [userId]);
 
   // Initialize network monitor on mount (Issue #86 Phase 2)
   useEffect(() => {
+    console.log('[App] Initializing network monitor, userId:', userId);
     networkMonitor.initialize();
 
     // Subscribe to network status changes
     const unsubscribe = networkMonitor.subscribe((isOnline) => {
+      console.log('[App] Network status changed:', isOnline, 'userId:', userId);
       if (isOnline && userId) {
         // Network reconnected - process offline queue
+        console.log('[App] Processing offline queue after reconnect');
         const traceId = createTraceId();
         transactionPushService.processQueue(userId, traceId).catch((error) => {
           console.error('[App] Failed to process offline queue:', error);
@@ -59,6 +63,7 @@ function AppContent() {
     });
 
     return () => {
+      console.log('[App] Cleaning up network monitor');
       unsubscribe();
       networkMonitor.cleanup();
     };

@@ -108,7 +108,9 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
    * Note: shouldAutoSync is called but not in deps to avoid infinite loop
    */
   useEffect(() => {
+    console.log('[useSyncLogic] useEffect triggered:', { autoSync, userId, shouldAutoSync: shouldAutoSync() });
     if (autoSync && userId && shouldAutoSync()) {
+      console.log('[useSyncLogic] Triggering auto-sync');
       logger.info('sync_auto_triggered', { userId, reason: 'mount' });
       sync();
     }

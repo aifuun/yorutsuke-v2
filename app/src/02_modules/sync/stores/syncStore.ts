@@ -70,15 +70,22 @@ export const syncStore = createStore<SyncStore>((set, get) => ({
   isOnline: navigator.onLine,
 
   // Action implementations
-  setSyncStatus: (status) => set({ status }),
+  setSyncStatus: (status) => {
+    console.log('[syncStore] setSyncStatus:', status, new Error().stack?.split('\n')[2]);
+    set({ status });
+  },
 
   setLastSyncedAt: (timestamp) => {
+    console.log('[syncStore] setLastSyncedAt:', timestamp, new Error().stack?.split('\n')[2]);
     // Persist to localStorage
     localStorage.setItem('sync:lastSyncedAt', timestamp);
     set({ lastSyncedAt: timestamp });
   },
 
-  setLastError: (error) => set({ lastError: error }),
+  setLastError: (error) => {
+    console.log('[syncStore] setLastError:', error);
+    set({ lastError: error });
+  },
 
   addToQueue: (action) =>
     set((state) => {
