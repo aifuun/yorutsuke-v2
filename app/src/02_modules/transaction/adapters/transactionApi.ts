@@ -87,6 +87,7 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     createdAt: cloudTx.createdAt,
     updatedAt: cloudTx.updatedAt,
     confirmedAt: cloudTx.confirmedAt ?? null,
+    status: cloudTx.status,
     confidence: null, // Not stored in DynamoDB
     rawText: null, // Not stored in DynamoDB
   };
@@ -248,7 +249,7 @@ export async function syncTransactions(
       confirmedAt: tx.confirmedAt,
       updatedAt: tx.updatedAt,
       createdAt: tx.createdAt,
-      status: 'unconfirmed', // TODO: Get actual status from transaction
+      status: tx.status,
     })),
   };
 

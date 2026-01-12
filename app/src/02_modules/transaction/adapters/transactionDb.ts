@@ -1,7 +1,7 @@
 // Pillar B: Airlock - validate all database responses
 import type { TransactionId as TransactionIdType, UserId as UserIdType } from '../../../00_kernel/types';
 import { TransactionId, UserId, ImageId } from '../../../00_kernel/types';
-import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
+import type { Transaction, TransactionCategory, TransactionType, TransactionStatus } from '../../../01_domains/transaction';
 import { getDb } from '../../../00_kernel/storage/db';
 
 interface DbTransaction {
@@ -41,6 +41,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     confirmedAt: row.confirmed_at,
+    status: (row.status as TransactionStatus) || 'unconfirmed',
     confidence: row.confidence,
     rawText: row.raw_text,
   };
@@ -59,6 +60,8 @@ export interface FetchTransactionsOptions {
   typeFilter?: 'income' | 'expense';
   /** Filter by transaction category */
   categoryFilter?: TransactionCategory;
+  /** Include deleted transactions (for sync comparison). Default: false */
+  includeDeleted?: boolean;
 }
 
 export async function fetchTransactions(
@@ -66,11 +69,20 @@ export async function fetchTransactions(
   options: FetchTransactionsOptions = {},
 ): Promise<Transaction[]> {
   const database = await getDb();
-  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter, typeFilter, categoryFilter } = options;
+  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter, typeFilter, categoryFilter, includeDeleted = false } = options;
 
-  // Filter out deleted transactions (Issue #109: Soft delete)
-  let query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
-  const params: unknown[] = [userId, 'deleted'];
+  // Filter out deleted transactions unless explicitly requested (Issue #109: Soft delete)
+  let query: string;
+  const params: unknown[] = [userId];
+
+  if (includeDeleted) {
+    // Include all transactions (for sync comparison)
+    query = 'SELECT * FROM transactions WHERE user_id = ?';
+  } else {
+    // Default: Filter out deleted transactions
+    query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
+    params.push('deleted');
+  }
 
   if (startDate) {
     query += ' AND date >= ?';
@@ -233,7 +245,7 @@ export async function upsertTransaction(transaction: Transaction): Promise<void>
       transaction.confirmedAt,
       transaction.confidence,
       transaction.rawText,
-      'unconfirmed', // Status from cloud (will be updated in future when cloud has status)
+      transaction.status,
       1, // Version from cloud (will be synced in future)
     ],
   );
@@ -419,7 +431,7 @@ export async function bulkUpsertTransactions(transactions: Transaction[]): Promi
         tx.confirmedAt,
         tx.confidence,
         tx.rawText,
-        'unconfirmed', // Default status
+        tx.status,
         1, // Default version
         0, // Don't mark cloud data as dirty
       ],

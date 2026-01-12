@@ -24,6 +24,7 @@ export interface PullSyncResult {
 
 /**
  * Conflict resolution strategy:
+ * 0. Local deleted → Local wins (user explicitly deleted, must sync to cloud)
  * 1. Local confirmed, cloud not → Local wins (user has manually confirmed)
  * 2. Cloud updatedAt > Local updatedAt → Cloud wins (newer data)
  * 3. Local updatedAt > Cloud updatedAt → Local wins (local edits)
@@ -34,6 +35,18 @@ export interface PullSyncResult {
  * @returns Resolved transaction to save
  */
 function resolveConflict(cloudTx: Transaction, localTx: Transaction): Transaction {
+  // Rule 0: Local deleted takes priority (user explicitly deleted)
+  // This prevents deleted transactions from being resurrected by cloud sync
+  if (localTx.status === 'deleted') {
+    logger.debug('sync_conflict_resolved', {
+      txId: localTx.id,
+      strategy: 'local_deleted_wins',
+      localStatus: localTx.status,
+      cloudStatus: cloudTx.status,
+    });
+    return localTx;
+  }
+
   // Rule 1: Local confirmed takes priority over unconfirmed cloud
   if (localTx.confirmedAt && !cloudTx.confirmedAt) {
     logger.debug('sync_conflict_resolved', {
@@ -108,9 +121,9 @@ export async function pullTransactions(
     const cloudTransactions = await fetchFromCloud(userId, startDate, endDate);
     logger.info('transaction_sync_cloud_fetched', { userId, count: cloudTransactions.length, traceId });
 
-    // Step 2: Fetch from local
+    // Step 2: Fetch from local (including deleted for conflict resolution)
     logger.debug('transaction_sync_phase', { phase: 'fetch_local', userId, traceId });
-    const localTransactions = await fetchFromLocal(userId, { startDate, endDate });
+    const localTransactions = await fetchFromLocal(userId, { startDate, endDate, includeDeleted: true });
     logger.info('transaction_sync_local_fetched', { userId, count: localTransactions.length, traceId });
 
     // Create lookup map for local transactions (by ID)
