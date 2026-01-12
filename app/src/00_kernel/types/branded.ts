@@ -26,11 +26,25 @@ export const ReportId = (id: string): ReportId => id as ReportId;
 
 // IntentId generator - creates new intent for each user action
 export const IntentId = (id: string): IntentId => id as IntentId;
-export const createIntentId = (): IntentId => `intent-${crypto.randomUUID()}` as IntentId;
+export const createIntentId = (): IntentId => {
+  try {
+    return `intent-${crypto.randomUUID()}` as IntentId;
+  } catch {
+    // Fallback for environments without crypto.randomUUID
+    return `intent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as IntentId;
+  }
+};
 
 // TraceId constructor - creates new trace for each receipt lifecycle
 export const TraceId = (id: string): TraceId => id as TraceId;
-export const createTraceId = (): TraceId => `trace-${crypto.randomUUID()}` as TraceId;
+export const createTraceId = (): TraceId => {
+  try {
+    return `trace-${crypto.randomUUID()}` as TraceId;
+  } catch {
+    // Fallback for environments without crypto.randomUUID
+    return `trace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as TraceId;
+  }
+};
 
 // Type guards
 export const isUserId = (id: unknown): id is UserId =>
