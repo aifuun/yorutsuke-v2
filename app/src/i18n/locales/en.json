@@ -395,5 +395,34 @@
     "title": "History",
     "noTransactions": "No transactions on this date",
     "transactions": "Transactions"
+  },
+  "sync": {
+    "recovery": {
+      "title": "Pending Changes Detected",
+      "message": "You have <strong>{{count}}</strong> pending change{{plural}} that haven't been synced to the cloud.",
+      "localChanges": "Local changes:",
+      "queuedItems": "Queued items:",
+      "lastSynced": "Last synced:",
+      "hint": "Choose to sync now to upload your changes, or discard them to start fresh.",
+      "syncNow": "Sync Now",
+      "syncNowLoading": "Syncing...",
+      "discard": "Discard Changes",
+      "discardLoading": "Discarding...",
+      "errorSync": "Failed to sync. Please try again.",
+      "errorDiscard": "Failed to discard changes. Please try again."
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "syncing": "Syncing...",
+      "pending": "{{count}} pending",
+      "justNow": "just now",
+      "minuteAgo": "{{count}} minute ago",
+      "minutesAgo": "{{count}} minutes ago",
+      "hourAgo": "{{count}} hour ago",
+      "hoursAgo": "{{count}} hours ago",
+      "dayAgo": "{{count}} day ago",
+      "daysAgo": "{{count}} days ago"
+    }
   }
 }

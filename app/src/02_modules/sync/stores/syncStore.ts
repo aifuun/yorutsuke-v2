@@ -4,9 +4,11 @@
  *
  * Pillar D: FSM - No boolean flags, use union types for state
  * Pillar J: Locality - State near usage (sync module owns sync state)
+ * ADR-001: Service Pattern - Vanilla store for Service layer access
  */
 
-import { create } from 'zustand';
+import { createStore } from 'zustand/vanilla';
+import { useStore } from 'zustand';
 import type { TransactionId } from '../../../00_kernel/types';
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
@@ -19,10 +21,10 @@ export interface SyncAction {
   payload?: unknown; // Can be any type (Transaction, partial updates, etc.)
 }
 
-interface SyncStore {
-  // Sync status
+// Separate State and Actions interfaces (Store pattern)
+export interface SyncState {
+  // Sync status (Pillar D: FSM - single state source)
   status: SyncStatus;
-  isSyncing: boolean;
   lastSyncedAt: string | null;
   lastError: string | null;
 
@@ -32,24 +34,33 @@ interface SyncStore {
 
   // Network status
   isOnline: boolean;
+}
 
-  // Actions
+export interface SyncActions {
+  // State setters
   setSyncStatus: (status: SyncStatus) => void;
-  setIsSyncing: (syncing: boolean) => void;
   setLastSyncedAt: (timestamp: string) => void;
   setLastError: (error: string | null) => void;
 
+  // Queue operations
   addToQueue: (action: SyncAction) => void;
   removeFromQueue: (actionId: string) => void;
   clearQueue: () => void;
 
+  // Network status
   setOnlineStatus: (online: boolean) => void;
+
+  // Getters for Service layer (Vanilla store pattern)
+  getStatus: () => SyncStatus;
+  getQueue: () => SyncAction[];
+  getIsOnline: () => boolean;
 }
 
-export const useSyncStore = create<SyncStore>((set) => ({
+export type SyncStore = SyncState & SyncActions;
+
+export const syncStore = createStore<SyncStore>((set, get) => ({
   // Initial state
   status: 'idle',
-  isSyncing: false,
   lastSyncedAt: loadLastSyncedAt(),
   lastError: null,
 
@@ -60,8 +71,6 @@ export const useSyncStore = create<SyncStore>((set) => ({
 
   // Action implementations
   setSyncStatus: (status) => set({ status }),
-
-  setIsSyncing: (isSyncing) => set({ isSyncing }),
 
   setLastSyncedAt: (timestamp) => {
     // Persist to localStorage
@@ -101,7 +110,17 @@ export const useSyncStore = create<SyncStore>((set) => ({
     }),
 
   setOnlineStatus: (isOnline) => set({ isOnline }),
+
+  // Getters for Service layer (Vanilla store pattern)
+  getStatus: () => get().status,
+  getQueue: () => get().queue,
+  getIsOnline: () => get().isOnline,
 }));
+
+// React bridge for components (ADR-001 pattern)
+export const useSyncStore = <T,>(selector: (state: SyncStore) => T): T => {
+  return useStore(syncStore, selector);
+};
 
 /**
  * Load lastSyncedAt from localStorage

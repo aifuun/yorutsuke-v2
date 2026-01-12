@@ -2,9 +2,9 @@
 // Pulls transactions from cloud to local (Cloud → Local)
 // Orchestrates cloud-to-local synchronization with conflict resolution
 // Pillar Q: Idempotent - safe to retry
+// Pillar N: Context - TraceId for observability
 
-import type { UserId } from '../../../00_kernel/types';
-import { TraceId as makeTraceId } from '../../../00_kernel/types';
+import type { UserId, TraceId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { fetchTransactionsFromCloud as fetchFromCloud, fetchTransactions as fetchFromLocal, upsertTransaction } from '../../transaction/adapters';
 import { logger } from '../../../00_kernel/telemetry/logger';
@@ -82,18 +82,21 @@ function resolveConflict(cloudTx: Transaction, localTx: Transaction): Transactio
  * Sync transactions from cloud to local
  * Pillar Q: Idempotent - safe to call multiple times
  * Pillar R: Observability - logs sync progress
+ * Pillar N: Context - TraceId for log correlation
  *
  * @param userId - User ID to sync transactions for
+ * @param traceId - Trace ID for observability
  * @param startDate - Optional start date filter (YYYY-MM-DD)
  * @param endDate - Optional end date filter (YYYY-MM-DD)
  * @returns Sync result summary
  */
 export async function pullTransactions(
   userId: UserId,
+  traceId: TraceId,
   startDate?: string,
   endDate?: string
 ): Promise<PullSyncResult> {
-  logger.info('transaction_sync_started', { userId, startDate, endDate });
+  logger.info('transaction_sync_started', { userId, startDate, endDate, traceId });
 
   const errors: string[] = [];
   let synced = 0;
@@ -101,14 +104,14 @@ export async function pullTransactions(
 
   try {
     // Step 1: Fetch from cloud
-    logger.debug('transaction_sync_phase', { phase: 'fetch_cloud', userId });
+    logger.debug('transaction_sync_phase', { phase: 'fetch_cloud', userId, traceId });
     const cloudTransactions = await fetchFromCloud(userId, startDate, endDate);
-    logger.info('transaction_sync_cloud_fetched', { userId, count: cloudTransactions.length });
+    logger.info('transaction_sync_cloud_fetched', { userId, count: cloudTransactions.length, traceId });
 
     // Step 2: Fetch from local
-    logger.debug('transaction_sync_phase', { phase: 'fetch_local', userId });
+    logger.debug('transaction_sync_phase', { phase: 'fetch_local', userId, traceId });
     const localTransactions = await fetchFromLocal(userId, { startDate, endDate });
-    logger.info('transaction_sync_local_fetched', { userId, count: localTransactions.length });
+    logger.info('transaction_sync_local_fetched', { userId, count: localTransactions.length, traceId });
 
     // Create lookup map for local transactions (by ID)
     const localMap = new Map<string, Transaction>();
@@ -117,7 +120,7 @@ export async function pullTransactions(
     }
 
     // Step 3: Merge cloud transactions into local
-    logger.debug('transaction_sync_phase', { phase: 'merge', cloudCount: cloudTransactions.length });
+    logger.debug('transaction_sync_phase', { phase: 'merge', cloudCount: cloudTransactions.length, traceId });
 
     for (const cloudTx of cloudTransactions) {
       try {
@@ -127,7 +130,7 @@ export async function pullTransactions(
           // New transaction from cloud - insert
           await upsertTransaction(cloudTx);
           synced++;
-          logger.debug('transaction_sync_inserted', { txId: cloudTx.id });
+          logger.debug('transaction_sync_inserted', { txId: cloudTx.id, traceId });
         } else {
           // Conflict - resolve and update
           const resolved = resolveConflict(cloudTx, localTx);
@@ -137,11 +140,11 @@ export async function pullTransactions(
             await upsertTransaction(resolved);
             synced++;
             conflicts++;
-            logger.debug('transaction_sync_updated', { txId: resolved.id, source: 'cloud' });
+            logger.debug('transaction_sync_updated', { txId: resolved.id, source: 'cloud', traceId });
           } else {
             // Local won - no update needed
             conflicts++;
-            logger.debug('transaction_sync_skipped', { txId: resolved.id, source: 'local' });
+            logger.debug('transaction_sync_skipped', { txId: resolved.id, source: 'local', traceId });
           }
         }
       } catch (error) {
@@ -150,13 +153,13 @@ export async function pullTransactions(
         logger.error('transaction_sync_error', {
           txId: cloudTx.id,
           error: String(error),
+          traceId,
         });
       }
     }
 
     // Step 4: Sync images for synced transactions
     // This checks local images first, only downloads from S3 if needed
-    const traceId = makeTraceId(`sync-${Date.now()}`);
     const imageSyncResult = await syncImagesForTransactions(cloudTransactions, userId, traceId);
 
     const result: PullSyncResult = {
@@ -168,12 +171,13 @@ export async function pullTransactions(
       images: imageSyncResult,
     };
 
-    logger.info('transaction_sync_complete', { ...result });
+    logger.info('transaction_sync_complete', { ...result, traceId });
     return result;
   } catch (error) {
     logger.error('transaction_sync_failed', {
       userId,
       error: String(error),
+      traceId,
     });
 
     return {

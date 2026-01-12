@@ -6,7 +6,7 @@
  * Pillar N: Context - Include context in logs
  */
 
-import { useSyncStore } from '../stores/syncStore';
+import { syncStore } from '../stores/syncStore';
 import { logger } from '../../../00_kernel/telemetry/logger';
 
 class NetworkMonitor {
@@ -23,7 +23,7 @@ class NetworkMonitor {
     }
 
     // Set initial status
-    useSyncStore.getState().setOnlineStatus(navigator.onLine);
+    syncStore.getState().setOnlineStatus(navigator.onLine);
 
     // Listen to browser online/offline events
     window.addEventListener('online', this.handleOnline);
@@ -54,7 +54,7 @@ class NetworkMonitor {
       event: 'NETWORK_ONLINE',
     });
 
-    useSyncStore.getState().setOnlineStatus(true);
+    syncStore.getState().setOnlineStatus(true);
 
     // Notify listeners
     this.listeners.forEach((fn) => fn(true));
@@ -69,7 +69,7 @@ class NetworkMonitor {
       event: 'NETWORK_OFFLINE',
     });
 
-    useSyncStore.getState().setOnlineStatus(false);
+    syncStore.getState().setOnlineStatus(false);
 
     // Notify listeners
     this.listeners.forEach((fn) => fn(false));
@@ -91,7 +91,7 @@ class NetworkMonitor {
    * Get current network status
    */
   getStatus(): boolean {
-    return useSyncStore.getState().isOnline;
+    return syncStore.getState().isOnline;
   }
 }
 

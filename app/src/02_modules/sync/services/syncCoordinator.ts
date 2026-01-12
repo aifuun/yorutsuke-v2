@@ -8,6 +8,7 @@
  */
 
 import type { UserId } from '../../../00_kernel/types';
+import { createTraceId } from '../../../00_kernel/types';
 import { transactionPushService } from './transactionPushService';
 import { pullTransactions } from './transactionPullService';
 import type { PushSyncResult } from './transactionPushService';
@@ -34,30 +35,36 @@ export async function fullSync(
   startDate?: string,
   endDate?: string
 ): Promise<FullSyncResult> {
+  // Create traceId for this sync operation (Pillar N)
+  const traceId = createTraceId();
+
   logger.info('full_sync_started', {
     module: 'sync-coordinator',
     event: 'FULL_SYNC_STARTED',
     userId,
+    traceId,
   });
 
   // Step 1: Push local changes (Local → Cloud)
-  const pushResult = await transactionPushService.syncDirtyTransactions(userId);
+  const pushResult = await transactionPushService.syncDirtyTransactions(userId, traceId);
 
   logger.info('full_sync_push_complete', {
     module: 'sync-coordinator',
     synced: pushResult.synced,
     failed: pushResult.failed.length,
     queued: pushResult.queued,
+    traceId,
   });
 
   // Step 2: Pull new data (Cloud → Local)
-  const pullResult = await pullTransactions(userId, startDate, endDate);
+  const pullResult = await pullTransactions(userId, traceId, startDate, endDate);
 
   logger.info('full_sync_pull_complete', {
     module: 'sync-coordinator',
     synced: pullResult.synced,
     conflicts: pullResult.conflicts,
     errors: pullResult.errors.length,
+    traceId,
   });
 
   logger.info('full_sync_complete', {
@@ -65,6 +72,7 @@ export async function fullSync(
     event: 'FULL_SYNC_COMPLETE',
     push: pushResult,
     pull: pullResult,
+    traceId,
   });
 
   return {
@@ -78,10 +86,12 @@ export async function fullSync(
  * Alias for transactionPushService.syncDirtyTransactions()
  *
  * @param userId - User ID
+ * @param traceId - Trace ID for observability (optional, creates new if not provided)
  * @returns Push result
  */
-export async function pushTransactions(userId: UserId): Promise<PushSyncResult> {
-  return transactionPushService.syncDirtyTransactions(userId);
+export async function pushTransactions(userId: UserId, traceId?: import('../../../00_kernel/types').TraceId): Promise<PushSyncResult> {
+  const tid = traceId || createTraceId();
+  return transactionPushService.syncDirtyTransactions(userId, tid);
 }
 
 /**

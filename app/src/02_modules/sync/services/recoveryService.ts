@@ -13,7 +13,7 @@
 import type { UserId } from '../../../00_kernel/types';
 import { logger } from '../../../00_kernel/telemetry/logger';
 import * as transactionDb from '../../transaction/adapters/transactionDb';
-import { useSyncStore } from '../stores/syncStore';
+import { syncStore } from '../stores/syncStore';
 
 export interface RecoveryStatus {
   needsRecovery: boolean;
@@ -46,10 +46,10 @@ class RecoveryService {
       const dirtyCount = dirtyTransactions.length;
 
       // Check offline queue
-      const queueCount = useSyncStore.getState().queue.length;
+      const queueCount = syncStore.getState().queue.length;
 
       // Get last synced timestamp
-      const lastSyncedAt = useSyncStore.getState().lastSyncedAt;
+      const lastSyncedAt = syncStore.getState().lastSyncedAt;
 
       const needsRecovery = dirtyCount > 0 || queueCount > 0;
 
@@ -119,7 +119,7 @@ class RecoveryService {
       }
 
       // Clear offline queue
-      useSyncStore.getState().clearQueue();
+      syncStore.getState().clearQueue();
 
       logger.info('recovery_clear_completed', {
         module: 'sync',

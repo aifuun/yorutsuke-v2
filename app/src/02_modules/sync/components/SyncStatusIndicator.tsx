@@ -14,12 +14,14 @@ interface SyncStatusIndicatorProps {
 }
 
 export function SyncStatusIndicator({ hideWhenIdle = false }: SyncStatusIndicatorProps) {
-  const { isOnline, pendingCount, lastSyncedAt, isSyncing } = useSyncStore((state) => ({
+  const { isOnline, pendingCount, lastSyncedAt, status } = useSyncStore((state) => ({
     isOnline: state.isOnline,
     pendingCount: state.pendingCount,
     lastSyncedAt: state.lastSyncedAt,
-    isSyncing: state.isSyncing,
+    status: state.status,
   }));
+
+  const isSyncing = status === 'syncing';
 
   // Hide if idle and hideWhenIdle is true
   if (hideWhenIdle && pendingCount === 0 && isOnline) {

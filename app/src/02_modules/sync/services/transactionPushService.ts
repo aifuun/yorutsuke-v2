@@ -13,10 +13,10 @@
  */
 
 import { logger } from '../../../00_kernel/telemetry/logger';
-import type { UserId, TransactionId } from '../../../00_kernel/types';
+import type { UserId, TransactionId, TraceId } from '../../../00_kernel/types';
 import * as transactionDb from '../../transaction/adapters/transactionDb';
 import * as transactionApi from '../../transaction/adapters/transactionApi';
-import { useSyncStore } from '../stores/syncStore';
+import { syncStore } from '../stores/syncStore';
 import type { SyncAction } from '../stores/syncStore';
 import { networkMonitor } from '../utils/networkMonitor';
 
@@ -32,13 +32,14 @@ class TransactionPushService {
    * (Issue #86 Phase 1: Core Sync Service)
    *
    * @param userId - User ID
+   * @param traceId - Trace ID for observability (Pillar N)
    * @returns Result with synced count, failed IDs, and queued count
    */
-  async syncDirtyTransactions(userId: UserId): Promise<PushSyncResult> {
+  async syncDirtyTransactions(userId: UserId, traceId: TraceId): Promise<PushSyncResult> {
     const dirty = await transactionDb.fetchDirtyTransactions(userId);
 
     if (dirty.length === 0) {
-      logger.info('sync_no_dirty', { module: 'sync', userId });
+      logger.info('sync_no_dirty', { module: 'sync', userId, traceId });
       return { synced: 0, failed: [], queued: 0 };
     }
 
@@ -47,6 +48,7 @@ class TransactionPushService {
       event: 'SYNC_STARTED',
       userId,
       dirtyCount: dirty.length,
+      traceId,
     });
 
     // Check network status
@@ -55,6 +57,7 @@ class TransactionPushService {
         module: 'sync',
         event: 'SYNC_QUEUED_OFFLINE',
         count: dirty.length,
+        traceId,
       });
 
       // Add to queue for later retry
@@ -72,10 +75,11 @@ class TransactionPushService {
     }
 
     // Online: Sync to cloud
-    useSyncStore.getState().setIsSyncing(true);
-    useSyncStore.getState().setSyncStatus('syncing');
+    // Set syncing state before IO operations (UI feedback)
+    syncStore.getState().setSyncStatus('syncing');
 
     try {
+      // ✅ IO-First: Execute all IO operations first
       const result = await transactionApi.syncTransactions(userId, dirty);
 
       // Clear dirty flags for successfully synced records
@@ -99,9 +103,10 @@ class TransactionPushService {
         });
       });
 
-      // Update last synced timestamp
-      useSyncStore.getState().setLastSyncedAt(new Date().toISOString());
-      useSyncStore.getState().setSyncStatus('success');
+      // ✅ After all IO completes, update store (triggers UI refresh)
+      const timestamp = new Date().toISOString();
+      syncStore.getState().setLastSyncedAt(timestamp);
+      syncStore.getState().setSyncStatus('success');
 
       logger.info('sync_completed', {
         module: 'sync',
@@ -109,6 +114,7 @@ class TransactionPushService {
         synced: result.synced,
         failed: result.failed.length,
         queued: failedTxs.length,
+        traceId,
       });
 
       return {
@@ -117,17 +123,7 @@ class TransactionPushService {
         queued: failedTxs.length,
       };
     } catch (error) {
-      useSyncStore.getState().setSyncStatus('error');
-      useSyncStore.getState().setLastError(String(error));
-
-      logger.error('sync_failed', {
-        module: 'sync',
-        event: 'SYNC_FAILED',
-        error: String(error),
-        count: dirty.length,
-      });
-
-      // Queue all for retry
+      // Queue all for retry (before store updates)
       dirty.forEach((tx) => {
         this.queueSyncAction({
           id: `sync-${tx.id}-${Date.now()}`,
@@ -138,9 +134,19 @@ class TransactionPushService {
         });
       });
 
+      // ✅ Update store after queueing
+      syncStore.getState().setSyncStatus('error');
+      syncStore.getState().setLastError(String(error));
+
+      logger.error('sync_failed', {
+        module: 'sync',
+        event: 'SYNC_FAILED',
+        error: String(error),
+        count: dirty.length,
+        traceId,
+      });
+
       throw error;
-    } finally {
-      useSyncStore.getState().setIsSyncing(false);
     }
   }
 
@@ -149,9 +155,10 @@ class TransactionPushService {
    * (Issue #86 Phase 1: Offline Queue)
    *
    * @param userId - User ID
+   * @param traceId - Trace ID for observability
    */
-  async processQueue(userId: UserId): Promise<void> {
-    const queue = useSyncStore.getState().queue;
+  async processQueue(userId: UserId, traceId: TraceId): Promise<void> {
+    const queue = syncStore.getState().queue;
 
     if (queue.length === 0) {
       return;
@@ -161,19 +168,21 @@ class TransactionPushService {
       module: 'sync',
       event: 'QUEUE_PROCESS_STARTED',
       queueSize: queue.length,
+      traceId,
     });
 
-    useSyncStore.getState().setIsSyncing(true);
+    syncStore.getState().setSyncStatus('syncing');
 
     for (const action of queue) {
       try {
-        await this.processSyncAction(userId, action);
-        useSyncStore.getState().removeFromQueue(action.id);
+        await this.processSyncAction(userId, action, traceId);
+        syncStore.getState().removeFromQueue(action.id);
 
         logger.debug('queue_action_processed', {
           module: 'sync',
           actionId: action.id,
           type: action.type,
+          traceId,
         });
       } catch (error) {
         logger.error('queue_action_failed', {
@@ -181,17 +190,20 @@ class TransactionPushService {
           event: 'QUEUE_ACTION_FAILED',
           actionId: action.id,
           error: String(error),
+          traceId,
         });
         // Keep in queue for next retry
       }
     }
 
-    useSyncStore.getState().setIsSyncing(false);
+    // Reset to idle after queue processing (success or partial success)
+    syncStore.getState().setSyncStatus('idle');
 
     logger.info('queue_process_completed', {
       module: 'sync',
       event: 'QUEUE_PROCESS_COMPLETED',
-      remaining: useSyncStore.getState().queue.length,
+      remaining: syncStore.getState().queue.length,
+      traceId,
     });
   }
 
@@ -199,10 +211,10 @@ class TransactionPushService {
    * Process a single sync action from queue
    * @private
    */
-  private async processSyncAction(userId: UserId, _action: SyncAction): Promise<void> {
+  private async processSyncAction(userId: UserId, _action: SyncAction, traceId: TraceId): Promise<void> {
     // For now, re-sync all dirty transactions
     // In future, can optimize to sync only the specific transaction
-    await this.syncDirtyTransactions(userId);
+    await this.syncDirtyTransactions(userId, traceId);
   }
 
   /**
@@ -210,14 +222,14 @@ class TransactionPushService {
    * @private
    */
   private queueSyncAction(action: SyncAction): void {
-    useSyncStore.getState().addToQueue(action);
+    syncStore.getState().addToQueue(action);
   }
 
   /**
    * Clear sync queue (for testing/debugging)
    */
   clearQueue(): void {
-    useSyncStore.getState().clearQueue();
+    syncStore.getState().clearQueue();
   }
 }
 
