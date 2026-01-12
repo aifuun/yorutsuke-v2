@@ -129,31 +129,34 @@ export function useTransactionLogic(userId: UserId | null) {
   }, []);
 
   const remove = useCallback(async (id: TransactionId) => {
+    if (!userId) return;
     try {
-      await removeTransaction(id);
+      await removeTransaction(id, userId);
       dispatch({ type: 'DELETE_SUCCESS', id });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
     }
-  }, []);
+  }, [userId]);
 
   const confirm = useCallback(async (id: TransactionId) => {
+    if (!userId) return;
     try {
-      await confirmExistingTransaction(id);
+      await confirmExistingTransaction(id, userId);
       dispatch({ type: 'CONFIRM_SUCCESS', id });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
     }
-  }, []);
+  }, [userId]);
 
   const update = useCallback(async (id: TransactionId, fields: UpdateTransactionFields) => {
+    if (!userId) return;
     try {
-      await updateExistingTransaction(id, fields);
+      await updateExistingTransaction(id, fields, userId);
       dispatch({ type: 'UPDATE_SUCCESS', id, fields });
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
     }
-  }, []);
+  }, [userId]);
 
   // Auto-load on mount
   useEffect(() => {

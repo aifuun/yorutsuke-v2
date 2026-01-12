@@ -14,6 +14,8 @@ import {
   type FetchTransactionsOptions,
   type UpdateTransactionFields,
 } from '../adapters';
+import { pushTransactions } from '../../sync';
+import { logger } from '../../../00_kernel/telemetry/logger';
 
 // Re-export types for views/hooks (Pillar I: Firewall)
 export type { FetchTransactionsOptions, UpdateTransactionFields };
@@ -47,25 +49,57 @@ export async function saveNewTransaction(transaction: Transaction): Promise<void
 
 /**
  * Delete a transaction (soft delete via status)
+ * Issue #86: Triggers cloud sync after local delete
  */
-export async function removeTransaction(id: TransactionId): Promise<void> {
-  return deleteTransaction(id);
+export async function removeTransaction(id: TransactionId, userId: UserId): Promise<void> {
+  // IO-First Pattern: Complete DB operation first
+  await deleteTransaction(id);
+
+  // Trigger cloud sync (async, non-blocking)
+  triggerSync(userId, 'delete');
 }
 
 /**
  * Confirm a transaction
+ * Issue #86: Triggers cloud sync after local confirm
  */
-export async function confirmExistingTransaction(id: TransactionId): Promise<void> {
-  return confirmTransaction(id);
+export async function confirmExistingTransaction(id: TransactionId, userId: UserId): Promise<void> {
+  // IO-First Pattern: Complete DB operation first
+  await confirmTransaction(id);
+
+  // Trigger cloud sync (async, non-blocking)
+  triggerSync(userId, 'confirm');
 }
 
 /**
  * Update transaction fields (Issue #116: Transaction editing)
+ * Issue #86: Triggers cloud sync after local update
  * Supports partial updates: amount, category, description, merchant, date
  */
 export async function updateExistingTransaction(
   id: TransactionId,
-  fields: UpdateTransactionFields
+  fields: UpdateTransactionFields,
+  userId: UserId
 ): Promise<void> {
-  return updateTransaction(id, fields);
+  // IO-First Pattern: Complete DB operation first
+  await updateTransaction(id, fields);
+
+  // Trigger cloud sync (async, non-blocking)
+  triggerSync(userId, 'update');
+}
+
+/**
+ * Trigger cloud sync (async, non-blocking)
+ * Catches errors to avoid blocking user operations
+ * @private
+ */
+function triggerSync(userId: UserId, operation: string): void {
+  pushTransactions(userId).catch((error) => {
+    logger.error('sync_trigger_failed', {
+      module: 'transaction-service',
+      operation,
+      error: String(error),
+    });
+    // Don't throw - sync failure shouldn't block user operations
+  });
 }

@@ -356,3 +356,73 @@ export async function clearAllTransactions(userId: UserIdType): Promise<number> 
   );
   return result.rowsAffected ?? 0;
 }
+
+/**
+ * Fetch transactions marked for cloud sync (Issue #86)
+ * Returns transactions where dirty_sync = 1
+ *
+ * Used by syncService to push local changes to cloud
+ */
+export async function fetchDirtyTransactions(userId: UserIdType): Promise<Transaction[]> {
+  const database = await getDb();
+  const query = 'SELECT * FROM transactions WHERE user_id = ? AND dirty_sync = 1';
+  const rows = await database.select<DbTransaction[]>(query, [userId]);
+  return rows.map(mapDbToTransaction);
+}
+
+/**
+ * Clear dirty_sync flags for successfully synced transactions (Issue #86)
+ * Called after cloud sync succeeds
+ *
+ * @param ids - TransactionIds that were successfully synced
+ */
+export async function clearDirtyFlags(ids: TransactionIdType[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  const database = await getDb();
+  const placeholders = ids.map(() => '?').join(',');
+  const query = `UPDATE transactions SET dirty_sync = 0 WHERE id IN (${placeholders})`;
+  await database.execute(query, ids);
+}
+
+/**
+ * Bulk upsert transactions (Issue #86: Data recovery)
+ * Used when restoring cloud data to local SQLite
+ *
+ * @param transactions - Array of transactions to upsert
+ */
+export async function bulkUpsertTransactions(transactions: Transaction[]): Promise<void> {
+  if (transactions.length === 0) return;
+
+  const database = await getDb();
+
+  // Execute upserts in sequence (SQLite doesn't support batch well in Tauri)
+  for (const tx of transactions) {
+    await database.execute(
+      `INSERT OR REPLACE INTO transactions
+       (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version, dirty_sync)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tx.id,
+        tx.userId,
+        tx.imageId,
+        tx.s3Key,
+        tx.type,
+        tx.category,
+        tx.amount,
+        tx.currency,
+        tx.description,
+        tx.merchant,
+        tx.date,
+        tx.createdAt,
+        tx.updatedAt,
+        tx.confirmedAt,
+        tx.confidence,
+        tx.rawText,
+        'unconfirmed', // Default status
+        1, // Default version
+        0, // Don't mark cloud data as dirty
+      ],
+    );
+  }
+}

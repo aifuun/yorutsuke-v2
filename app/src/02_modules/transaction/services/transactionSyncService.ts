@@ -5,7 +5,7 @@
 import type { UserId } from '../../../00_kernel/types';
 import { on, emit } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
-import { syncTransactions } from './syncService';
+import { pullTransactions } from '../../sync';
 
 // Delay after upload completes before syncing (allow Lambda to process)
 const SYNC_DELAY_MS = 5000; // 5 seconds (Lambda processing time)
@@ -82,7 +82,7 @@ class TransactionSyncService {
     logger.info('transaction_sync_auto_started', { userId: this.userId });
 
     try {
-      const result = await syncTransactions(this.userId);
+      const result = await pullTransactions(this.userId);
       logger.info('transaction_sync_auto_complete', {
         userId: this.userId,
         synced: result.synced,
