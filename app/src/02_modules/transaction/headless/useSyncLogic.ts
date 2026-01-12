@@ -105,13 +105,15 @@ export function useSyncLogic(userId: UserId | null, autoSync: boolean = true) {
 
   /**
    * Auto-sync on mount if enabled and conditions are met
+   * Note: shouldAutoSync is called but not in deps to avoid infinite loop
    */
   useEffect(() => {
     if (autoSync && userId && shouldAutoSync()) {
       logger.info('sync_auto_triggered', { userId, reason: 'mount' });
       sync();
     }
-  }, [userId, autoSync, sync, shouldAutoSync]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, autoSync, sync]); // Removed shouldAutoSync to prevent infinite loop
 
   /**
    * Get time since last sync in human-readable format
