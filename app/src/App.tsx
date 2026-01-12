@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore, useEffect, useCallback } from 'react';
 import { ErrorBoundary, ErrorFallback } from './00_kernel/resilience';
 import { AppProvider, useAppContext } from './00_kernel/context';
 import { subscribeMockMode, getMockSnapshot, isDebugEnabled } from './00_kernel/config';
+import { createTraceId } from './00_kernel/types';
 import { Sidebar, type ViewType } from './components/Sidebar';
 import { ToastContainer } from './components/Toast';
 import { DashboardView } from './02_modules/report';
@@ -50,7 +51,8 @@ function AppContent() {
     const unsubscribe = networkMonitor.subscribe((isOnline) => {
       if (isOnline && userId) {
         // Network reconnected - process offline queue
-        transactionPushService.processQueue(userId).catch((error) => {
+        const traceId = createTraceId();
+        transactionPushService.processQueue(userId, traceId).catch((error) => {
           console.error('[App] Failed to process offline queue:', error);
         });
       }
@@ -82,8 +84,9 @@ function AppContent() {
     if (!userId) return;
 
     // Trigger full sync
-    await transactionPushService.processQueue(userId);
-    await transactionPushService.syncDirtyTransactions(userId);
+    const traceId = createTraceId();
+    await transactionPushService.processQueue(userId, traceId);
+    await transactionPushService.syncDirtyTransactions(userId, traceId);
   }, [userId]);
 
   const handleDiscard = useCallback(async () => {
