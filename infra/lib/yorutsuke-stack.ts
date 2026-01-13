@@ -1,5 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cognito from "aws-cdk-lib/aws-cognito";
@@ -40,6 +41,14 @@ export class YorutsukeStack extends cdk.Stack {
           allowedHeaders: ["*"],
         },
       ],
+    });
+
+    // Deploy merchant list to S3
+    new s3deploy.BucketDeployment(this, "MerchantDataDeployment", {
+      sources: [s3deploy.Source.asset("./lib/data")],
+      destinationBucket: imageBucket,
+      destinationKeyPrefix: "merchants/",
+      prune: false, // Keep existing files
     });
 
     // DynamoDB Table for transactions

@@ -25,6 +25,7 @@ export const TransactionSchema = z.object({
     type: z.enum(['income', 'expense']),
     date: z.string(),
     merchant: z.string(),
+    merchantSource: z.enum(['list_match', 'ocr_fallback', 'unknown', 'user_edited']).optional(), // @ai-intent: Track merchant matching source for analytics
     category: z.string(),
     description: z.string(),
     status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),

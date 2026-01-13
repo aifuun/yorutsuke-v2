@@ -16,6 +16,37 @@ const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
 // Guest data expires after 60 days
 const GUEST_TTL_DAYS = 60;
 
+// Cached merchant list (persists across invocations in same Lambda container)
+let cachedMerchantList = null;
+
+/**
+ * Load merchant list from S3 (cached in memory after first load)
+ */
+async function loadMerchantList() {
+  if (cachedMerchantList) {
+    logger.debug('MERCHANT_LIST_CACHE_HIT', { count: cachedMerchantList.length });
+    return cachedMerchantList;
+  }
+
+  try {
+    const response = await s3.send(new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: 'merchants/common-merchants.json',
+    }));
+
+    const body = await response.Body.transformToString();
+    const data = JSON.parse(body);
+
+    cachedMerchantList = data.merchants.map(m => m.name);
+    logger.info('MERCHANT_LIST_LOADED', { count: cachedMerchantList.length });
+
+    return cachedMerchantList;
+  } catch (error) {
+    logger.warn('MERCHANT_LIST_LOAD_FAILED', { error: String(error) });
+    return [];
+  }
+}
+
 function isGuestUser(userId) {
     return userId.startsWith("device-") || userId.startsWith("ephemeral-");
 }
@@ -25,9 +56,14 @@ function getGuestTTL() {
 }
 
 /**
- * OCR prompt for receipt analysis - Nova Lite optimized
+ * Build OCR prompt with optional merchant list
  */
-const OCR_PROMPT = `あなたは日本語と英語に対応したレシート解析AIです。
+function buildOCRPrompt(merchantList) {
+  const merchantListText = merchantList.length > 0
+    ? `\n\n**既知の店舗リスト** (レシート上の店舗名をこのリストと照合してください):\n${merchantList.join(', ')}\n\nレシート上の店舗名がこのリストのいずれかと完全または部分的に一致する場合（例："7-11" → "セブン-イレブン (7-Eleven)", "ローソン" → "ローソン (Lawson)"), リストから標準化された店舗名を使用してください。一致しない場合は、merchant を "Unknown" に設定してください。`
+    : '';
+
+  return `あなたは日本語と英語に対応したレシート解析AIです。
 この画像はレシートまたは領収書です。以下の情報を抽出してJSON形式で返してください。
 
 必須フィールド:
@@ -43,14 +79,19 @@ const OCR_PROMPT = `あなたは日本語と英語に対応したレシート解
   - utilities: 水电费（水道光熱費）
   - health: 医疗（医療）
   - other: その他
-- description: 取引の説明（簡潔に）
+- description: 取引の説明（簡潔に）${merchantListText}
 
 JSON形式で返してください。マークダウンのコードブロックは使わないでください。
-例: {"amount": 1500, "type": "expense", "date": "2025-01-15", "merchant": "ファミリーマート", "category": "food", "description": "昼食"}`;
+例: {"amount": 1500, "type": "expense", "date": "2025-01-15", "merchant": "ファミリーマート (FamilyMart)", "category": "food", "description": "昼食"}`;
+}
 
 export async function handler(event) {
     const ctx = initContext(event);
     logger.info(EVENTS.IMAGE_PROCESSING_STARTED, { recordCount: event.Records.length });
+
+    // Load merchant list once at start (cached for subsequent invocations)
+    const merchantList = await loadMerchantList();
+    const ocrPrompt = buildOCRPrompt(merchantList);
 
     for (const record of event.Records) {
         const bucket = record.s3.bucket.name;
@@ -113,7 +154,7 @@ export async function handler(event) {
                                     source: { bytes: imageBase64 },
                                 },
                             },
-                            { text: OCR_PROMPT },
+                            { text: ocrPrompt },
                         ],
                     },
                 ],
