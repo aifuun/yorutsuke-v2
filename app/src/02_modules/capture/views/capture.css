@@ -514,8 +514,9 @@
     font-size: 36px;
   }
 
+  /* Keep three cards in one row on mobile - remove single column override */
   .stats-row {
-    grid-template-columns: 1fr;
+    gap: 8px;  /* Smaller gap on mobile */
   }
 
   /* Queue card responsive */

@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
@@ -98,6 +99,15 @@ export class YorutsukeAdminStack extends cdk.Stack {
     });
 
     // ========================================
+    // ACM Certificate (must be in us-east-1 for CloudFront)
+    // ========================================
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      "AdminCertificate",
+      "arn:aws:acm:us-east-1:696249060859:certificate/b109fc0c-f14f-4c00-8339-99ede709069b"
+    );
+
+    // ========================================
     // CloudFront Distribution
     // (Moved before API to enable CORS restriction)
     // ========================================
@@ -107,6 +117,8 @@ export class YorutsukeAdminStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       },
+      domainNames: ["panel.yorutsuke.rolligen.com"],
+      certificate,
       defaultRootObject: "index.html",
       errorResponses: [
         {
@@ -275,8 +287,11 @@ export class YorutsukeAdminStack extends cdk.Stack {
       restApiName: `yorutsuke-admin-api-${env}`,
       description: "Admin API for Yorutsuke",
       defaultCorsPreflightOptions: {
-        // @security: Restrict CORS to CloudFront domain only (not ALL_ORIGINS)
-        allowOrigins: [`https://${distribution.distributionDomainName}`],
+        // @security: Restrict CORS to CloudFront domains only (not ALL_ORIGINS)
+        allowOrigins: [
+          `https://${distribution.distributionDomainName}`,
+          "https://panel.yorutsuke.rolligen.com",
+        ],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
           "Content-Type",

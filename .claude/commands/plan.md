@@ -56,19 +56,98 @@ Analyze MVP goal → Identify features → Map dependencies → Create Issues
 ```
 
 ### *plan #<n>
-**Step 2: Feature Planning** (1-2h)
-
-1. View issue: `gh issue view <n>`
-2. Check complexity (suggest `*tier` if T2/T3)
-3. Load template: `.claude/workflow/templates/TEMPLATE-feature-plan.md`
-4. Follow guide: `.claude/workflow/planning-feature.md`
-5. Save to: `.claude/plans/active/#<n>-name.md`
-6. Update GitHub Issue with plan link
+**Step 2: Feature Planning** (1.5-2h)
 
 **Workflow**:
 ```
-Validate requirements → Create dev plan → Define test cases → Ready to code
+Architecture review → Function contracts + Unit tests → Validate requirements → Create dev plan → Ready to code
 ```
+
+#### Phase 1: Architecture Context (15 min)
+
+**Step 0: Review Architecture Context**
+- **Read relevant ADRs** from `docs/architecture/ADR/`:
+  - If data fetching → check ADR-001 (Service Pattern)
+  - If state management → check ADR-006 (Mock DB), ADR-007 (Cloud Sync)
+  - If UI components → check ADR-008 (Component Library)
+  - If workflow → check ADR-009 (Branch-First), ADR-010 (Three-layer)
+- **Identify applicable Pillars** from `.prot/`:
+  - **T1 tasks** → Pillar A (Nominal Types), Pillar B (Airlock), Pillar L (Headless)
+  - **T2 tasks** → Add Pillar D (FSM), Pillar E (Orchestration)
+  - **T3 tasks** → Add Pillar F (Concurrency), Pillar M (Saga), Pillar Q (Idempotency)
+- **Check architecture patterns** from `docs/architecture/`:
+  - `PATTERNS.md` - Service Pattern, Adapter Pattern, etc.
+  - `LAYERS.md` - 00_kernel, 01_domains, 02_modules structure
+  - `SCHEMA.md` - Data model constraints
+- **Output**: Create "Architecture Context" section in plan with:
+  - Relevant ADRs (with file links)
+  - Applicable Pillars (with checklist)
+  - Architecture patterns to follow
+
+**Step 1: Define Key Functions + Unit Tests** (30 min)
+- **Define core function contracts**:
+  - Function name, parameters with types, return type
+  - Pre-conditions (what must be true before calling)
+  - Post-conditions (what will be true after successful execution)
+  - Side effects (mutations, I/O, events)
+- **Write unit tests BEFORE implementation** (TDD approach):
+  - Test happy path (normal case)
+  - Test edge cases (empty input, boundaries)
+  - Test error cases (invalid input, exceptions)
+  - Tests serve as **executable specifications**
+- **Example**:
+  ```typescript
+  // Function contract
+  function calculateDailyStats(
+    transactions: Transaction[],  // Branded type (Pillar A)
+    date: Date                     // Local timezone
+  ): DailyStats {
+    // Returns: { income: number, expense: number, net: number }
+    // Pre: transactions array (may be empty), date is valid Date object
+    // Post: All amounts in cents (integer), net = income - expense
+    // Side effects: None (pure function)
+  }
+
+  // Unit tests (specification)
+  describe('calculateDailyStats', () => {
+    it('should calculate stats for mixed transactions', () => {
+      const txs = [
+        { type: 'income', amount: 50000, date: '2026-01-12' },
+        { type: 'expense', amount: 30000, date: '2026-01-12' }
+      ];
+      expect(calculateDailyStats(txs, new Date('2026-01-12')))
+        .toEqual({ income: 50000, expense: 30000, net: 20000 });
+    });
+
+    it('should return zeros for empty transactions', () => {
+      expect(calculateDailyStats([], new Date('2026-01-12')))
+        .toEqual({ income: 0, expense: 0, net: 0 });
+    });
+
+    it('should filter by date correctly', () => {
+      const txs = [
+        { type: 'income', amount: 10000, date: '2026-01-11' },
+        { type: 'income', amount: 20000, date: '2026-01-12' }
+      ];
+      expect(calculateDailyStats(txs, new Date('2026-01-12')))
+        .toEqual({ income: 20000, expense: 0, net: 20000 });
+    });
+  });
+  ```
+- **Rationale**: Tests define behavior and serve as acceptance criteria
+- **Output**: Create "Key Functions" section in plan with:
+  - Function signatures with contracts
+  - Unit test specifications (test cases)
+  - Acceptance: All tests pass = feature complete
+
+#### Phase 2: Detailed Planning (45 min)
+
+**Step 2**: View issue: `gh issue view <n>`
+**Step 3**: Check complexity (suggest `*tier` if T2/T3)
+**Step 4**: Load template: `.claude/workflow/templates/TEMPLATE-feature-plan.md`
+**Step 5**: Follow guide: `.claude/workflow/planning-feature.md`
+**Step 6**: Save to: `.claude/plans/active/#<n>-name.md`
+**Step 7**: Update GitHub Issue with plan link
 
 ### *plan <description>
 **Quick Plan** for simple tasks

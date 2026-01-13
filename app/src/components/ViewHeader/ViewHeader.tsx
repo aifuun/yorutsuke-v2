@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNetworkStatus } from '../../00_kernel/network';
+import { useTranslation } from '../../i18n';
 import './ViewHeader.css';
 
 export interface ViewHeaderProps {
@@ -87,6 +89,9 @@ export function ViewHeader({
   dateString,
   className = '',
 }: ViewHeaderProps) {
+  const { isOnline } = useNetworkStatus();
+  const { t } = useTranslation();
+
   return (
     <header className={`view-header ${className}`}>
       <div className="view-header__left">
@@ -96,7 +101,14 @@ export function ViewHeader({
         </div>
         {showDate && <span className="view-header__date">{dateString}</span>}
       </div>
-      {rightContent && <div className="view-header__right">{rightContent}</div>}
+      <div className="view-header__right">
+        {!isOnline && (
+          <span className="network-status network-status--offline">
+            ⚠️ {t('capture.offline')}
+          </span>
+        )}
+        {rightContent}
+      </div>
     </header>
   );
 }
