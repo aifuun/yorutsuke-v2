@@ -1,17 +1,20 @@
 // Pillar L: Views are pure JSX, logic in Service layer
 // MVP0: Migrated from headless hooks to Service pattern
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertTriangle, FileText } from 'lucide-react';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useCaptureQueue, useCaptureStats, useRejection } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
 import { useQuota } from '../hooks/useQuotaState';
 import { captureService } from '../services/captureService';
+import { scannerService } from '../services/scannerService';
 import { quotaService } from '../services/quotaService';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
 import { Icon, ViewHeader, UploadButton } from '../../../components';
+import { ScannerModal } from './ScannerModal';
 import './capture.css';
 
 // Format file size for display
@@ -99,6 +102,10 @@ export function CaptureView() {
   const { isDragging, dragHandlers } = useDragState();
   const { rejection, clearRejection } = useRejection();
 
+  // Scanner state
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   // Auto-clear rejection after 5 seconds
   useEffect(() => {
     if (rejection) {
@@ -114,6 +121,53 @@ export function CaptureView() {
       quotaService.setUser(effectiveUserId);
     }
   }, [effectiveUserId]);
+
+  // Scanner handlers
+  const handleSelectWithScanner = async () => {
+    try {
+      const selected = await open({
+        multiple: false, // Single file for scanner
+        filters: [{
+          name: 'Images',
+          extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+        }],
+      });
+
+      if (!selected || Array.isArray(selected)) return; // Need single file
+
+      // Read file from path
+      const response = await fetch(convertFileSrc(selected));
+      const blob = await response.blob();
+      const fileName = selected.split(/[\\/]/).pop() || 'receipt.jpg';
+      const file = new File([blob], fileName, { type: blob.type });
+
+      setSelectedFile(file);
+
+      // Start scanner workflow
+      await scannerService.startScan(file);
+
+      // Open scanner modal
+      setScannerOpen(true);
+    } catch (e) {
+      console.error('File selection error:', e);
+    }
+  };
+
+  const handleScannerComplete = async (croppedBlob: Blob) => {
+    if (!selectedFile) return;
+
+    // Process scanned image through captureService
+    await captureService.processScannedImage(croppedBlob, selectedFile.name);
+
+    // Close scanner
+    setScannerOpen(false);
+    setSelectedFile(null);
+  };
+
+  const handleScannerCancel = () => {
+    setScannerOpen(false);
+    setSelectedFile(null);
+  };
 
   // Show loading while user ID is being resolved
   if (userLoading) {
@@ -160,7 +214,7 @@ export function CaptureView() {
               </p>
               <p className="drop-hint">{t('capture.supportedFormats')}</p>
               <UploadButton
-                onClick={() => captureService.selectFiles()}
+                onClick={handleSelectWithScanner}
                 className="drop-select-btn"
               >
                 {t('capture.selectFiles')}
@@ -275,6 +329,13 @@ export function CaptureView() {
           </div>
         </div>
       </div>
+
+      {/* Scanner Modal */}
+      <ScannerModal
+        isOpen={scannerOpen}
+        onComplete={handleScannerComplete}
+        onCancel={handleScannerCancel}
+      />
     </div>
   );
 }

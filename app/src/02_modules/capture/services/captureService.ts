@@ -466,6 +466,41 @@ class CaptureService {
   }
 
   /**
+   * Process scanned image from scanner modal
+   * Converts scanned blob to temp file and processes like pasted image
+   */
+  async processScannedImage(scannedBlob: Blob, originalFileName: string): Promise<void> {
+    logger.info(EVENTS.IMAGE_DROPPED, { count: 1, source: 'scanner' });
+
+    try {
+      const tDir = await tempDir();
+      const id = ImageId(crypto.randomUUID());
+      const traceId = createTraceId();
+
+      // Use webp extension since scanner outputs webp
+      const ext = 'webp';
+      const fileName = originalFileName.replace(/\.[^/.]+$/, `.${ext}`);
+      const tempPath = await join(tDir, `scanned-${id}.${ext}`);
+
+      // Write blob to temp directory so Rust can access it by path
+      const buffer = await scannedBlob.arrayBuffer();
+      await writeFile(tempPath, new Uint8Array(buffer));
+
+      const droppedItem: DroppedItem = {
+        id,
+        traceId,
+        name: fileName,
+        preview: convertFileSrc(tempPath),
+        localPath: tempPath,
+      };
+
+      this.handleDrop([droppedItem], []);
+    } catch (e) {
+      logger.error(EVENTS.APP_ERROR, { context: 'process_scanned', error: String(e) });
+    }
+  }
+
+  /**
    * Cleanup resources
    */
   destroy(): void {
