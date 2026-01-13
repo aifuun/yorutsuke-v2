@@ -118,6 +118,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
+  overflow: auto; /* Enable scrolling when zoomed */
 }
 
 .lightbox-image {
@@ -132,6 +133,17 @@
     0 4px 6px rgba(0, 0, 0, 0.07),
     0 10px 20px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease-out, max-width 0.3s ease-out, max-height 0.3s ease-out, cursor 0.3s ease-out;
+  cursor: zoom-in;
+}
+
+.lightbox-image--zoomed {
+  transform: scale(2);
+  cursor: zoom-out;
+  object-fit: initial;
+  max-width: none;
+  max-height: none;
+  transform-origin: center center;
 }
 
 .lightbox-no-image {
@@ -438,6 +450,13 @@
   align-items: center;
   gap: 6px;
   border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Accessibility - Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-image {
+    transition: none;
+  }
 }
 
 /* Responsive adjustments */

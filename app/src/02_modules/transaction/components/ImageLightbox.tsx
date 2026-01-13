@@ -62,6 +62,9 @@ export function ImageLightbox({
     transaction?.date || ''
   );
 
+  // Image zoom state
+  const [isZoomed, setIsZoomed] = useState(false);
+
   // Common merchants for autocomplete (Japanese + English)
   const commonMerchants = [
     // 便利店 (Convenience Stores)
@@ -141,14 +144,20 @@ export function ImageLightbox({
     'コメリ (Komeri)',
   ];
 
+  // Close with zoom reset
+  const handleClose = useCallback(() => {
+    setIsZoomed(false);
+    onClose();
+  }, [onClose]);
+
   // Close on ESC key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     },
-    [onClose]
+    [handleClose]
   );
 
   useEffect(() => {
@@ -214,13 +223,13 @@ export function ImageLightbox({
   // Use Portal to render modal at document body level
   // This escapes stacking context from parent's backdrop-filter
   return createPortal(
-    <div className="lightbox-overlay" onClick={onClose}>
+    <div className="lightbox-overlay" onClick={handleClose}>
       <div className="lightbox-content lightbox-content--with-details" onClick={(e) => e.stopPropagation()}>
         {/* Close button - top right corner */}
         <button
           type="button"
           className="lightbox-close"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label={t('common.close') || 'Close'}
         >
           ✕
@@ -231,7 +240,16 @@ export function ImageLightbox({
           <div className="lightbox-image-section">
             {hasImage ? (
               <div className="lightbox-image-container">
-                <img src={imageUrl} alt={alt} className="lightbox-image" />
+                <img
+                  src={imageUrl}
+                  alt={alt || 'Receipt image'}
+                  className={`lightbox-image ${isZoomed ? 'lightbox-image--zoomed' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent modal close
+                    setIsZoomed(!isZoomed);
+                  }}
+                  style={{ cursor: isZoomed ? 'zoom-out' : 'zoom-in' }}
+                />
               </div>
             ) : (
               <div className="lightbox-no-image">
