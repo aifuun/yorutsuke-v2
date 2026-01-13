@@ -467,8 +467,69 @@ JSONのみを返してください。`;
         raw: jsonText.substring(0, 300),
       });
 
+      // Fallback: Try to extract partial data from malformed JSON (e.g., Nova Pro with truncated lineItems)
+      try {
+        const partialData = this.extractPartialJson(jsonText);
+        if (partialData && Object.keys(partialData).length > 0) {
+          logger.debug("JSON_PARTIAL_EXTRACTION_SUCCESS", {
+            keys: Object.keys(partialData),
+          });
+          return ModelResultSchema.parse(partialData);
+        }
+      } catch (partialError) {
+        logger.warn("JSON_PARTIAL_EXTRACTION_FAILED", {
+          error: partialError.message,
+        });
+      }
+
       // Return empty but valid schema on parse failure
       return ModelResultSchema.parse({});
     }
+  }
+
+  /**
+   * Extract partial JSON from malformed responses (e.g., truncated Nova Pro responses with incomplete lineItems)
+   * Extracts key fields: vendor, totalAmount, subtotal, taxAmount, taxRate, confidence
+   */
+  extractPartialJson(jsonText) {
+    const result = {};
+
+    // Extract vendor (usually near start)
+    const vendorMatch = jsonText.match(/"vendor"\s*:\s*"([^"]*)/);
+    if (vendorMatch) {
+      result.vendor = vendorMatch[1];
+    }
+
+    // Extract totalAmount (try multiple patterns)
+    const totalMatch = jsonText.match(/"totalAmount"\s*:\s*(\d+)/);
+    if (totalMatch) {
+      result.totalAmount = parseInt(totalMatch[1], 10);
+    }
+
+    // Extract subtotal
+    const subtotalMatch = jsonText.match(/"subtotal"\s*:\s*(\d+)/);
+    if (subtotalMatch) {
+      result.subtotal = parseInt(subtotalMatch[1], 10);
+    }
+
+    // Extract taxAmount
+    const taxAmountMatch = jsonText.match(/"taxAmount"\s*:\s*(\d+)/);
+    if (taxAmountMatch) {
+      result.taxAmount = parseInt(taxAmountMatch[1], 10);
+    }
+
+    // Extract taxRate (handle decimals)
+    const taxRateMatch = jsonText.match(/"taxRate"\s*:\s*([\d.]+)/);
+    if (taxRateMatch) {
+      result.taxRate = parseFloat(taxRateMatch[1]);
+    }
+
+    // Extract confidence (0-100)
+    const confidenceMatch = jsonText.match(/"confidence"\s*:\s*(\d+)/);
+    if (confidenceMatch) {
+      result.confidence = parseInt(confidenceMatch[1], 10);
+    }
+
+    return result;
   }
 }
