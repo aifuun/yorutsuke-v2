@@ -29,16 +29,15 @@ export class MultiModelAnalyzer {
   async analyzeReceipt({ imageBase64, imageFormat = 'jpeg', s3Key, bucket, traceId, imageId }) {
     logger.info("MODEL_COMPARISON_STARTED", { traceId, imageId, imageFormat });
 
-    // Run 4 models in parallel with graceful error handling
-    // Replaced Claude Sonnet (geo-restriction issues) with Gemma 3 (Google open-source)
+    // Run 3 models in parallel with graceful error handling
+    // Using Textract, Nova Mini, Nova Pro (Gemma 3 disabled due to API format validation error)
     const results = await Promise.allSettled([
       this.analyzeTextract(s3Key, bucket, traceId),
       this.analyzeNovaMini(imageBase64, imageFormat, traceId),
       this.analyzeNovaProBedrock(imageBase64, imageFormat, traceId),
-      this.analyzeGemma3(imageBase64, imageFormat, traceId),
     ]);
 
-    const modelNames = ["textract", "nova_mini", "nova_pro", "gemma_3"];
+    const modelNames = ["textract", "nova_mini", "nova_pro"];
     const comparison = {};
     const errors = [];
 
@@ -65,8 +64,7 @@ export class MultiModelAnalyzer {
       textract: comparison.textract || null,
       nova_mini: comparison.nova_mini || null,
       nova_pro: comparison.nova_pro || null,
-      gemma_3: comparison.gemma_3 || null,
-      comparisonStatus: errors.length === 4 ? "failed" : "completed",
+      comparisonStatus: errors.length === 3 ? "failed" : "completed",
       comparisonErrors: errors.length > 0 ? errors : undefined,
       comparisonTimestamp: new Date().toISOString(),
     };

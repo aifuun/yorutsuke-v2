@@ -331,7 +331,7 @@ export async function handler(event) {
             try {
                 await ddb.send(new PutItemCommand({
                     TableName: TRANSACTIONS_TABLE_NAME,
-                    Item: marshall(transaction),
+                    Item: marshall(transaction, { removeUndefinedValues: true }),
                     ConditionExpression: "attribute_not_exists(transactionId)",
                 }));
             } catch (ddbError) {
