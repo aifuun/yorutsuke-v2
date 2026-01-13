@@ -60,14 +60,22 @@
 - 3. Map dependencies
 - 4. Create GitHub Issues (minimal info)
 
-**Step 2: Feature-Level Planning** (1-2 hours)
+**Step 2: Feature-Level Planning** (1.5-2 hours)
 → `.claude/workflow/planning-feature.md`
 - When: Ready to develop a specific feature
 - Output: Dev Plan + Test Cases (in GitHub Issue)
-- 1. Validate requirements
-- 2. Create detailed development plan
-- 3. Create test cases with coverage
-- 4. Add to issue + apply labels
+
+**Phase 1: Architecture Preparation** (45 min) — Issue #140
+- 0. Review Architecture Context (15 min)
+  - Read relevant ADRs, identify Pillars, check patterns
+- 1. Define Key Functions + Test Specs (30 min)
+  - Function contracts with pre/post-conditions, unit test specifications (TDD)
+
+**Phase 2: Detailed Planning** (45 min)
+- 2. Validate requirements
+- 3. Create detailed development plan
+- 4. Create test cases with coverage
+- 5. Add to issue + apply labels
 
 **Complete Reference** (all 8 steps):
 → `.claude/workflow/planning-reference.md`
@@ -247,6 +255,7 @@ git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d
 Need to...                          → Go to
 ────────────────────────────────────────────────
 Understand the overall flow         → quick-reference.md
+See planning workflow summary       → docs/workflow/PLANNING_WORKFLOW_SUMMARY.md
 Plan a new feature                  → planning.md (Steps 0-8)
 Understand MVP/Issues/TODO          → architecture.md
 See a complete example              → feature-development.md

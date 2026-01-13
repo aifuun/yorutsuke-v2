@@ -45,7 +45,7 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   date: '2026-01-15',
   createdAt: '2026-01-15T10:00:00Z',
   updatedAt: '2026-01-15T10:00:00Z',
-  confirmedAt: null,
+  status: 'unconfirmed',
   confidence: null,
   rawText: null,
   ...overrides,
@@ -139,14 +139,14 @@ describe('Integration: Full Sync Flow', () => {
       id: TransactionId('tx-confirmed'),
       amount: 5000,
       updatedAt: '2026-01-15T12:00:00Z', // Newer
-      confirmedAt: null, // Not confirmed
+      status: 'unconfirmed', // Not confirmed
     });
 
     const localTx = createTransaction({
       id: TransactionId('tx-confirmed'),
       amount: 3000,
       updatedAt: '2026-01-15T10:00:00Z', // Older
-      confirmedAt: '2026-01-15T11:00:00Z', // But confirmed
+      status: 'confirmed', // But confirmed
     });
 
     mockFetchFromCloud.mockResolvedValue([cloudTx]);
@@ -180,7 +180,7 @@ describe('Integration: Full Sync Flow', () => {
       createTransaction({
         id: TransactionId('tx-local-confirmed'),
         amount: 3000,
-        confirmedAt: null,
+        status: 'unconfirmed',
       }),
 
       // Same in both (cloud default wins)
@@ -203,7 +203,7 @@ describe('Integration: Full Sync Flow', () => {
       createTransaction({
         id: TransactionId('tx-local-confirmed'),
         amount: 2500,
-        confirmedAt: '2026-01-15T11:00:00Z',
+        status: 'confirmed',
       }),
 
       // Same in both

@@ -1,11 +1,12 @@
-# Step 2: Feature-Level Planning (1-2 hours)
+# Feature-Level Planning
 
 > Detailed planning for a single feature before development. Creates implementation plan and test cases.
 
-**Duration**: 1-2 hours  
-**Output**: Dev Plan + Test Cases (in GitHub Issue comments)  
-**Timing**: When ready to start developing a feature  
+**Output**: Dev Plan + Function contracts + Test cases (in GitHub Issue comments)
+**When**: Ready to start developing a feature
 **Prerequisites**: MVP-Level Decomposition complete (see `planning-mvp.md`)
+
+**New in v2**: Architecture review + Function contracts upfront (Issue #140)
 
 ---
 
@@ -38,17 +39,17 @@
 ## 🔄 Workflow Integration
 
 ```
-Day 1: MVP-Level Decomposition (40 min)
+Day 1: MVP-Level Decomposition
 └─ Create Issues #100, #101, #102, etc.
 
 Day 5: Ready to start Feature #100
-└─ Do Feature-Level Planning (1-2h)
+└─ Do Feature-Level Planning
    └─ Create PLAN + TEST-CASES files
    └─ Add to GitHub Issue comment
    └─ Ready to *issue pick and code
 
 Day 8: Ready to start Feature #101
-└─ Do Feature-Level Planning (1-2h)
+└─ Do Feature-Level Planning
    └─ (Now you know how Feature #100 turned out)
    └─ Can adjust Feature #101 plan based on learnings
 ```
@@ -57,9 +58,125 @@ Day 8: Ready to start Feature #101
 
 ---
 
-## 📝 Step 1: Validate Requirements Against Docs
+## 🏗️ Phase 1: Architecture Preparation
 
-**Duration**: 15 minutes
+### Step 0: Review Architecture Context
+
+**Purpose**: Ensure implementation aligns with project architecture before writing code.
+
+#### What to Review
+
+1. **Read relevant ADRs** from `docs/architecture/ADR/`:
+   - Data fetching? → ADR-001 (Service Pattern)
+   - State management? → ADR-006 (Mock DB), ADR-007 (Cloud Sync)
+   - UI components? → ADR-008 (Component Library)
+   - Workflow? → ADR-009 (Branch-First), ADR-010 (Three-layer)
+
+2. **Identify applicable Pillars** from `.prot/`:
+   - **T1 tasks** → Pillar A (Nominal Types), Pillar B (Airlock), Pillar L (Headless)
+   - **T2 tasks** → Add Pillar D (FSM), Pillar E (Orchestration)
+   - **T3 tasks** → Add Pillar F (Concurrency), Pillar M (Saga), Pillar Q (Idempotency)
+
+3. **Check architecture patterns** from `docs/architecture/`:
+   - `PATTERNS.md` - Service Pattern, Adapter Pattern, etc.
+   - `LAYERS.md` - 00_kernel, 01_domains, 02_modules structure
+   - `SCHEMA.md` - Data model constraints
+
+#### Output Format
+
+Create "Architecture Context" section in your plan:
+
+```markdown
+## Architecture Context
+
+### Relevant ADRs
+- [ADR-001: Service Pattern](../docs/architecture/ADR/001-service-pattern.md)
+  - Apply: Use service + hook pattern, not monolithic hooks
+- [ADR-006: Mock DB](../docs/architecture/ADR/006-mock-db.md)
+  - Apply: Mock data in development mode
+
+### Applicable Pillars
+- [x] Pillar A: Nominal Types - Use branded types for IDs
+- [x] Pillar B: Airlock - Validate all API responses with Zod
+- [x] Pillar L: Headless - Separate UI from logic
+- [ ] Pillar D: FSM - Not needed (simple state)
+
+### Architecture Patterns
+- **Service Pattern**: Create `statsService` with Zustand vanilla store
+- **Adapter Pattern**: Wrap API calls in `transactionApi.ts`
+```
+
+---
+
+### Step 1: Define Key Functions + Unit Tests
+
+**Purpose**: Define function contracts and test specifications BEFORE implementation (TDD).
+
+#### What to Define
+
+For each core function:
+1. **Function signature**: Name, parameters with types, return type
+2. **Pre-conditions**: What must be true before calling
+3. **Post-conditions**: What will be true after successful execution
+4. **Side effects**: Mutations, I/O operations, events emitted
+5. **Unit tests**: Test cases covering happy path, edge cases, errors
+
+#### Brief Example
+
+```typescript
+// Function contract
+function calculateDailyStats(
+  transactions: Transaction[],
+  date: Date
+): DailyStats {
+  // Pre: transactions may be empty, date is valid
+  // Post: All amounts in cents, net = income - expense
+  // Side effects: None (pure function)
+}
+
+// Unit tests
+describe('calculateDailyStats', () => {
+  it('should calculate stats for mixed transactions', () => { /* ... */ });
+  it('should return zeros for empty array', () => { /* ... */ });
+  it('should filter by date', () => { /* ... */ });
+  it('should throw on invalid date', () => { /* ... */ });
+});
+```
+
+**Detailed example**: See `.claude/workflow/examples/function-contracts-example.md`
+
+#### Output Format
+
+Create "Key Functions" section in your plan:
+
+```markdown
+## Key Functions
+
+### calculateDailyStats
+- **Signature**: `(transactions: Transaction[], date: Date) => DailyStats`
+- **Pre**: transactions may be empty, date must be valid
+- **Post**: All amounts are integers (cents), net = income - expense
+- **Side effects**: None (pure function)
+- **Tests**: 4 test cases (mixed, empty, filter, error)
+
+### loadTransactionsFromDB
+- **Signature**: `(userId: UserId, date: Date) => Promise<Transaction[]>`
+- **Pre**: userId is valid branded type, date is valid
+- **Post**: Returns array (may be empty), all transactions validated with Zod
+- **Side effects**: SQLite query
+- **Tests**: 3 test cases (found, empty, error)
+```
+
+**Rationale**:
+- Tests define behavior and serve as acceptance criteria
+- All tests passing = feature complete
+- Prevents scope creep (contract is clear)
+
+---
+
+## 🛠️ Phase 2: Detailed Planning
+
+### Step 2: Validate Requirements Against Docs
 
 Ensure all prerequisite docs are ready:
 
@@ -75,9 +192,7 @@ Ensure all prerequisite docs are ready:
 
 ---
 
-## 🛠️ Step 2: Create Detailed Development Plan
-
-**Duration**: 30-45 minutes
+## 🛠️ Step 3: Create Detailed Development Plan
 
 Create `.claude/[feature-name]-PLAN.md`:
 
@@ -96,14 +211,12 @@ Create `.claude/[feature-name]-PLAN.md`:
   - [ ] Create Redux slice (reducer, actions)
   - [ ] Add cart selectors
   - [ ] Write unit tests for reducer
-- **Estimated time**: 2 hours
 - **Pillar concerns**: L (Headless - separate logic), F (Consistency)
 
 ### Step 2: [Module/Component Name]
 - **Files affected**: [list]
 - **Description**: [what this does]
 - **Subtasks**: [checklist]
-- **Estimated time**: [estimate]
 - **Pillar concerns**: [relevant pillars]
 
 ### Step 3: [Module/Component Name]
@@ -122,70 +235,41 @@ Create `.claude/[feature-name]-PLAN.md`:
 - Breaking changes?
 ```
 
-**Example:**
+**Brief example**:
 ```markdown
-# Feature: Shopping Cart State - Development Plan
+# Feature: [Name] - Development Plan
 
 ## Overview
-Implement Redux-based shopping cart state management with persistence
+[1-2 sentence summary]
 
 ## Implementation Steps
 
-### Step 1: Redux Slice Creation
-- **Files affected**: src/redux/cart.slice.ts, src/redux/store.ts
-- **Description**: Create Redux slice for cart state
+### Step 1: [Component Name]
+- **Files affected**: [list]
+- **Description**: [what it does]
 - **Subtasks**:
-  - [ ] Define initial state (items array, total)
-  - [ ] Create addItem action
-  - [ ] Create removeItem action
-  - [ ] Create updateQuantity action
-  - [ ] Create selectors (getItems, getTotal, getCount)
-  - [ ] Write unit tests for all actions
-- **Estimated time**: 2 hours
-- **Pillar concerns**: L (Headless)
+  - [ ] Subtask 1
+  - [ ] Subtask 2
+- **Pillar concerns**: [pillars]
 
-### Step 2: localStorage Middleware
-- **Files affected**: src/middleware/cartPersistence.ts
-- **Description**: Auto-save cart to localStorage on changes
-- **Subtasks**:
-  - [ ] Create middleware that watches cart state
-  - [ ] Save to localStorage on each change
-  - [ ] Load from localStorage on app init
-  - [ ] Handle localStorage errors
-  - [ ] Write integration tests
-- **Estimated time**: 1 hour
-- **Pillar concerns**: Q (Idempotency), R (Observability)
-
-### Step 3: Integration Tests
-- **Files affected**: src/__tests__/cart.integration.test.ts
-- **Description**: Test cart state + persistence together
-- **Subtasks**:
-  - [ ] Test add → localStorage → reload → verify
-  - [ ] Test remove → localStorage → reload → verify
-  - [ ] Test localStorage quota exceeded
-- **Estimated time**: 1 hour
-- **Pillar concerns**: Q (Idempotency)
+### Step 2: [Component Name]
+...
 
 ## Technical Decisions
-- Redux: Centralized state management, good tooling
-- localStorage: Simple persistence, sufficient for shopping cart
-- Middleware: Clean way to handle side effects (persistence)
+- [Decision]: [Rationale]
 
 ## Risk Assessment
-- Low risk: Redux is standard pattern
-- Medium risk: localStorage might fill up (handled in tests)
-- Mitigation: All steps have tests
+- [Risk level]: [Mitigation]
 
 ## Deployment Notes
-- No breaking changes to existing Cart API
-- localStorage migration: Old carts lost (acceptable for v1)
+- [Any breaking changes or migrations]
 ```
+
+**Detailed example**: See `.claude/workflow/examples/dev-plan-example.md`
 
 ---
 
-## 🧪 Step 3: Create Test Cases
-
-**Duration**: 30-45 minutes
+## 🧪 Step 4: Create Test Cases
 
 Create `.claude/[feature-name]-TEST-CASES.md`:
 
@@ -201,115 +285,40 @@ TC-N.M: [Title]
 ```
 ```
 
-**Example:**
+**Brief example**:
 ```markdown
-# Feature: Shopping Cart State - Test Cases
+# Feature: [Name] - Test Cases
 
-## Step 1: Redux Slice Tests
+## Step N: [Component] Tests
 
-### TC-1.1: Add item to empty cart
-- Given: Cart is empty []
-- When: dispatch addItem({id: "coffee", name: "Coffee", price: 5, qty: 2})
+### TC-N.1: [Test name]
+- Given: [initial state]
+- When: [action]
 - Then:
-  - [ ] Redux state contains 1 item
-  - [ ] Item has: id="coffee", qty=2, price=5
-  - [ ] Cart total = 10 (price × qty)
+  - [ ] Expected result 1
+  - [ ] Expected result 2
 
-### TC-1.2: Add duplicate item (same ID)
-- Given: Cart has [{id: "coffee", qty: 2}]
-- When: dispatch addItem({id: "coffee", qty: 1})
+### TC-N.2: [Test name]
+- Given: [initial state]
+- When: [action]
 - Then:
-  - [ ] Cart still has 1 item (not 2)
-  - [ ] Item qty updated to 3
-  - [ ] No duplicates created
-
-### TC-1.3: Remove item
-- Given: Cart has [{id: "coffee", qty: 2}, {id: "tea", qty: 1}]
-- When: dispatch removeItem("coffee")
-- Then:
-  - [ ] Coffee removed from state
-  - [ ] Tea remains in cart
-  - [ ] Cart length = 1
-
-### TC-1.4: Update quantity
-- Given: Cart has [{id: "coffee", qty: 2}]
-- When: dispatch updateQuantity({id: "coffee", qty: 5})
-- Then:
-  - [ ] Quantity updated to 5
-  - [ ] Item still in cart
-  - [ ] No duplicates
-
-## Step 2: localStorage Persistence Tests
-
-### TC-2.1: Cart saves to localStorage on add
-- Given: Cart is empty
-- When: dispatch addItem({id: "coffee", qty: 2})
-- Then:
-  - [ ] localStorage["cart"] contains the item
-  - [ ] Data is JSON stringified
-  - [ ] Can be parsed back to object
-
-### TC-2.2: Cart loads from localStorage on app init
-- Given: localStorage has {"cart": "[{id: \"coffee\", qty: 2}]"}
-- When: App initializes and cart middleware loads
-- Then:
-  - [ ] Redux state populated from localStorage
-  - [ ] Cart shows 1 item with qty=2
-  - [ ] No errors in console
-
-### TC-2.3: Corrupted localStorage handled gracefully
-- Given: localStorage["cart"] = "invalid json"
-- When: App initializes
-- Then:
-  - [ ] No crash
-  - [ ] Cart starts empty
-  - [ ] Error logged to console
-
-## Step 3: Integration Tests
-
-### TC-3.1: Add → Persist → Reload → Verify
-- Given: App running, localStorage empty
-- When: 
-  1. Add Coffee (qty: 2)
-  2. Add Tea (qty: 1)
-  3. Reload page
-- Then:
-  - [ ] After reload, cart has 2 items
-  - [ ] Coffee qty still 2
-  - [ ] Tea qty still 1
-  - [ ] No data loss
-
-### TC-3.2: Remove → Persist → Reload → Verify
-- Given: Cart has Coffee and Tea
-- When:
-  1. Remove Coffee
-  2. Reload page
-- Then:
-  - [ ] After reload, only Tea in cart
-  - [ ] Coffee gone
-  - [ ] localStorage updated
+  - [ ] Expected result
 
 ## Coverage Matrix
 
 | Acceptance Criterion | Test Cases | Status |
 |-------------------|-----------|--------|
-| Add item with qty | TC-1.1, TC-2.1 | ✅ |
-| Prevent duplicates | TC-1.2 | ✅ |
-| Remove item | TC-1.3, TC-3.2 | ✅ |
-| Update quantity | TC-1.4 | ✅ |
-| Persist to storage | TC-2.1, TC-3.1 | ✅ |
-| Load from storage | TC-2.2, TC-3.1 | ✅ |
-| Handle errors | TC-2.3 | ✅ |
+| Criterion 1 | TC-1.1, TC-2.1 | ✅ |
+| Criterion 2 | TC-1.2 | ✅ |
 
-**Coverage**: 9 test cases covering all acceptance criteria (100%)
-**Estimated testing time**: 1 hour manual + automated
+**Coverage**: N test cases covering all criteria (100%)
 ```
+
+**Detailed example**: See `.claude/workflow/examples/test-cases-example.md`
 
 ---
 
-## 📌 Step 4: Add Plan to GitHub Issue
-
-**Duration**: 15 minutes
+## 📌 Step 5: Add Plan to GitHub Issue
 
 In the GitHub Issue for this feature, add a comment:
 
@@ -331,9 +340,7 @@ gh issue comment <n> -b "## 🔧 Development Plan
 
 ---
 
-## 🏷️ Step 5: Apply Labels
-
-**Duration**: 5 minutes
+## 🏷️ Step 6: Apply Labels
 
 ```bash
 gh issue edit <n> --add-label \
@@ -352,16 +359,16 @@ gh issue edit <n> --add-label \
 
 ✅ **Feature-Level Planning is complete when:**
 
-- [ ] Requirements validated against docs
-- [ ] Development plan created with all steps detailed
-- [ ] Test cases created covering all acceptance criteria
+- [ ] Architecture context reviewed (Step 0)
+- [ ] Key functions defined with test specs (Step 1)
+- [ ] Requirements validated against docs (Step 2)
+- [ ] Development plan created with all steps detailed (Step 3)
+- [ ] Test cases created covering all acceptance criteria (Step 4)
 - [ ] Coverage matrix shows 100% coverage
-- [ ] Plan added to GitHub Issue comment
-- [ ] All relevant labels applied
+- [ ] Plan added to GitHub Issue comment (Step 5)
+- [ ] All relevant labels applied (Step 6)
 - [ ] Team reviewed and approved
 - [ ] Ready to `*issue pick` and develop
-
-**Typical timeline**: 1-2 hours for a feature
 
 ---
 
@@ -387,30 +394,33 @@ When planning is complete and approved:
 ## 💡 Example Timeline
 
 ```
-Day 1: 9:00 AM - MVP-Level Decomposition
-       (40 minutes)
-       ✅ Issue #100 created (rough: 8h)
+Day 1: MVP-Level Decomposition
+       ✅ Issue #100 created
 
-Day 5: 9:00 AM - Feature-Level Planning for #100
-       (1.5 hours)
-       └─ 9:00-9:15   Validate docs
-       └─ 9:15-9:45   Create PLAN.md
-       └─ 9:45-10:15  Create TEST-CASES.md
-       └─ 10:15-10:30 Add to Issue + labels
+Day 5: Feature-Level Planning for #100
+       └─ Step 0: Architecture review (ADRs + Pillars)
+       └─ Step 1: Define functions + tests
+       └─ Step 2: Validate requirements
+       └─ Step 3: Create PLAN.md
+       └─ Step 4: Create TEST-CASES.md
+       └─ Step 5: Add to Issue
+       └─ Step 6: Apply labels
        ✅ Issue #100 ready to develop
 
-       10:30 AM - Start Development
+       Start Development
        └─ *issue pick 100
        └─ *tier
        └─ *next → Execute steps
 
-Day 7: 5:00 PM - Feature #100 Complete
+Day 7: Feature #100 Complete
        └─ *issue close 100
        ✅ Issue #100 done
 
-Day 8: 9:00 AM - Feature-Level Planning for #101
-       (1.5 hours, based on learnings from #100)
-       └─ Can adjust plan based on what you learned
+Day 8: Feature-Level Planning for #101
+       (Informed by learnings from #100)
+       └─ Step 0-1: Architecture review + function contracts
+       └─ Step 2-6: Requirements, plan, tests, Issue update
+       └─ Can adjust approach based on what you learned
 ```
 
 ---

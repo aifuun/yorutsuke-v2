@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { Spinner } from '../Spinner';
 
-interface ButtonProps {
+export interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;

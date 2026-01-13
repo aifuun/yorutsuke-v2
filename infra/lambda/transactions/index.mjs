@@ -4,20 +4,25 @@ import {
   UpdateItemCommand,
   DeleteItemCommand,
   GetItemCommand,
+  PutItemCommand,
+  BatchWriteItemCommand,
 } from "@aws-sdk/client-dynamodb";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 const ddb = new DynamoDBClient({});
+const s3 = new S3Client({});
 const TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
+const IMAGES_BUCKET = process.env.IMAGES_BUCKET_NAME;
 const DEFAULT_LIMIT = 100;
 const MAX_LIMIT = 500;
 
 /**
- * CORS headers
+ * CORS headers (Issue #86: Added GET method for pull sync)
  */
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
@@ -222,6 +227,183 @@ async function deleteTransaction(userId, transactionId) {
   }
 }
 
+/**
+ * Fetch all transactions for a user (Issue #86 - Pull Sync)
+ * GET /transactions?userId=xxx&startDate=xxx&endDate=xxx
+ */
+async function fetchAllTransactions(userId, startDate, endDate) {
+  if (!userId) {
+    return response(400, { error: "MISSING_USER_ID", message: "userId is required" });
+  }
+
+  try {
+    const params = {
+      TableName: TABLE_NAME,
+      IndexName: "byDate",
+      KeyConditionExpression: "userId = :userId",
+      ExpressionAttributeValues: {
+        ":userId": { S: userId },
+      },
+      ScanIndexForward: false, // Newest first
+    };
+
+    // Add date range filter if provided
+    if (startDate && endDate) {
+      params.KeyConditionExpression += " AND #date BETWEEN :startDate AND :endDate";
+      params.ExpressionAttributeNames = { "#date": "date" };
+      params.ExpressionAttributeValues[":startDate"] = { S: startDate };
+      params.ExpressionAttributeValues[":endDate"] = { S: endDate };
+    } else if (startDate) {
+      params.KeyConditionExpression += " AND #date >= :startDate";
+      params.ExpressionAttributeNames = { "#date": "date" };
+      params.ExpressionAttributeValues[":startDate"] = { S: startDate };
+    } else if (endDate) {
+      params.KeyConditionExpression += " AND #date <= :endDate";
+      params.ExpressionAttributeNames = { "#date": "date" };
+      params.ExpressionAttributeValues[":endDate"] = { S: endDate };
+    }
+
+    // Fetch all pages
+    const transactions = [];
+    let lastEvaluatedKey = undefined;
+
+    do {
+      if (lastEvaluatedKey) {
+        params.ExclusiveStartKey = lastEvaluatedKey;
+      }
+
+      const result = await ddb.send(new QueryCommand(params));
+      transactions.push(...(result.Items || []).map((item) => unmarshall(item)));
+      lastEvaluatedKey = result.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    return response(200, { transactions });
+  } catch (error) {
+    console.error("Fetch all transactions error:", error);
+    return response(500, { error: "FETCH_FAILED", message: "Failed to fetch transactions" });
+  }
+}
+
+/**
+ * Delete S3 image for a transaction
+ * Called when transaction status is 'deleted'
+ */
+async function deleteS3Image(s3Key, transactionId) {
+  if (!s3Key || !IMAGES_BUCKET) {
+    console.log(`[S3] Skip delete: no s3Key or bucket (txId: ${transactionId})`);
+    return;
+  }
+
+  try {
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: IMAGES_BUCKET,
+        Key: s3Key,
+      })
+    );
+    console.log(`[S3] Deleted: ${s3Key} (txId: ${transactionId})`);
+  } catch (error) {
+    // Log but don't fail - S3 cleanup is best-effort
+    // Image may already be deleted or not exist
+    console.error(`[S3] Delete failed: ${s3Key} (txId: ${transactionId})`, error.message);
+  }
+}
+
+/**
+ * Sync transactions from local to cloud (Issue #86 - Push Sync)
+ * POST /transactions/sync
+ * Body: { userId, transactions: [...] }
+ *
+ * Uses PutItem with condition to prevent overwriting newer data (Last-Write-Wins)
+ * Pillar Q: Idempotent - safe to retry
+ *
+ * When status='deleted':
+ * - Updates DynamoDB record with deleted status (soft delete)
+ * - Deletes S3 image if s3Key exists (hard delete for storage cleanup)
+ */
+async function syncTransactionsFromLocal(body) {
+  const { userId, transactions } = body;
+
+  if (!userId || !Array.isArray(transactions) || transactions.length === 0) {
+    return response(400, {
+      error: "INVALID_REQUEST",
+      message: "userId and transactions array required",
+    });
+  }
+
+  console.log(`[SYNC] Starting sync for user ${userId}, ${transactions.length} transactions`);
+
+  const synced = [];
+  const failed = [];
+
+  // Process each transaction individually with optimistic concurrency control
+  for (const tx of transactions) {
+    try {
+      if (!tx.transactionId || !tx.updatedAt) {
+        failed.push(tx.transactionId || "unknown");
+        continue;
+      }
+
+      // PutItem with condition: only write if cloud version is older (Last-Write-Wins)
+      const item = marshall({
+        userId: tx.userId,
+        transactionId: tx.transactionId,
+        imageId: tx.imageId,
+        s3Key: tx.s3Key || null,
+        date: tx.date,
+        amount: tx.amount,
+        type: tx.type,
+        category: tx.category,
+        merchant: tx.merchant || "",
+        description: tx.description || "",
+        status: tx.status || "unconfirmed",
+        confirmedAt: tx.confirmedAt || null,
+        createdAt: tx.createdAt,
+        updatedAt: tx.updatedAt,
+        version: tx.version || 1,
+      });
+
+      await ddb.send(
+        new PutItemCommand({
+          TableName: TABLE_NAME,
+          Item: item,
+          // Pillar F: Only overwrite if cloud version is older (or doesn't exist)
+          ConditionExpression:
+            "attribute_not_exists(transactionId) OR updatedAt < :localUpdatedAt",
+          ExpressionAttributeValues: {
+            ":localUpdatedAt": { S: tx.updatedAt },
+          },
+        })
+      );
+
+      // If transaction is deleted, also delete the S3 image
+      if (tx.status === "deleted" && tx.s3Key) {
+        await deleteS3Image(tx.s3Key, tx.transactionId);
+      }
+
+      synced.push(tx.transactionId);
+      console.log(`[SYNC] Success: ${tx.transactionId} (status: ${tx.status || "unconfirmed"})`);
+    } catch (error) {
+      if (error.name === "ConditionalCheckFailedException") {
+        // Cloud version is newer - skip this transaction (not a failure)
+        console.log(`[SYNC] Skipped (cloud newer): ${tx.transactionId}`);
+        synced.push(tx.transactionId); // Consider it synced (cloud wins)
+      } else {
+        // Real error - mark as failed
+        console.error(`[SYNC] Failed: ${tx.transactionId}`, error);
+        failed.push(tx.transactionId);
+      }
+    }
+  }
+
+  console.log(`[SYNC] Complete: ${synced.length} synced, ${failed.length} failed`);
+
+  return response(200, {
+    synced: synced.length,
+    failed,
+  });
+}
+
 export async function handler(event) {
   // Handle CORS preflight
   if (event.requestContext?.http?.method === "OPTIONS") {
@@ -233,17 +415,29 @@ export async function handler(event) {
 
   try {
     const body = event.body ? JSON.parse(event.body) : {};
+    const queryParams = event.queryStringParameters || {};
 
-    // Extract transactionId from path: /transactions/{id}
-    const pathMatch = path.match(/\/transactions\/([^/]+)/);
+    // Route: GET / (Issue #86 - Pull Sync)
+    if (method === "GET" && path === "/") {
+      const { userId, startDate, endDate } = queryParams;
+      return await fetchAllTransactions(userId, startDate, endDate);
+    }
+
+    // Route: POST /sync (Issue #86 - Push Sync)
+    if (method === "POST" && path === "/sync") {
+      return await syncTransactionsFromLocal(body);
+    }
+
+    // Extract transactionId from path: /{id}
+    const pathMatch = path.match(/^\/([^/]+)$/);
     const transactionId = pathMatch ? pathMatch[1] : null;
 
     // For PUT/DELETE, userId comes from body or query params
-    const userId = body.userId || event.queryStringParameters?.userId;
+    const userId = body.userId || queryParams.userId;
 
     switch (method) {
       case "POST":
-        // POST /transactions - Query transactions
+        // POST /transactions - Query transactions (existing)
         return await queryTransactions(body);
 
       case "PUT":

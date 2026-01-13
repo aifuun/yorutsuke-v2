@@ -11,7 +11,7 @@ import { quotaService } from '../services/quotaService';
 import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
-import { Icon, ViewHeader } from '../../../components';
+import { Icon, ViewHeader, UploadButton } from '../../../components';
 import './capture.css';
 
 // Format file size for display
@@ -159,13 +159,12 @@ export function CaptureView() {
                 {isDragging ? t('capture.dropRelease') : t('capture.dropHere')}
               </p>
               <p className="drop-hint">{t('capture.supportedFormats')}</p>
-              <button
-                type="button"
-                className="btn btn--secondary drop-select-btn"
+              <UploadButton
                 onClick={() => captureService.selectFiles()}
+                className="drop-select-btn"
               >
                 {t('capture.selectFiles')}
-              </button>
+              </UploadButton>
             </div>
 
             {/* Rejection Banner - inside drop card */}

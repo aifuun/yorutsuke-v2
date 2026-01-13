@@ -13,6 +13,9 @@ export type TransactionCategory =
 // Transaction type
 export type TransactionType = 'income' | 'expense';
 
+// Transaction status (for cloud sync)
+export type TransactionStatus = 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
+
 export interface Transaction {
   id: TransactionId;
   userId: UserId;
@@ -27,7 +30,7 @@ export interface Transaction {
   date: string;             // YYYY-MM-DD
   createdAt: string;
   updatedAt: string;
-  confirmedAt: string | null;
+  status: TransactionStatus; // Sync status (unconfirmed/confirmed/deleted/needs_review)
 
   // AI extraction metadata
   confidence: number | null;  // 0-1 from Nova Lite

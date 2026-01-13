@@ -171,7 +171,6 @@
   color: var(--slate-900);
   margin: 0 0 10px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--slate-200);
   letter-spacing: -0.02em;
 }
 
@@ -374,7 +373,7 @@
 .lightbox-actions {
   display: flex;
   gap: 8px;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 16px 20px;
   background: linear-gradient(180deg, white 0%, var(--slate-50) 100%);

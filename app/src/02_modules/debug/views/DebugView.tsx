@@ -1,11 +1,13 @@
 // Pillar L: View - Debug tools for development
 // Reorganized layout: Mock & Data Mode | Seed Data | System Info | Danger Zone | Logs
+// Migrated to use authStateService and settingsStateService (Issue #141)
 import { useState, useEffect, useSyncExternalStore } from 'react';
-import { useAuth, useEffectiveUserId } from '../../auth';
-import { useSettings } from '../../settings/headless';
+import { useStore } from 'zustand';
+import { authStateService, useEffectiveUserId } from '../../auth';
+import { settingsStateService } from '../../settings';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
-import { ViewHeader } from '../../../components';
+import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction';
 import { resetTodayQuota } from '../../capture';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
@@ -19,6 +21,7 @@ import { uploadStore } from '../../capture/stores/uploadStore';
 import type { UserId } from '../../../00_kernel/types';
 import { deleteUserData } from '../adapters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import type { Transaction } from '../../../01_domains/transaction';
 import './debug.css';
 
 // App version from package.json
@@ -36,9 +39,15 @@ function useMockMode(): MockMode {
 
 export function DebugView() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+
+  // Subscribe to auth state (primitive selector to avoid infinite loops)
+  const user = useStore(authStateService.store, s => s.user);
+
   const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
-  const { state, update } = useSettings();
+
+  // Subscribe to settings state
+  const settingsState = useStore(settingsStateService.store);
+
   const { quota } = useQuota();
   const logs = useLogs();
   const mockMode = useMockMode();
@@ -49,16 +58,20 @@ export function DebugView() {
   const [actionResult, setActionResult] = useState<string | null>(null);
   const [slowUpload, setSlowUploadState] = useState(isSlowUpload);
 
-  // Clear cloud data state
-  const [showClearCloudDialog, setShowClearCloudDialog] = useState(false);
+  // Clear all data (local + cloud) state
+  const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+
+  // Latest cloud transactions state
+  const [latestCloudTransactions, setLatestCloudTransactions] = useState<Transaction[]>([]);
+  const [cloudTxLoading, setCloudTxLoading] = useState(false);
 
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
   useEffect(() => {
-    if (state.status === 'success') {
-      setVerboseLogging(state.settings.debugEnabled);
+    if (settingsState.status === 'success') {
+      setVerboseLogging(settingsState.settings.debugEnabled);
     }
-  }, [state]);
+  }, [settingsState]);
 
   // Sync slow upload state after DB load (race condition fix)
   useEffect(() => {
@@ -66,7 +79,7 @@ export function DebugView() {
   }, []);
 
   // Handle loading state
-  if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
+  if (settingsState.status === 'loading' || settingsState.status === 'idle' || userIdLoading) {
     return (
       <div className="debug">
         <ViewHeader title={t('debug.title')} rightContent={<VersionBadge version={APP_VERSION} />} />
@@ -77,7 +90,7 @@ export function DebugView() {
     );
   }
 
-  if (state.status === 'error') {
+  if (settingsState.status === 'error') {
     return (
       <div className="debug">
         <ViewHeader title={t('debug.title')} />
@@ -88,7 +101,7 @@ export function DebugView() {
     );
   }
 
-  const currentSettings = state.settings;
+  const currentSettings = settingsState.settings;
 
   const handleSeedData = async () => {
     if (!effectiveUserId) {
@@ -135,44 +148,6 @@ export function DebugView() {
     setActionStatus('idle');
   };
 
-  const handleClearBusinessData = async () => {
-    const confirmed = await ask(t('debug.clearBusinessDataConfirm'), {
-      title: 'Clear Business Data',
-      kind: 'warning',
-    });
-
-    if (!confirmed) {
-      return;
-    }
-
-    setActionStatus('running');
-    setActionResult('Clearing data...');
-
-    try {
-      // 1. Stop background services to prevent race conditions
-      captureService.destroy();
-
-      // 2. Clear DB business tables (preserves settings)
-      const results = await clearBusinessData();
-
-      // 3. Clear memory stores
-      captureStore.getState().clearQueue();
-      uploadStore.getState().clearTasks();
-
-      const total = Object.values(results).reduce((a, b) => a + b, 0);
-      setActionResult(`Cleared ${total} rows. Restarting...`);
-
-      // 4. Reload to reinitialize
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (e) {
-      setActionResult('Error: ' + String(e));
-      setActionStatus('idle');
-      captureService.init();
-    }
-  };
-
   const handleClearSettings = async () => {
     const confirmed = await ask(t('debug.clearSettingsConfirm'), {
       title: 'Clear Settings',
@@ -206,38 +181,91 @@ export function DebugView() {
     setSlowUpload(newValue);
   };
 
-  const handleOpenClearCloudDialog = () => {
+  const handleOpenClearAllDialog = () => {
     if (!effectiveUserId) {
       setActionResult('No user ID');
       return;
     }
-    setShowClearCloudDialog(true);
+    setShowClearAllDialog(true);
   };
 
-  const handleConfirmClearCloud = async () => {
+  const handleConfirmClearAll = async () => {
     if (!effectiveUserId) {
       setActionResult('No user ID');
       return;
     }
 
-    setShowClearCloudDialog(false);
+    setShowClearAllDialog(false);
     setActionStatus('running');
-    setActionResult('Deleting cloud data...');
+    setActionResult('Clearing all data...');
 
     try {
-      const result = await deleteUserData(effectiveUserId as UserId, ['transactions', 'images']);
+      // Stop background services to prevent race conditions
+      captureService.destroy();
+
+      // Step 1: Delete from cloud
+      const cloudResult = await deleteUserData(effectiveUserId as UserId, ['transactions', 'images']);
+
+      // Step 2: Clear local database
+      const localResults = await clearBusinessData();
+
+      // Step 3: Clear memory stores
+      captureStore.getState().clearQueue();
+      uploadStore.getState().clearTasks();
+
+      const localCleared = Object.values(localResults).reduce((a, b) => a + b, 0);
       setActionResult(
-        `Deleted ${result.deleted.transactions || 0} transactions and ${result.deleted.images || 0} images from cloud`
+        `Deleted ${cloudResult.deleted.transactions || 0} transactions and ${cloudResult.deleted.images || 0} from cloud, ` +
+        `cleared ${localCleared} local rows. Restarting...`
       );
+
+      // Step 4: Reload to reinitialize
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (e) {
       setActionResult('Error: ' + String(e));
+      setActionStatus('idle');
+      captureService.init();
     }
-
-    setActionStatus('idle');
   };
 
-  const handleCancelClearCloud = () => {
-    setShowClearCloudDialog(false);
+  const handleCancelClearAll = () => {
+    setShowClearAllDialog(false);
+  };
+
+  const handleFetchLatestCloudTransactions = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+
+    setCloudTxLoading(true);
+    setActionResult(null);
+
+    try {
+      // Import the function to fetch from cloud directly
+      const { fetchTransactionsFromCloud } = await import('../../transaction/adapters');
+      
+      const cloudTxs = await fetchTransactionsFromCloud(effectiveUserId as UserId);
+      
+      // Sort by updatedAt descending and take last 3
+      const sorted = [...cloudTxs]
+        .sort((a, b) => {
+          const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+          return dateB - dateA;
+        })
+        .slice(0, 3);
+      
+      setLatestCloudTransactions(sorted);
+      setActionResult(`Fetched ${sorted.length} latest transactions from cloud`);
+    } catch (e) {
+      setActionResult('Error: ' + String(e));
+      setLatestCloudTransactions([]);
+    }
+
+    setCloudTxLoading(false);
   };
 
   return (
@@ -266,14 +294,13 @@ export function DebugView() {
                 </select>
               </div>
               <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
+                <AddButton
+                  size="sm"
                   onClick={handleSeedData}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
                   Seed
-                </button>
+                </AddButton>
               </div>
             </div>
 
@@ -334,35 +361,17 @@ export function DebugView() {
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.clearBusinessData')}</p>
-                <p className="setting-row__hint">{t('debug.clearBusinessDataHint')}</p>
+                <p className="setting-row__label">{t('debug.clearAllData')}</p>
+                <p className="setting-row__hint">{t('debug.clearAllDataHint')}</p>
               </div>
               <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
-                  onClick={handleClearBusinessData}
-                  disabled={actionStatus === 'running'}
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            <div className="setting-row setting-row--danger">
-              <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.clearCloudData')}</p>
-                <p className="setting-row__hint">{t('debug.clearCloudDataHint')}</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
-                  onClick={handleOpenClearCloudDialog}
+                <DeleteButton
+                  size="sm"
+                  onClick={handleOpenClearAllDialog}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
-                  {t('debug.clearCloudDataButton')}
-                </button>
+                  {t('debug.clearAllDataButton')}
+                </DeleteButton>
               </div>
             </div>
 
@@ -423,6 +432,109 @@ export function DebugView() {
             </div>
           </div>
 
+          {/* Section 2.5: Latest Cloud Transactions */}
+          <div className="card card--settings">
+            <div className="setting-row" style={{ marginBottom: '12px' }}>
+              <div className="setting-row__info">
+                <p className="setting-row__label">Latest Cloud Transactions</p>
+                <p className="setting-row__hint">Fetch last 3 updated transactions from cloud</p>
+              </div>
+              <div className="setting-row__control">
+                <SyncButton
+                  size="sm"
+                  onClick={handleFetchLatestCloudTransactions}
+                  disabled={cloudTxLoading || !effectiveUserId}
+                  loading={cloudTxLoading}
+                >
+                  Fetch
+                </SyncButton>
+              </div>
+            </div>
+
+            {latestCloudTransactions.length > 0 && (
+              <div className="debug-tx-list">
+                {latestCloudTransactions.map((tx, idx) => (
+                  <div key={tx.id} className="debug-tx-item">
+                    <div className="debug-tx-header">
+                      <span className="debug-tx-number">#{idx + 1}</span>
+                      <span className="debug-tx-amount mono">¥{tx.amount}</span>
+                      <span className="debug-tx-category">{tx.category}</span>
+                      <span className={`debug-tx-status debug-tx-status--${tx.status}`}>
+                        {tx.status}
+                      </span>
+                      <span className="debug-tx-date mono">
+                        {new Date(tx.updatedAt || tx.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="debug-tx-grid">
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Type:</span>
+                        <span className="debug-tx-value">{tx.type}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Status:</span>
+                        <span className="debug-tx-value">{tx.status}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Date:</span>
+                        <span className="debug-tx-value mono">{tx.date}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Merchant:</span>
+                        <span className="debug-tx-value">{tx.merchant || '-'}</span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Description:</span>
+                        <span className="debug-tx-value">{tx.description || '-'}</span>
+                      </div>
+                      {tx.confidence !== null && (
+                        <div className="debug-tx-row">
+                          <span className="debug-tx-label">Confidence:</span>
+                          <span className="debug-tx-value">
+                            {(tx.confidence * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                      {tx.imageId && (
+                        <div className="debug-tx-row">
+                          <span className="debug-tx-label">Image ID:</span>
+                          <span className="debug-tx-value mono" style={{ fontSize: '10px' }}>
+                            {tx.imageId}
+                          </span>
+                        </div>
+                      )}
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Created:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>
+                          {new Date(tx.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">Updated:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>
+                          {new Date(tx.updatedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">TX ID:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '10px' }}>
+                          {tx.id}
+                        </span>
+                      </div>
+                      <div className="debug-tx-row">
+                        <span className="debug-tx-label">User ID:</span>
+                        <span className="debug-tx-value mono" style={{ fontSize: '10px' }}>
+                          {tx.userId}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Section 3: Logs */}
           <div className="card card--settings">
             <div className="debug-logs-header">
@@ -433,7 +545,7 @@ export function DebugView() {
                   <button
                     type="button"
                     className={`toggle-switch toggle-switch--sm ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
-                    onClick={() => update('debugEnabled', !currentSettings.debugEnabled)}
+                    onClick={() => settingsStateService.update('debugEnabled', !currentSettings.debugEnabled)}
                     role="switch"
                     aria-checked={currentSettings.debugEnabled}
                   />
@@ -472,17 +584,17 @@ export function DebugView() {
         </div>
       </div>
 
-      {/* Clear Cloud Data Confirmation Dialog */}
+      {/* Clear All Data (Local + Cloud) Confirmation Dialog */}
       <ConfirmDialog
-        isOpen={showClearCloudDialog}
-        title={t('debug.clearCloudDataConfirmTitle')}
-        message={t('debug.clearCloudDataConfirmMessage')}
-        checkboxLabel={t('debug.clearCloudDataConfirmCheckbox')}
-        confirmText={t('debug.clearCloudDataButton')}
+        isOpen={showClearAllDialog}
+        title={t('debug.clearAllDataConfirmTitle')}
+        message={t('debug.clearAllDataConfirmMessage')}
+        checkboxLabel={t('debug.clearAllDataConfirmCheckbox')}
+        confirmText={t('debug.clearAllDataButton')}
         cancelText={t('common.cancel')}
         variant="danger"
-        onConfirm={handleConfirmClearCloud}
-        onCancel={handleCancelClearCloud}
+        onConfirm={handleConfirmClearAll}
+        onCancel={handleCancelClearAll}
       />
     </div>
   );

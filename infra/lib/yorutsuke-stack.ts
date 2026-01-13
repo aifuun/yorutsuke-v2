@@ -231,19 +231,22 @@ export class YorutsukeStack extends cdk.Stack {
       layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
+        IMAGES_BUCKET_NAME: imageBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(30),
     });
 
     transactionsTable.grantReadWriteData(transactionsLambda);
+    imageBucket.grantDelete(transactionsLambda);  // For deleting images when transaction is deleted
 
-    // Lambda Function URL for transactions
+    // Lambda Function URL for transactions (Issue #86: Added GET method)
     const transactionsUrl = transactionsLambda.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedOrigins: ["*"],
         allowedMethods: [
-          lambda.HttpMethod.POST,
+          lambda.HttpMethod.GET,    // Issue #86: Pull sync
+          lambda.HttpMethod.POST,   // Query + Push sync
           lambda.HttpMethod.PUT,
           lambda.HttpMethod.DELETE,
         ],

@@ -3,9 +3,10 @@
 // Pillar L: Pure orchestration, no React dependencies
 
 import type { UserId } from '../../../00_kernel/types';
+import { createTraceId } from '../../../00_kernel/types';
 import { on, emit } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
-import { syncTransactions } from './syncService';
+import { pullTransactions } from '../../sync';
 
 // Delay after upload completes before syncing (allow Lambda to process)
 const SYNC_DELAY_MS = 5000; // 5 seconds (Lambda processing time)
@@ -82,7 +83,8 @@ class TransactionSyncService {
     logger.info('transaction_sync_auto_started', { userId: this.userId });
 
     try {
-      const result = await syncTransactions(this.userId);
+      const traceId = createTraceId();
+      const result = await pullTransactions(this.userId, traceId);
       logger.info('transaction_sync_auto_complete', {
         userId: this.userId,
         synced: result.synced,
@@ -96,9 +98,16 @@ class TransactionSyncService {
         source: 'auto',
       });
     } catch (error) {
+      const errorMsg = String(error);
       logger.error('transaction_sync_auto_failed', {
         userId: this.userId,
-        error: String(error),
+        error: errorMsg,
+      });
+
+      // Emit error event so UI can show notification
+      emit('transaction:sync-error', {
+        error: errorMsg,
+        source: 'auto',
       });
     }
   }

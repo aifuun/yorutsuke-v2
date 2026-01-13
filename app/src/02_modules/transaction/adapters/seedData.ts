@@ -220,6 +220,8 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
 
   const dateStr = date.toISOString().split('T')[0];
   const timestamp = date.toISOString();
+  const isConfirmed = random() < confirmRatio;
+  const status: Transaction['status'] = isConfirmed ? 'confirmed' : 'unconfirmed';
 
   // Confidence varies
   const confidence = 0.65 + random() * 0.35; // 0.65-1.0
@@ -238,7 +240,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     date: dateStr,
     createdAt: timestamp,
     updatedAt: timestamp,
-    confirmedAt: random() < confirmRatio ? timestamp : null,
+    status,
     confidence,
     rawText: null,
   };
@@ -351,8 +353,8 @@ export async function seedMockTransactions(
         await mockDb.execute(
           `INSERT INTO transactions (
             id, user_id, image_id, s3_key, type, category, amount, currency,
-            description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             tx.id,
             tx.userId,
@@ -367,9 +369,10 @@ export async function seedMockTransactions(
             tx.date,
             tx.createdAt,
             tx.updatedAt,
-            tx.confirmedAt,
+            tx.status === 'confirmed' ? tx.updatedAt : null,
             tx.confidence,
             tx.rawText,
+            tx.status,
           ]
         );
         totalCount++;

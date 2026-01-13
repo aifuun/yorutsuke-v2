@@ -1,5 +1,6 @@
 // Confirmation dialog component for destructive actions
 import { useState, useEffect } from 'react';
+import { CancelButton, ConfirmButton, DeleteButton } from '../../../components';
 import './confirm-dialog.css';
 
 interface ConfirmDialogProps {
@@ -88,22 +89,18 @@ export function ConfirmDialog({
         </div>
 
         <div className="confirm-dialog-footer">
-          <button
-            type="button"
-            className="confirm-dialog-button confirm-dialog-button--cancel"
-            onClick={onCancel}
-            autoFocus
-          >
+          <CancelButton onClick={onCancel}>
             {cancelText}
-          </button>
-          <button
-            type="button"
-            className={`confirm-dialog-button confirm-dialog-button--confirm confirm-dialog-button--${variant}`}
-            onClick={onConfirm}
-            disabled={!canConfirm}
-          >
-            {confirmText}
-          </button>
+          </CancelButton>
+          {variant === 'danger' ? (
+            <DeleteButton onClick={onConfirm} disabled={!canConfirm}>
+              {confirmText}
+            </DeleteButton>
+          ) : (
+            <ConfirmButton onClick={onConfirm} disabled={!canConfirm}>
+              {confirmText}
+            </ConfirmButton>
+          )}
         </div>
       </div>
     </div>

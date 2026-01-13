@@ -1,7 +1,7 @@
 // Error fallback UI component
 import { useTranslation } from '../../i18n';
 import { AlertTriangle } from 'lucide-react';
-import { Icon } from '../../components';
+import { Icon, SyncButton } from '../../components';
 
 interface ErrorFallbackProps {
   error: Error;
@@ -24,9 +24,9 @@ export function ErrorFallback({ error, onReset }: ErrorFallbackProps) {
       </div>
       <h2>{t('error.title')}</h2>
       <p className="error-message">{error.message}</p>
-      <button className="btn-retry" onClick={onReset}>
+      <SyncButton onClick={onReset}>
         {t('common.retry')}
-      </button>
+      </SyncButton>
     </div>
   );
 }

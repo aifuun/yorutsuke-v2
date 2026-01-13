@@ -1,5 +1,7 @@
 // Pillar L: View - renders data from headless hook
-import { useSettings } from '../headless';
+// Migrated to use settingsStateService (Issue #141)
+import { useStore } from 'zustand';
+import { settingsStateService } from '../services/settingsStateService';
 import { useTranslation, changeLanguage } from '../../../i18n';
 import { ViewHeader } from '../../../components';
 import '../styles/settings.css';
@@ -9,7 +11,9 @@ const APP_VERSION = '0.1.0';
 
 export function SettingsView() {
   const { t } = useTranslation();
-  const { state, update } = useSettings();
+
+  // Subscribe to settings state
+  const state = useStore(settingsStateService.store);
 
   // Handle all states (Pillar D: FSM)
   if (state.status === 'loading' || state.status === 'idle') {
@@ -38,7 +42,7 @@ export function SettingsView() {
 
   const handleLanguageChange = (lang: 'ja' | 'en' | 'zh') => {
     changeLanguage(lang);
-    update('language', lang);
+    settingsStateService.update('language', lang);
   };
 
   return (

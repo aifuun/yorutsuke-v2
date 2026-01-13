@@ -91,8 +91,8 @@ export function createDailySummaryWithBreakdown(
   transactions: Transaction[],
 ): DailySummaryBreakdown {
   const dayTransactions = transactions.filter(t => t.date === date);
-  const confirmed = dayTransactions.filter(t => t.confirmedAt !== null);
-  const unconfirmed = dayTransactions.filter(t => t.confirmedAt === null);
+  const confirmed = dayTransactions.filter(t => t.status === 'confirmed');
+  const unconfirmed = dayTransactions.filter(t => t.status !== 'confirmed');
 
   const { income: confIncome, expense: confExpense } = categorizeByType(confirmed);
   const { income: unconfIncome, expense: unconfExpense } = categorizeByType(unconfirmed);

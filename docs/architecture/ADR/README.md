@@ -18,6 +18,13 @@ An Architecture Decision Record captures a single decision along with its contex
 | [003](./003-image-compression.md) | Image Compression Strategy | Accepted | 2025-12 |
 | [004](./004-upload-queue-fsm.md) | Upload Queue FSM | Accepted | 2025-12 |
 | [005](./005-traceid-intentid.md) | TraceId vs IntentId | Accepted | 2026-01 |
+| [006](./006-mock-database-isolation.md) | Mock Database Isolation | Accepted | 2026-01 |
+| [007](./007-transaction-cloud-sync.md) | Transaction Cloud Sync | Accepted | 2026-01 |
+| [008](./008-component-library.md) | Component Library | Accepted | 2026-01 |
+| [009](./009-branch-first-workflow.md) | Branch-First Workflow | Accepted | 2026-01 |
+| [010](./010-three-layer-task-tracking.md) | Three-Layer Task Tracking | Accepted | 2026-01 |
+| [011](./011-bidirectional-cloud-sync.md) | Bidirectional Cloud Sync | Implemented | 2026-01 |
+| [012](./012-zustand-selector-safety.md) | Zustand Selector Safety | Accepted | 2026-01 |
 
 ## ADR Template
 

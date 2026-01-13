@@ -1,7 +1,7 @@
 // Pillar B: Airlock - validate all database responses
 import type { TransactionId as TransactionIdType, UserId as UserIdType } from '../../../00_kernel/types';
 import { TransactionId, UserId, ImageId } from '../../../00_kernel/types';
-import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
+import type { Transaction, TransactionCategory, TransactionType, TransactionStatus } from '../../../01_domains/transaction';
 import { getDb } from '../../../00_kernel/storage/db';
 
 interface DbTransaction {
@@ -18,7 +18,6 @@ interface DbTransaction {
   date: string;
   created_at: string;
   updated_at: string;
-  confirmed_at: string | null;
   confidence: number | null;
   raw_text: string | null;
   status: string | null; // v6: Cloud sync support
@@ -40,7 +39,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     date: row.date,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    confirmedAt: row.confirmed_at,
+    status: (row.status as TransactionStatus) || 'unconfirmed',
     confidence: row.confidence,
     rawText: row.raw_text,
   };
@@ -59,6 +58,8 @@ export interface FetchTransactionsOptions {
   typeFilter?: 'income' | 'expense';
   /** Filter by transaction category */
   categoryFilter?: TransactionCategory;
+  /** Include deleted transactions (for sync comparison). Default: false */
+  includeDeleted?: boolean;
 }
 
 export async function fetchTransactions(
@@ -66,11 +67,20 @@ export async function fetchTransactions(
   options: FetchTransactionsOptions = {},
 ): Promise<Transaction[]> {
   const database = await getDb();
-  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter, typeFilter, categoryFilter } = options;
+  const { startDate, endDate, sortBy = 'date', sortOrder = 'DESC', limit, offset, statusFilter, typeFilter, categoryFilter, includeDeleted = false } = options;
 
-  // Filter out deleted transactions (Issue #109: Soft delete)
-  let query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
-  const params: unknown[] = [userId, 'deleted'];
+  // Filter out deleted transactions unless explicitly requested (Issue #109: Soft delete)
+  let query: string;
+  const params: unknown[] = [userId];
+
+  if (includeDeleted) {
+    // Include all transactions (for sync comparison)
+    query = 'SELECT * FROM transactions WHERE user_id = ?';
+  } else {
+    // Default: Filter out deleted transactions
+    query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
+    params.push('deleted');
+  }
 
   if (startDate) {
     query += ' AND date >= ?';
@@ -83,9 +93,11 @@ export async function fetchTransactions(
 
   // Status filter: pending (unconfirmed) or confirmed
   if (statusFilter === 'pending') {
-    query += ' AND confirmed_at IS NULL';
+    query += ' AND status != ?';
+    params.push('confirmed');
   } else if (statusFilter === 'confirmed') {
-    query += ' AND confirmed_at IS NOT NULL';
+    query += ' AND status = ?';
+    params.push('confirmed');
   }
 
   // Type filter (NEW: Issue #115)
@@ -150,9 +162,11 @@ export async function countTransactions(
 
   // Status filter: pending (unconfirmed) or confirmed
   if (statusFilter === 'pending') {
-    query += ' AND confirmed_at IS NULL';
+    query += ' AND status != ?';
+    params.push('confirmed');
   } else if (statusFilter === 'confirmed') {
-    query += ' AND confirmed_at IS NOT NULL';
+    query += ' AND status = ?';
+    params.push('confirmed');
   }
 
   // Type filter (NEW: Issue #115)
@@ -171,13 +185,27 @@ export async function countTransactions(
   return rows[0]?.count ?? 0;
 }
 
+/**
+ * Get transaction by ID
+ * Returns null if not found
+ */
+export async function getTransactionById(id: TransactionIdType): Promise<Transaction | null> {
+  const database = await getDb();
+  const rows = await database.select<DbTransaction[]>(
+    'SELECT * FROM transactions WHERE id = ?',
+    [id],
+  );
+  if (rows.length === 0) return null;
+  return mapDbToTransaction(rows[0]);
+}
+
 export async function saveTransaction(transaction: Transaction): Promise<void> {
   const database = await getDb();
 
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confidence, raw_text, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
@@ -192,10 +220,9 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
       transaction.date,
       transaction.createdAt,
       transaction.updatedAt,
-      transaction.confirmedAt,
       transaction.confidence,
       transaction.rawText,
-      'unconfirmed', // Default status for new transactions
+      transaction.status || 'unconfirmed', // Use transaction status or default to unconfirmed
       1, // Default version for new transactions
     ],
   );
@@ -210,6 +237,7 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
  */
 export async function upsertTransaction(transaction: Transaction): Promise<void> {
   const database = await getDb();
+  const confirmedAtValue = transaction.status === 'confirmed' ? transaction.updatedAt : null;
 
   // INSERT OR REPLACE will update all fields if transaction.id already exists
   await database.execute(
@@ -230,10 +258,10 @@ export async function upsertTransaction(transaction: Transaction): Promise<void>
       transaction.date,
       transaction.createdAt,
       transaction.updatedAt,
-      transaction.confirmedAt,
+      confirmedAtValue,
       transaction.confidence,
       transaction.rawText,
-      'unconfirmed', // Status from cloud (will be updated in future when cloud has status)
+      transaction.status,
       1, // Version from cloud (will be synced in future)
     ],
   );
@@ -261,15 +289,15 @@ export async function deleteTransaction(id: TransactionIdType): Promise<void> {
  * Confirm transaction (mark as confirmed with dirty flag for sync)
  * Issue #109: Confirm changes need cloud sync
  *
- * MVP4: Set dirty_sync flag to mark for future sync
+ * Sets status = 'confirmed' and dirty_sync flag to mark for future sync
  * MVP5: Bidirectional sync will push confirmed status to cloud
  */
 export async function confirmTransaction(id: TransactionIdType): Promise<void> {
   const database = await getDb();
   const now = new Date().toISOString();
   await database.execute(
-    'UPDATE transactions SET confirmed_at = ?, updated_at = ?, dirty_sync = ? WHERE id = ?',
-    [now, now, 1, id],
+    'UPDATE transactions SET status = ?, updated_at = ?, dirty_sync = ? WHERE id = ?',
+    ['confirmed', now, 1, id],
   );
 }
 
@@ -355,4 +383,75 @@ export async function clearAllTransactions(userId: UserIdType): Promise<number> 
     [userId],
   );
   return result.rowsAffected ?? 0;
+}
+
+/**
+ * Fetch transactions marked for cloud sync (Issue #86)
+ * Returns transactions where dirty_sync = 1
+ *
+ * Used by syncService to push local changes to cloud
+ */
+export async function fetchDirtyTransactions(userId: UserIdType): Promise<Transaction[]> {
+  const database = await getDb();
+  const query = 'SELECT * FROM transactions WHERE user_id = ? AND dirty_sync = 1';
+  const rows = await database.select<DbTransaction[]>(query, [userId]);
+  return rows.map(mapDbToTransaction);
+}
+
+/**
+ * Clear dirty_sync flags for successfully synced transactions (Issue #86)
+ * Called after cloud sync succeeds
+ *
+ * @param ids - TransactionIds that were successfully synced
+ */
+export async function clearDirtyFlags(ids: TransactionIdType[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  const database = await getDb();
+  const placeholders = ids.map(() => '?').join(',');
+  const query = `UPDATE transactions SET dirty_sync = 0 WHERE id IN (${placeholders})`;
+  await database.execute(query, ids);
+}
+
+/**
+ * Bulk upsert transactions (Issue #86: Data recovery)
+ * Used when restoring cloud data to local SQLite
+ *
+ * @param transactions - Array of transactions to upsert
+ */
+export async function bulkUpsertTransactions(transactions: Transaction[]): Promise<void> {
+  if (transactions.length === 0) return;
+
+  const database = await getDb();
+
+  // Execute upserts in sequence (SQLite doesn't support batch well in Tauri)
+  for (const tx of transactions) {
+    const confirmedAtValue = tx.status === 'confirmed' ? tx.updatedAt : null;
+    await database.execute(
+      `INSERT OR REPLACE INTO transactions
+       (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status, version, dirty_sync)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        tx.id,
+        tx.userId,
+        tx.imageId,
+        tx.s3Key,
+        tx.type,
+        tx.category,
+        tx.amount,
+        tx.currency,
+        tx.description,
+        tx.merchant,
+        tx.date,
+        tx.createdAt,
+        tx.updatedAt,
+        confirmedAtValue,
+        tx.confidence,
+        tx.rawText,
+        tx.status,
+        1, // Default version
+        0, // Don't mark cloud data as dirty
+      ],
+    );
+  }
 }

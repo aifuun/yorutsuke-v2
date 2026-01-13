@@ -4,6 +4,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../i18n';
+import { ConfirmButton, DeleteButton } from '../../../components';
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import './ImageLightbox.css';
 
@@ -215,12 +216,12 @@ export function ImageLightbox({
   return createPortal(
     <div className="lightbox-overlay" onClick={onClose}>
       <div className="lightbox-content lightbox-content--with-details" onClick={(e) => e.stopPropagation()}>
-        {/* Close button */}
+        {/* Close button - top right corner */}
         <button
           type="button"
           className="lightbox-close"
           onClick={onClose}
-          title={t('common.close') || 'Close'}
+          aria-label={t('common.close') || 'Close'}
         >
           ✕
         </button>
@@ -400,37 +401,18 @@ export function ImageLightbox({
 
         {/* Actions */}
         <div className="lightbox-actions">
-          {/* Left: Primary action or confirmed badge */}
-          {onConfirm && !isConfirmed ? (
-            <button
-              type="button"
-              className="btn btn--success"
-              onClick={handleConfirm}
-            >
-              ✓ {t('common.confirm') || 'Confirm'}
-            </button>
-          ) : isConfirmed ? (
-            <div className="lightbox-confirmed-badge">
-              ✓ {t('transaction.confirmed') || 'Confirmed'}
-            </div>
-          ) : (
-            <div></div>
-          )}
-
-          {/* Right: Secondary actions */}
+          {/* Right: Confirm + Delete buttons */}
           <div className="lightbox-actions-right">
-            {onDelete && (
-              <button
-                type="button"
-                className="btn btn--danger"
-                onClick={onDelete}
-              >
-                {t('common.delete') || 'Delete'}
-              </button>
+            {onConfirm && !isConfirmed && (
+              <ConfirmButton onClick={handleConfirm}>
+                {t('common.confirm') || 'Confirm'}
+              </ConfirmButton>
             )}
-            <button type="button" className="btn btn--secondary" onClick={onClose}>
-              {t('common.close') || 'Close'}
-            </button>
+            {onDelete && (
+              <DeleteButton onClick={onDelete}>
+                {t('common.delete') || 'Delete'}
+              </DeleteButton>
+            )}
           </div>
         </div>
       </div>

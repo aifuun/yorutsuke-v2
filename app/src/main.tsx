@@ -24,15 +24,24 @@ document.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // Initialize services (registers Tauri listeners once, outside React lifecycle)
 // MVP0: Fixes #82 StrictMode race condition
+// ADR-001: Service Pattern - Services register global listeners once at app startup
 import { captureService } from "./02_modules/capture/services/captureService";
 import { quotaService } from "./02_modules/capture/services/quotaService";
 import { transactionSyncService } from "./02_modules/transaction/services/transactionSyncService";
+import { networkMonitor, autoSyncService } from "./02_modules/sync";
+
 captureService.init();
 quotaService.init();
 transactionSyncService.init(); // Issue #108: Auto-sync after upload
+autoSyncService.init(); // Issue #86: Auto-sync after local operations (confirm/edit/delete)
+networkMonitor.initialize(); // Issue #86: Network monitoring for offline queue
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+const rootElement = document.getElementById("root");
+
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+}

@@ -34,7 +34,6 @@ const CloudTransactionSchema = z.object({
   status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
   createdAt: z.string(), // ISO 8601
   updatedAt: z.string(), // ISO 8601
-  confirmedAt: z.string().nullable().optional(),
   version: z.number().default(1),
   // Additional fields we don't sync locally
   aiProcessed: z.boolean().optional(),
@@ -86,7 +85,7 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     date: cloudTx.date,
     createdAt: cloudTx.createdAt,
     updatedAt: cloudTx.updatedAt,
-    confirmedAt: cloudTx.confirmedAt ?? null,
+    status: cloudTx.status,
     confidence: null, // Not stored in DynamoDB
     rawText: null, // Not stored in DynamoDB
   };
@@ -190,6 +189,172 @@ export async function fetchTransactions(
     logger.error(EVENTS.APP_ERROR, {
       component: 'transactionApi',
       error: String(error),
+      userId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Sync local transactions to cloud (Issue #86)
+ * POST /transactions/sync
+ *
+ * Used to push local changes (confirm/edit/delete) to DynamoDB
+ *
+ * @param userId - User ID
+ * @param transactions - Array of transactions to sync
+ * @returns Result with synced count and failed IDs
+ */
+export interface SyncResult {
+  synced: number;
+  failed: string[];
+}
+
+const SyncResponseSchema = z.object({
+  synced: z.number(),
+  failed: z.array(z.string()),
+});
+
+export async function syncTransactions(
+  userId: UserId,
+  transactions: Transaction[]
+): Promise<SyncResult> {
+  // Mocking - skip sync in mock mode
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw mockNetworkError('sync transactions');
+  }
+
+  if (isMockingOnline()) {
+    await mockDelay(300);
+    logger.debug(EVENTS.APP_ERROR, { component: 'transactionApi', phase: 'mock_sync', count: transactions.length });
+    return { synced: transactions.length, failed: [] };
+  }
+
+  const requestBody = {
+    userId,
+    transactions: transactions.map(tx => ({
+      transactionId: tx.id,
+      userId: tx.userId,
+      imageId: tx.imageId,
+      s3Key: tx.s3Key,
+      type: tx.type,
+      category: tx.category,
+      amount: tx.amount,
+      merchant: tx.merchant,
+      description: tx.description,
+      date: tx.date,
+      confirmedAt: tx.status === 'confirmed' ? tx.updatedAt : null,
+      updatedAt: tx.updatedAt,
+      createdAt: tx.createdAt,
+      status: tx.status,
+    })),
+  };
+
+  logger.info('transaction_sync_started', { userId, count: transactions.length });
+
+  try {
+    const fetchPromise = fetch(`${TRANSACTIONS_URL}sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+
+    const response = await withTimeout(
+      fetchPromise,
+      FETCH_TIMEOUT_MS,
+      'Transaction sync timeout (10s)'
+    );
+
+    if (!response.ok) {
+      throw new Error(`Sync failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const parsed = SyncResponseSchema.safeParse(data);
+
+    if (!parsed.success) {
+      throw new Error(`Invalid sync response: ${parsed.error.message}`);
+    }
+
+    logger.info('transaction_sync_success', {
+      userId,
+      synced: parsed.data.synced,
+      failed: parsed.data.failed.length,
+    });
+
+    return parsed.data;
+  } catch (error) {
+    logger.error(EVENTS.APP_ERROR, {
+      component: 'transactionApi',
+      error: String(error),
+      operation: 'sync',
+      userId,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Fetch all transactions for a user (Issue #86: Data recovery)
+ * GET /transactions?userId={userId}
+ *
+ * Used for restoring cloud data to new device
+ *
+ * @param userId - User ID
+ * @returns All user's transactions from cloud
+ */
+export async function fetchAllTransactions(userId: UserId): Promise<Transaction[]> {
+  // Mocking
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    throw mockNetworkError('fetch all transactions');
+  }
+
+  if (isMockingOnline()) {
+    await mockDelay(500);
+    logger.debug(EVENTS.APP_ERROR, { component: 'transactionApi', phase: 'mock_fetch_all' });
+    return mockTransactionPull(userId, 5);
+  }
+
+  logger.info('transaction_fetch_all_started', { userId });
+
+  try {
+    const fetchPromise = fetch(`${TRANSACTIONS_URL}?userId=${userId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const response = await withTimeout(
+      fetchPromise,
+      FETCH_TIMEOUT_MS * 2, // 20 seconds for potentially large dataset
+      'Fetch all transactions timeout (20s)'
+    );
+
+    if (!response.ok) {
+      throw new Error(`Fetch all failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const parsed = FetchTransactionsResponseSchema.safeParse(data);
+
+    if (!parsed.success) {
+      throw new Error(`Invalid response: ${parsed.error.message}`);
+    }
+
+    const transactions = parsed.data.transactions.map(mapCloudToTransaction);
+
+    logger.info('transaction_fetch_all_success', {
+      userId,
+      count: transactions.length,
+    });
+
+    return transactions;
+  } catch (error) {
+    logger.error(EVENTS.APP_ERROR, {
+      component: 'transactionApi',
+      error: String(error),
+      operation: 'fetch_all',
       userId,
     });
     throw error;

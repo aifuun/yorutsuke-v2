@@ -5,6 +5,7 @@ import type { TransactionId } from '../../../00_kernel/types';
 import { isHighConfidence } from '../../../01_domains/transaction';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { SaveButton, CancelButton, EditButton, ConfirmButton, DeleteButton } from '../../../components';
 
 const CATEGORIES: TransactionCategory[] = [
   'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other',
@@ -28,7 +29,7 @@ const formatAmount = (amount: number, type: 'income' | 'expense'): string => {
 
 // Get status indicator
 const getStatusIcon = (tx: Transaction): string => {
-  if (tx.confirmedAt) return '✓';
+  if (tx.status === 'confirmed') return '✓';
   if (isHighConfidence(tx.confidence)) return '○';
   return '?';
 };
@@ -42,7 +43,7 @@ export function TransactionItem({
   onDelete,
 }: TransactionItemProps) {
   const { t } = useTranslation();
-  const { id, type, category, amount, merchant, confidence, confirmedAt, description, date, rawText } = transaction;
+  const { id, type, category, amount, merchant, confidence, status, description, date, rawText } = transaction;
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -80,11 +81,6 @@ export function TransactionItem({
       category: category,
     });
     setIsEditing(false);
-  };
-
-  const handleConfirm = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onConfirm) onConfirm(id);
   };
 
   const handleDelete = async (e?: React.MouseEvent) => {
@@ -129,7 +125,7 @@ export function TransactionItem({
                 {t('common.edit')}
               </button>
             )}
-            {onConfirm && !confirmedAt && (
+            {onConfirm && status !== 'confirmed' && (
               <button type="button" onClick={handleContextConfirm}>
                 {t('common.confirm')}
               </button>
@@ -145,7 +141,7 @@ export function TransactionItem({
 
       <div className="tx-main" onClick={onToggle}>
         <div className="tx-left">
-          <span className={`status-icon ${confirmedAt ? 'confirmed' : ''}`}>
+          <span className={`status-icon ${status === 'confirmed' ? 'confirmed' : ''}`}>
             {getStatusIcon(transaction)}
           </span>
           <div className="tx-info">
@@ -200,8 +196,8 @@ export function TransactionItem({
                 </select>
               </div>
               <div className="edit-actions">
-                <button type="button" className="btn btn--primary btn--sm" onClick={handleSave}>{t('common.save')}</button>
-                <button type="button" className="btn btn--secondary btn--sm" onClick={handleCancel}>{t('common.cancel')}</button>
+                <SaveButton size="sm" onClick={handleSave}>{t('common.save')}</SaveButton>
+                <CancelButton size="sm" onClick={handleCancel}>{t('common.cancel')}</CancelButton>
               </div>
             </div>
           ) : (
@@ -218,7 +214,7 @@ export function TransactionItem({
               <div className="detail-row">
                 <span className="detail-label">{t('transaction.status')}</span>
                 <span className="detail-value">
-                  {confirmedAt ? t('transaction.confirmed') : t('transaction.pending')}
+                  {status === 'confirmed' ? t('transaction.confirmed') : t('transaction.pending')}
                 </span>
               </div>
               {rawText && (
@@ -231,23 +227,23 @@ export function TransactionItem({
               {/* Action buttons */}
               <div className="tx-actions">
                 {onEdit && (
-                  <button
-                    type="button"
-                    className="btn btn--secondary btn--sm"
-                    onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                  <EditButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setIsEditing(true); }}
                   >
                     {t('common.edit')}
-                  </button>
+                  </EditButton>
                 )}
-                {onConfirm && !confirmedAt && (
-                  <button type="button" className="btn btn--success btn--sm" onClick={handleConfirm}>
+                {onConfirm && status !== 'confirmed' && (
+                  <ConfirmButton size="sm" onClick={() => onConfirm(id)}>
                     {t('common.confirm')}
-                  </button>
+                  </ConfirmButton>
                 )}
                 {onDelete && (
-                  <button type="button" className="btn btn--danger btn--sm" onClick={handleDelete}>
+                  <DeleteButton size="sm" onClick={() => handleDelete()}>
                     {t('common.delete')}
-                  </button>
+                  </DeleteButton>
                 )}
               </div>
             </>
