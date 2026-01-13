@@ -287,6 +287,11 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // Inference Profile ARNs for models that require them (on-demand throughput support)
+    // Format: arn:aws:bedrock:<region>::inference-profile/default-<model-name>
+    const novaProInferenceProfileArn = `arn:aws:bedrock:${this.region}::inference-profile/default-nova-pro`;
+    const claudeSonnetInferenceProfileArn = `arn:aws:bedrock:${this.region}::inference-profile/default-claude-3-5-sonnet`;
+
     // Lambda for batch processing (OCR)
     const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
       functionName: `yorutsuke-batch-process-${env}`,
@@ -298,6 +303,8 @@ export class YorutsukeStack extends cdk.Stack {
         BUCKET_NAME: imageBucket.bucketName,
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
         MAX_IMAGES_PER_RUN: "100",
+        NOVA_PRO_INFERENCE_PROFILE: novaProInferenceProfileArn,
+        CLAUDE_SONNET_INFERENCE_PROFILE: claudeSonnetInferenceProfileArn,
       },
       timeout: cdk.Duration.minutes(5),
       memorySize: 512,
@@ -314,6 +321,8 @@ export class YorutsukeStack extends cdk.Stack {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
         BUCKET_NAME: imageBucket.bucketName,
         CONTROL_TABLE_NAME: controlTable.tableName,
+        NOVA_PRO_INFERENCE_PROFILE: novaProInferenceProfileArn,
+        CLAUDE_SONNET_INFERENCE_PROFILE: claudeSonnetInferenceProfileArn,
       },
       timeout: cdk.Duration.minutes(2),
       memorySize: 512,
@@ -332,8 +341,14 @@ export class YorutsukeStack extends cdk.Stack {
     controlTable.grantReadData(instantProcessLambda);
     instantProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["bedrock:InvokeModel"],
-        resources: ["arn:aws:bedrock:*::foundation-model/*"],
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock-runtime:InvokeModel",
+        ],
+        resources: [
+          "arn:aws:bedrock:*:*:foundation-model/*",
+          "arn:aws:bedrock:ap-northeast-1:*:inference-profile/*",
+        ],
       })
     );
 

@@ -133,22 +133,21 @@ export class MultiModelAnalyzer {
             role: "user",
             content: [
               {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: "image/webp",
-                  data: imageBase64,
+                image: {
+                  format: "webp",
+                  source: { bytes: imageBase64 },
                 },
               },
               {
-                type: "text",
                 text: prompt,
               },
             ],
           },
         ],
-        max_tokens: 512,
-        temperature: 0.1,
+        inferenceConfig: {
+          maxTokens: 512,
+          temperature: 0.1,
+        },
       };
 
       const response = await bedrockClient.send(
@@ -208,27 +207,29 @@ export class MultiModelAnalyzer {
             role: "user",
             content: [
               {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: "image/webp",
-                  data: imageBase64,
-                },
+                text: prompt,
               },
               {
-                type: "text",
-                text: prompt,
+                image: {
+                  format: "webp",
+                  source: { bytes: imageBase64 },
+                },
               },
             ],
           },
         ],
-        max_tokens: 1024,
-        temperature: 0.1,
+        inferenceConfig: {
+          maxTokens: 1024,
+          temperature: 0.1,
+        },
       };
+
+      // Use Inference Profile ARN if available, otherwise fall back to model ID
+      const modelId = process.env.NOVA_PRO_INFERENCE_PROFILE || "amazon.nova-pro-v1:0";
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "amazon.nova-pro-v1:0",
+          modelId: modelId,
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
@@ -305,9 +306,12 @@ JSONのみを返してください。`;
         ],
       };
 
+      // Use Inference Profile ARN if available, otherwise fall back to model ID
+      const modelId = process.env.CLAUDE_SONNET_INFERENCE_PROFILE || "anthropic.claude-sonnet-4-5-20250929-v1:0";
+
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "anthropic.claude-sonnet-4-5-20250929-v1:0",
+          modelId: modelId,
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
