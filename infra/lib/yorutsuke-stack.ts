@@ -290,8 +290,8 @@ export class YorutsukeStack extends cdk.Stack {
     // Inference Profile ARNs for models that require them (on-demand throughput support)
     // Format: arn:aws:bedrock:<region>:<account-id>:inference-profile/<profile-name>
     const ACCOUNT_ID = "696249060859";
-    const novaProInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/apac.amazon.nova-pro-v1:0`;
-    const claudeSonnetInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/jp.anthropic.claude-sonnet-4-5-20250929-v1:0`;
+    const novaProInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.amazon.nova-pro-v1:0`;
+    const claudeSonnetInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0`;
 
     // Lambda for batch processing (OCR)
     const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
@@ -348,10 +348,10 @@ export class YorutsukeStack extends cdk.Stack {
         ],
         resources: [
           "arn:aws:bedrock:*:*:foundation-model/*",
-          "arn:aws:bedrock:ap-northeast-1:*:inference-profile/*",
+          `arn:aws:bedrock:${this.region}:*:inference-profile/*`,
           // Explicit permission for specific inference profiles
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/apac.amazon.nova-pro-v1:0`,
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/jp.anthropic.claude-sonnet-4-5-20250929-v1:0`,
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.amazon.nova-pro-v1:0`,
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0`,
         ],
       })
     );
@@ -495,10 +495,10 @@ export class YorutsukeStack extends cdk.Stack {
         ],
         resources: [
           "arn:aws:bedrock:*:*:foundation-model/*",
-          "arn:aws:bedrock:ap-northeast-1:*:inference-profile/*",
+          `arn:aws:bedrock:${this.region}:*:inference-profile/*`,
           // Explicit permission for specific inference profiles
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/apac.amazon.nova-pro-v1:0`,
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/jp.anthropic.claude-sonnet-4-5-20250929-v1:0`,
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.amazon.nova-pro-v1:0`,
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0`,
         ],
       })
     );

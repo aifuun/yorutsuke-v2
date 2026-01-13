@@ -13,7 +13,7 @@ const account = process.env.CDK_DEFAULT_ACCOUNT;
 new YorutsukeStack(app, `Yorutsuke2Stack-${env}`, {
   env: {
     account,
-    region: "ap-northeast-1",
+    region: "us-east-1",
   },
   tags: {
     Project: "yorutsuke-v2",
@@ -25,7 +25,7 @@ new YorutsukeStack(app, `Yorutsuke2Stack-${env}`, {
 new YorutsukeAdminStack(app, `Yorutsuke2AdminStack-${env}`, {
   env: {
     account,
-    region: "ap-northeast-1",
+    region: "us-east-1",
   },
   tags: {
     Project: "yorutsuke-v2",
