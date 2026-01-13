@@ -39,8 +39,8 @@ const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
-const TRANSACTIONS_TABLE = process.env.TRANSACTIONS_TABLE || "yorutsuke-transactions";
-const BATCH_JOBS_TABLE = process.env.BATCH_JOBS_TABLE || "yorutsuke-batch-jobs";
+const TRANSACTIONS_TABLE = process.env.TRANSACTIONS_TABLE || "yorutsuke-transactions-us-dev";
+const BATCH_JOBS_TABLE = process.env.BATCH_JOBS_TABLE || "yorutsuke-batch-jobs-us-dev";
 
 const BATCH_WRITE_SIZE = 25; // DynamoDB BatchWriteItem limit
 const MAX_RETRIES = 3;

@@ -26,8 +26,7 @@ const ddb = new DynamoDBClient({});
 const bedrock = new BedrockClient({ region: process.env.AWS_REGION || "us-west-2" });
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
-const PENDING_IMAGES_TABLE = process.env.PENDING_IMAGES_TABLE || "yorutsuke-pending-images";
-const BATCH_JOBS_TABLE = process.env.BATCH_JOBS_TABLE || "yorutsuke-batch-jobs";
+const BATCH_JOBS_TABLE = process.env.BATCH_JOBS_TABLE || "yorutsuke-batch-jobs-us-dev";
 const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
 const API_BASE_URL = process.env.API_BASE_URL || "https://api.example.com";
 
