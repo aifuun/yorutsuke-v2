@@ -20,6 +20,7 @@ This document is a pure index of architectural decisions. All implementation det
 - [009-branch-first-workflow.md](../docs/architecture/ADR/009-branch-first-workflow.md) - Git workflow rule
 - [010-three-layer-task-tracking.md](../docs/architecture/ADR/010-three-layer-task-tracking.md) - TODO/MEMORY migration (pure ADR index)
 - [011-bidirectional-cloud-sync.md](../docs/architecture/ADR/011-bidirectional-cloud-sync.md) - Bidirectional cloud sync (Issue #86)
+- [012-bedrock-model-ids.md](../docs/architecture/ADR/012-bedrock-model-ids.md) - Bedrock inference profiles and model IDs
 
 ## References
 
@@ -29,6 +30,6 @@ This document is a pure index of architectural decisions. All implementation det
 
 ---
 
-**Last Updated**: 2026-01-12 (ADR-011 added)
+**Last Updated**: 2026-01-13 (ADR-012 added - Bedrock model IDs)
 **Purpose**: Pure ADR index (no project tracking)
 **Update Rule**: Add ADR link when closing major architectural issues
