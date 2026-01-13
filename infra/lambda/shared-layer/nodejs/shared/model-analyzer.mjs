@@ -180,26 +180,16 @@ export class MultiModelAnalyzer {
    */
   async analyzeNovaProBedrock(imageBase64, traceId) {
     try {
-      const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で詳細に抽出してください：
+      const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で抽出してください（JSONのみ、マークダウンなし）：
 
 {
-  "vendor": "店舗名/商号",
-  "lineItems": [
-    {
-      "description": "商品名/サービス名",
-      "quantity": 数量,
-      "unitPrice": 単価,
-      "totalPrice": 金額
-    }
-  ],
+  "vendor": "店舗名",
   "subtotal": 小計,
   "taxAmount": 消費税,
-  "taxRate": 税率（8または10など）,
+  "taxRate": 税率,
   "totalAmount": 合計金額,
-  "confidence": 0-100の信頼度スコア
-}
-
-マークダウンのコードブロックは使わないでください。JSONのみを返してください。`;
+  "confidence": 0-100
+}`;
 
       const payload = {
         messages: [
@@ -219,7 +209,7 @@ export class MultiModelAnalyzer {
           },
         ],
         inferenceConfig: {
-          maxTokens: 1024,
+          maxTokens: 2048,
           temperature: 0.1,
         },
       };
@@ -317,8 +307,9 @@ JSONのみを返してください。`;
         ],
       };
 
-      // Use Inference Profile ARN if available, otherwise fall back to foundation model ID (available in us-east-1)
-      const modelId = process.env.CLAUDE_SONNET_INFERENCE_PROFILE || "anthropic.claude-sonnet-4-5-20250929-v1:0";
+      // Use Claude 3.5 Sonnet (older version with potentially more lenient geo-policy)
+      // If this still fails due to geo-restriction, switch to Nova Pro as primary model
+      const modelId = process.env.CLAUDE_SONNET_INFERENCE_PROFILE || "anthropic.claude-3-5-sonnet-20241022-v2:0";
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
