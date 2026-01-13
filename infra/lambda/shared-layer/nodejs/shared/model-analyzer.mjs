@@ -153,7 +153,7 @@ export class MultiModelAnalyzer {
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "amazon.nova-mini-v1:0",
+          modelId: "us.amazon.nova-lite-v1:0",  // Cross-region inference
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
@@ -228,7 +228,7 @@ export class MultiModelAnalyzer {
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "amazon.nova-pro-v1:0",
+          modelId: "us.amazon.nova-pro-v1:0",  // Cross-region inference
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
@@ -307,7 +307,7 @@ JSONのみを返してください。`;
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+          modelId: "us.anthropic.claude-3-5-sonnet-20241022-v2:0",  // Cross-region inference
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
