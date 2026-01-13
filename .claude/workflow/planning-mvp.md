@@ -1,10 +1,9 @@
-# Step 1: MVP-Level Decomposition (40 minutes)
+# MVP-Level Decomposition
 
 > Quick feature breakdown for a release. Creates GitHub Issues without detailed implementation plans.
 
-**Duration**: 40 minutes  
-**Output**: GitHub Issues + dependency graph  
-**Timing**: Once per MVP release  
+**Output**: GitHub Issues + dependency graph
+**When**: Once per MVP release (v0.1, v1.0, MVP3.0, etc.)  
 
 ---
 
@@ -19,8 +18,6 @@
 ---
 
 ## 🎯 Step 0: Analyze MVP Goal
-
-**Duration**: 5 minutes
 
 Clarify the MVP's overall goal and acceptance criteria:
 
@@ -39,8 +36,6 @@ Constraint: Lambda timeout 10 minutes
 ---
 
 ## 🔍 Step 1: Identify Feature Scope
-
-**Duration**: 10 minutes
 
 List all features needed for this MVP:
 
@@ -62,8 +57,6 @@ Total: 5 features
 ---
 
 ## 📦 Step 2: Decompose with Dependencies
-
-**Duration**: 15 minutes
 
 For each feature, identify:
 1. **Rough size** (not detailed, just estimate hours)
@@ -120,8 +113,6 @@ Total MVP time: 8h + 6h + 12h + 4h = 30 hours
 ---
 
 ## 🔐 Step 3: Create GitHub Issues (Bare Minimum)
-
-**Duration**: 10 minutes
 
 For each feature, create a GitHub issue with:
 
@@ -216,7 +207,7 @@ gh issue edit <n> --add-label "feature/planning,size-estimate/8h"
 
 ## 📊 Output: Roadmap for MVP
 
-**What you should have after 40 minutes:**
+**What you should have after MVP planning:**
 
 ```markdown
 # MVP x.0 Roadmap
@@ -268,8 +259,6 @@ When ready to start Feature #N, see `planning-feature.md` for detailed planning
 - [ ] GitHub Issues created for all features (with minimal info)
 - [ ] Dependency graph visible
 - [ ] Team understands MVP scope and order
-
-✅ **Typical timeline**: 30-40 minutes for 5-8 features
 
 ---
 
