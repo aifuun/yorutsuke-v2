@@ -119,6 +119,33 @@ export interface AppEvents {
   };
 
   // =========================================================================
+  // Scanner Events
+  // =========================================================================
+
+  /**
+   * @trigger scanner:ready
+   * @payload Scanner finished auto-detection, ready for user review
+   */
+  'scanner:ready': {
+    fileName: string;
+  };
+
+  /**
+   * @trigger scanner:completed
+   * @payload Scanner workflow completed
+   */
+  'scanner:completed': {
+    fileName: string;
+    cropped: boolean;  // true = cropped, false = original upload
+  };
+
+  /**
+   * @trigger scanner:canceled
+   * @payload User canceled scanning
+   */
+  'scanner:canceled': Record<string, never>;
+
+  // =========================================================================
   // Upload Events
   // =========================================================================
 

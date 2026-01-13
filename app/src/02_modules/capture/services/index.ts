@@ -4,3 +4,4 @@
 export { captureService } from './captureService';
 export { fileService } from './fileService';
 export { uploadService } from './uploadService';
+export { scannerService } from './scannerService';

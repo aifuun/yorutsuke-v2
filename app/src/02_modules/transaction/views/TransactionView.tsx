@@ -191,31 +191,6 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     load(buildFetchOptions());
   }, [userId, load, buildFetchOptions]);
 
-  // Top bar content helper
-  const renderTopBarContent = () => (
-    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-      {isOnline && syncLogic.getTimeSinceLastSync() && (
-        <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
-          {syncLogic.getTimeSinceLastSync()}
-        </span>
-      )}
-      {isOnline && (
-        <button
-          type="button"
-          className="btn btn--secondary btn--sm"
-          onClick={handleSync}
-          disabled={syncLogic.state.status === 'syncing'}
-          title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
-        >
-          {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
-        </button>
-      )}
-      <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
-        + {t('ledger.newEntry')}
-      </button>
-    </div>
-  );
-
   // Listen to auto-sync completion events and reload transactions
   useEffect(() => {
     const cleanup = on('transaction:synced', () => {
