@@ -617,6 +617,107 @@ export function DebugView() {
                           {tx.userId}
                         </span>
                       </div>
+
+                      {/* Model Comparison Results */}
+                      {(tx as any).modelComparison && (
+                        <div className="debug-model-comparison">
+                          <div className="debug-model-header">
+                            <span>Model Comparison Results</span>
+                            {(tx as any).modelComparison.comparisonStatus && (
+                              <span className="debug-model-status" style={{
+                                color: (tx as any).modelComparison.comparisonStatus === 'completed' ? '#10b981' : '#ef4444'
+                              }}>
+                                {(tx as any).modelComparison.comparisonStatus}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Textract */}
+                          <div className="debug-model-item">
+                            <div className="debug-model-name">Textract</div>
+                            {(tx as any).modelComparison.textract ? (
+                              <div className="debug-model-details">
+                                <div>{(tx as any).modelComparison.textract.vendor || '-'}</div>
+                                <div>¥{(tx as any).modelComparison.textract.totalAmount || '-'}</div>
+                              </div>
+                            ) : (
+                              <div className="debug-model-details">
+                                <span style={{ color: '#999' }}>No result</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Nova Mini */}
+                          <div className="debug-model-item">
+                            <div className="debug-model-name">Nova Mini</div>
+                            {(tx as any).modelComparison.nova_mini ? (
+                              <div className="debug-model-details">
+                                <div>{(tx as any).modelComparison.nova_mini.vendor || '-'}</div>
+                                <div>¥{(tx as any).modelComparison.nova_mini.totalAmount || '-'} (tax: ¥{(tx as any).modelComparison.nova_mini.taxAmount || '0'})</div>
+                                <div>Confidence: {(tx as any).modelComparison.nova_mini.confidence || '-'}%</div>
+                              </div>
+                            ) : (
+                              <div className="debug-model-details">
+                                <span style={{ color: '#999' }}>No result</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Nova Pro */}
+                          <div className="debug-model-item">
+                            <div className="debug-model-name">Nova Pro</div>
+                            {(tx as any).modelComparison.nova_pro ? (
+                              <div className="debug-model-details">
+                                <div>{(tx as any).modelComparison.nova_pro.vendor || '-'}</div>
+                                <div>¥{(tx as any).modelComparison.nova_pro.totalAmount || '-'} (tax: ¥{(tx as any).modelComparison.nova_pro.taxAmount || '0'})</div>
+                                <div>Confidence: {(tx as any).modelComparison.nova_pro.confidence || '-'}%</div>
+                              </div>
+                            ) : (
+                              <div className="debug-model-details">
+                                <span style={{ color: '#999' }}>No result</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Claude Sonnet */}
+                          <div className="debug-model-item">
+                            <div className="debug-model-name">Claude Sonnet</div>
+                            {(tx as any).modelComparison.claude_sonnet ? (
+                              <div className="debug-model-details">
+                                <div>{(tx as any).modelComparison.claude_sonnet.vendor || '-'}</div>
+                                <div>¥{(tx as any).modelComparison.claude_sonnet.totalAmount || '-'} (tax: ¥{(tx as any).modelComparison.claude_sonnet.taxAmount || '0'})</div>
+                                <div>Confidence: {(tx as any).modelComparison.claude_sonnet.confidence || '-'}%</div>
+                              </div>
+                            ) : (
+                              <div className="debug-model-details">
+                                <span style={{ color: '#999' }}>No result</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Comparison Errors */}
+                          {(tx as any).modelComparison.comparisonErrors && (tx as any).modelComparison.comparisonErrors.length > 0 && (
+                            <div className="debug-model-errors">
+                              <div className="debug-model-name" style={{ color: '#ef4444' }}>Errors</div>
+                              {(tx as any).modelComparison.comparisonErrors.map((err: any, errIdx: number) => (
+                                <div key={errIdx} className="debug-model-error-item">
+                                  <span style={{ fontWeight: 'bold', color: '#ef4444' }}>{err.model}:</span> {err.error}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Comparison Timestamp */}
+                          {(tx as any).modelComparison.comparisonTimestamp && (
+                            <div className="debug-model-timestamp">
+                              <span className="debug-tx-label">Compared at:</span>
+                              <span className="debug-tx-value mono" style={{ fontSize: '11px' }}>
+                                {new Date((tx as any).modelComparison.comparisonTimestamp).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

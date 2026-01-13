@@ -167,7 +167,7 @@ export function useTransactionLogic(userId: UserId | null) {
 
   // Listen for data refresh events (e.g., after seeding, image processing, etc.)
   useEffect(() => {
-    const unsubscribe = on('data:refresh', ({ source }) => {
+    const unsubscribe = on('data:refresh', () => {
       if (userId) {
         load();  // Reload on any data refresh event (seed, image_processed, etc.)
       }
