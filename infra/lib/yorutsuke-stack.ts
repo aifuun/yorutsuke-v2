@@ -316,13 +316,11 @@ export class YorutsukeStack extends cdk.Stack {
           "bedrock-runtime:InvokeModel",
         ],
         resources: [
+          // Foundation models (direct invocation in us-east-1)
           "arn:aws:bedrock:*:*:foundation-model/*",
+          // Inference profiles for multi-region routing
           `arn:aws:bedrock:${this.region}:*:inference-profile/*`,
-          // Explicit permission for specific inference profiles
           `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.amazon.nova-pro-v1:0`,
-          // Claude Sonnet 4.5 - both US and global variants
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0`,
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/global.anthropic.claude-sonnet-4-5-20250929-v1:0`,
         ],
       })
     );

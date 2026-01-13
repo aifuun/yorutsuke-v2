@@ -317,8 +317,8 @@ JSONのみを返してください。`;
         ],
       };
 
-      // Use Inference Profile ARN if available, otherwise fall back to global model ID (works from Japan)
-      const modelId = process.env.CLAUDE_SONNET_INFERENCE_PROFILE || "global.anthropic.claude-sonnet-4-5-20250929-v1:0";
+      // Use Inference Profile ARN if available, otherwise fall back to foundation model ID (available in us-east-1)
+      const modelId = process.env.CLAUDE_SONNET_INFERENCE_PROFILE || "anthropic.claude-sonnet-4-5-20250929-v1:0";
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
