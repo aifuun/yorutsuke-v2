@@ -349,6 +349,9 @@ export class YorutsukeStack extends cdk.Stack {
         resources: [
           "arn:aws:bedrock:*:*:foundation-model/*",
           "arn:aws:bedrock:ap-northeast-1:*:inference-profile/*",
+          // Explicit permission for specific inference profiles
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/apac.amazon.nova-pro-v1:0`,
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/jp.anthropic.claude-sonnet-4-5-20250929-v1:0`,
         ],
       })
     );
@@ -486,8 +489,17 @@ export class YorutsukeStack extends cdk.Stack {
     // Grant Bedrock access
     batchProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["bedrock:InvokeModel"],
-        resources: ["arn:aws:bedrock:*::foundation-model/*"],
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock-runtime:InvokeModel",
+        ],
+        resources: [
+          "arn:aws:bedrock:*:*:foundation-model/*",
+          "arn:aws:bedrock:ap-northeast-1:*:inference-profile/*",
+          // Explicit permission for specific inference profiles
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/apac.amazon.nova-pro-v1:0`,
+          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/jp.anthropic.claude-sonnet-4-5-20250929-v1:0`,
+        ],
       })
     );
 
