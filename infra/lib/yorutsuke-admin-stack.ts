@@ -117,8 +117,9 @@ export class YorutsukeAdminStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       },
-      domainNames: ["panel.yorutsuke.rolligen.com"],
-      certificate,
+      // TODO: Enable custom domain after fixing DNS records (old distribution conflict)
+      // domainNames: ["panel.yorutsuke.rolligen.com"],
+      // certificate,
       defaultRootObject: "index.html",
       errorResponses: [
         {
