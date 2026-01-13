@@ -215,7 +215,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <SyncStatusIndicator hideWhenIdle />
+              <SyncStatusIndicator hideWhenIdle hideTime />
               {isOnline && (
                 <SyncButton
                   variant="ghost"
@@ -248,7 +248,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <SyncStatusIndicator hideWhenIdle />
+              <SyncStatusIndicator hideWhenIdle hideTime />
               {isOnline && (
                 <SyncButton
                   variant="ghost"
@@ -281,7 +281,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           title={t('nav.ledger')}
           rightContent={
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-              <SyncStatusIndicator hideWhenIdle />
+              <SyncStatusIndicator hideWhenIdle hideTime />
               {isOnline && (
                 <SyncButton
                   variant="ghost"

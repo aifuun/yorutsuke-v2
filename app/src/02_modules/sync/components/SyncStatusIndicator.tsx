@@ -16,6 +16,8 @@ import './sync-status.css';
 interface SyncStatusIndicatorProps {
   /** Hide when no pending items (default: false) */
   hideWhenIdle?: boolean;
+  /** Hide time since last sync (default: false) */
+  hideTime?: boolean;
 }
 
 /**
@@ -31,7 +33,7 @@ function selectSyncData(state: SyncState) {
   };
 }
 
-export function SyncStatusIndicator({ hideWhenIdle = false }: SyncStatusIndicatorProps) {
+export function SyncStatusIndicator({ hideWhenIdle = false, hideTime = false }: SyncStatusIndicatorProps) {
   // Manual subscription pattern - safest for vanilla stores
   // useState with initializer function runs once
   const [syncData, setSyncData] = useState(() => selectSyncData(syncStore.getState()));
@@ -81,7 +83,7 @@ export function SyncStatusIndicator({ hideWhenIdle = false }: SyncStatusIndicato
       )}
 
       {/* Last synced */}
-      {!isSyncing && pendingCount === 0 && formattedTime && (
+      {!isSyncing && pendingCount === 0 && formattedTime && !hideTime && (
         <span className="sync-status__text sync-status__text--synced">
           {formattedTime}
         </span>
