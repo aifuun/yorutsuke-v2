@@ -28,15 +28,16 @@ export class MultiModelAnalyzer {
   async analyzeReceipt({ imageBase64, s3Key, bucket, traceId, imageId }) {
     logger.info("MODEL_COMPARISON_STARTED", { traceId, imageId });
 
-    // Run all 4 models in parallel with graceful error handling
+    // Run 4 models in parallel with graceful error handling
+    // Replaced Claude Sonnet (geo-restriction issues) with Gemma 3 (Google open-source)
     const results = await Promise.allSettled([
       this.analyzeTextract(s3Key, bucket, traceId),
       this.analyzeNovaMini(imageBase64, traceId),
       this.analyzeNovaProBedrock(imageBase64, traceId),
-      this.analyzeClaudeSonnetBedrock(imageBase64, traceId),
+      this.analyzeGemma3(imageBase64, traceId),
     ]);
 
-    const modelNames = ["textract", "nova_mini", "nova_pro", "claude_sonnet"];
+    const modelNames = ["textract", "nova_mini", "nova_pro", "gemma_3"];
     const comparison = {};
     const errors = [];
 
@@ -63,7 +64,7 @@ export class MultiModelAnalyzer {
       textract: comparison.textract || null,
       nova_mini: comparison.nova_mini || null,
       nova_pro: comparison.nova_pro || null,
-      claude_sonnet: comparison.claude_sonnet || null,
+      gemma_3: comparison.gemma_3 || null,
       comparisonStatus: errors.length === 4 ? "failed" : "completed",
       comparisonErrors: errors.length > 0 ? errors : undefined,
       comparisonTimestamp: new Date().toISOString(),
@@ -251,45 +252,33 @@ export class MultiModelAnalyzer {
   }
 
   /**
-   * Analyze via Claude 3.5 Sonnet (via Bedrock)
-   * Most capable, sophisticated understanding
-   * Best for edge cases and complex receipts
-   * @ai-intent: Explicitly request JSON output without markdown
+   * Analyze via Google Gemma 3 12B (via Bedrock)
+   * Open-source model with good reasoning and multilingual support
+   * Avoids Anthropic geo-restrictions
+   * @ai-intent: Google Gemma as alternative to Claude for geo-restricted regions
    */
-  async analyzeClaudeSonnetBedrock(imageBase64, traceId) {
+  async analyzeGemma3(imageBase64, traceId) {
     try {
-      const systemPrompt =
-        "あなたは日本語のレシート解析AIです。必ずJSON形式のみで、マークダウンコードブロックなしで応答してください。";
-
-      const userPrompt = `この画像から以下のJSON形式で詳細に抽出してください：
+      const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で抽出してください（JSONのみ、マークダウンなし）：
 
 {
-  "vendor": "店舗名/商号",
-  "lineItems": [
-    {
-      "description": "商品名/サービス名",
-      "quantity": 数量,
-      "unitPrice": 単価,
-      "totalPrice": 金額
-    }
-  ],
+  "vendor": "店舗名",
   "subtotal": 小計,
   "taxAmount": 消費税,
   "taxRate": 税率,
   "totalAmount": 合計金額,
   "confidence": 0-100
-}
-
-JSONのみを返してください。`;
+}`;
 
       const payload = {
-        anthropic_version: "bedrock-2023-06-01",
-        max_tokens: 1024,
-        system: systemPrompt,
         messages: [
           {
             role: "user",
             content: [
+              {
+                type: "text",
+                text: prompt,
+              },
               {
                 type: "image",
                 source: {
@@ -298,22 +287,16 @@ JSONのみを返してください。`;
                   data: imageBase64,
                 },
               },
-              {
-                type: "text",
-                text: userPrompt,
-              },
             ],
           },
         ],
+        temperature: 0.1,
+        max_tokens: 2048,
       };
-
-      // Use Claude 3.5 Sonnet (older version with potentially more lenient geo-policy)
-      // If this still fails due to geo-restriction, switch to Nova Pro as primary model
-      const modelId = process.env.CLAUDE_SONNET_INFERENCE_PROFILE || "anthropic.claude-3-5-sonnet-20241022-v2:0";
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: modelId,
+          modelId: "google.gemma-3-12b-it",
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
@@ -323,16 +306,22 @@ JSONのみを返してください。`;
       const responseBody = JSON.parse(
         new TextDecoder().decode(response.body)
       );
-      const text =
-        responseBody.content?.[0]?.text || "{}";
+
+      const text = responseBody.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+
+      logger.debug("GEMMA_3_EXTRACTED_TEXT", {
+        traceId,
+        textLength: text.length,
+        text: text.substring(0, 200),
+      });
 
       return this.parseAndNormalizeJson(text);
     } catch (error) {
-      logger.error("CLAUDE_SONNET_ERROR", {
+      logger.error("GEMMA_3_ERROR", {
         traceId,
         error: error.message,
       });
-      throw new Error(`Claude Sonnet analysis failed: ${error.message}`);
+      throw new Error(`Gemma 3 analysis failed: ${error.message}`);
     }
   }
 
