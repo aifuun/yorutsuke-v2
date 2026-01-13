@@ -7,166 +7,137 @@ requires: none
 # Command: *plan
 
 ## Purpose
-Create implementation plan for MVP, feature/issue, or quick task
+Router for planning: MVP decomposition or feature implementation planning.
 
-**Note**: Executing `*plan` will **enter Plan Mode**, a specialized planning environment where you explore the codebase and design solutions before coding. Plan Mode is exited when you approve the plan or abort it.
+**Note**: Executing `*plan` enters **Plan Mode** - exploration and design before coding.
+
+---
 
 ## Usage
+
 ```bash
-*plan                  # Show planning menu
-*plan mvp              # Step 1: MVP decomposition (战略层)
-*plan #<n>             # Step 2: Feature planning for issue #n (战役层)
-*plan <description>    # Quick plan for simple task (战术层)
+*plan           # Show planning menu
+*plan mvp       # MVP decomposition → planning-mvp.md
+*plan #<n>      # Feature planning → planning-feature.md
 ```
 
-## Subcommands
+---
 
-### *plan (no args)
-Show interactive menu:
-```
-Planning Menu:
+## Planning Layers
 
-1. MVP Planning (战略层)
-   → Decompose MVP into GitHub Issues
-   → Use: *plan mvp
-
-2. Feature Planning (战役层)
-   → Create detailed plan for Issue #n
-   → Use: *plan #<n>
-
-3. Quick Plan (战术层)
-   → Plan a simple task
-   → Use: *plan <description>
-
-Which planning level? (1/2/3)
-```
-
-### *plan mvp
-**Step 1: MVP Decomposition** (40 min)
-
-1. Identify current/next MVP from `docs/dev/MVP*.md`
-2. Load template: `.claude/workflow/templates/TEMPLATE-mvp.md`
-3. Follow guide: `.claude/workflow/planning-mvp.md`
-4. Output: GitHub Issues + dependency graph
-5. Update MVP file with Issue references
+### Layer 1: MVP Planning (战略层)
+**Command**: `*plan mvp`
+**Purpose**: Decompose MVP into GitHub Issues (features)
+**Output**: GitHub Issues with rough estimates + dependency graph
+**Guide**: `.claude/workflow/planning-mvp.md`
 
 **Workflow**:
 ```
 Analyze MVP goal → Identify features → Map dependencies → Create Issues
 ```
 
-### *plan #<n>
-**Step 2: Feature Planning** (1-2h)
+---
 
-1. View issue: `gh issue view <n>`
-2. Check complexity (suggest `*tier` if T2/T3)
-3. Load template: `.claude/workflow/templates/TEMPLATE-feature-plan.md`
-4. Follow guide: `.claude/workflow/planning-feature.md`
-5. Save to: `.claude/plans/active/#<n>-name.md`
-6. Update GitHub Issue with plan link
+### Layer 2: Feature Planning (战役层)
+**Command**: `*plan #<n>`
+**Purpose**: Plan implementation for one feature (= one Issue)
+**Output**: Dev plan + function contracts + test cases
+**Guide**: `.claude/workflow/planning-feature.md`
 
 **Workflow**:
 ```
-Validate requirements → Create dev plan → Define test cases → Ready to code
+Architecture review → Function contracts → Validate requirements → Dev plan → Ready to code
 ```
 
-### *plan <description>
-**Quick Plan** for simple tasks
+**Note**: Feature = Issue (one-to-one relationship)
 
-Workflow
+---
 
-1. **Analyze request**: Understand what needs to be done
+## Common Protocols
 
-2. **Research** (if needed):
-   - Check existing code patterns
-   - Identify affected files
-   - Note dependencies
+These rules apply to **all** planning activities:
 
-3. **Break down** into steps:
-   - Each step should be completable in one session
-   - Order by dependency (what must come first)
-   - Identify risky/complex steps
+### Plan Mode Behavior
 
-4. **Create plan**:
-   - Create `.claude/plans/active/#<n>-title.md` from template
-   - Or create GitHub issue if substantial
+When you execute `*plan`, you enter **Plan Mode**:
 
-5. **Present** to user:
-   ```
-   ## Plan: <description>
+1. **Exploration**: Use Glob, Grep, Read, Explore to understand codebase
+2. **Analysis**: Analyze patterns, architecture, dependencies
+3. **Design**: Create detailed plan
+4. **Presentation**: Write plan to file or GitHub
+5. **Approval**: Wait for user approval/modification/rejection
+6. **Exit**: Exit Plan Mode once approved or aborted
 
-   ### Steps
-   1. [ ] Step one - [details]
-   2. [ ] Step two - [details]
-   3. [ ] Step three - [details]
-
-   ### Risks
-   - Risk 1: mitigation
-
-   ### Files affected
-   - file1.js
-   - file2.js
-
-   Ready to proceed?
-   ```
-
-6. **Wait for approval** before executing
-
-7. **Record decision** (if major architectural change):
-   - Create ADR in `docs/architecture/ADR/NNN-title.md`
-   - Add link to MEMORY.md (see @.claude/rules/memory-management.md)
-
-## Plan Mode Explained
-
-When you execute `*plan`, you enter **Plan Mode** - a special state where:
-
-### What Happens in Plan Mode
-
-1. **Exploration Phase**: I explore your codebase using specialized tools (Glob, Grep, Explore agent)
-2. **Analysis Phase**: I analyze patterns, architecture, dependencies
-3. **Design Phase**: I create a detailed implementation plan
-4. **Presentation**: I write the plan to a file (`.claude/plans/active/`) and present it to you
-5. **Approval**: You review and approve, modify, or reject the plan
-6. **Exit**: Plan Mode exits once you approve or abort
-
-### Key Features
-
-- **No coding yet** - Plan Mode is for planning, not implementation
-- **Deep exploration** - Can read and analyze many files to understand context
-- **Architecture-aware** - Checks ADRs, patterns, existing code styles
-- **Risk identification** - Identifies potential issues before coding
-- **Test cases** - Suggests how to test the implementation
+**Characteristics**:
+- ✅ No coding - planning only
+- ✅ Deep exploration - read many files to understand context
+- ✅ Architecture-aware - check ADRs, Pillars, patterns
+- ✅ Risk identification - spot issues before coding
+- ✅ Safe - exploration only, no code changes until approved
 
 ### After Plan Mode
 
-Once you approve the plan:
-- Use `*approve` to start implementing according to the plan
-- Or use `*next` to pick next issue and load its plan
+Once plan is approved:
+- Use `*approve` to start implementation
+- Or use `*next` to continue workflow
 
-## Notes
+### Plan Quality Standards
 
-- Good plans have 3-7 steps
-- Each step should be testable
-- Identify risks upfront
-- **Plan Mode is safe** - exploration only, no code changes until approved
+All plans should have:
+- ✅ Clear goal and scope
+- ✅ Actionable steps (typically 3-7 steps)
+- ✅ Each step is testable
+- ✅ Risks identified upfront
+- ✅ Dependencies noted
 
-## Templates Summary
+### Architecture Decision Recording
 
-| Level | Template | Output |
-|-------|----------|--------|
-| 战略 MVP | `TEMPLATE-mvp.md` | `docs/dev/MVPX.md` |
-| 战役 Feature | `TEMPLATE-feature-plan.md` | `plans/active/#xxx.md` |
-| 战役 Issue | `TEMPLATE-github-issue.md` | GitHub Issues |
+If planning results in major architectural changes:
+- Create ADR in `docs/architecture/ADR/NNN-title.md`
+- Add link to `.claude/MEMORY.md` (see `.claude/rules/memory-management.md`)
 
-All templates: `.claude/workflow/templates/`
+---
+
+## Routing
+
+### *plan mvp
+**AI**: Read `.claude/workflow/planning-mvp.md` for complete MVP decomposition workflow.
+
+### *plan #<n>
+**AI**: Read `.claude/workflow/planning-feature.md` for complete feature planning workflow.
+
+---
+
+## Templates
+
+| Planning Type | Template | Output Location |
+|---------------|----------|-----------------|
+| MVP | `TEMPLATE-mvp.md` | `docs/dev/MVPX.md` |
+| Feature | `TEMPLATE-feature-plan.md` | `.claude/plans/active/#XXX.md` |
+| Issue (from MVP) | `TEMPLATE-github-issue.md` | GitHub Issues |
+
+Templates: `.claude/workflow/templates/`
+
+---
 
 ## Command Chaining
 
-**After `*plan mvp`**: Creates Issues → use `*issue pick <n>` to start development
-**After `*plan #<n>`**: Creates feature plan → use `*approve` to execute
-**After `*plan <desc>`**: Creates quick plan → use `*approve` to execute
+```bash
+# Layer 1: MVP Planning
+*plan mvp              # Creates Issues #100-#107
+*issue pick 100        # Pick an issue to work on
+
+# Layer 2: Feature Planning
+*plan #100             # Create detailed plan for Issue #100
+*approve               # Start implementation
+```
+
+---
 
 ## Related
-- Commands: *approve, *tier, *issue
-- Templates: `.claude/workflow/templates/`
-- Workflow: `.claude/rules/workflow.md`
+
+- **MVP guide**: `.claude/workflow/planning-mvp.md`
+- **Feature guide**: `.claude/workflow/planning-feature.md`
+- **Commands**: `*approve`, `*tier`, `*issue`
+- **Workflow**: `.claude/rules/workflow.md`
+- **Summary**: `docs/workflow/PLANNING_WORKFLOW_SUMMARY.md`
