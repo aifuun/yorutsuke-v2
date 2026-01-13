@@ -33,8 +33,8 @@ new YorutsukeAdminStack(app, `Yorutsuke2AdminStack-${env}`, {
     Component: "admin",
   },
   // Reference main stack resources by naming convention
-  imageBucketName: `yorutsuke-images-${env}-${account}-v2`,
-  transactionsTableName: `yorutsuke-transactions-${env}`,
-  quotasTableName: `yorutsuke-quotas-${env}`,
-  batchProcessLambdaName: `yorutsuke-batch-process-${env}`,
+  imageBucketName: `yorutsuke-images-us-${env}-${account}`,
+  transactionsTableName: `yorutsuke-transactions-us-${env}`,
+  quotasTableName: `yorutsuke-quotas-us-${env}`,
+  batchProcessLambdaName: `yorutsuke-batch-process-us-${env}`,
 });

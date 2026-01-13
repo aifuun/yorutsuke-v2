@@ -22,7 +22,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // S3 Bucket for receipt images
     const imageBucket = new s3.Bucket(this, "ImageBucket", {
-      bucketName: `yorutsuke-images-${env}-${this.account}-v2`,
+      bucketName: `yorutsuke-images-us-${env}-${this.account}`,
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN
@@ -54,7 +54,7 @@ export class YorutsukeStack extends cdk.Stack {
     // DynamoDB Table for transactions
     // TTL enabled for guest user data expiration (60 days)
     const transactionsTable = new dynamodb.Table(this, "TransactionsTable", {
-      tableName: `yorutsuke-transactions-${env}`,
+      tableName: `yorutsuke-transactions-us-${env}`,
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "transactionId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -74,7 +74,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // DynamoDB Table for daily upload quotas
     const quotasTable = new dynamodb.Table(this, "QuotasTable", {
-      tableName: `yorutsuke-quotas-${env}`,
+      tableName: `yorutsuke-quotas-us-${env}`,
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "date", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -87,7 +87,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // DynamoDB Table for idempotency (Pillar Q)
     const intentsTable = new dynamodb.Table(this, "IntentsTable", {
-      tableName: `yorutsuke-intents-${env}`,
+      tableName: `yorutsuke-intents-us-${env}`,
       partitionKey: { name: "intentId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: "ttl",
@@ -102,7 +102,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, "UserPool", {
-      userPoolName: `yorutsuke-users-${env}`,
+      userPoolName: `yorutsuke-users-us-${env}`,
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
@@ -136,7 +136,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for presigned URLs
     const presignLambda = new lambda.Function(this, "PresignLambda", {
-      functionName: `yorutsuke-presign-${env}`,
+      functionName: `yorutsuke-presign-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/presign"),
@@ -166,7 +166,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for quota check
     const quotaLambda = new lambda.Function(this, "QuotaLambda", {
-      functionName: `yorutsuke-quota-${env}`,
+      functionName: `yorutsuke-quota-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/quota"),
@@ -203,7 +203,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for app configuration
     const configLambda = new lambda.Function(this, "ConfigLambda", {
-      functionName: `yorutsuke-config-${env}`,
+      functionName: `yorutsuke-config-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/config"),
@@ -233,7 +233,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for transactions CRUD
     const transactionsLambda = new lambda.Function(this, "TransactionsLambda", {
-      functionName: `yorutsuke-transactions-${env}`,
+      functionName: `yorutsuke-transactions-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/transactions"),
@@ -265,7 +265,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for report generation
     const reportLambda = new lambda.Function(this, "ReportLambda", {
-      functionName: `yorutsuke-report-${env}`,
+      functionName: `yorutsuke-report-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/report"),
@@ -295,7 +295,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for batch processing (OCR)
     const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
-      functionName: `yorutsuke-batch-process-${env}`,
+      functionName: `yorutsuke-batch-process-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/batch-process"),
@@ -313,7 +313,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for instant processing (On-Demand OCR)
     const instantProcessLambda = new lambda.Function(this, "InstantProcessLambda", {
-      functionName: `yorutsuke-instant-processor-${env}`,
+      functionName: `yorutsuke-instant-processor-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/instant-processor"),
@@ -358,14 +358,14 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for batch orchestration (Bedrock Batch Inference)
     const batchOrchestratorLambda = new lambda.Function(this, "BatchOrchestratorLambda", {
-      functionName: `yorutsuke-batch-orchestrator-${env}`,
+      functionName: `yorutsuke-batch-orchestrator-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/batch-orchestrator"),
       layers: [sharedLayer],
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
-        BATCH_JOBS_TABLE: `yorutsuke-batch-jobs-${env}`,  // Pillar Q: env suffix for idempotency key
+        BATCH_JOBS_TABLE: `yorutsuke-batch-jobs-us-${env}`,  // Pillar Q: env suffix for idempotency key
         CONTROL_TABLE_NAME: controlTable.tableName,
         API_BASE_URL: `https://api.${env}.example.com`,  // For statusUrl
       },
@@ -389,7 +389,7 @@ export class YorutsukeStack extends cdk.Stack {
     // Grant DynamoDB access for batch jobs table
     // Pillar Q: Using intentId as partition key for idempotency
     const batchJobsTable = new dynamodb.Table(this, "BatchJobsTable", {
-      tableName: `yorutsuke-batch-jobs-${env}`,
+      tableName: `yorutsuke-batch-jobs-us-${env}`,
       partitionKey: {
         name: "intentId",  // Pillar Q: Idempotency key
         type: dynamodb.AttributeType.STRING,
@@ -422,7 +422,7 @@ export class YorutsukeStack extends cdk.Stack {
       this,
       "BatchResultHandlerLambda",
       {
-        functionName: `yorutsuke-batch-result-handler-${env}`,
+        functionName: `yorutsuke-batch-result-handler-us-${env}`,
         runtime: lambda.Runtime.NODEJS_20_X,
         handler: "index.handler",
         code: lambda.Code.fromAsset("lambda/batch-result-handler"),
@@ -506,7 +506,7 @@ export class YorutsukeStack extends cdk.Stack {
     // Note: With configurable processing modes, this is only used for Batch/Hybrid modes
     // when automatic S3 triggers are not sufficient
     const batchRule = new events.Rule(this, "BatchProcessRule", {
-      ruleName: `yorutsuke-batch-process-${env}`,
+      ruleName: `yorutsuke-batch-process-us-${env}`,
       schedule: events.Schedule.cron({
         minute: "0",
         hour: "17", // 02:00 JST = 17:00 UTC (previous day) - fallback only
@@ -522,7 +522,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // SNS Topic for alarms
     const alertsTopic = new sns.Topic(this, "AlertsTopic", {
-      topicName: `yorutsuke-alerts-${env}`,
+      topicName: `yorutsuke-alerts-us-${env}`,
       displayName: "Yorutsuke Cost Alerts",
     });
 
@@ -635,7 +635,7 @@ export class YorutsukeStack extends cdk.Stack {
     // Admin Delete Data Lambda (Debug/Admin Only)
     // ========================================
     const adminDeleteDataLambda = new lambda.Function(this, "AdminDeleteDataLambda", {
-      functionName: `yorutsuke-admin-delete-data-${env}`,
+      functionName: `yorutsuke-admin-delete-data-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset("lambda/admin-delete-data"),
