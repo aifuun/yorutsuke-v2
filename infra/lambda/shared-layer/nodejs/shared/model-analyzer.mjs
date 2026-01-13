@@ -228,7 +228,7 @@ export class MultiModelAnalyzer {
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "arn:aws:bedrock::inference-profile/default-nova-pro",  // Inference Profile for cross-region
+          modelId: "arn:aws:bedrock:us-east-1::inference-profile/default-nova-pro",  // Inference Profile with region
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
@@ -307,7 +307,7 @@ JSONのみを返してください。`;
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "arn:aws:bedrock::inference-profile/default-claude-3-5-sonnet",  // Inference Profile for cross-region
+          modelId: "arn:aws:bedrock:us-east-1::inference-profile/default-claude-3-5-sonnet",  // Inference Profile with region
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),
