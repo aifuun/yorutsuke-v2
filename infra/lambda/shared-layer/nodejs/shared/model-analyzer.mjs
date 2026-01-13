@@ -152,7 +152,7 @@ export class MultiModelAnalyzer {
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({
-          modelId: "amazon.nova-lite-v1:0",
+          modelId: "us.amazon.nova-lite-v1:0",
           contentType: "application/json",
           accept: "application/json",
           body: JSON.stringify(payload),

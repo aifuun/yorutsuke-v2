@@ -129,7 +129,7 @@ export async function handler(event) {
 
             // 4. Call Bedrock
             // Fetch configuration for modelId
-            let modelId = "amazon.nova-lite-v1:0";
+            let modelId = "us.amazon.nova-lite-v1:0";
             try {
                 const configResult = await ddb.send(new GetItemCommand({
                     TableName: CONTROL_TABLE_NAME,
