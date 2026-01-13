@@ -20,7 +20,8 @@
     "edit": "编辑",
     "retry": "重试",
     "close": "关闭",
-    "view": "查看"
+    "view": "查看",
+    "back": "返回"
   },
   "report": {
     "title": "晨间报告",
@@ -381,6 +382,17 @@
       "confirmed": "已保存",
       "failed": "失败",
       "skipped": "重复"
+    },
+    "scanner": {
+      "title": "扫描收据",
+      "detecting": "正在检测文档...",
+      "hint": "拖动角点以调整裁剪区域",
+      "corner": "角",
+      "skipCrop": "原图上传",
+      "confirm": "确认上传",
+      "cropping": "裁剪中...",
+      "detectionFailed": "无法检测到文档边缘",
+      "errorHint": "请尝试使用原图上传按钮"
     }
   },
   "calendar": {

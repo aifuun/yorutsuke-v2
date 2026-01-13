@@ -20,7 +20,8 @@
     "edit": "編集",
     "retry": "再試行",
     "close": "閉じる",
-    "view": "詳細"
+    "view": "詳細",
+    "back": "戻る"
   },
   "report": {
     "title": "朝のレポート",
@@ -381,6 +382,17 @@
       "confirmed": "保存済",
       "failed": "失敗",
       "skipped": "重複"
+    },
+    "scanner": {
+      "title": "レシートをスキャン",
+      "detecting": "ドキュメントを検出中...",
+      "hint": "角のポイントをドラッグして切り取り範囲を調整",
+      "corner": "角",
+      "skipCrop": "元画像をアップロード",
+      "confirm": "アップロードを確認",
+      "cropping": "切り取り中...",
+      "detectionFailed": "ドキュメントの端を検出できませんでした",
+      "errorHint": "元画像アップロードボタンをお試しください"
     }
   },
   "calendar": {

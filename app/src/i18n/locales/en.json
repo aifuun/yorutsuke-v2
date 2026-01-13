@@ -20,7 +20,8 @@
     "edit": "Edit",
     "retry": "Retry",
     "close": "Close",
-    "view": "View"
+    "view": "View",
+    "back": "Back"
   },
   "report": {
     "title": "Morning Report",
@@ -379,6 +380,17 @@
       "confirmed": "Saved",
       "failed": "Failed",
       "skipped": "Duplicate"
+    },
+    "scanner": {
+      "title": "Scan Receipt",
+      "detecting": "Detecting document...",
+      "hint": "Drag corner points to adjust the crop area",
+      "corner": "Corner",
+      "skipCrop": "Original Upload",
+      "confirm": "Confirm Upload",
+      "cropping": "Cropping...",
+      "detectionFailed": "Could not detect document edges",
+      "errorHint": "Try using the original upload button"
     }
   },
   "calendar": {
