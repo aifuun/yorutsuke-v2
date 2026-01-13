@@ -239,8 +239,19 @@ export class MultiModelAnalyzer {
       const responseBody = JSON.parse(
         new TextDecoder().decode(response.body)
       );
+
+      // Debug: Log the response structure to understand format
+      logger.debug("NOVA_PRO_RESPONSE_BODY", {
+        traceId,
+        keys: Object.keys(responseBody),
+        output: responseBody.output ? Object.keys(responseBody.output) : null,
+        fullBody: JSON.stringify(responseBody).substring(0, 500)
+      });
+
       const text =
         responseBody.output?.message?.content?.[0]?.text || "{}";
+
+      logger.debug("NOVA_PRO_EXTRACTED_TEXT", { traceId, textLength: text.length, text: text.substring(0, 200) });
 
       return this.parseAndNormalizeJson(text);
     } catch (error) {
@@ -425,6 +436,12 @@ JSONのみを返してください。`;
     try {
       let cleaned = jsonText.trim();
 
+      // Debug: Log raw input
+      logger.debug("JSON_PARSE_INPUT", {
+        rawLength: jsonText.length,
+        first200: jsonText.substring(0, 200),
+      });
+
       // Remove markdown code blocks
       if (cleaned.startsWith("```")) {
         cleaned = cleaned
@@ -435,12 +452,19 @@ JSONのみを返してください。`;
 
       const parsed = JSON.parse(cleaned);
 
+      // Debug: Log parsed object
+      logger.debug("JSON_PARSE_SUCCESS", {
+        keys: Object.keys(parsed),
+        isEmpty: Object.keys(parsed).length === 0,
+      });
+
       // Validate against schema
       return ModelResultSchema.parse(parsed);
     } catch (error) {
       logger.warn("JSON_PARSE_ERROR", {
         error: error.message,
         rawLength: jsonText.length,
+        raw: jsonText.substring(0, 300),
       });
 
       // Return empty but valid schema on parse failure
