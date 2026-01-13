@@ -4,10 +4,12 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, setContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema } from "/opt/nodejs/shared/schemas.mjs";
+import { MultiModelAnalyzer } from "/opt/nodejs/shared/model-analyzer.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const bedrock = new BedrockRuntimeClient({});
+const analyzer = new MultiModelAnalyzer();
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
@@ -189,6 +191,26 @@ async function processImage(image, ocrPrompt) {
       return { success: false, key, error: "AIRLOCK_BREACH" };
     }
 
+    // 3.5. Pillar R: Multi-Model Comparison
+    // @ai-intent: Run all 4 models in parallel for batch testing, store but don't block on failures
+    let modelComparison = null;
+    try {
+      modelComparison = await analyzer.analyzeReceipt({
+        imageBase64,
+        s3Key: key,
+        bucket: BUCKET_NAME,
+        traceId: `batch-${Date.now()}`,
+        imageId,
+      });
+    } catch (analyzerError) {
+      logger.warn("MULTI_MODEL_ANALYSIS_FAILED", {
+        imageId,
+        error: analyzerError.message,
+        reason: "Non-blocking, continuing with Nova result only"
+      });
+      // Don't throw - continue with Nova result as primary
+    }
+
     // 4. Create Transaction Object
     const now = new Date().toISOString();
     const transactionData = {
@@ -207,6 +229,12 @@ async function processImage(image, ocrPrompt) {
       createdAt: now,
       updatedAt: now,
       confirmedAt: null,
+      ...(modelComparison && {
+        modelComparison,
+        comparisonStatus: modelComparison.comparisonStatus,
+        comparisonTimestamp: modelComparison.comparisonTimestamp,
+        comparisonErrors: modelComparison.comparisonErrors,
+      }),
     };
 
     if (isGuestUser(userId)) {
