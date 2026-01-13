@@ -65,6 +65,11 @@ export function ImageLightbox({
   // Image zoom state
   const [isZoomed, setIsZoomed] = useState(false);
 
+  // Pan/drag state for zoomed image
+  const [isPanning, setIsPanning] = useState(false);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   // Common merchants for autocomplete (Japanese + English)
   const commonMerchants = [
     // 便利店 (Convenience Stores)
@@ -144,9 +149,10 @@ export function ImageLightbox({
     'コメリ (Komeri)',
   ];
 
-  // Close with zoom reset
+  // Close with zoom and pan reset
   const handleClose = useCallback(() => {
     setIsZoomed(false);
+    setPanOffset({ x: 0, y: 0 });
     onClose();
   }, [onClose]);
 
@@ -170,6 +176,92 @@ export function ImageLightbox({
       document.body.style.overflow = '';
     };
   }, [handleKeyDown]);
+
+  // Handle pan/drag when zoomed
+  const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!isZoomed) {
+      // Not zoomed - toggle zoom
+      e.stopPropagation();
+      setIsZoomed(true);
+      return;
+    }
+
+    // Zoomed - start panning
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPanning(true);
+    setPanStart({
+      x: e.clientX - panOffset.x,
+      y: e.clientY - panOffset.y,
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!isPanning) return;
+    e.preventDefault();
+    setPanOffset({
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  const handleMouseLeave = () => {
+    if (isPanning) {
+      setIsPanning(false);
+    }
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent<HTMLImageElement>) => {
+    e.stopPropagation();
+    if (isZoomed) {
+      setIsZoomed(false);
+      setPanOffset({ x: 0, y: 0 });
+    }
+  };
+
+  // Handle pan/drag on touch devices
+  const handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
+    if (!isZoomed) {
+      e.stopPropagation();
+      setIsZoomed(true);
+      return;
+    }
+
+    const touch = e.touches[0];
+    e.preventDefault();
+    setIsPanning(true);
+    setPanStart({
+      x: touch.clientX - panOffset.x,
+      y: touch.clientY - panOffset.y,
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLImageElement>) => {
+    if (!isPanning) return;
+    const touch = e.touches[0];
+    e.preventDefault();
+    setPanOffset({
+      x: touch.clientX - panStart.x,
+      y: touch.clientY - panStart.y,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsPanning(false);
+  };
+
+  // Stop dragging if mouse leaves window
+  useEffect(() => {
+    if (isPanning) {
+      const handleGlobalMouseUp = () => setIsPanning(false);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+    }
+  }, [isPanning]);
 
   // Handle confirm with optional edits
   const handleConfirm = () => {
@@ -243,12 +335,20 @@ export function ImageLightbox({
                 <img
                   src={imageUrl}
                   alt={alt || 'Receipt image'}
-                  className={`lightbox-image ${isZoomed ? 'lightbox-image--zoomed' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevent modal close
-                    setIsZoomed(!isZoomed);
-                  }}
-                  style={{ cursor: isZoomed ? 'zoom-out' : 'zoom-in' }}
+                  className={`lightbox-image ${isZoomed ? 'lightbox-image--zoomed' : ''} ${isPanning ? 'grabbing' : ''}`}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                  onDoubleClick={handleDoubleClick}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  style={{
+                    '--pan-x': `${panOffset.x}px`,
+                    '--pan-y': `${panOffset.y}px`,
+                    cursor: isPanning ? 'grabbing' : isZoomed ? 'grab' : 'zoom-in',
+                  } as React.CSSProperties}
                 />
               </div>
             ) : (
