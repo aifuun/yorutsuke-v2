@@ -99,7 +99,7 @@ export function useTransactionLogic(userId: UserId | null) {
   const [totalCount, setTotalCount] = useState<number>(0);
 
   const load = useCallback(async (options: FetchTransactionsOptions = {}) => {
-    if (!userId) return;
+    if (!userId) return null;
     dispatch({ type: 'LOAD' });
     try {
       const transactions = await loadTransactions(userId, options);
@@ -113,8 +113,11 @@ export function useTransactionLogic(userId: UserId | null) {
         });
         setTotalCount(count);
       }
+
+      return transactions;
     } catch (e) {
       dispatch({ type: 'ERROR', error: String(e) });
+      return null;
     }
   }, [userId]);
 
@@ -167,9 +170,40 @@ export function useTransactionLogic(userId: UserId | null) {
 
   // Listen for data refresh events (e.g., after seeding, image processing, etc.)
   useEffect(() => {
-    const unsubscribe = on('data:refresh', () => {
+    const unsubscribe = on('data:refresh', async (event: any) => {
       if (userId) {
-        load();  // Reload on any data refresh event (seed, image_processed, etc.)
+        // For image_processed events, Lambda runs async after S3 upload
+        // Poll with exponential backoff until transaction appears in DynamoDB (max 30s)
+        if (event?.source === 'image_processed') {
+          let pollCount = 0;
+          const maxPolls = 30;  // Max 30 seconds of polling
+          const pollInterval = 1000;  // Start with 1 second, increase exponentially
+
+          // Capture initial count from current state before polling
+          const initialCount = state.status === 'success' || state.status === 'error'
+            ? state.transactions.length
+            : 0;
+
+          while (pollCount < maxPolls) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval * (1 + pollCount * 0.2)));
+            pollCount++;
+
+            try {
+              // Load returns the fetched transactions
+              const loadedTransactions = await load();
+
+              // If we got new data, stop polling
+              if (loadedTransactions && loadedTransactions.length > initialCount) {
+                break;  // Transaction appeared, stop polling
+              }
+            } catch (e) {
+              // Continue polling on error
+            }
+          }
+        } else {
+          // For other refresh events (seed, etc), load immediately
+          load();
+        }
       }
     });
     return unsubscribe;
