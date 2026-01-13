@@ -288,9 +288,10 @@ export class YorutsukeStack extends cdk.Stack {
     });
 
     // Inference Profile ARNs for models that require them (on-demand throughput support)
-    // Format: arn:aws:bedrock:<region>::inference-profile/default-<model-name>
-    const novaProInferenceProfileArn = `arn:aws:bedrock:${this.region}::inference-profile/default-nova-pro`;
-    const claudeSonnetInferenceProfileArn = `arn:aws:bedrock:${this.region}::inference-profile/default-claude-3-5-sonnet`;
+    // Format: arn:aws:bedrock:<region>:<account-id>:inference-profile/<profile-name>
+    const ACCOUNT_ID = "696249060859";
+    const novaProInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/apac.amazon.nova-pro-v1:0`;
+    const claudeSonnetInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/jp.anthropic.claude-sonnet-4-5-20250929-v1:0`;
 
     // Lambda for batch processing (OCR)
     const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
