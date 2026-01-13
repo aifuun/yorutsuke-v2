@@ -22,7 +22,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // S3 Bucket for receipt images
     const imageBucket = new s3.Bucket(this, "ImageBucket", {
-      bucketName: `yorutsuke-images-${env}-${this.account}`,
+      bucketName: `yorutsuke-images-${env}-${this.account}-v2`,
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN
