@@ -9,10 +9,14 @@ import { mockTransactionPull, mockNetworkError } from '../../../00_kernel/mocks'
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 // Transactions Lambda URL (from environment variable)
+<<<<<<< HEAD
 const TRANSACTIONS_URL = import.meta.env.VITE_LAMBDA_SYNC_URL;
 if (!TRANSACTIONS_URL) {
   throw new Error('VITE_LAMBDA_SYNC_URL environment variable not configured');
 }
+=======
+const TRANSACTIONS_URL = import.meta.env.VITE_LAMBDA_TRANSACTIONS_URL || '';
+>>>>>>> 31f871a (fix: resolve hardcoded Lambda URL and add automatic ledger refresh)
 
 // Timeouts
 const FETCH_TIMEOUT_MS = 10_000; // 10 seconds

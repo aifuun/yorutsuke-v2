@@ -16,11 +16,16 @@
       "allow": [
         { "url": "https://*.lambda-url.us-east-1.on.aws/*" },
         { "url": "https://*.lambda-url.ap-northeast-1.on.aws/*" },
+<<<<<<< HEAD
         { "url": "https://*.execute-api.us-east-1.amazonaws.com/*" },
         { "url": "https://*.execute-api.ap-northeast-1.amazonaws.com/*" },
         { "url": "https://*.s3.us-east-1.amazonaws.com/*" },
         { "url": "https://s3.us-east-1.amazonaws.com/*" },
+=======
+        { "url": "https://*.s3.us-east-1.amazonaws.com/*" },
+>>>>>>> 31f871a (fix: resolve hardcoded Lambda URL and add automatic ledger refresh)
         { "url": "https://*.s3.ap-northeast-1.amazonaws.com/*" },
+        { "url": "https://s3.us-east-1.amazonaws.com/*" },
         { "url": "https://s3.ap-northeast-1.amazonaws.com/*" }
       ]
     },

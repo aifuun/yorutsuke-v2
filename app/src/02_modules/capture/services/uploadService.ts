@@ -200,6 +200,10 @@ class UploadService {
       // Emit success event
       emit('upload:complete', { id, traceId, s3Key: key });
 
+      // Trigger ledger refresh after upload completes
+      // This allows transaction list to refresh if Lambda has already processed the image
+      emit('data:refresh', { source: 'image_processed' });
+
       logger.info(EVENTS.UPLOAD_COMPLETED, { imageId: id, traceId, s3Key: key });
     } catch (e) {
       const error = String(e);
