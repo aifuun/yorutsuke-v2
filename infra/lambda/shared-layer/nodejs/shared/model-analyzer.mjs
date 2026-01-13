@@ -335,11 +335,20 @@ export class MultiModelAnalyzer {
   normalizeTextractResult(response) {
     try {
       if (!response.ExpenseDocuments?.[0]) {
+        logger.warn("TEXTRACT_NO_EXPENSE_DOCUMENTS", {
+          keys: Object.keys(response),
+        });
         return ModelResultSchema.parse({});
       }
 
       const expenseDoc = response.ExpenseDocuments[0];
       const summaryFields = expenseDoc.SummaryFields || [];
+
+      // Debug: Log all available field types in response
+      logger.debug("TEXTRACT_SUMMARY_FIELDS", {
+        count: summaryFields.length,
+        types: summaryFields.map(f => f.Type?.Text || "unknown").slice(0, 20),
+      });
 
       // Extract key fields from Textract response
       const result = {
@@ -353,6 +362,13 @@ export class MultiModelAnalyzer {
         ),
       };
 
+      logger.debug("TEXTRACT_EXTRACTED_RESULT", {
+        vendor: result.vendor,
+        totalAmount: result.totalAmount,
+        taxAmount: result.taxAmount,
+        lineItemCount: result.lineItems?.length || 0,
+      });
+
       return ModelResultSchema.parse(result);
     } catch (error) {
       logger.warn("TEXTRACT_NORMALIZATION_ERROR", {
@@ -363,24 +379,53 @@ export class MultiModelAnalyzer {
   }
 
   /**
-   * Extract field value from Textract summary fields
+   * Extract field value from Textract summary fields (with fallback aliases)
    */
   extractTextractField(summaryFields, fieldType) {
-    const field = summaryFields.find((f) => f.Type?.Text === fieldType);
-    return field?.ValueDetection?.Text || undefined;
+    // Support multiple field name variants for Japanese receipts
+    const fieldAliases = {
+      "VENDOR_NAME": ["VENDOR_NAME", "MERCHANT_NAME", "STORE_NAME", "COMPANY_NAME"],
+      "SUBTOTAL": ["SUBTOTAL", "SUB_TOTAL", "AMOUNT_SUBTOTAL"],
+      "TAX": ["TAX", "TAX_AMOUNT", "SALES_TAX", "CONSUMPTION_TAX"],
+      "TOTAL": ["TOTAL", "TOTAL_AMOUNT", "AMOUNT_TOTAL", "GRAND_TOTAL"],
+    };
+
+    const aliases = fieldAliases[fieldType] || [fieldType];
+
+    for (const alias of aliases) {
+      const field = summaryFields.find((f) => f.Type?.Text === alias);
+      if (field?.ValueDetection?.Text) {
+        return field.ValueDetection.Text;
+      }
+    }
+
+    return undefined;
   }
 
   /**
-   * Extract numeric amount from Textract summary fields
+   * Extract numeric amount from Textract summary fields (with fallback aliases)
    */
   extractTextractAmount(summaryFields, fieldType) {
-    const field = summaryFields.find((f) => f.Type?.Text === fieldType);
-    if (!field?.ValueDetection?.Text) return undefined;
+    // Support multiple field name variants
+    const fieldAliases = {
+      "SUBTOTAL": ["SUBTOTAL", "SUB_TOTAL", "AMOUNT_SUBTOTAL"],
+      "TAX": ["TAX", "TAX_AMOUNT", "SALES_TAX", "CONSUMPTION_TAX"],
+      "TOTAL": ["TOTAL", "TOTAL_AMOUNT", "AMOUNT_TOTAL", "GRAND_TOTAL"],
+    };
 
-    const match = field.ValueDetection.Text.match(/[\d,]+(?:\.\d{1,2})?/);
-    return match
-      ? parseFloat(match[0].replace(/,/g, ""))
-      : undefined;
+    const aliases = fieldAliases[fieldType] || [fieldType];
+
+    for (const alias of aliases) {
+      const field = summaryFields.find((f) => f.Type?.Text === alias);
+      if (!field?.ValueDetection?.Text) continue;
+
+      const match = field.ValueDetection.Text.match(/[\d,]+(?:\.\d{1,2})?/);
+      if (match) {
+        return parseFloat(match[0].replace(/,/g, ""));
+      }
+    }
+
+    return undefined;
   }
 
   /**
