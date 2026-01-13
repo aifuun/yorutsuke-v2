@@ -117,9 +117,8 @@ export class YorutsukeAdminStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       },
-      // TODO: Enable custom domain after fixing DNS records (old distribution conflict)
-      // domainNames: ["panel.yorutsuke.rolligen.com"],
-      // certificate,
+      domainNames: ["panel2.yorutsuke.rolligen.com"],
+      certificate,
       defaultRootObject: "index.html",
       errorResponses: [
         {
@@ -291,7 +290,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
         // @security: Restrict CORS to CloudFront domains only (not ALL_ORIGINS)
         allowOrigins: [
           `https://${distribution.distributionDomainName}`,
-          "https://panel.yorutsuke.rolligen.com",
+          "https://panel2.yorutsuke.rolligen.com",
         ],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
