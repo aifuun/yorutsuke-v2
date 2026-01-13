@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import { Icon } from '../index';
+import { Icon, SyncButton } from '../index';
 
 interface ErrorStateProps {
   title: string;
@@ -37,9 +37,9 @@ export function ErrorState({
       <h3 className="error-state__title">{title}</h3>
       <p className="error-state__description">{description}</p>
       {onRetry && (
-        <button type="button" className="btn btn--secondary" onClick={onRetry}>
+        <SyncButton variant="ghost" onClick={onRetry}>
           {retryLabel}
-        </button>
+        </SyncButton>
       )}
     </div>
   );

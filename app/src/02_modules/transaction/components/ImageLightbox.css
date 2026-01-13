@@ -171,7 +171,6 @@
   color: var(--slate-900);
   margin: 0 0 10px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--slate-200);
   letter-spacing: -0.02em;
 }
 

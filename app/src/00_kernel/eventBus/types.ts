@@ -218,6 +218,39 @@ export interface AppEvents {
     count: number;  // Number of transactions synced
     source: 'auto' | 'manual';
   };
+
+  /**
+   * @trigger transaction:confirmed
+   * @payload Transaction confirmed by user
+   */
+  'transaction:confirmed': {
+    id: string;  // TransactionId
+  };
+
+  /**
+   * @trigger transaction:updated
+   * @payload Transaction updated by user
+   */
+  'transaction:updated': {
+    id: string;  // TransactionId
+  };
+
+  /**
+   * @trigger transaction:deleted
+   * @payload Transaction deleted by user
+   */
+  'transaction:deleted': {
+    id: string;  // TransactionId
+  };
+
+  /**
+   * @trigger transaction:sync-error
+   * @payload Transaction sync failed
+   */
+  'transaction:sync-error': {
+    error: string;
+    source: 'auto' | 'manual';
+  };
 }
 
 export type AppEventKey = keyof AppEvents;

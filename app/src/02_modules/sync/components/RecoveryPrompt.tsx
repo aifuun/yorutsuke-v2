@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { DeleteButton, SyncButton } from '../../../components';
 import type { RecoveryStatus } from '../services/recoveryService';
 import './recovery-prompt.css';
 
@@ -98,22 +99,20 @@ export function RecoveryPrompt({ status, onSyncNow, onDiscard, onClose }: Recove
 
         {/* Actions */}
         <div className="modal__footer">
-          <button
-            type="button"
-            className="btn btn--secondary"
+          <DeleteButton
             onClick={handleDiscard}
             disabled={state !== 'idle'}
+            loading={state === 'discarding'}
           >
-            {state === 'discarding' ? '⟳ Discarding...' : '🗑️ Discard Changes'}
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
+            Discard Changes
+          </DeleteButton>
+          <SyncButton
             onClick={handleSyncNow}
             disabled={state !== 'idle'}
+            loading={state === 'syncing'}
           >
-            {state === 'syncing' ? '⟳ Syncing...' : '↻ Sync Now'}
-          </button>
+            Sync Now
+          </SyncButton>
         </div>
       </div>
     </div>

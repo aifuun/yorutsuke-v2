@@ -10,6 +10,9 @@ export type { FullSyncResult } from './services/syncCoordinator';
 // Auto-sync service (debounced push after local operations)
 export { autoSyncService } from './services/autoSyncService';
 
+// Manual sync service (user-triggered sync with UI state)
+export { manualSyncService } from './services/manualSyncService';
+
 // Individual services (advanced usage)
 export { transactionPushService } from './services/transactionPushService';
 export { pullTransactions as transactionPullService } from './services/transactionPullService';
@@ -28,3 +31,6 @@ export { networkMonitor } from './utils/networkMonitor';
 
 // Components
 export { SyncStatusIndicator, RecoveryPrompt } from './components';
+
+// Hooks
+export { useSyncTrigger } from './hooks/useSyncTrigger';

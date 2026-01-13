@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { CloseButton } from '../Button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -138,14 +139,10 @@ export function Modal({
           <h2 id="modal-title" className="modal__title">
             {title}
           </h2>
-          <button
-            className="modal__close"
+          <CloseButton
             onClick={onClose}
             aria-label="Close modal"
-            type="button"
-          >
-            ✕
-          </button>
+          />
         </div>
 
         <div className="modal__body">{children}</div>

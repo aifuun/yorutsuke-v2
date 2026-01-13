@@ -4,6 +4,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../../i18n';
+import { ConfirmButton, DeleteButton } from '../../../components';
 import type { Transaction, TransactionCategory, TransactionType } from '../../../01_domains/transaction';
 import './ImageLightbox.css';
 
@@ -403,22 +404,14 @@ export function ImageLightbox({
           {/* Right: Confirm + Delete buttons */}
           <div className="lightbox-actions-right">
             {onConfirm && !isConfirmed && (
-              <button
-                type="button"
-                className="btn btn--success"
-                onClick={handleConfirm}
-              >
-                ✓ {t('common.confirm') || 'Confirm'}
-              </button>
+              <ConfirmButton onClick={handleConfirm}>
+                {t('common.confirm') || 'Confirm'}
+              </ConfirmButton>
             )}
             {onDelete && (
-              <button
-                type="button"
-                className="btn btn--danger"
-                onClick={onDelete}
-              >
+              <DeleteButton onClick={onDelete}>
                 {t('common.delete') || 'Delete'}
-              </button>
+              </DeleteButton>
             )}
           </div>
         </div>

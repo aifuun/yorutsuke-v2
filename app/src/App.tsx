@@ -12,7 +12,9 @@ import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
 import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
-import { networkMonitor, transactionPushService, fullSync, autoSyncService } from './02_modules/sync';
+import { networkMonitor, transactionPushService, fullSync, autoSyncService, manualSyncService } from './02_modules/sync';
+import { authStateService } from './02_modules/auth';
+import { settingsStateService } from './02_modules/settings';
 
 // @security: Check once at module load - cannot change at runtime
 const IS_DEVELOPMENT = !import.meta.env.PROD;
@@ -21,6 +23,14 @@ function AppContent() {
   const { userId, isLoading } = useAppContext();
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
+
+  // Initialize services (load persisted state from localStorage)
+  // Issue #141: Service Pattern Migration
+  useEffect(() => {
+    manualSyncService.init();
+    authStateService.init();
+    settingsStateService.init();
+  }, []);
 
   // Set user ID in sync services when it changes
   useEffect(() => {

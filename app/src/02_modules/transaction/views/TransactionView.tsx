@@ -1,8 +1,9 @@
-// Pillar L: Views are pure JSX, logic in headless hooks
+// Pillar L: Views are pure JSX, logic in services
 import { useState, useCallback, useEffect } from 'react';
-import { useTransactionLogic, useSyncLogic } from '../headless';
+import { useStore } from 'zustand';
+import { useTransactionLogic } from '../headless';
 import { useTranslation } from '../../../i18n';
-import { ViewHeader } from '../../../components';
+import { ViewHeader, AddButton, SyncButton } from '../../../components';
 import { ask } from '@tauri-apps/plugin-dialog';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
@@ -11,7 +12,7 @@ import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
 import { navigationStore } from '../../../00_kernel/navigation';
-import { SyncStatusIndicator } from '../../sync';
+import { SyncStatusIndicator, manualSyncService, useSyncTrigger } from '../../sync';
 import './ledger.css';
 
 type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
@@ -27,7 +28,12 @@ type StatusFilter = 'all' | 'pending' | 'confirmed';
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t } = useTranslation();
   const { state, filteredTransactions, confirm, remove, update, load, totalCount } = useTransactionLogic(userId);
-  const syncLogic = useSyncLogic(userId, true); // Auto-sync enabled
+
+  // Auto-sync on mount (Issue #141: migrated from useSyncLogic)
+  useSyncTrigger(userId, true);
+
+  // Subscribe to manual sync state
+  const syncStatus = useStore(manualSyncService.store, s => s.status);
 
   // Sorting state
   const [sortBy, setSortBy] = useState<'date' | 'createdAt'>('createdAt');
@@ -179,10 +185,11 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // Handle sync completion - reload transactions
   const handleSync = useCallback(async () => {
-    await syncLogic.sync();
+    if (!userId) return;
+    await manualSyncService.sync(userId);
     // Always reload transactions after sync attempt (even if partial failure)
     load(buildFetchOptions());
-  }, [syncLogic, load, buildFetchOptions]);
+  }, [userId, load, buildFetchOptions]);
 
   // Listen to auto-sync completion events and reload transactions
   useEffect(() => {
@@ -205,23 +212,24 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <SyncStatusIndicator hideWhenIdle />
-              {syncLogic.getTimeSinceLastSync() && (
+              {manualSyncService.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
-                  {syncLogic.getTimeSinceLastSync()}
+                  {manualSyncService.getTimeSinceLastSync()}
                 </span>
               )}
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
+              <SyncButton
+                variant="ghost"
+                size="sm"
                 onClick={handleSync}
-                disabled={syncLogic.state.status === 'syncing'}
-                title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+                disabled={syncStatus === 'syncing'}
+                loading={syncStatus === 'syncing'}
+                aria-label={syncStatus === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
               >
-                {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
-              </button>
-              <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
-                + {t('ledger.newEntry')}
-              </button>
+                {t('ledger.sync')}
+              </SyncButton>
+              <AddButton size="sm" onClick={handleNewEntry}>
+                {t('ledger.newEntry')}
+              </AddButton>
             </div>
           }
         />
@@ -240,23 +248,24 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <SyncStatusIndicator hideWhenIdle />
-              {syncLogic.getTimeSinceLastSync() && (
+              {manualSyncService.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
-                  {syncLogic.getTimeSinceLastSync()}
+                  {manualSyncService.getTimeSinceLastSync()}
                 </span>
               )}
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
+              <SyncButton
+                variant="ghost"
+                size="sm"
                 onClick={handleSync}
-                disabled={syncLogic.state.status === 'syncing'}
-                title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+                disabled={syncStatus === 'syncing'}
+                loading={syncStatus === 'syncing'}
+                aria-label={syncStatus === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
               >
-                {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
-              </button>
-              <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
-                + {t('ledger.newEntry')}
-              </button>
+                {t('ledger.sync')}
+              </SyncButton>
+              <AddButton size="sm" onClick={handleNewEntry}>
+                {t('ledger.newEntry')}
+              </AddButton>
             </div>
           }
         />
@@ -275,23 +284,24 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           rightContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <SyncStatusIndicator hideWhenIdle />
-              {syncLogic.getTimeSinceLastSync() && (
+              {manualSyncService.getTimeSinceLastSync() && (
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
-                  {syncLogic.getTimeSinceLastSync()}
+                  {manualSyncService.getTimeSinceLastSync()}
                 </span>
               )}
-              <button
-                type="button"
-                className="btn btn--secondary btn--sm"
+              <SyncButton
+                variant="ghost"
+                size="sm"
                 onClick={handleSync}
-                disabled={syncLogic.state.status === 'syncing'}
-                title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+                disabled={syncStatus === 'syncing'}
+                loading={syncStatus === 'syncing'}
+                aria-label={syncStatus === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
               >
-                {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
-              </button>
-              <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
-                + {t('ledger.newEntry')}
-              </button>
+                {t('ledger.sync')}
+              </SyncButton>
+              <AddButton size="sm" onClick={handleNewEntry}>
+                {t('ledger.newEntry')}
+              </AddButton>
             </div>
           }
         />
@@ -309,23 +319,24 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
         rightContent={
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <SyncStatusIndicator hideWhenIdle />
-            {syncLogic.getTimeSinceLastSync() && (
+            {manualSyncService.getTimeSinceLastSync() && (
               <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', opacity: 0.7 }}>
-                {syncLogic.getTimeSinceLastSync()}
+                {manualSyncService.getTimeSinceLastSync()}
               </span>
             )}
-            <button
-              type="button"
-              className="btn btn--secondary btn--sm"
+            <SyncButton
+              variant="ghost"
+              size="sm"
               onClick={handleSync}
-              disabled={syncLogic.state.status === 'syncing'}
-              title={syncLogic.state.status === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
+              disabled={syncStatus === 'syncing'}
+              loading={syncStatus === 'syncing'}
+              aria-label={syncStatus === 'syncing' ? t('ledger.syncing') : t('ledger.syncTooltip')}
             >
-              {syncLogic.state.status === 'syncing' ? `⟳ ${t('ledger.syncing')}` : `↻ ${t('ledger.sync')}`}
-            </button>
-            <button type="button" className="btn btn--primary btn--sm" onClick={handleNewEntry}>
-              + {t('ledger.newEntry')}
-            </button>
+              {t('ledger.sync')}
+            </SyncButton>
+            <AddButton size="sm" onClick={handleNewEntry}>
+              {t('ledger.newEntry')}
+            </AddButton>
           </div>
         }
       />

@@ -165,7 +165,7 @@ class TransactionPushService {
    * @param userId - User ID
    * @param traceId - Trace ID for observability
    */
-  async processQueue(userId: UserId, traceId: TraceId): Promise<void> {
+  async processQueue(_userId: UserId, traceId: TraceId): Promise<void> {
     const queueSize = syncStore.getState().queue.length;
 
     if (queueSize === 0) {

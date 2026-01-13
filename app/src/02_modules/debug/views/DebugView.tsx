@@ -1,11 +1,13 @@
 // Pillar L: View - Debug tools for development
 // Reorganized layout: Mock & Data Mode | Seed Data | System Info | Danger Zone | Logs
+// Migrated to use authStateService and settingsStateService (Issue #141)
 import { useState, useEffect, useSyncExternalStore } from 'react';
-import { useAuth, useEffectiveUserId } from '../../auth';
-import { useSettings } from '../../settings/headless';
+import { useStore } from 'zustand';
+import { authStateService, useEffectiveUserId } from '../../auth';
+import { settingsStateService } from '../../settings';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
-import { ViewHeader } from '../../../components';
+import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction';
 import { resetTodayQuota } from '../../capture';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
@@ -37,9 +39,15 @@ function useMockMode(): MockMode {
 
 export function DebugView() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+
+  // Subscribe to auth state (primitive selector to avoid infinite loops)
+  const user = useStore(authStateService.store, s => s.user);
+
   const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
-  const { state, update } = useSettings();
+
+  // Subscribe to settings state
+  const settingsState = useStore(settingsStateService.store);
+
   const { quota } = useQuota();
   const logs = useLogs();
   const mockMode = useMockMode();
@@ -60,10 +68,10 @@ export function DebugView() {
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
   useEffect(() => {
-    if (state.status === 'success') {
-      setVerboseLogging(state.settings.debugEnabled);
+    if (settingsState.status === 'success') {
+      setVerboseLogging(settingsState.settings.debugEnabled);
     }
-  }, [state]);
+  }, [settingsState]);
 
   // Sync slow upload state after DB load (race condition fix)
   useEffect(() => {
@@ -71,7 +79,7 @@ export function DebugView() {
   }, []);
 
   // Handle loading state
-  if (state.status === 'loading' || state.status === 'idle' || userIdLoading) {
+  if (settingsState.status === 'loading' || settingsState.status === 'idle' || userIdLoading) {
     return (
       <div className="debug">
         <ViewHeader title={t('debug.title')} rightContent={<VersionBadge version={APP_VERSION} />} />
@@ -82,7 +90,7 @@ export function DebugView() {
     );
   }
 
-  if (state.status === 'error') {
+  if (settingsState.status === 'error') {
     return (
       <div className="debug">
         <ViewHeader title={t('debug.title')} />
@@ -93,7 +101,7 @@ export function DebugView() {
     );
   }
 
-  const currentSettings = state.settings;
+  const currentSettings = settingsState.settings;
 
   const handleSeedData = async () => {
     if (!effectiveUserId) {
@@ -286,14 +294,13 @@ export function DebugView() {
                 </select>
               </div>
               <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
+                <AddButton
+                  size="sm"
                   onClick={handleSeedData}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
                   Seed
-                </button>
+                </AddButton>
               </div>
             </div>
 
@@ -358,14 +365,13 @@ export function DebugView() {
                 <p className="setting-row__hint">{t('debug.clearAllDataHint')}</p>
               </div>
               <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--danger btn--sm"
+                <DeleteButton
+                  size="sm"
                   onClick={handleOpenClearAllDialog}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
                   {t('debug.clearAllDataButton')}
-                </button>
+                </DeleteButton>
               </div>
             </div>
 
@@ -434,14 +440,14 @@ export function DebugView() {
                 <p className="setting-row__hint">Fetch last 3 updated transactions from cloud</p>
               </div>
               <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--primary btn--sm"
+                <SyncButton
+                  size="sm"
                   onClick={handleFetchLatestCloudTransactions}
                   disabled={cloudTxLoading || !effectiveUserId}
+                  loading={cloudTxLoading}
                 >
-                  {cloudTxLoading ? 'Fetching...' : 'Fetch'}
-                </button>
+                  Fetch
+                </SyncButton>
               </div>
             </div>
 
@@ -539,7 +545,7 @@ export function DebugView() {
                   <button
                     type="button"
                     className={`toggle-switch toggle-switch--sm ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
-                    onClick={() => update('debugEnabled', !currentSettings.debugEnabled)}
+                    onClick={() => settingsStateService.update('debugEnabled', !currentSettings.debugEnabled)}
                     role="switch"
                     aria-checked={currentSettings.debugEnabled}
                   />

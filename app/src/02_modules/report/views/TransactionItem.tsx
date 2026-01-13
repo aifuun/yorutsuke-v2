@@ -5,6 +5,7 @@ import type { TransactionId } from '../../../00_kernel/types';
 import { isHighConfidence } from '../../../01_domains/transaction';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { SaveButton, CancelButton, EditButton, ConfirmButton, DeleteButton } from '../../../components';
 
 const CATEGORIES: TransactionCategory[] = [
   'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other',
@@ -80,11 +81,6 @@ export function TransactionItem({
       category: category,
     });
     setIsEditing(false);
-  };
-
-  const handleConfirm = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onConfirm) onConfirm(id);
   };
 
   const handleDelete = async (e?: React.MouseEvent) => {
@@ -200,8 +196,8 @@ export function TransactionItem({
                 </select>
               </div>
               <div className="edit-actions">
-                <button type="button" className="btn btn--primary btn--sm" onClick={handleSave}>{t('common.save')}</button>
-                <button type="button" className="btn btn--secondary btn--sm" onClick={handleCancel}>{t('common.cancel')}</button>
+                <SaveButton size="sm" onClick={handleSave}>{t('common.save')}</SaveButton>
+                <CancelButton size="sm" onClick={handleCancel}>{t('common.cancel')}</CancelButton>
               </div>
             </div>
           ) : (
@@ -231,23 +227,23 @@ export function TransactionItem({
               {/* Action buttons */}
               <div className="tx-actions">
                 {onEdit && (
-                  <button
-                    type="button"
-                    className="btn btn--secondary btn--sm"
-                    onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                  <EditButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setIsEditing(true); }}
                   >
                     {t('common.edit')}
-                  </button>
+                  </EditButton>
                 )}
                 {onConfirm && status !== 'confirmed' && (
-                  <button type="button" className="btn btn--success btn--sm" onClick={handleConfirm}>
+                  <ConfirmButton size="sm" onClick={() => onConfirm(id)}>
                     {t('common.confirm')}
-                  </button>
+                  </ConfirmButton>
                 )}
                 {onDelete && (
-                  <button type="button" className="btn btn--danger btn--sm" onClick={handleDelete}>
+                  <DeleteButton size="sm" onClick={() => handleDelete()}>
                     {t('common.delete')}
-                  </button>
+                  </DeleteButton>
                 )}
               </div>
             </>

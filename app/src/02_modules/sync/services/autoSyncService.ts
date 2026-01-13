@@ -25,7 +25,7 @@
  */
 
 import type { UserId } from '../../../00_kernel/types';
-import { on, emit } from '../../../00_kernel/eventBus';
+import { on } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { networkMonitor } from '../utils/networkMonitor';
 
@@ -34,9 +34,6 @@ const AUTO_SYNC_DELAY_MS = 3000; // 3 seconds
 
 // Maximum retry attempts for failed syncs
 const MAX_RETRY_ATTEMPTS = 3;
-
-// Exponential backoff base delay
-const RETRY_BASE_DELAY_MS = 5000; // 5 seconds
 
 class AutoSyncService {
   private initialized = false;

@@ -1,12 +1,15 @@
 // Effective User ID Hook
 // Returns a valid UserId whether authenticated or guest
 // Pillar L: Headless - No JSX, returns data only
+//
+// Migrated to use authStateService (Issue #141)
 
 import { useState, useEffect } from 'react';
+import { useStore } from 'zustand';
 import { UserId, type UserId as UserIdType } from '../../../00_kernel/types';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { getStoredGuestId } from '../services/authService';
-import { useAuth } from './useAuth';
+import { authStateService } from '../services/authStateService';
 
 /**
  * Returns an effective user ID that is always non-null
@@ -28,7 +31,11 @@ export function useEffectiveUserId(): {
   isGuest: boolean;
   isLoading: boolean;
 } {
-  const { user, isLoading: authLoading } = useAuth();
+  // Subscribe to auth state (primitive selectors to avoid infinite loops)
+  const authStatus = useStore(authStateService.store, s => s.status);
+  const user = useStore(authStateService.store, s => s.user);
+  const authLoading = authStatus === 'loading';
+
   const [guestId, setGuestId] = useState<UserIdType | null>(null);
   const [guestLoading, setGuestLoading] = useState(true);
 

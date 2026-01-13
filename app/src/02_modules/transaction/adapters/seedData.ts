@@ -354,7 +354,7 @@ export async function seedMockTransactions(
           `INSERT INTO transactions (
             id, user_id, image_id, s3_key, type, category, amount, currency,
             description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             tx.id,
             tx.userId,

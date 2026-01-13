@@ -23,6 +23,8 @@ The design system is organized in `docs/design/` with clear ownership:
 | Document | Contains | Checklist |
 |----------|----------|-----------|
 | **BUTTONS.md** | Button variants, states, sizes | 6 items per button type |
+| **BUTTON_ACTIONS.md** | ✨ Standard button usage (Confirm/Cancel/Delete/etc.) | 10 common actions |
+| **BUTTON_QUICK_REFERENCE.md** | ✨ Quick lookup table for button standards | Fast reference |
 | **FORMS.md** | Input, Select, Textarea, Checkbox, Radio | 5 form components verified |
 | **FEEDBACK.md** | Toast, Modal, Progress, Loading | 4 feedback types + accessibility |
 | **ICONS.md** | Emoji (MVP) + Lucide React migration plan | Icon sizing, accessibility |
@@ -46,9 +48,10 @@ The design system is organized in `docs/design/` with clear ownership:
 **Before coding ANY component**, read:
 
 ### Step 1: Identify Your Component Type
+- [ ] **Button/action?** → Read `BUTTON_QUICK_REFERENCE.md` first (快速查表)
+- [ ] **Button implementation?** → Read `BUTTONS.md` + `BUTTON_ACTIONS.md`
 - [ ] **Form component?** → Read `FORMS.md`
 - [ ] **Feedback/Modal?** → Read `FEEDBACK.md`
-- [ ] **Button/action?** → Read `BUTTONS.md`
 - [ ] **Custom view?** → Read relevant `0X-*.md`
 - [ ] **Accessibility critical?** → Read `ACCESSIBILITY.md`
 

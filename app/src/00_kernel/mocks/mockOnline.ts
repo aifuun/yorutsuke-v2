@@ -118,6 +118,7 @@ export function mockTransactionPull(
   date: string;
   createdAt: string;
   updatedAt: string;
+  status: 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
   confidence: number | null;
   rawText: string | null;
 }> {
@@ -132,7 +133,7 @@ export function mockTransactionPull(
       id: TransactionId(`mock-tx-${i + 1}`),
       userId,
       imageId: i % 2 === 0 ? ImageId(`mock-img-${i + 1}`) : null,
-      s3Key: null,
+      s3Key: null as string | null,
       type: (i % 2 === 0 ? 'expense' : 'income') as 'income' | 'expense',
       category: (i % 2 === 0 ? 'shopping' : 'food') as TransactionCategory,
       amount: 1000 + i * 500,
@@ -142,9 +143,9 @@ export function mockTransactionPull(
       date: date.toISOString().split('T')[0],
       createdAt: date.toISOString(),
       updatedAt: date.toISOString(),
-      status: i % 3 === 0 ? 'confirmed' : 'unconfirmed',
+      status: (i % 3 === 0 ? 'confirmed' : 'unconfirmed') as 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review',
       confidence: 0.85 + Math.random() * 0.15,
-      rawText: null,
+      rawText: null as string | null,
     });
   }
 
