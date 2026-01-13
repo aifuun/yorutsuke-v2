@@ -4,63 +4,22 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema } from "/opt/nodejs/shared/schemas.mjs";
+import { MultiModelAnalyzer } from "/opt/nodejs/shared/model-analyzer.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const bedrock = new BedrockRuntimeClient({});
+const analyzer = new MultiModelAnalyzer();
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
 const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
-const DEFAULT_MODEL_ID = process.env.MODEL_ID || "us.amazon.nova-lite-v1:0";
 
 // Guest data expires after 60 days
 const GUEST_TTL_DAYS = 60;
 
 // Cached merchant list (persists across invocations in same Lambda container)
 let cachedMerchantList = null;
-
-// Cached model config (persists across invocations in same Lambda container)
-let cachedModelConfig = null;
-
-/**
- * Load model config from DynamoDB (cached in memory after first load)
- * Falls back to environment variable if DynamoDB read fails
- */
-async function loadModelConfig() {
-  if (cachedModelConfig) {
-    logger.debug('MODEL_CONFIG_CACHE_HIT', { modelId: cachedModelConfig.modelId });
-    return cachedModelConfig;
-  }
-
-  try {
-    const response = await ddb.send(new GetItemCommand({
-      TableName: CONTROL_TABLE_NAME,
-      Key: marshall({ key: 'modelConfig' }),
-    }));
-
-    if (response.Item) {
-      cachedModelConfig = unmarshall(response.Item).value;
-      logger.info('MODEL_CONFIG_LOADED', {
-        modelId: cachedModelConfig.modelId,
-        tokenCode: cachedModelConfig.tokenCode,
-        provider: cachedModelConfig.provider,
-      });
-      return cachedModelConfig;
-    }
-  } catch (error) {
-    logger.warn('MODEL_CONFIG_LOAD_FAILED', { error: String(error) });
-  }
-
-  // Fallback to environment variable
-  cachedModelConfig = {
-    modelId: DEFAULT_MODEL_ID,
-    tokenCode: 'nova-lite',
-    provider: 'aws-bedrock',
-  };
-  logger.info('MODEL_CONFIG_FALLBACK', { modelId: DEFAULT_MODEL_ID });
-  return cachedModelConfig;
-}
 
 /**
  * Load merchant list from S3 (cached in memory after first load)
@@ -132,10 +91,6 @@ export async function handler(event) {
     const ctx = initContext(event);
     logger.info(EVENTS.IMAGE_PROCESSING_STARTED, { recordCount: event.Records.length });
 
-    // Load model config once at start (cached for subsequent invocations)
-    const modelConfig = await loadModelConfig();
-    const MODEL_ID = modelConfig.modelId;
-
     // Load merchant list once at start (cached for subsequent invocations)
     const merchantList = await loadMerchantList();
     const ocrPrompt = buildOCRPrompt(merchantList);
@@ -153,7 +108,7 @@ export async function handler(event) {
 
         const userId = keyParts[1];
         const fileName = keyParts[2];
-        // fileName format: {timestamp}-{uuid}.webp
+        // fileName format: {timestamp}-{uuid}.jpg
         // Extract just the UUID part (after the timestamp prefix)
         const fileNameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
         // Remove timestamp prefix (13 digits + hyphen) to get just the UUID
@@ -170,9 +125,34 @@ export async function handler(event) {
             for await (const chunk of s3Response.Body) {
                 chunks.push(chunk);
             }
-            const imageBase64 = Buffer.concat(chunks).toString("base64");
+            const imageBuffer = Buffer.concat(chunks);
+            const imageBase64 = imageBuffer.toString("base64");
 
-            // 4. Call Bedrock (using MODEL_ID from environment)
+            // Detect image format from file extension
+            const imageExt = fileName.split('.').pop().toLowerCase();
+            const formatMap = { jpg: 'jpeg', jpeg: 'jpeg', png: 'png' };
+            const imageFormat = formatMap[imageExt] || 'jpeg';
+
+            logger.debug("IMAGE_FORMAT_DETECTED", { fileName, extension: imageExt, format: imageFormat });
+
+            // 4. Call Bedrock
+            // Fetch configuration for modelId
+            let modelId = "us.amazon.nova-lite-v1:0";
+            try {
+                const configResult = await ddb.send(new GetItemCommand({
+                    TableName: CONTROL_TABLE_NAME,
+                    Key: marshall({ key: 'batch_config' }),
+                }));
+                if (configResult.Item) {
+                    const config = unmarshall(configResult.Item);
+                    if (config.modelId) {
+                        modelId = config.modelId;
+                    }
+                }
+            } catch (err) {
+                logger.warn("Failed to fetch modelId from ControlTable, using default", { error: err.message });
+            }
+
             const payload = {
                 messages: [
                     {
@@ -180,7 +160,7 @@ export async function handler(event) {
                         content: [
                             {
                                 image: {
-                                    format: "webp",
+                                    format: imageFormat,
                                     source: { bytes: imageBase64 },
                                 },
                             },
@@ -196,7 +176,7 @@ export async function handler(event) {
 
             const bedrockResponse = await bedrock.send(
                 new InvokeModelCommand({
-                    modelId: MODEL_ID,
+                    modelId: modelId,
                     contentType: "application/json",
                     accept: "application/json",
                     body: JSON.stringify(payload),
@@ -220,9 +200,27 @@ export async function handler(event) {
                 continue; // Skip this record on airlock breach
             }
 
-            // 5.5. Extract confidence from Bedrock response (if available)
-            // @ai-intent: Nova models may provide confidence in metadata, default to null if not available
-            const confidence = null; // Nova Lite doesn't provide confidence in current API
+            // 5.5. Pillar R: Multi-Model Comparison
+            // @ai-intent: Run all 4 models in parallel, store results but don't block on failures
+            let modelComparison = null;
+            try {
+                const traceId = ctx.traceId;
+                modelComparison = await analyzer.analyzeReceipt({
+                    imageBase64,
+                    imageFormat,
+                    s3Key: key,
+                    bucket,
+                    traceId,
+                    imageId,
+                });
+            } catch (analyzerError) {
+                logger.warn("MULTI_MODEL_ANALYSIS_FAILED", {
+                    imageId,
+                    error: analyzerError.message,
+                    reason: "Non-blocking, continuing with Nova Mini result only"
+                });
+                // Don't throw - continue with Nova Mini result as primary
+            }
 
             // 6. Pillar B: Validate complete transaction object
             const now = new Date().toISOString();
@@ -245,8 +243,12 @@ export async function handler(event) {
                 createdAt: now,
                 updatedAt: now,
                 confirmedAt: null,
-                processingModel: modelId, // Model configured in Admin Panel
-                ...(confidence !== null && { confidence }), // Only include if available
+                ...(modelComparison && {
+                    modelComparison,
+                    comparisonStatus: modelComparison.comparisonStatus,
+                    comparisonTimestamp: modelComparison.comparisonTimestamp,
+                    comparisonErrors: modelComparison.comparisonErrors,
+                }),
             };
 
             if (isGuestUser(userId)) {
@@ -286,8 +288,12 @@ export async function handler(event) {
                     updatedAt: now,
                     confirmedAt: null,
                     validationErrors: validationResult.error.issues, // Store errors for debugging
-                    processingModel: modelId, // Model configured in Admin Panel
-                    ...(confidence !== null && { confidence }), // Only include if available
+                    ...(modelComparison && {
+                        modelComparison,
+                        comparisonStatus: modelComparison.comparisonStatus,
+                        comparisonTimestamp: modelComparison.comparisonTimestamp,
+                        comparisonErrors: modelComparison.comparisonErrors,
+                    }),
                     ...(isGuestUser(userId) && { ttl: getGuestTTL(), isGuest: true }),
                 };
             } else {

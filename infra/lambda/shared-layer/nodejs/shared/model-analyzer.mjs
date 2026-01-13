@@ -19,22 +19,23 @@ export class MultiModelAnalyzer {
    * Analyze receipt with all 4 models in parallel
    * @param {Object} params
    * @param {string} params.imageBase64 - Base64-encoded receipt image
+   * @param {string} params.imageFormat - Image format (jpeg, png)
    * @param {string} params.s3Key - S3 object key for Textract access
    * @param {string} params.bucket - S3 bucket name
    * @param {string} params.traceId - Trace ID for logging
    * @param {string} params.imageId - Image ID for logging
    * @returns {Promise<Object>} Comparison result with all 4 models + errors
    */
-  async analyzeReceipt({ imageBase64, s3Key, bucket, traceId, imageId }) {
-    logger.info("MODEL_COMPARISON_STARTED", { traceId, imageId });
+  async analyzeReceipt({ imageBase64, imageFormat = 'jpeg', s3Key, bucket, traceId, imageId }) {
+    logger.info("MODEL_COMPARISON_STARTED", { traceId, imageId, imageFormat });
 
     // Run 4 models in parallel with graceful error handling
     // Replaced Claude Sonnet (geo-restriction issues) with Gemma 3 (Google open-source)
     const results = await Promise.allSettled([
       this.analyzeTextract(s3Key, bucket, traceId),
-      this.analyzeNovaMini(imageBase64, traceId),
-      this.analyzeNovaProBedrock(imageBase64, traceId),
-      this.analyzeGemma3(imageBase64, traceId),
+      this.analyzeNovaMini(imageBase64, imageFormat, traceId),
+      this.analyzeNovaProBedrock(imageBase64, imageFormat, traceId),
+      this.analyzeGemma3(imageBase64, imageFormat, traceId),
     ]);
 
     const modelNames = ["textract", "nova_mini", "nova_pro", "gemma_3"];
@@ -115,7 +116,7 @@ export class MultiModelAnalyzer {
    * Fast, cost-effective, good for initial screening
    * @ai-intent: Keep prompt minimal to match Nova Mini's token limits
    */
-  async analyzeNovaMini(imageBase64, traceId) {
+  async analyzeNovaMini(imageBase64, imageFormat, traceId) {
     try {
       const prompt = `あなたは日本語のレシート解析AIです。
 この画像から以下のJSON形式で抽出してください:
@@ -135,7 +136,7 @@ export class MultiModelAnalyzer {
             content: [
               {
                 image: {
-                  format: "webp",
+                  format: imageFormat,
                   source: { bytes: imageBase64 },
                 },
               },
@@ -179,7 +180,7 @@ export class MultiModelAnalyzer {
    * Includes line items for detailed comparison
    * @ai-intent: Detailed prompt with line items for comprehensive extraction
    */
-  async analyzeNovaProBedrock(imageBase64, traceId) {
+  async analyzeNovaProBedrock(imageBase64, imageFormat, traceId) {
     try {
       const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で抽出してください（JSONのみ、マークダウンなし）：
 
@@ -202,7 +203,7 @@ export class MultiModelAnalyzer {
               },
               {
                 image: {
-                  format: "webp",
+                  format: imageFormat,
                   source: { bytes: imageBase64 },
                 },
               },
@@ -257,7 +258,7 @@ export class MultiModelAnalyzer {
    * Avoids Anthropic geo-restrictions
    * @ai-intent: Google Gemma as alternative to Claude for geo-restricted regions
    */
-  async analyzeGemma3(imageBase64, traceId) {
+  async analyzeGemma3(imageBase64, imageFormat, traceId) {
     try {
       const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で抽出してください（JSONのみ、マークダウンなし）：
 
@@ -269,6 +270,10 @@ export class MultiModelAnalyzer {
   "totalAmount": 合計金額,
   "confidence": 0-100
 }`;
+
+      // Map format to MIME type for Bedrock
+      const mimeTypeMap = { jpeg: 'image/jpeg', jpg: 'image/jpeg', png: 'image/png' };
+      const mimeType = mimeTypeMap[imageFormat] || 'image/jpeg';
 
       const payload = {
         messages: [
@@ -283,7 +288,7 @@ export class MultiModelAnalyzer {
                 type: "image",
                 source: {
                   type: "base64",
-                  media_type: "image/webp",
+                  media_type: mimeType,
                   data: imageBase64,
                 },
               },
