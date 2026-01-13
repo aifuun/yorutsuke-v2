@@ -89,7 +89,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // (Moved before API to enable CORS restriction)
     // ========================================
     const adminBucket = new s3.Bucket(this, "AdminBucket", {
-      bucketName: `yorutsuke-admin-${env}-${this.account}`,
+      bucketName: `yorutsuke-admin-${env}-${this.account}-v2`,
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN
