@@ -9,6 +9,7 @@ import type { Transaction } from '../../../01_domains/transaction';
 import { fetchTransactionsFromCloud as fetchFromCloud, fetchTransactions as fetchFromLocal, upsertTransaction } from '../../transaction/adapters';
 import { logger } from '../../../00_kernel/telemetry/logger';
 import { syncImagesForTransactions, type ImageSyncResult } from './imageSyncService';
+import { syncStore } from '../stores/syncStore';
 
 /**
  * Pull sync result summary
@@ -183,6 +184,11 @@ export async function pullTransactions(
       localCount: localTransactions.length,
       images: imageSyncResult,
     };
+
+    // Step 5: Update lastSyncedAt on successful pull (IO-first pattern)
+    // Update happens AFTER all data operations complete
+    const timestamp = new Date().toISOString();
+    syncStore.getState().setLastSyncedAt(timestamp);
 
     logger.info('transaction_sync_complete', { ...result, traceId });
     return result;

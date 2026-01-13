@@ -85,15 +85,9 @@ class ManualSyncService {
         logger.info('sync_success', { userId, result });
       }
 
-      // Update last synced timestamp
-      const now = new Date().toISOString();
-      this.store.setState({ lastSyncedAt: now });
-
-      try {
-        localStorage.setItem(LAST_SYNCED_KEY, now);
-      } catch (error) {
-        logger.warn('sync_save_timestamp_failed', { error: String(error) });
-      }
+      // Note: lastSyncedAt is now updated by transactionPushService and transactionPullService
+      // No need to update here - the time is already set in syncStore
+      // Sync time is now synchronized across all sync operations
     } catch (error) {
       this.store.setState({
         status: 'error',
