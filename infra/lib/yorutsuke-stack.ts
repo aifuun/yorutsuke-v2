@@ -365,8 +365,7 @@ export class YorutsukeStack extends cdk.Stack {
       layers: [sharedLayer],
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
-        PENDING_IMAGES_TABLE: "yorutsuke-pending-images",
-        BATCH_JOBS_TABLE: "yorutsuke-batch-jobs",
+        BATCH_JOBS_TABLE: `yorutsuke-batch-jobs-${env}`,  // Pillar Q: env suffix for idempotency key
         CONTROL_TABLE_NAME: controlTable.tableName,
         API_BASE_URL: `https://api.${env}.example.com`,  // For statusUrl
       },
