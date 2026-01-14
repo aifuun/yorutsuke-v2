@@ -6,11 +6,12 @@
 
 ```
 experiments/model-analyzer/
-├── README.md                    # 本文件
-├── test-bedrock-nova.js         # ✅ Bedrock Nova Mini/Pro 测试
-├── test-textract.js             # (待实现) AWS Textract 测试
-├── test-azure-di.js             # (待实现) Azure Document Intelligence 测试
-└── .env.example                 # 环境变量模板
+├── README.md                           # 本文件
+├── test-bedrock-nova.js                # ✅ Bedrock Nova Mini/Pro 测试
+├── test-azure-di-local.mjs             # ✅ Azure Document Intelligence 本地测试（新）
+├── AZURE-DI-LOCAL-TEST-GUIDE.md        # ✅ Azure DI 测试详细指南（新）
+├── test-textract.js                    # (待实现) AWS Textract 测试
+└── .env.example                        # 环境变量模板
 ```
 
 ## 快速开始
@@ -26,6 +27,57 @@ export AWS_PROFILE=dev
 cd /Users/woo/dev/yorutsuke-v2-1
 npm install -g @aws-sdk/client-bedrock-runtime
 ```
+
+### 运行 Azure Document Intelligence 测试 (新增)
+
+```bash
+# 1. 设置 Azure 凭证
+export AZURE_DI_ENDPOINT=https://rj0088.cognitiveservices.azure.com/
+export AZURE_DI_API_KEY=your-api-key
+
+# 2. 运行测试（最快 - 使用样本图片）
+node experiments/model-analyzer/test-azure-di-local.mjs --sample
+
+# 或使用本地收据图片
+node experiments/model-analyzer/test-azure-di-local.mjs ~/test-receipt.jpg
+```
+
+**预期输出**:
+
+```
+🚀 Azure Document Intelligence 本地测试
+
+📋 前置检查:
+   ✓ AZURE_DI_ENDPOINT 已配置
+   ✓ AZURE_DI_API_KEY 已配置
+
+📁 准备测试数据:
+   使用样本收据图片 (1x1 最小 JPEG)
+
+🔍 向 Azure Document Intelligence 发送请求:
+[DEBUG] AZURE_DI_REQUEST_START ...
+[INFO] AZURE_DI_SUBMITTING_REQUEST ...
+[DEBUG] AZURE_DI_POLLING ...
+
+╔══════════════════════════════════════════════════════════════╗
+║          Azure Document Intelligence 本地测试结果             ║
+╚══════════════════════════════════════════════════════════════╝
+
+📊 测试详情:
+   耗时: 8234ms
+   状态: ✅ 成功
+
+📝 提取的字段:
+   商户名: CONTOSO
+   小计: 11.50
+   税额: 1.50
+   总额: 13.00
+   置信度: 95%
+```
+
+**详见**: [AZURE-DI-LOCAL-TEST-GUIDE.md](./AZURE-DI-LOCAL-TEST-GUIDE.md)
+
+---
 
 ### 运行 Bedrock Nova 测试
 
@@ -237,10 +289,11 @@ npm run deploy
 
 ## 下一步
 
+- [x] ✅ 实现 `test-azure-di-local.mjs` - Azure Document Intelligence 测试 (2026-01-14)
 - [ ] 实现 `test-textract.js` - AWS Textract 测试
-- [ ] 实现 `test-azure-di.js` - Azure Document Intelligence 测试
 - [ ] 创建集成测试 `test-multi-model.js` - 所有模型并行运行
 - [ ] 添加性能基准测试 - 模型响应时间对比
+- [ ] 集成 CI/CD - GitHub Actions 自动测试
 
 ## 参考
 
