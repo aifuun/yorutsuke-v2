@@ -310,6 +310,33 @@ grep "^--space" app/src/styles.css
 | **MVP Plan** | `docs/dev/MVP_PLAN.md` | Roadmap & current phase |
 | **Design System** | `docs/design/` | 19 specs: Foundation (6), Components (7), Views (5), A11y (1) → See `.claude/rules/design-system.md` |
 | **Operations** | `docs/operations/` | LOGGING.md, QUOTA.md |
+| **Developer Guides** | `docs/guides/` | Step-by-step guides for tools & workflows (Lambda, Azure DI, etc.) |
+
+### Developer Guides (`docs/guides/`)
+
+**Purpose**: Detailed, practical guides for specific tools, workflows, and integrations.
+
+**Naming Convention**: Files should describe scope, tool/functionality, and context
+- ✅ `CDK-WATCH-QUICK-START.md` - AWS CDK Watch, quick start
+- ✅ `LAMBDA-DEVELOPMENT-WORKFLOW.md` - Lambda development, complete workflow
+- ✅ `AZURE-DI-SDK-LOCAL-TESTING.md` - Azure DI SDK, local testing
+- ✅ `docs/guides/azure-di/` - Subdirectory for related guides by tool/feature
+
+**Current Guides**:
+- `README.md` - Navigation index (start here)
+- `CDK-WATCH-QUICK-START.md` - 3-command cloud testing with AWS CDK Watch
+- `LAMBDA-DEVELOPMENT-WORKFLOW.md` - Complete Lambda dev workflow (Pure Node.js → cdk watch → cdk deploy)
+- `DEVELOPMENT-WORKFLOW-ASSESSMENT.md` - Comparison of SAM vs LocalStack vs cdk watch
+- `MIGRATION-SUMMARY.md` - Migration from LocalStack/SAM to cdk watch
+- `azure-di/` - Azure Document Intelligence integration guides
+
+**When to Create a New Guide**:
+1. **Multi-step procedure** for a tool/technology
+2. **Workflow comparison** or decision guide
+3. **Integration tutorial** with external services
+4. **Best practices** for development process
+
+**Not in Guides**: Architecture decisions (→ `docs/architecture/ADR/`), design specs (→ `docs/design/`), requirements (→ `docs/product/`)
 
 ---
 @.prot/CHEATSHEET.md

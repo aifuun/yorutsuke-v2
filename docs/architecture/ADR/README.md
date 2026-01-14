@@ -27,6 +27,9 @@ An Architecture Decision Record captures a single decision along with its contex
 | [012](./012-zustand-selector-safety.md) | Zustand Selector Safety | Accepted | 2026-01 |
 | [013](./013-environment-based-secrets.md) | Environment-Based Secret Management | Accepted | 2026-01 |
 | [014](./014-lambda-layer-version-management.md) | Lambda Layer Version Management | Accepted | 2026-01 |
+| [015](./015-sdk-over-rest-api.md) | SDK Over REST API | Accepted | 2026-01 |
+| [016](./016-lambda-local-first-testing.md) | Lambda Local-First Testing | Accepted | 2026-01 |
+| [018](./018-cdk-watch-cloud-driven-testing.md) | cdk watch Cloud-Driven Testing | Accepted | 2026-01 |
 
 ## ADR Template
 
