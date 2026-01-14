@@ -1,0 +1,12 @@
+version = 0.1
+
+[default]
+[default.build]
+watch_exclude = ["**/.git/**", "**/.pytest_cache/**", "**/.venv/**"]
+
+[default.local_invoke]
+host = "127.0.0.1"
+
+[default.local_start_api]
+host = "127.0.0.1"
+port = 3000

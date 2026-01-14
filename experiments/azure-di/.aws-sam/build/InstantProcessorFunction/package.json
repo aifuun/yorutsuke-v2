@@ -1,0 +1,9 @@
+{
+  "name": "yorutsuke-instant-processor-local",
+  "version": "1.0.0",
+  "description": "Local test handler for instant processor Lambda",
+  "type": "module",
+  "main": "index.mjs",
+  "author": "Yorutsuke",
+  "license": "MIT"
+}

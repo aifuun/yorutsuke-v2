@@ -1,0 +1,38 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.0",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-east-1",
+      "eventTime": "2026-01-14T13:15:00.000Z",
+      "eventName": "ObjectCreated:Put",
+      "userIdentity": {
+        "principalId": "AWS:AIDACKCEVSQ6C2EXAMPLE"
+      },
+      "requestParameters": {
+        "sourceIPAddress": "127.0.0.1"
+      },
+      "responseElements": {
+        "x-amz-request-id": "C3D400A9F7823444",
+        "x-amz-id-2": "vlR7PnpV2Ce81l0PRw6jlUpck7Jo5ZsQjryTKKT5Fyo5O0o5ZeKNQthpGJifTZWp"
+      },
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "testConfigRule",
+        "bucket": {
+          "name": "yorutsuke-images-us-dev-696249060859",
+          "ownerIdentity": {
+            "principalId": "A3NL1KOZyIFVmO7FD1234"
+          },
+          "arn": "arn:aws:s3:::yorutsuke-images-us-dev-696249060859"
+        },
+        "object": {
+          "key": "uploads/1768363465275-test-receipt.jpg",
+          "size": 15234,
+          "eTag": "d41d8cd98f00b204e9800998ecf8427e",
+          "versionId": "abc123"
+        }
+      }
+    }
+  ]
+}

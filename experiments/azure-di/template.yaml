@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: |
+  Yorutsuke Lambda Local Testing with Azure Document Intelligence
+  Tests the instant-processor Lambda with Azure DI, Textract, and Bedrock models
+
+Globals:
+  Function:
+    Timeout: 120
+    MemorySize: 512
+    Runtime: nodejs20.x
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        # Azure Document Intelligence credentials
+        AZURE_DI_ENDPOINT: !Env AZURE_DI_ENDPOINT
+        AZURE_DI_API_KEY: !Env AZURE_DI_API_KEY
+        # AWS credentials for testing
+        AWS_REGION: us-east-1
+
+Resources:
+  # Shared Lambda Layer (contains model-analyzer.mjs)
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: yorutsuke-shared-layer
+      Description: Shared utilities for Yorutsuke Lambda functions
+      ContentUri: ../../infra/lambda/shared-layer/nodejs/
+      CompatibleRuntimes:
+        - nodejs20.x
+      CompatibleArchitectures:
+        - arm64
+
+  # Instant Processor Lambda Function
+  InstantProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: yorutsuke-instant-processor-local
+      Description: Multi-model receipt analyzer with Azure DI
+      CodeUri: ./local-handler/
+      Handler: index.handler
+      Layers:
+        - !Ref SharedLayer
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            # S3 read access
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: arn:aws:s3:::yorutsuke-images-*/*
+            # DynamoDB write access
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+              Resource: arn:aws:dynamodb:*:*:table/yorutsuke-*
+            # CloudWatch Logs
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: arn:aws:logs:*:*:*
+            # Bedrock invoke
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: arn:aws:bedrock:*:*:foundation-model/*
+
+Outputs:
+  InstantProcessorFunctionArn:
+    Description: ARN of Instant Processor Function
+    Value: !GetAtt InstantProcessorFunction.Arn
+
+  SharedLayerArn:
+    Description: ARN of Shared Layer
+    Value: !Ref SharedLayer
+
+  SharedLayerVersion:
+    Description: Version of Shared Layer
+    Value: !Ref SharedLayer.Version
