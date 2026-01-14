@@ -157,8 +157,9 @@ API Key（密钥）: Tgfa5wRNeIhVd... （长密钥）
 cd infra/
 
 # 2. 设置环境变量（密钥）
+# ⚠️ 密钥应该在 .env.local 中设置，不要提交到仓库！
 export AZURE_DI_ENDPOINT=https://rj0088.cognitiveservices.azure.com/
-export AZURE_DI_API_KEY=<REDACTED_SECRET>
+export AZURE_DI_API_KEY=$(grep AZURE_DI_API_KEY .env.local | cut -d= -f2)
 
 # 3. 开始部署
 npm run deploy --context env=dev --profile dev
