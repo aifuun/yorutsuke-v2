@@ -14,7 +14,7 @@ Compressed receipt images are **permanently stored locally** for:
 ```
 ~/.yorutsuke/
 ├── images/           # Compressed receipt images (permanent)
-│   └── {uuid}.webp   # ~50-100KB each
+│   └── {uuid}.jpg    # ~50-100KB each
 ├── logs/             # Daily log files (7-day retention)
 │   └── {date}.jsonl
 └── yorutsuke.db      # SQLite database
@@ -61,10 +61,10 @@ yorutsuke-images-{env}-{account}/
 └── uploads/
     └── {userId}/
         └── {date}/
-            └── {uuid}.webp
+            └── {uuid}.jpg
 ```
 
-**Example**: `uploads/abc123/2025-12-28/550e8400-e29b-41d4.webp`
+**Example**: `uploads/abc123/2025-12-28/550e8400-e29b-41d4.jpg`
 
 ### Lifecycle Rules
 

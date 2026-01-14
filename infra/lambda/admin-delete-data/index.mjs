@@ -95,7 +95,7 @@ async function deleteUserImages(userId) {
   console.log('[DeleteData] Deleting images for userId:', userId);
 
   // Step 1: List all objects with userId prefix
-  // S3 key format: uploads/{userId}/{date}/{uuid}.webp
+  // S3 key format: uploads/{userId}/{timestamp}/{uuid}.jpg
   const prefix = `uploads/${userId}/`;
 
   let allObjects = [];

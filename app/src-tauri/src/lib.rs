@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::Path;
 use chrono::{Local, Duration};
 use image::GenericImageView;
+use image::codecs::jpeg::JpegEncoder;
 
 /// Get the app's data directory for storing compressed images
 /// Uses platform-standard data directory for permanent local storage
@@ -32,7 +33,7 @@ pub struct CompressResult {
     pub md5: String,
 }
 
-/// Compress an image: resize to max 1024px, convert to grayscale, WebP 75%
+/// Compress an image: resize to max 1536px, convert to grayscale, JPEG 75%
 /// Grayscale conversion reduces file size by ~60% while maintaining OCR quality
 #[tauri::command]
 fn compress_image(input_path: String, image_id: String) -> Result<CompressResult, String> {
@@ -76,9 +77,9 @@ fn compress_image(input_path: String, image_id: String) -> Result<CompressResult
     };
 
     // Output path
-    let output_path = get_data_dir().join(format!("{}.webp", image_id));
+    let output_path = get_data_dir().join(format!("{}.jpg", image_id));
 
-    // Convert to grayscale then to RGB8 for WebP encoding
+    // Convert to grayscale then to RGB8 for JPEG encoding
     // Grayscale reduces file size significantly while maintaining OCR quality
     let grayscale = resized.grayscale();
     let rgb_image = grayscale.to_rgb8();
@@ -87,18 +88,22 @@ fn compress_image(input_path: String, image_id: String) -> Result<CompressResult
     let actual_width = rgb_image.width();
     let actual_height = rgb_image.height();
 
-    // Encode to WebP (85% quality - balanced for OCR and visual quality)
-    let encoder = webp::Encoder::from_rgb(&rgb_image, actual_width, actual_height);
-    let webp_data = encoder.encode(85.0);
+    // Encode to JPEG (75% quality - balanced for OCR and file size)
+    let file = fs::File::create(&output_path)
+        .map_err(|e| format!("Failed to create output file: {}", e))?;
+    let mut encoder = JpegEncoder::new_with_quality(file, 75);
+    encoder.encode(&rgb_image, actual_width, actual_height, image::ExtendedColorType::Rgb8)
+        .map_err(|e| format!("Failed to encode JPEG: {}", e))?;
 
     // Calculate MD5 hash of compressed data (for duplicate detection)
-    let md5_hash = format!("{:x}", md5::compute(&*webp_data));
+    let jpeg_data = fs::read(&output_path)
+        .map_err(|e| format!("Failed to read JPEG file: {}", e))?;
+    let md5_hash = format!("{:x}", md5::compute(&jpeg_data));
 
-    // Write to file
-    fs::write(&output_path, &*webp_data)
-        .map_err(|e| format!("Failed to write WebP: {}", e))?;
-
-    let compressed_size = webp_data.len() as u64;
+    // Get compressed file size
+    let compressed_size = fs::metadata(&output_path)
+        .map_err(|e| format!("Failed to get file size: {}", e))?
+        .len();
     let output_path_str = output_path.to_string_lossy().to_string();
 
     Ok(CompressResult {

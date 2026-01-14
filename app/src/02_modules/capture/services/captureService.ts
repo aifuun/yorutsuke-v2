@@ -435,7 +435,7 @@ class CaptureService {
         multiple: true,
         filters: [{
           name: 'Images',
-          extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+          extensions: ['jpg', 'jpeg', 'png', 'heic'],
         }],
       });
 

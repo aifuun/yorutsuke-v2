@@ -21,6 +21,9 @@ This document is a pure index of architectural decisions. All implementation det
 - [010-three-layer-task-tracking.md](../docs/architecture/ADR/010-three-layer-task-tracking.md) - TODO/MEMORY migration (pure ADR index)
 - [011-bidirectional-cloud-sync.md](../docs/architecture/ADR/011-bidirectional-cloud-sync.md) - Bidirectional cloud sync (Issue #86)
 - [012-bedrock-model-ids.md](../docs/architecture/ADR/012-bedrock-model-ids.md) - Bedrock inference profiles and model IDs
+- [013-environment-based-secrets.md](../docs/architecture/ADR/013-environment-based-secrets.md) - Never hardcode API keys; load from environment
+- [015-sdk-over-rest-api.md](../docs/architecture/ADR/015-sdk-over-rest-api.md) - Use official SDKs over raw REST API for third-party integrations
+- [016-lambda-local-first-testing.md](../docs/architecture/ADR/016-lambda-local-first-testing.md) - Test Lambda code locally before deploying
 
 ## References
 
@@ -30,6 +33,6 @@ This document is a pure index of architectural decisions. All implementation det
 
 ---
 
-**Last Updated**: 2026-01-13 (ADR-012 added - Bedrock model IDs)
+**Last Updated**: 2026-01-14 (ADR-016 added - Lambda Local-First Testing Strategy)
 **Purpose**: Pure ADR index (no project tracking)
 **Update Rule**: Add ADR link when closing major architectural issues

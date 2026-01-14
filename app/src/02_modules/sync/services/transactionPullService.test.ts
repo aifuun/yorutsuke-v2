@@ -170,7 +170,7 @@ describe('pullTransactions', () => {
   it('should sync images if not exists locally', async () => {
     const cloudTx = createTransaction({
       imageId: ImageId('img-cloud'),
-      s3Key: 'uploads/img-cloud.webp',
+      s3Key: 'uploads/img-cloud.jpg',
     });
 
     mockFetchFromCloud.mockResolvedValue([cloudTx]);
@@ -198,7 +198,7 @@ describe('pullTransactions', () => {
   it('should skip image sync if already exists locally', async () => {
     const cloudTx = createTransaction({
       imageId: ImageId('img-cloud'),
-      s3Key: 'uploads/img-cloud.webp',
+      s3Key: 'uploads/img-cloud.jpg',
     });
 
     mockFetchFromCloud.mockResolvedValue([cloudTx]);
@@ -226,7 +226,7 @@ describe('pullTransactions', () => {
   it('should handle image sync failures gracefully', async () => {
     const cloudTx = createTransaction({
       imageId: ImageId('img-cloud'),
-      s3Key: 'uploads/img-cloud.webp',
+      s3Key: 'uploads/img-cloud.jpg',
     });
 
     mockFetchFromCloud.mockResolvedValue([cloudTx]);

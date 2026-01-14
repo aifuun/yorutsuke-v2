@@ -11,7 +11,7 @@ import type { AppEvents, AppEventKey } from './types';
  * @emits CustomEvent with typed payload
  *
  * @example
- * emit('upload:complete', { id: ImageId('xxx'), s3Key: '2025/12/26/xxx.webp' });
+ * emit('upload:complete', { id: ImageId('xxx'), s3Key: '2025/12/26/xxx.jpg' });
  */
 export function emit<K extends AppEventKey>(
   eventName: K,

@@ -23,8 +23,9 @@ describe('capture/types', () => {
       expect(isExtensionAllowed('receipt.PNG')).toBe(true);
     });
 
-    it('accepts WebP files', () => {
-      expect(isExtensionAllowed('receipt.webp')).toBe(true);
+    // WebP not supported - use JPEG instead (Textract compatibility)
+    it('rejects WebP files (use JPEG instead)', () => {
+      expect(isExtensionAllowed('receipt.webp')).toBe(false);
     });
 
     // HEIC not supported - Rust image crate lacks native support
@@ -61,7 +62,8 @@ describe('capture/types', () => {
       expect(ALLOWED_EXTENSIONS).toContain('jpg');
       expect(ALLOWED_EXTENSIONS).toContain('jpeg');
       expect(ALLOWED_EXTENSIONS).toContain('png');
-      expect(ALLOWED_EXTENSIONS).toContain('webp');
+      // WebP not supported - use JPEG instead (Textract compatibility)
+      expect(ALLOWED_EXTENSIONS).not.toContain('webp');
       // HEIC/HEIF not supported
       expect(ALLOWED_EXTENSIONS).not.toContain('heic');
       expect(ALLOWED_EXTENSIONS).not.toContain('heif');

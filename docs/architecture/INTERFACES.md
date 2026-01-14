@@ -395,7 +395,7 @@ Get S3 presigned URL for image upload.
 interface PresignRequest {
   userId: string;
   fileName: string;
-  contentType: string;  // 'image/webp'
+  contentType: string;  // 'image/jpeg'
 }
 ```
 
@@ -649,7 +649,7 @@ const { url, key } = await getPresignedUrl(userId, fileName);
 // 2. Upload directly to S3
 await fetch(url, {
   method: 'PUT',
-  headers: { 'Content-Type': 'image/webp' },
+  headers: { 'Content-Type': 'image/jpeg' },
   body: blob,
 });
 

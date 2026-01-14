@@ -25,6 +25,8 @@ An Architecture Decision Record captures a single decision along with its contex
 | [010](./010-three-layer-task-tracking.md) | Three-Layer Task Tracking | Accepted | 2026-01 |
 | [011](./011-bidirectional-cloud-sync.md) | Bidirectional Cloud Sync | Implemented | 2026-01 |
 | [012](./012-zustand-selector-safety.md) | Zustand Selector Safety | Accepted | 2026-01 |
+| [013](./013-environment-based-secrets.md) | Environment-Based Secret Management | Accepted | 2026-01 |
+| [014](./014-lambda-layer-version-management.md) | Lambda Layer Version Management | Accepted | 2026-01 |
 
 ## ADR Template
 

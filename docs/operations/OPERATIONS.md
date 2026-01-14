@@ -351,7 +351,7 @@ aws logs tail /aws/lambda/yorutsuke-dev-presign --since 30m --profile dev
 # 2. Test presign manually
 curl -X POST https://{presign-url}/ \
   -H "Content-Type: application/json" \
-  -d '{"userId":"test","fileName":"test.webp","contentType":"image/webp"}'
+  -d '{"userId":"test","fileName":"test.jpg","contentType":"image/jpeg"}'
 ```
 
 ### High Costs

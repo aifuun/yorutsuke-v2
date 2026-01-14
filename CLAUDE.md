@@ -146,79 +146,6 @@ cd app && npm test             # Run tests
 
 测试图片：`/private/tmp/yorutsuke-test/` → 详见 `docs/tests/TEST_ASSETS.md`
 
-## Tauri Security (Capabilities)
-
-> Tauri 2 uses capability-based permission system. Configuration: `app/src-tauri/capabilities/default.json`
-
-### Permission Categories
-
-| Category | Grants | Yorutsuke Use Case |
-|----------|--------|-------------------|
-| **SQL** | `sql:default`, `sql:allow-load`, `sql:allow-execute`, `sql:allow-select` | Local SQLite database (images, transactions, settings) |
-| **HTTP** | Whitelisted AWS domains | Lambda URLs (presign, sync, batch), S3 buckets, API Gateway |
-| **File System** | Read/write with path scoping (`$TEMP`, `$HOME`, `$APPDATA`, `$APPLOCALDATA`) | Receipt image storage, compression, upload |
-| **Dialog** | `dialog:allow-open`, `dialog:allow-save` | File picker for receipt upload, export transactions |
-
-### HTTP Whitelist (AWS Services)
-
-```json
-{
-  "identifier": "http:default",
-  "allow": [
-    { "url": "https://*.lambda-url.us-east-1.on.aws/*" },
-    { "url": "https://*.lambda-url.ap-northeast-1.on.aws/*" },
-    { "url": "https://*.execute-api.us-east-1.amazonaws.com/*" },
-    { "url": "https://*.s3.us-east-1.amazonaws.com/*" },
-    { "url": "https://s3.us-east-1.amazonaws.com/*" }
-  ]
-}
-```
-
-**Note**: Both `us-east-1` (primary) and `ap-northeast-1` (legacy) regions are supported for backward compatibility.
-
-**Adding New Services**: When integrating new AWS resources, update the HTTP allow list in `default.json`.
-
-### File System Scoping
-
-| Path Variable | macOS | Windows | Linux | Usage |
-|---------------|-------|---------|-------|-------|
-| `$TEMP` | `/var/folders/...` | `%TEMP%` | `/tmp` | Temporary files (compression) |
-| `$HOME` | `/Users/{user}` | `C:\Users\{user}` | `/home/{user}` | User documents |
-| `$APPDATA` | `~/Library/Application Support` | `%APPDATA%` | `~/.config` | Roaming data |
-| `$APPLOCALDATA` | `~/Library/Application Support` | `%LOCALAPPDATA%` | `~/.local/share` | **Yorutsuke DB here** |
-
-**Database Location**: `$APPLOCALDATA/yorutsuke-v2/yorutsuke.db`
-
-### Security Model
-
-**Tauri 1.x** (Permissive):
-- Requests allowed by default
-- Manual URL blocking required
-- Risk: Malicious code could access any URL
-
-**Tauri 2.x** (Whitelist):
-- All requests denied by default
-- Explicit allow list required
-- Principle of least privilege
-- Even compromised code limited to allowed domains
-
-### Receipt Upload Flow (Capability Usage)
-
-```
-1. User drops image          → fs:allow-read (user selects file)
-2. Save to temp directory    → fs:allow-write-file ($TEMP/**)
-3. Compress image (Rust)     → fs:allow-read + fs:allow-write
-4. Read compressed file      → fs:allow-read-file ($TEMP/**)
-5. Request presign URL       → http:default (Lambda URL)
-6. Upload to S3              → http:default (S3 bucket)
-7. Save metadata to SQLite   → sql:allow-execute
-```
-
-### References
-
-- Capability file: `app/src-tauri/capabilities/default.json`
-- Tauri docs: https://v2.tauri.app/security/capabilities/
-
 ## Workflow
 
 ### Core Commands
@@ -275,6 +202,7 @@ cd app && npm test             # Run tests
 **Before coding**: Check past decisions → `docs/architecture/ADR/`
 - **ADR-001**: Service Pattern (global listeners, Zustand stores)
 - **ADR-005**: TraceId vs IntentId (log correlation vs idempotency)
+- **ADR-013**: Environment-Based Secret Management (API keys, credentials)
 
 Full list: `docs/architecture/ADR/README.md`
 
@@ -286,15 +214,17 @@ Full list: `docs/architecture/ADR/README.md`
 - Validate all Lambda responses with Zod (Pillar B)
 - Separate UI from logic (Pillar L: Headless) → See ADR-001
 - Use Service Pattern for global listeners (not React hooks) → ADR-001
-- When calling external AWS services (Lambda, API Gateway): add URL patterns to `app/src-tauri/capabilities/default.json` http:default permissions (Pillar B: Airlock)
-- **After CDK deployment**: Run `npm run sync-outputs` in `infra/` to sync environment variables → See `.claude/rules/cdk-deploy.md`
+- Add Intent-ID for batch operations (Pillar Q) → See ADR-005
+- Load all secrets from environment variables (never hardcode) → See `.claude/rules/secrets.md`
+- Publish new Lambda Layer version after modifying shared-layer code → See `.claude/rules/lambda-layer-deployment.md`
 
 **MUST NOT**:
 - Use primitive types for domain entities
 - Mix JSX in headless hooks
 - Trust raw API/IPC responses without parsing
 - Skip quota checks before upload
-- Skip CDK output sync (causes "User pool client does not exist" errors)
+- Commit API keys or credentials to git
+- Assume CDK deploy will automatically update Lambda Layer versions
 
 ## AWS Resources
 
@@ -369,6 +299,7 @@ grep "^--space" app/src/styles.css
 - **Long-term memory**: `.claude/MEMORY.md` (ADR index only, English)
 - **Workflow guide**: `.claude/WORKFLOW.md`
 - **Design rules**: `.claude/rules/design-system.md` (read before UI coding)
+- **Lambda Layer deployment**: `.claude/rules/lambda-layer-deployment.md` + `.claude/rules/lambda-quick-reference.md`
 
 ## Key Documentation
 

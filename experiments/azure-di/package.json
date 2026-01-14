@@ -1,0 +1,22 @@
+{
+  "name": "azure-di-experiments",
+  "version": "1.0.0",
+  "description": "Local testing of Azure Document Intelligence SDK before deploying to Lambda",
+  "type": "module",
+  "scripts": {
+    "test": "node test-azure-di-sdk.mjs",
+    "test:format": "node test-azure-di.mjs",
+    "test:real": "node test-real-receipts-sdk.mjs",
+    "poll": "node poll-results-sdk.mjs"
+  },
+  "keywords": ["azure", "document-intelligence", "testing", "lambda", "sdk"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@azure-rest/ai-document-intelligence": "^1.0.0",
+    "@azure/core-auth": "^1.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

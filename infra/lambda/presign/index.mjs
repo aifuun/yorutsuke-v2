@@ -247,7 +247,7 @@ export async function handler(event) {
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-      ContentType: contentType || "image/webp",
+      ContentType: contentType || "image/jpeg",
     });
 
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 300 });

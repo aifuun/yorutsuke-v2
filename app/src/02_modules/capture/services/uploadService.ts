@@ -4,7 +4,7 @@
 // Pillar Q: Intent-ID for idempotency
 
 import { readFile } from '@tauri-apps/plugin-fs';
-import type { ImageId, UserId, TraceId } from '../../../00_kernel/types';
+import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/types';
 import { emit } from '../../../00_kernel/eventBus';
 import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/network';
 import { isMockingOffline } from '../../../00_kernel/config/mock';
@@ -76,9 +76,9 @@ class UploadService {
   /**
    * Add file to upload queue
    */
-  enqueue(id: ImageId, filePath: string, traceId: TraceId): void {
-    logger.info(EVENTS.UPLOAD_ENQUEUED, { imageId: id, traceId });
-    uploadStore.getState().enqueue({ id, traceId, filePath });
+  enqueue(id: ImageId, filePath: string, intentId: IntentId, traceId: TraceId): void {
+    logger.info(EVENTS.UPLOAD_ENQUEUED, { imageId: id, intentId, traceId });
+    uploadStore.getState().enqueue({ id, intentId, traceId, filePath });
     this.startPolling();
   }
 
@@ -148,7 +148,7 @@ class UploadService {
 
     // Process first idle task
     const task = idleTasks[0];
-    await this.processTask(task.id, task.filePath, task.traceId);
+    await this.processTask(task.id, task.filePath, task.intentId, task.traceId);
   }
 
   /**
@@ -158,6 +158,7 @@ class UploadService {
   private async processTask(
     id: ImageId,
     filePath: string,
+    intentId: IntentId,
     traceId: TraceId
   ): Promise<void> {
     if (!this.userId) return;
@@ -176,11 +177,11 @@ class UploadService {
       }
 
       // Get presigned URL
-      const { url, key } = await getPresignedUrl(this.userId, `${id}.webp`);
+      const { url, key } = await getPresignedUrl(this.userId, `${id}.jpg`, intentId, 'image/jpeg');
 
       // Read file using Tauri fs plugin
       const fileData = await readFile(filePath);
-      const blob = new Blob([fileData], { type: 'image/webp' });
+      const blob = new Blob([fileData], { type: 'image/jpeg' });
 
       await uploadToS3(url, blob);
 

@@ -15,7 +15,7 @@ const PresignDownloadResponseSchema = z.object({
  * Get S3 presigned download URL
  * Calls presign Lambda to generate temporary download URL
  *
- * @param s3Key - S3 object key (e.g., "processed/device-xxx/123.webp")
+ * @param s3Key - S3 object key (e.g., "processed/device-xxx/123.jpg")
  * @returns Presigned GET URL (valid for 1 hour)
  * @throws Error if presign Lambda URL not configured or request fails
  */

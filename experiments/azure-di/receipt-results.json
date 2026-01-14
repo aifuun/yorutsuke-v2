@@ -1,0 +1,128 @@
+[
+  {
+    "receiptName": "1768360453144-bf674f6f-7fc8-48a8-8029-5a0e0dcb8b55.jpg",
+    "timestamp": "2026-01-14T03:50:41.561Z",
+    "docType": "invoice",
+    "confidence": "100.0%",
+    "fields": {
+      "AmountDue": {
+        "value": "¥1958 JPY",
+        "confidence": "58.4%",
+        "type": "currency"
+      },
+      "CustomerAddress": {
+        "value": {
+          "houseNumber": "2-27-36",
+          "road": "扇",
+          "city": "区",
+          "state": "東京都足立",
+          "streetAddress": "2-27-36 扇"
+        },
+        "confidence": "52.0%",
+        "type": "address"
+      },
+      "CustomerAddressRecipient": {
+        "confidence": "41.5%",
+        "type": "string"
+      },
+      "CustomerName": {
+        "confidence": "41.5%",
+        "type": "string"
+      },
+      "InvoiceDate": {
+        "value": "2025-12-06",
+        "confidence": "67.2%",
+        "type": "date"
+      },
+      "InvoiceTotal": {
+        "value": "¥1958 JPY",
+        "confidence": "68.9%",
+        "type": "currency"
+      },
+      "Items": {
+        "confidence": "N/A",
+        "type": "array"
+      },
+      "SubTotal": {
+        "value": "¥1780 JPY",
+        "confidence": "58.7%",
+        "type": "currency"
+      },
+      "TotalTax": {
+        "value": "¥178 JPY",
+        "confidence": "83.4%",
+        "type": "currency"
+      },
+      "VendorName": {
+        "confidence": "31.5%",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "receiptName": "1768360449184-a099150f-90a1-4a66-bf73-49934e9d9ce9.jpg",
+    "timestamp": "2026-01-14T03:50:47.053Z",
+    "docType": "invoice",
+    "confidence": "100.0%",
+    "fields": {
+      "InvoiceDate": {
+        "value": "2025-11-29",
+        "confidence": "93.9%",
+        "type": "date"
+      },
+      "InvoiceId": {
+        "confidence": "53.6%",
+        "type": "string"
+      },
+      "InvoiceTotal": {
+        "value": "¥538 JPY",
+        "confidence": "96.8%",
+        "type": "currency"
+      },
+      "Items": {
+        "confidence": "N/A",
+        "type": "array"
+      },
+      "VendorName": {
+        "confidence": "33.7%",
+        "type": "string"
+      }
+    }
+  },
+  {
+    "receiptName": "1768360444404-cc41060d-e5c0-4949-b99b-1063e16a66e5.jpg",
+    "timestamp": "2026-01-14T03:51:07.639Z",
+    "docType": "invoice",
+    "confidence": "100.0%",
+    "fields": {
+      "InvoiceDate": {
+        "value": "2025-12-09",
+        "confidence": "45.4%",
+        "type": "date"
+      },
+      "InvoiceTotal": {
+        "value": "¥1626 JPY",
+        "confidence": "84.9%",
+        "type": "currency"
+      },
+      "Items": {
+        "confidence": "N/A",
+        "type": "array"
+      },
+      "ServiceEndDate": {
+        "value": "2025-03-01",
+        "confidence": "41.6%",
+        "type": "date"
+      },
+      "SubTotal": {
+        "value": "¥1626 JPY",
+        "confidence": "46.3%",
+        "type": "currency"
+      },
+      "VendorName": {
+        "confidence": "62.3%",
+        "type": "string"
+      }
+    }
+  }
+]

@@ -2,7 +2,7 @@
 // Pillar Q: Intent-ID for idempotency
 import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
-import type { UserId } from '../../../00_kernel/types';
+import type { UserId, IntentId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
 import { mockPresignUrl, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
@@ -40,7 +40,8 @@ function withTimeout<T>(
 export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
-  contentType: string = 'image/webp',
+  intentId: IntentId,  // Pillar Q: Idempotency key
+  contentType: string = 'image/jpeg',
 ): Promise<PresignResponse> {
   // Mocking offline - simulate network failure
   if (isMockingOffline()) {
@@ -58,7 +59,7 @@ export async function getPresignedUrl(
   const fetchPromise = fetch(PRESIGN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, fileName, contentType }),
+    body: JSON.stringify({ userId, fileName, intentId, contentType }),
   });
 
   const response = await withTimeout(
@@ -92,7 +93,7 @@ export async function getPresignedUrl(
 export async function uploadToS3(
   presignedUrl: string,
   file: Blob,
-  contentType: string = 'image/webp',
+  contentType: string = 'image/jpeg',
 ): Promise<void> {
   // Mocking offline - simulate network failure
   if (isMockingOffline()) {

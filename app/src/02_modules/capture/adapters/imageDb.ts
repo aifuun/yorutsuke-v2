@@ -298,7 +298,7 @@ export async function resetTodayQuota(userId: UserId): Promise<number> {
  * Pillar I: Adapter layer isolates DB operations
  *
  * @param imageId - Image identifier
- * @param s3Key - S3 object key (e.g., "processed/device-xxx/123.webp")
+ * @param s3Key - S3 object key (e.g., "processed/device-xxx/123.jpg")
  */
 export async function updateImageS3Key(
   imageId: ImageIdType,

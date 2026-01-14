@@ -5,7 +5,7 @@ import type { ImageId, TraceId } from '../../00_kernel/types';
 
 // Allowed image extensions
 // Note: HEIC/HEIF not supported (Rust image crate lacks native support)
-export const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
+export const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png'] as const;
 export type AllowedExtension = typeof ALLOWED_EXTENSIONS[number];
 
 /**

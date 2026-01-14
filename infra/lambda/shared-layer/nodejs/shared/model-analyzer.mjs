@@ -1,5 +1,10 @@
 import { TextractClient, AnalyzeExpenseCommand } from "@aws-sdk/client-textract";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import DocumentIntelligence, {
+  isUnexpected,
+  parseResultIdFromResponse,
+} from "@azure-rest/ai-document-intelligence";
+import { AzureKeyCredential } from "@azure/core-auth";
 import { logger } from "./logger.mjs";
 import { ModelResultSchema } from "./schemas.mjs";
 
@@ -16,7 +21,7 @@ const bedrockClient = new BedrockRuntimeClient({});
  */
 export class MultiModelAnalyzer {
   /**
-   * Analyze receipt with all 4 models in parallel
+   * Analyze receipt with all 4+ models in parallel
    * @param {Object} params
    * @param {string} params.imageBase64 - Base64-encoded receipt image
    * @param {string} params.imageFormat - Image format (jpeg, png)
@@ -24,20 +29,33 @@ export class MultiModelAnalyzer {
    * @param {string} params.bucket - S3 bucket name
    * @param {string} params.traceId - Trace ID for logging
    * @param {string} params.imageId - Image ID for logging
-   * @returns {Promise<Object>} Comparison result with all 4 models + errors
+   * @returns {Promise<Object>} Comparison result with all models + errors
    */
   async analyzeReceipt({ imageBase64, imageFormat = 'jpeg', s3Key, bucket, traceId, imageId }) {
     logger.info("MODEL_COMPARISON_STARTED", { traceId, imageId, imageFormat });
 
-    // Run 3 models in parallel with graceful error handling
-    // Using Textract, Nova Mini, Nova Pro (Gemma 3 disabled due to API format validation error)
-    const results = await Promise.allSettled([
+    // Run models in parallel with graceful error handling
+    // Base models: Textract, Nova Mini, Nova Pro
+    // Optional: Azure Document Intelligence (if credentials available)
+    const analysisPromises = [
       this.analyzeTextract(s3Key, bucket, traceId),
       this.analyzeNovaMini(imageBase64, imageFormat, traceId),
       this.analyzeNovaProBedrock(imageBase64, imageFormat, traceId),
-    ]);
+    ];
 
     const modelNames = ["textract", "nova_mini", "nova_pro"];
+
+    // Add Azure if credentials are configured
+    if (process.env.AZURE_DI_ENDPOINT && process.env.AZURE_DI_API_KEY) {
+      analysisPromises.push(
+        this.analyzeAzureDI(s3Key, bucket, traceId)
+      );
+      modelNames.push("azure_di");
+      logger.debug("AZURE_DI_ENABLED", { traceId });
+    }
+
+    const results = await Promise.allSettled(analysisPromises);
+
     const comparison = {};
     const errors = [];
 
@@ -64,7 +82,8 @@ export class MultiModelAnalyzer {
       textract: comparison.textract || null,
       nova_mini: comparison.nova_mini || null,
       nova_pro: comparison.nova_pro || null,
-      comparisonStatus: errors.length === 3 ? "failed" : "completed",
+      azure_di: comparison.azure_di || null,
+      comparisonStatus: errors.length === analysisPromises.length ? "failed" : "completed",
       comparisonErrors: errors.length > 0 ? errors : undefined,
       comparisonTimestamp: new Date().toISOString(),
     };
@@ -326,6 +345,182 @@ export class MultiModelAnalyzer {
       });
       throw new Error(`Gemma 3 analysis failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Analyze via Azure Document Intelligence REST API
+   * Processes receipt/invoice images with Form Recognizer
+   * @ai-intent: Use REST API (no SDK) for Lambda: minimal dependencies, direct S3 URL support
+   */
+  async analyzeAzureDI(s3Key, bucket, traceId) {
+    try {
+      const endpoint = process.env.AZURE_DI_ENDPOINT;
+      const apiKey = process.env.AZURE_DI_API_KEY;
+
+      if (!endpoint || !apiKey) {
+        throw new Error("Azure DI credentials not configured");
+      }
+
+      // Initialize Azure SDK client (official REST SDK)
+      // Reference: https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api?view=doc-intel-4.0.0&pivots=programming-language-javascript
+      const client = DocumentIntelligence(endpoint, new AzureKeyCredential(apiKey));
+
+      // Construct S3 URL for Azure to access directly
+      const s3Url = `https://${bucket}.s3.amazonaws.com/${encodeURIComponent(s3Key)}`;
+
+      logger.debug("AZURE_DI_REQUEST_START", {
+        traceId,
+        endpoint,
+        s3Url: s3Url.substring(0, 100),
+      });
+
+      // @ai-intent: Use official SDK with manual polling for Lambda compatibility
+      // SDK handles request/response serialization and error checking automatically
+      const initialResponse = await client
+        .path("/documentModels/{modelId}:analyze", "prebuilt-invoice")
+        .post({
+          contentType: "application/json",
+          body: {
+            urlSource: s3Url,
+          },
+        });
+
+      if (isUnexpected(initialResponse)) {
+        throw new Error(`Azure API error: ${initialResponse.body.error.message}`);
+      }
+
+      // Poll for async result
+      const resultId = parseResultIdFromResponse(initialResponse);
+      let analyzeResult = null;
+      const maxRetries = 30;
+
+      for (let i = 0; i < maxRetries; i++) {
+        // Wait before polling
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const statusResponse = await client
+          .path("/documentModels/{modelId}/analyzeResults/{resultId}", "prebuilt-invoice", resultId)
+          .get();
+
+        if (statusResponse.body.status === "succeeded") {
+          analyzeResult = statusResponse.body.analyzeResult;
+          logger.debug("AZURE_DI_RESPONSE_RECEIVED", {
+            traceId,
+            hasDocuments: !!analyzeResult?.documents?.length,
+          });
+          break;
+        } else if (statusResponse.body.status === "failed") {
+          throw new Error(`Analysis failed: ${statusResponse.body.error?.message || "Unknown error"}`);
+        }
+      }
+
+      if (!analyzeResult) {
+        throw new Error("Analysis polling timeout");
+      }
+
+      return this.normalizeAzureDIResult(analyzeResult);
+    } catch (error) {
+      logger.error("AZURE_DI_ERROR", {
+        traceId,
+        error: error.message,
+      });
+      throw new Error(`Azure Document Intelligence analysis failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Normalize Azure Document Intelligence response to ModelResultSchema
+   * Extracts fields from prebuilt-invoice model
+   * @param {Object} analyzeResult - The analyzeResult object from SDK response
+   */
+  normalizeAzureDIResult(analyzeResult) {
+    try {
+      if (!analyzeResult?.documents?.[0]) {
+        logger.warn("AZURE_DI_NO_DOCUMENTS", {
+          keys: analyzeResult ? Object.keys(analyzeResult) : "no result",
+        });
+        return ModelResultSchema.parse({});
+      }
+
+      const doc = analyzeResult.documents[0];
+      const fields = doc.fields || {};
+
+      // Extract key fields from Azure response
+      const result = {
+        vendor: fields.VendorName?.value || "Unknown",
+        totalAmount: this.parseAzureAmount(fields.TotalAmount),
+        taxAmount: this.parseAzureAmount(fields.TotalTax),
+        subtotal: this.parseAzureAmount(fields.SubtotalAmount),
+        taxRate: this.parseAzureAmount(fields.TaxRate),
+        confidence: this.calculateAzureConfidence(fields),
+        lineItems: this.extractAzureLineItems(fields.Items),
+      };
+
+      logger.debug("AZURE_DI_EXTRACTED_RESULT", {
+        vendor: result.vendor,
+        totalAmount: result.totalAmount,
+        taxAmount: result.taxAmount,
+        confidence: result.confidence,
+        lineItemCount: result.lineItems?.length || 0,
+      });
+
+      return ModelResultSchema.parse(result);
+    } catch (error) {
+      logger.warn("AZURE_DI_NORMALIZATION_ERROR", {
+        error: error.message,
+      });
+      return ModelResultSchema.parse({});
+    }
+  }
+
+  /**
+   * Parse amount field from Azure response
+   * Handles string and numeric values
+   */
+  parseAzureAmount(field) {
+    if (!field) return undefined;
+
+    const value = field.value;
+    if (typeof value === "number") return value;
+    if (typeof value === "string") {
+      const match = value.match(/[\d,]+(?:\.\d{1,2})?/);
+      if (match) {
+        return parseFloat(match[0].replace(/,/g, ""));
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Calculate average confidence from Azure field confidences
+   */
+  calculateAzureConfidence(fields) {
+    const confidences = Object.values(fields)
+      .map((f) => f.confidence || 0.9)
+      .filter((c) => c >= 0 && c <= 1);
+
+    if (confidences.length === 0) return 85;
+
+    const avgConfidence = confidences.reduce((a, b) => a + b, 0) / confidences.length;
+    return Math.round(avgConfidence * 100);
+  }
+
+  /**
+   * Extract line items from Azure response
+   */
+  extractAzureLineItems(itemsField) {
+    if (!itemsField || !Array.isArray(itemsField)) return undefined;
+
+    return itemsField
+      .slice(0, 50) // Limit to 50 items
+      .map((item) => ({
+        description: item.Description?.value || "",
+        quantity: parseFloat(item.Quantity?.value || "1"),
+        unitPrice: this.parseAzureAmount(item.UnitPrice),
+        totalPrice: this.parseAzureAmount(item.Amount),
+      }))
+      .filter((item) => item.description || item.unitPrice || item.totalPrice);
   }
 
   /**

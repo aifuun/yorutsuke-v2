@@ -57,7 +57,7 @@
 │  │                 │────────▶│   transactions      │                       │
 │  │  uploads/       │  s3_key │                     │                       │
 │  │  {user}/{date}/ │         │  userId (PK)        │                       │
-│  │  {uuid}.webp    │         │  transactionId (SK) │                       │
+│  │  {uuid}.jpg     │         │  transactionId (SK) │                       │
 │  │                 │         │  s3_key             │                       │
 │  │  30-day TTL     │         │  ai_result          │                       │
 │  └─────────────────┘         └─────────────────────┘                       │
@@ -88,8 +88,8 @@ CREATE TABLE images (
 
   -- File paths
   original_path TEXT NOT NULL,      -- Source file path
-  compressed_path TEXT,             -- WebP output path
-  s3_key TEXT,                      -- uploads/{userId}/{uuid}.webp
+  compressed_path TEXT,             -- JPEG output path
+  s3_key TEXT,                      -- uploads/{userId}/{uuid}.jpg
 
   -- Image metadata
   original_size INTEGER,            -- bytes (before compression)

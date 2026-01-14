@@ -94,7 +94,7 @@ aws lambda get-function-configuration \
 ls /private/tmp/yorutsuke-test/sample-receipts/
 
 # Or use this path if available:
-TEST_RECEIPT="/private/tmp/yorutsuke-test/lawson-receipt.webp"
+TEST_RECEIPT="/private/tmp/yorutsuke-test/lawson-receipt.jpg"
 ```
 
 #### 1b. Upload via App
@@ -105,7 +105,7 @@ TEST_RECEIPT="/private/tmp/yorutsuke-test/lawson-receipt.webp"
 4. Wait for processing (should see sync indicator)
 
 **What happens**:
-1. Image uploaded to `s3://yorutsuke-images-dev/uploads/{userId}/{timestamp}.webp`
+1. Image uploaded to `s3://yorutsuke-images-dev/uploads/{userId}/{timestamp}.jpg`
 2. S3 trigger fires Lambda
 3. Lambda runs 4 models in parallel:
    - ~500ms - Textract AnalyzeExpense
@@ -330,7 +330,7 @@ Damaged  | [recognition failed] | [parsing error]     | 金額のみ抽出      
 
 ```bash
 # Find test receipt with multiple items
-TEST_RECEIPT="/private/tmp/yorutsuke-test/receipt-5items.webp"
+TEST_RECEIPT="/private/tmp/yorutsuke-test/receipt-5items.jpg"
 ```
 
 #### 3b. Extract Lineitem Data

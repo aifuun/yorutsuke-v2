@@ -5,6 +5,7 @@ src-tauri/Cargo.lock
 # React
 node_modules/
 dist/
+.env
 .env.local
 .env.*.local
 
