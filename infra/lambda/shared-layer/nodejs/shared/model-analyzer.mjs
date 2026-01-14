@@ -1,5 +1,7 @@
 import { TextractClient, AnalyzeExpenseCommand } from "@aws-sdk/client-textract";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import DocumentIntelligence, {
   isUnexpected,
   parseResultIdFromResponse,
@@ -10,6 +12,7 @@ import { ModelResultSchema } from "./schemas.mjs";
 
 const textractClient = new TextractClient({});
 const bedrockClient = new BedrockRuntimeClient({});
+const s3Client = new S3Client({});
 
 /**
  * Multi-Model Receipt Analyzer
@@ -48,7 +51,7 @@ export class MultiModelAnalyzer {
     // Add Azure if credentials are configured
     if (process.env.AZURE_DI_ENDPOINT && process.env.AZURE_DI_API_KEY) {
       analysisPromises.push(
-        this.analyzeAzureDI(s3Key, bucket, traceId)
+        this.analyzeAzureDI(s3Key, bucket, imageBase64, traceId)
       );
       modelNames.push("azure_di");
       logger.debug("AZURE_DI_ENABLED", { traceId });
@@ -348,74 +351,91 @@ export class MultiModelAnalyzer {
   }
 
   /**
-   * Analyze via Azure Document Intelligence REST API
-   * Processes receipt/invoice images with Form Recognizer
-   * @ai-intent: Use REST API (no SDK) for Lambda: minimal dependencies, direct S3 URL support
+   * Analyze via Azure Document Intelligence REST API (Direct HTTP)
+   * Uses Base64-encoded image data instead of URLs for reliability
+   * @ai-intent: Presigned URLs cause 403/404 errors; Base64 avoids S3 access issues
    */
-  async analyzeAzureDI(s3Key, bucket, traceId) {
+  async analyzeAzureDI(s3Key, bucket, imageBase64, traceId) {
     try {
-      const endpoint = process.env.AZURE_DI_ENDPOINT;
+      const endpoint = process.env.AZURE_DI_ENDPOINT?.replace(/\/$/, ''); // Remove trailing slash
       const apiKey = process.env.AZURE_DI_API_KEY;
 
       if (!endpoint || !apiKey) {
         throw new Error("Azure DI credentials not configured");
       }
 
-      // Initialize Azure SDK client (official REST SDK)
-      // Reference: https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api?view=doc-intel-4.0.0&pivots=programming-language-javascript
-      const client = DocumentIntelligence(endpoint, new AzureKeyCredential(apiKey));
-
-      // Construct S3 URL for Azure to access directly
-      const s3Url = `https://${bucket}.s3.amazonaws.com/${encodeURIComponent(s3Key)}`;
-
       logger.debug("AZURE_DI_REQUEST_START", {
         traceId,
         endpoint,
-        s3Url: s3Url.substring(0, 100),
+        method: "base64-encoded-image",
+        s3Key: s3Key.substring(0, 50),
       });
 
-      // @ai-intent: Use official SDK with manual polling for Lambda compatibility
-      // SDK handles request/response serialization and error checking automatically
-      const initialResponse = await client
-        .path("/documentModels/{modelId}:analyze", "prebuilt-invoice")
-        .post({
-          contentType: "application/json",
-          body: {
-            urlSource: s3Url,
-          },
-        });
+      // Step 1: Submit analysis request using Base64-encoded image (v4.0 API)
+      // Reference: https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api
+      const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-receipt:analyze?api-version=2024-11-30`;
 
-      if (isUnexpected(initialResponse)) {
-        throw new Error(`Azure API error: ${initialResponse.body.error.message}`);
+      const analyzeResponse = await fetch(analyzeUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Ocp-Apim-Subscription-Key": apiKey,
+        },
+        // Send raw image bytes instead of JSON
+        body: Buffer.from(imageBase64, "base64"),
+      });
+
+      if (!analyzeResponse.ok) {
+        const errorBody = await analyzeResponse.text();
+        throw new Error(`Azure API error (${analyzeResponse.status}): ${errorBody}`);
       }
 
-      // Poll for async result
-      const resultId = parseResultIdFromResponse(initialResponse);
+      // Get Operation-Location header for polling
+      const operationLocation = analyzeResponse.headers.get("Operation-Location");
+      if (!operationLocation) {
+        throw new Error("No Operation-Location header in response");
+      }
+
+      logger.debug("AZURE_DI_ANALYSIS_SUBMITTED", {
+        traceId,
+        operationLocation: operationLocation.substring(0, 100),
+      });
+
+      // Step 2: Poll for analysis results
       let analyzeResult = null;
       const maxRetries = 30;
 
       for (let i = 0; i < maxRetries; i++) {
-        // Wait before polling
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
 
-        const statusResponse = await client
-          .path("/documentModels/{modelId}/analyzeResults/{resultId}", "prebuilt-invoice", resultId)
-          .get();
+        const statusResponse = await fetch(operationLocation, {
+          method: "GET",
+          headers: {
+            "Ocp-Apim-Subscription-Key": apiKey,
+          },
+        });
 
-        if (statusResponse.body.status === "succeeded") {
-          analyzeResult = statusResponse.body.analyzeResult;
+        if (!statusResponse.ok) {
+          throw new Error(`Status check failed (${statusResponse.status})`);
+        }
+
+        const statusData = await statusResponse.json();
+
+        if (statusData.status === "succeeded") {
+          analyzeResult = statusData.analyzeResult;
           logger.debug("AZURE_DI_RESPONSE_RECEIVED", {
             traceId,
             hasDocuments: !!analyzeResult?.documents?.length,
           });
           break;
-        } else if (statusResponse.body.status === "failed") {
-          throw new Error(`Analysis failed: ${statusResponse.body.error?.message || "Unknown error"}`);
+        } else if (statusData.status === "failed") {
+          throw new Error(`Analysis failed: ${statusData.error?.message || "Unknown error"}`);
         }
+        // Continue polling if status is "notStarted" or "running"
       }
 
       if (!analyzeResult) {
-        throw new Error("Analysis polling timeout");
+        throw new Error("Analysis polling timeout after 30 seconds");
       }
 
       return this.normalizeAzureDIResult(analyzeResult);
@@ -430,7 +450,7 @@ export class MultiModelAnalyzer {
 
   /**
    * Normalize Azure Document Intelligence response to ModelResultSchema
-   * Extracts fields from prebuilt-invoice model
+   * Extracts fields from prebuilt-receipt model
    * @param {Object} analyzeResult - The analyzeResult object from SDK response
    */
   normalizeAzureDIResult(analyzeResult) {
@@ -446,11 +466,12 @@ export class MultiModelAnalyzer {
       const fields = doc.fields || {};
 
       // Extract key fields from Azure response
+      // Support both prebuilt-receipt and prebuilt-invoice field names
       const result = {
-        vendor: fields.VendorName?.value || "Unknown",
-        totalAmount: this.parseAzureAmount(fields.TotalAmount),
-        taxAmount: this.parseAzureAmount(fields.TotalTax),
-        subtotal: this.parseAzureAmount(fields.SubtotalAmount),
+        vendor: fields.MerchantName?.value || fields.VendorName?.value || "Unknown",
+        totalAmount: this.parseAzureAmount(fields.Total) || this.parseAzureAmount(fields.TotalAmount),
+        taxAmount: this.parseAzureAmount(fields.Tax) || this.parseAzureAmount(fields.TotalTax),
+        subtotal: this.parseAzureAmount(fields.Subtotal) || this.parseAzureAmount(fields.SubtotalAmount),
         taxRate: this.parseAzureAmount(fields.TaxRate),
         confidence: this.calculateAzureConfidence(fields),
         lineItems: this.extractAzureLineItems(fields.Items),

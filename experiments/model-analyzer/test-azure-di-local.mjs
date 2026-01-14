@@ -59,8 +59,8 @@ class AzureDIAnalyzer {
         imageSize: imageBase64.length,
       });
 
-      // Step 1: 提交分析请求
-      const analyzeUrl = `${endpoint}/documentModels/prebuilt-receipt:analyze?api-version=2024-02-29-preview`;
+      // Step 1: 提交分析请求 (v4.0 API)
+      const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-receipt:analyze?api-version=2024-11-30`;
 
       logger.info("AZURE_DI_SUBMITTING_REQUEST", {
         traceId,
@@ -70,12 +70,10 @@ class AzureDIAnalyzer {
       const analyzeResponse = await fetch(analyzeUrl, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/octet-stream",
           "Ocp-Apim-Subscription-Key": apiKey,
         },
-        body: JSON.stringify({
-          base64Source: imageBase64,
-        }),
+        body: Buffer.from(imageBase64, "base64"),
       });
 
       if (!analyzeResponse.ok) {
