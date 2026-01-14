@@ -466,9 +466,10 @@ export class MultiModelAnalyzer {
       const fields = doc.fields || {};
 
       // Extract key fields from Azure response
+      // Azure DI v4.0 uses valueString, valueNumber, valueArray, valueObject properties
       // Support both prebuilt-receipt and prebuilt-invoice field names
       const result = {
-        vendor: fields.MerchantName?.value || fields.VendorName?.value || "Unknown",
+        vendor: fields.MerchantName?.valueString || fields.VendorName?.valueString || "Unknown",
         totalAmount: this.parseAzureAmount(fields.Total) || this.parseAzureAmount(fields.TotalAmount),
         taxAmount: this.parseAzureAmount(fields.Tax) || this.parseAzureAmount(fields.TotalTax),
         subtotal: this.parseAzureAmount(fields.Subtotal) || this.parseAzureAmount(fields.SubtotalAmount),
@@ -496,15 +497,20 @@ export class MultiModelAnalyzer {
 
   /**
    * Parse amount field from Azure response
-   * Handles string and numeric values
+   * Azure DI v4.0 uses valueNumber for numeric fields, valueString for string representation
    */
   parseAzureAmount(field) {
     if (!field) return undefined;
 
-    const value = field.value;
-    if (typeof value === "number") return value;
-    if (typeof value === "string") {
-      const match = value.match(/[\d,]+(?:\.\d{1,2})?/);
+    // Try valueNumber first (Azure DI v4.0 native format)
+    if (typeof field.valueNumber === "number") {
+      return field.valueNumber;
+    }
+
+    // Fall back to valueString if it contains a number
+    const strValue = field.valueString;
+    if (typeof strValue === "string") {
+      const match = strValue.match(/[\d,]+(?:\.\d{1,2})?/);
       if (match) {
         return parseFloat(match[0].replace(/,/g, ""));
       }
@@ -529,18 +535,27 @@ export class MultiModelAnalyzer {
 
   /**
    * Extract line items from Azure response
+   * Azure DI v4.0 wraps Items in a field with valueArray property
    */
   extractAzureLineItems(itemsField) {
-    if (!itemsField || !Array.isArray(itemsField)) return undefined;
+    if (!itemsField) return undefined;
 
-    return itemsField
+    // Azure DI v4.0: Items is a field with valueArray property
+    const itemsArray = itemsField.valueArray;
+    if (!itemsArray || !Array.isArray(itemsArray)) return undefined;
+
+    return itemsArray
       .slice(0, 50) // Limit to 50 items
-      .map((item) => ({
-        description: item.Description?.value || "",
-        quantity: parseFloat(item.Quantity?.value || "1"),
-        unitPrice: this.parseAzureAmount(item.UnitPrice),
-        totalPrice: this.parseAzureAmount(item.Amount),
-      }))
+      .map((item) => {
+        // Each item in valueArray is wrapped in a valueObject property
+        const itemObj = item.valueObject || item;
+        return {
+          description: itemObj.Description?.valueString || "",
+          quantity: itemObj.Quantity?.valueNumber ? parseFloat(itemObj.Quantity.valueNumber) : 1,
+          unitPrice: this.parseAzureAmount(itemObj.UnitPrice),
+          totalPrice: this.parseAzureAmount(itemObj.Amount),
+        };
+      })
       .filter((item) => item.description || item.unitPrice || item.totalPrice);
   }
 
