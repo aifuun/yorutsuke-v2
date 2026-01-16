@@ -8,6 +8,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 
 interface YorutsukeAdminStackProps extends cdk.StackProps {
@@ -15,6 +16,7 @@ interface YorutsukeAdminStackProps extends cdk.StackProps {
   imageBucketName: string;
   transactionsTableName: string;
   quotasTableName: string;
+  batchProcessLambdaName: string;
 }
 
 export class YorutsukeAdminStack extends cdk.Stack {
@@ -103,7 +105,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     const certificate = acm.Certificate.fromCertificateArn(
       this,
       "AdminCertificate",
-      "arn:aws:acm:us-east-1:696249060859:certificate/b109fc0c-f14f-4c00-8339-99ede709069b"
+      "arn:aws:acm:us-east-1:696249060859:certificate/389f0eaa-0b5e-42cf-ab39-4054bb6b9eb0"
     );
 
     // ========================================
@@ -116,9 +118,8 @@ export class YorutsukeAdminStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       },
-      // TODO: Enable custom domain (panel2.yorutsuke.rolligen.com) after obtaining certificate that covers it
-      // domainNames: ["panel2.yorutsuke.rolligen.com"],
-      // certificate,
+      // @note: Alias can't be added due to AWS CloudFront service limits
+      // Access via CloudFront domain (dnd9hlw1qg5qv.cloudfront.net) or Route53 CNAME
       defaultRootObject: "index.html",
       errorResponses: [
         {
@@ -220,13 +221,13 @@ export class YorutsukeAdminStack extends cdk.Stack {
     );
 
     // ========================================
-    // Lambda: Admin Model Config
+    // Lambda: Admin Batch Config
     // ========================================
-    const modelConfigLambda = new lambda.Function(this, "AdminModelConfigLambda", {
-      functionName: `yorutsuke-admin-model-config-us-${env}`,
+    const batchConfigLambda = new lambda.Function(this, "AdminBatchConfigLambda", {
+      functionName: `yorutsuke-admin-batch-config-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/model-config"),
+      code: lambda.Code.fromAsset("lambda/admin/batch-config"),
       layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
@@ -234,7 +235,76 @@ export class YorutsukeAdminStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(10),
     });
 
-    controlTable.grantReadWriteData(modelConfigLambda);
+    controlTable.grantReadWriteData(batchConfigLambda);
+
+    // ========================================
+    // Lambda: Admin Batch
+    // ========================================
+    const batchLambda = new lambda.Function(this, "AdminBatchLambda", {
+      functionName: `yorutsuke-admin-batch-us-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/admin/batch"),
+      layers: [sharedLayer],
+      environment: {
+        BATCH_PROCESS_LAMBDA_NAME: props.batchProcessLambdaName,
+        IMAGE_BUCKET_NAME: props.imageBucketName,
+      },
+      timeout: cdk.Duration.seconds(30),
+    });
+
+    // Grant permissions to invoke batch lambda and read logs
+    batchLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["lambda:InvokeFunction"],
+        resources: [
+          `arn:aws:lambda:${this.region}:${this.account}:function:${props.batchProcessLambdaName}`,
+        ],
+      })
+    );
+    batchLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "logs:FilterLogEvents",
+          "logs:GetLogEvents",
+          "logs:DescribeLogStreams",
+        ],
+        resources: [
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/${props.batchProcessLambdaName}:*`,
+        ],
+      })
+    );
+    batchLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:ListBucket"],
+        resources: [`arn:aws:s3:::${props.imageBucketName}`],
+      })
+    );
+
+    // ========================================
+    // Lambda: Azure DI Credentials Management
+    // ========================================
+    const azureSecretArn = `arn:aws:secretsmanager:${this.region}:${this.account}:secret:yorutsuke/${env}/azure-di-credentials`;
+    const azureSecret = secretsmanager.Secret.fromSecretArn(
+      this,
+      "AzureDISecret",
+      azureSecretArn
+    );
+
+    const azureCredentialsLambda = new lambda.Function(this, "AdminAzureCredentialsLambda", {
+      functionName: `yorutsuke-admin-azure-credentials-us-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/admin/azure-credentials"),
+      layers: [sharedLayer],
+      environment: {
+        AZURE_CREDENTIALS_SECRET_ARN: azureSecretArn,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    // Grant permission to update Azure credentials secret
+    azureSecret.grantWrite(azureCredentialsLambda);
 
     // ========================================
     // API Gateway with Cognito Authorization
@@ -243,11 +313,11 @@ export class YorutsukeAdminStack extends cdk.Stack {
       restApiName: `yorutsuke-admin-api-us-${env}`,
       description: "Admin API for Yorutsuke",
       defaultCorsPreflightOptions: {
-        // @security: Restrict CORS to whitelisted admin domains
+        // @security: Restrict CORS to CloudFront domains only (not ALL_ORIGINS)
         allowOrigins: [
           `https://${distribution.distributionDomainName}`,
-          "https://admin.yoru.rolligen.com",
-          "https://panel2.yorutsuke.rolligen.com",
+          "https://admin.yorutsuke.rolligen.com",
+          "https://admin-yoru.rolligen.com",
         ],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
@@ -322,17 +392,42 @@ export class YorutsukeAdminStack extends cdk.Stack {
       authOptions
     );
 
-    // /model/config endpoint
-    const modelResource = api.root.addResource("model");
-    const modelConfigResource = modelResource.addResource("config");
-    modelConfigResource.addMethod(
+    // /batch endpoint (legacy batch operations)
+    const batchResource = api.root.addResource("batch");
+    batchResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(modelConfigLambda),
+      new apigateway.LambdaIntegration(batchLambda),
       authOptions
     );
-    modelConfigResource.addMethod(
+    batchResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(modelConfigLambda),
+      new apigateway.LambdaIntegration(batchLambda),
+      authOptions
+    );
+
+    // /batch/config endpoint (new batch configuration)
+    const batchConfigResource = batchResource.addResource("config");
+    batchConfigResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(batchConfigLambda),
+      authOptions
+    );
+    batchConfigResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(batchConfigLambda),
+      authOptions
+    );
+
+    // /azure-credentials endpoint (Azure DI credential management)
+    const azureCredentialsResource = api.root.addResource("azure-credentials");
+    azureCredentialsResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(azureCredentialsLambda),
+      authOptions
+    );
+    azureCredentialsResource.addMethod(
+      "OPTIONS",
+      new apigateway.LambdaIntegration(azureCredentialsLambda),
       authOptions
     );
 

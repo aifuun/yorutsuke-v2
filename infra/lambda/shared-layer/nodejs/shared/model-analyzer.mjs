@@ -24,7 +24,9 @@ const s3Client = new S3Client({});
  */
 export class MultiModelAnalyzer {
   /**
-   * Analyze receipt with all 4+ models in parallel
+   * Analyze receipt with configurable models
+   * @ai-intent: Support dynamic model selection without redeployment (Pillar B compliance)
+   *
    * @param {Object} params
    * @param {string} params.imageBase64 - Base64-encoded receipt image
    * @param {string} params.imageFormat - Image format (jpeg, png)
@@ -32,29 +34,73 @@ export class MultiModelAnalyzer {
    * @param {string} params.bucket - S3 bucket name
    * @param {string} params.traceId - Trace ID for logging
    * @param {string} params.imageId - Image ID for logging
-   * @returns {Promise<Object>} Comparison result with all models + errors
+   * @param {string[]} params.enabledModels - Models to run: ['textract', 'nova_mini', 'nova_pro', 'azure_di']
+   * @param {Object} params.azureCredentials - Azure DI credentials {endpoint, apiKey} or null
+   * @returns {Promise<Object>} Comparison result with enabled models + errors
    */
-  async analyzeReceipt({ imageBase64, imageFormat = 'jpeg', s3Key, bucket, traceId, imageId }) {
-    logger.info("MODEL_COMPARISON_STARTED", { traceId, imageId, imageFormat });
+  async analyzeReceipt({
+    imageBase64,
+    imageFormat = 'jpeg',
+    s3Key,
+    bucket,
+    traceId,
+    imageId,
+    enabledModels = ['textract', 'nova_mini', 'nova_pro'],  // Default: backward compatibility
+    azureCredentials = null,
+  }) {
+    logger.info("MODEL_COMPARISON_STARTED", {
+      traceId,
+      imageId,
+      imageFormat,
+      enabledModels,
+    });
 
-    // Run models in parallel with graceful error handling
-    // Base models: Textract, Nova Mini, Nova Pro
-    // Optional: Azure Document Intelligence (if credentials available)
-    const analysisPromises = [
-      this.analyzeTextract(s3Key, bucket, traceId),
-      this.analyzeNovaMini(imageBase64, imageFormat, traceId),
-      this.analyzeNovaProBedrock(imageBase64, imageFormat, traceId),
-    ];
+    // Build dynamic analysis promises based on enabledModels
+    const analysisPromises = [];
+    const modelNames = [];
 
-    const modelNames = ["textract", "nova_mini", "nova_pro"];
+    if (enabledModels.includes('textract')) {
+      analysisPromises.push(this.analyzeTextract(s3Key, bucket, traceId));
+      modelNames.push('textract');
+    }
 
-    // Add Azure if credentials are configured
-    if (process.env.AZURE_DI_ENDPOINT && process.env.AZURE_DI_API_KEY) {
+    if (enabledModels.includes('nova_mini')) {
+      analysisPromises.push(this.analyzeNovaMini(imageBase64, imageFormat, traceId));
+      modelNames.push('nova_mini');
+    }
+
+    if (enabledModels.includes('nova_pro')) {
       analysisPromises.push(
-        this.analyzeAzureDI(s3Key, bucket, imageBase64, traceId)
+        this.analyzeNovaProBedrock(imageBase64, imageFormat, traceId)
       );
-      modelNames.push("azure_di");
-      logger.debug("AZURE_DI_ENABLED", { traceId });
+      modelNames.push('nova_pro');
+    }
+
+    // Add Azure if explicitly enabled AND credentials provided
+    if (enabledModels.includes('azure_di') && azureCredentials) {
+      analysisPromises.push(
+        this.analyzeAzureDI(s3Key, bucket, imageBase64, traceId, azureCredentials)
+      );
+      modelNames.push('azure_di');
+      logger.debug("AZURE_DI_ENABLED", { traceId, endpoint: azureCredentials.endpoint });
+    } else if (enabledModels.includes('azure_di')) {
+      logger.warn("AZURE_DI_REQUESTED_NO_CREDENTIALS", { traceId });
+    }
+
+    // Return early if no models enabled (edge case, but handle gracefully)
+    if (analysisPromises.length === 0) {
+      logger.warn("NO_MODELS_ENABLED", { traceId });
+      return {
+        comparisonStatus: 'failed',
+        comparisonErrors: [
+          {
+            model: 'all',
+            error: 'No models enabled for analysis',
+            timestamp: new Date().toISOString(),
+          },
+        ],
+        comparisonTimestamp: new Date().toISOString(),
+      };
     }
 
     const results = await Promise.allSettled(analysisPromises);
@@ -64,7 +110,7 @@ export class MultiModelAnalyzer {
 
     results.forEach((result, index) => {
       const modelName = modelNames[index];
-      if (result.status === "fulfilled") {
+      if (result.status === 'fulfilled') {
         comparison[modelName] = result.value;
         logger.debug("MODEL_COMPLETED", { traceId, model: modelName });
       } else {
@@ -81,15 +127,18 @@ export class MultiModelAnalyzer {
       }
     });
 
+    // Build comparison result with only enabled models
     const comparisonResult = {
-      textract: comparison.textract || null,
-      nova_mini: comparison.nova_mini || null,
-      nova_pro: comparison.nova_pro || null,
-      azure_di: comparison.azure_di || null,
-      comparisonStatus: errors.length === analysisPromises.length ? "failed" : "completed",
+      comparisonStatus:
+        errors.length === analysisPromises.length ? 'failed' : 'completed',
       comparisonErrors: errors.length > 0 ? errors : undefined,
       comparisonTimestamp: new Date().toISOString(),
     };
+
+    // Only include results for enabled models
+    modelNames.forEach((modelName) => {
+      comparisonResult[modelName] = comparison[modelName] || null;
+    });
 
     logger.info("MODEL_COMPARISON_COMPLETED", {
       traceId,
@@ -97,6 +146,7 @@ export class MultiModelAnalyzer {
       status: comparisonResult.comparisonStatus,
       successCount: Object.values(comparison).filter((v) => v !== null).length,
       failureCount: errors.length,
+      enabledModels,
     });
 
     return comparisonResult;
@@ -355,13 +405,21 @@ export class MultiModelAnalyzer {
    * Uses Base64-encoded image data instead of URLs for reliability
    * @ai-intent: Presigned URLs cause 403/404 errors; Base64 avoids S3 access issues
    */
-  async analyzeAzureDI(s3Key, bucket, imageBase64, traceId) {
+  /**
+   * Analyze via Azure Document Intelligence
+   * @param {string} s3Key - S3 object key (currently unused, kept for compatibility)
+   * @param {string} bucket - S3 bucket name (currently unused, kept for compatibility)
+   * @param {string} imageBase64 - Base64-encoded receipt image
+   * @param {string} traceId - Trace ID for logging
+   * @param {Object} credentials - Azure credentials {endpoint, apiKey}
+   */
+  async analyzeAzureDI(s3Key, bucket, imageBase64, traceId, credentials) {
     try {
-      const endpoint = process.env.AZURE_DI_ENDPOINT?.replace(/\/$/, ''); // Remove trailing slash
-      const apiKey = process.env.AZURE_DI_API_KEY;
+      const endpoint = credentials?.endpoint?.replace(/\/$/, ''); // Remove trailing slash
+      const apiKey = credentials?.apiKey;
 
       if (!endpoint || !apiKey) {
-        throw new Error("Azure DI credentials not configured");
+        throw new Error("Azure DI credentials not provided");
       }
 
       logger.debug("AZURE_DI_REQUEST_START", {

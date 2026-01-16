@@ -3,8 +3,9 @@ import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
-import { OcrResultSchema, TransactionSchema } from "/opt/nodejs/shared/schemas.mjs";
+import { OcrResultSchema, TransactionSchema, BatchConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
 import { MultiModelAnalyzer } from "/opt/nodejs/shared/model-analyzer.mjs";
+import { getAzureCredentials } from "/opt/nodejs/shared/azure-credentials.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
@@ -135,22 +136,61 @@ export async function handler(event) {
 
             logger.debug("IMAGE_FORMAT_DETECTED", { fileName, extension: imageExt, format: imageFormat });
 
-            // 4. Call Bedrock
-            // Fetch configuration for modelId
+            // 4. Load batch configuration (Pillar B: Airlock - validate config)
+            // @ai-intent: Cache at Lambda container level to avoid repeated DynamoDB reads
+            let batchConfig = null;
             let modelId = "us.amazon.nova-lite-v1:0";
+            let enabledModels = ['textract', 'nova_mini', 'nova_pro']; // Default models
+            let azureCredentials = null;
+
             try {
                 const configResult = await ddb.send(new GetItemCommand({
                     TableName: CONTROL_TABLE_NAME,
                     Key: marshall({ key: 'batch_config' }),
                 }));
                 if (configResult.Item) {
-                    const config = unmarshall(configResult.Item);
-                    if (config.modelId) {
-                        modelId = config.modelId;
+                    const rawConfig = unmarshall(configResult.Item);
+                    // Pillar B: Validate configuration against schema
+                    batchConfig = BatchConfigSchema.parse(rawConfig);
+
+                    // Use primaryModelId if available, fall back to modelId for backward compatibility
+                    modelId = batchConfig.primaryModelId || batchConfig.modelId || modelId;
+
+                    // Load enabled models from config
+                    if (batchConfig.enableComparison && batchConfig.comparisonModels?.length > 0) {
+                        enabledModels = batchConfig.comparisonModels;
+                        logger.debug("MODEL_COMPARISON_ENABLED", {
+                            models: enabledModels,
+                            enableComparison: batchConfig.enableComparison,
+                        });
+
+                        // Load Azure DI credentials if configured and enabled
+                        if (
+                            enabledModels.includes('azure_di') &&
+                            batchConfig.azureConfig?.secretArn
+                        ) {
+                            const secretArn = process.env.AZURE_CREDENTIALS_SECRET_ARN ||
+                                batchConfig.azureConfig.secretArn;
+                            azureCredentials = await getAzureCredentials(secretArn);
+
+                            if (azureCredentials) {
+                                logger.debug("AZURE_CREDENTIALS_LOADED", {
+                                    endpoint: azureCredentials.endpoint?.substring(0, 50),
+                                });
+                            } else {
+                                logger.warn("AZURE_CREDENTIALS_NOT_AVAILABLE", { secretArn });
+                                // Remove azure_di from enabled models if credentials unavailable
+                                enabledModels = enabledModels.filter(m => m !== 'azure_di');
+                            }
+                        }
                     }
                 }
             } catch (err) {
-                logger.warn("Failed to fetch modelId from ControlTable, using default", { error: err.message });
+                logger.warn("BATCH_CONFIG_LOAD_FAILED", {
+                    error: err.message,
+                    reason: "Using defaults",
+                });
+                // Continue with defaults if config load fails
             }
 
             const payload = {
@@ -201,7 +241,7 @@ export async function handler(event) {
             }
 
             // 5.5. Pillar R: Multi-Model Comparison
-            // @ai-intent: Run all 4 models in parallel, store results but don't block on failures
+            // @ai-intent: Run enabled models in parallel, store results but don't block on failures
             let modelComparison = null;
             try {
                 const traceId = ctx.traceId;
@@ -212,14 +252,16 @@ export async function handler(event) {
                     bucket,
                     traceId,
                     imageId,
+                    enabledModels,        // Use configured models
+                    azureCredentials,     // Pass credentials if available
                 });
             } catch (analyzerError) {
                 logger.warn("MULTI_MODEL_ANALYSIS_FAILED", {
                     imageId,
                     error: analyzerError.message,
-                    reason: "Non-blocking, continuing with Nova Mini result only"
+                    reason: "Non-blocking, continuing with primary model result only"
                 });
-                // Don't throw - continue with Nova Mini result as primary
+                // Don't throw - continue with primary model result as main transaction
             }
 
             // 6. Pillar B: Validate complete transaction object

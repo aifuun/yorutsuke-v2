@@ -10,7 +10,10 @@ const DEFAULT_CONFIG = {
     processingMode: 'instant',
     imageThreshold: 100,
     timeoutMinutes: 120,
-    modelId: 'us.amazon.nova-lite-v1:0',  // Must include region prefix for Bedrock API
+    primaryModelId: 'us.amazon.nova-lite-v1:0',
+    enableComparison: false,
+    comparisonModels: [],
+    azureConfig: null,
     updatedAt: new Date().toISOString(),
     updatedBy: 'system',
 };
@@ -70,12 +73,19 @@ async function updateConfig(body, userId) {
     const current = currentResult.Item || { ...DEFAULT_CONFIG, key: 'batch_config' };
 
     // 2. Prepare update
-    const updateData = {
+    let updateData = {
         ...current,
         ...body,
         updatedAt: new Date().toISOString(),
         updatedBy: userId,
     };
+
+    // 2.5 Backward compatibility: migrate old modelId to primaryModelId
+    // @ai-intent: Support old field names during migration period (1 sprint)
+    if (updateData.modelId && !updateData.primaryModelId) {
+        updateData.primaryModelId = updateData.modelId;
+        logger.info("MIGRATED_MODEL_ID_TO_PRIMARY", { userId });
+    }
 
     // 3. Validate with Zod (Pillar B: Airlock)
     try {

@@ -13,6 +13,36 @@ export const OcrResultSchema = z.object({
     description: z.string().optional().default(''),
 });
 
+/**
+ * Model Analysis Result Schema (unified format for all models)
+ * Used for multi-model comparison (Textract, Nova Mini/Pro, Claude Sonnet)
+ */
+export const ModelResultSchema = z.object({
+    vendor: z.string().optional(),
+    lineItems: z.array(z.object({
+        description: z.string(),
+        quantity: z.number().optional(),
+        unitPrice: z.number().optional(),
+        totalPrice: z.number().optional(),
+    })).optional(),
+    subtotal: z.number().optional(),
+    taxAmount: z.number().optional(),
+    taxRate: z.number().optional(), // 8% or 10% for Japan
+    totalAmount: z.number().optional(),
+    confidence: z.number().optional(), // 0-100 confidence score
+    rawResponse: z.record(z.any()).optional(), // @ai-intent: Store raw API response for debugging
+});
+
+/**
+ * Multi-Model Comparison Schema
+ * Stores results from all 4 models for A/B testing
+ */
+export const ModelComparisonSchema = z.object({
+    textract: ModelResultSchema.optional(),
+    nova_mini: ModelResultSchema.optional(),
+    nova_pro: ModelResultSchema.optional(),
+    azure_di: ModelResultSchema.optional(),
+});
 
 /**
  * DynamoDB Transaction Schema
@@ -37,36 +67,53 @@ export const TransactionSchema = z.object({
     confirmedAt: z.string().nullable().default(null),
     validationErrors: z.array(z.any()).optional(), // @ai-intent: Store Zod validation errors for debugging
 
-    // AI Processing Metadata (simplified)
-    processingModel: z.string().optional(), // Model ID configured in Admin Panel (e.g., 'us.amazon.nova-lite-v1:0')
-    confidence: z.number().min(0).max(1).optional(), // AI confidence score (0.0-1.0)
+    // Multi-model comparison (Pillar R: Observability for model evaluation)
+    modelComparison: ModelComparisonSchema.optional(),
+    comparisonStatus: z.enum(['pending', 'completed', 'failed']).optional(),
+    comparisonTimestamp: z.string().optional(),
+    comparisonErrors: z.array(z.object({
+        model: z.string(),
+        error: z.string(),
+        timestamp: z.string().optional(),
+    })).optional(),
 
     isGuest: z.boolean().optional(),
     ttl: z.number().optional(),
 });
 /**
+ * Azure Document Intelligence Credentials Schema
+ * @ai-intent: Separate schema for credentials validation, loaded from Secrets Manager at runtime
+ */
+export const AzureCredentialsSchema = z.object({
+    endpoint: z.string().url().regex(/\.cognitiveservices\.azure\.com/, 'Must be valid Azure Cognitive Services endpoint'),
+    apiKey: z.string().min(32, 'API key must be at least 32 characters'),
+});
+
+/**
  * Admin Batch Configuration Schema
+ * @ai-intent: Extended to support dynamic model selection without redeployment
  */
 export const BatchConfigSchema = z.object({
     processingMode: z.enum(['instant', 'batch', 'hybrid']),
     imageThreshold: z.number().min(100).max(500),
     timeoutMinutes: z.number().min(30).max(480),
-    modelId: z.string().default('us.amazon.nova-lite-v1:0'),  // Must include region prefix
+
+    // Primary model selection (new)
+    primaryModelId: z.string().default('us.amazon.nova-lite-v1:0'),
+
+    // Multi-model comparison configuration (new)
+    enableComparison: z.boolean().default(false),
+    comparisonModels: z.array(z.enum(['textract', 'nova_mini', 'nova_pro', 'azure_di'])).default([]),
+
+    // Azure DI configuration (new)
+    azureConfig: z.object({
+        enabled: z.boolean(),
+        secretArn: z.string(),
+    }).nullable().optional(),
+
+    // Backward compatibility (deprecated - will be removed in 1 sprint)
+    modelId: z.string().optional(),
+
     updatedAt: z.string(),
     updatedBy: z.string(),
-});
-
-/**
- * Model Configuration Schema (Issue #149)
- * Dynamic model selection for receipt processing
- */
-export const ModelConfigSchema = z.object({
-    modelId: z.string(), // Full model ID (e.g., "us.amazon.nova-lite-v1:0")
-    tokenCode: z.string(), // Short code for UI (e.g., "nova-lite")
-    provider: z.enum(['aws-bedrock', 'azure-openai']), // AI provider
-    displayName: z.string(), // Human-readable name (e.g., "Nova Lite")
-    description: z.string(), // Description for UI (e.g., "Low cost, recommended")
-    config: z.record(z.any()).optional(), // Provider-specific config (e.g., Azure endpoint)
-    updatedAt: z.string(), // ISO timestamp
-    updatedBy: z.string(), // Cognito sub
 });

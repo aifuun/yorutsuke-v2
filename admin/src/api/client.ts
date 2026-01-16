@@ -85,5 +85,5 @@ export const endpoints = {
   costs: '/costs',
   batch: '/batch',
   batchConfig: '/batch/config',
-  modelConfig: '/model/config', // Issue #149: Dynamic model configuration
+  azureCredentials: '/azure-credentials',
 };

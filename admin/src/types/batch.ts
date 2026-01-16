@@ -1,48 +1,95 @@
+/**
+ * Comparison model type - selectable models for multi-model analysis
+ */
+export type ComparisonModel = 'textract' | 'nova_mini' | 'nova_pro' | 'azure_di';
+
+/**
+ * Batch configuration interface with model selection support
+ */
 export interface BatchConfig {
     processingMode: 'instant' | 'batch' | 'hybrid';
     imageThreshold: number;
     timeoutMinutes: number;
-    modelId: string;
-    azureEndpoint?: string;
-    azureApiKey?: string;
+
+    // Primary model selection (new)
+    primaryModelId: string;
+
+    // Multi-model comparison configuration (new)
+    enableComparison: boolean;
+    comparisonModels: ComparisonModel[];
+
+    // Azure DI configuration (new)
+    azureConfig?: {
+        enabled: boolean;
+        secretArn: string;
+    } | null;
+
+    // Backward compatibility
+    modelId?: string;
+
     updatedAt: string;
     updatedBy: string;
 }
 
 /**
- * Model Configuration Interface (Issue #149)
+ * Primary models for main OCR processing
  */
-export interface ModelConfig {
-    modelId: string;
-    tokenCode: string;
-    provider: 'aws-bedrock' | 'azure-openai';
-    displayName: string;
-    description: string;
-    config?: Record<string, any>;
-    updatedAt?: string;
-    updatedBy?: string;
-}
-
-export const AVAILABLE_MODELS: ModelConfig[] = [
+export const AVAILABLE_PRIMARY_MODELS = [
     {
-        modelId: 'us.amazon.nova-lite-v1:0',
-        tokenCode: 'nova-lite',
-        provider: 'aws-bedrock',
-        displayName: 'Nova Lite',
+        id: 'us.amazon.nova-lite-v1:0',
+        name: 'Nova Lite',
+        description: 'Recommended, low cost (~¥0.015/image)'
+    },
+    {
+        id: 'amazon.nova-pro-v1:0',
+        name: 'Nova Pro',
+        description: 'Higher accuracy (~¥0.06/image)'
+    },
+] as const;
+
+/**
+ * Comparison models for multi-model analysis
+ */
+export const AVAILABLE_COMPARISON_MODELS = [
+    {
+        id: 'textract' as const,
+        name: 'AWS Textract',
+        description: 'AnalyzeExpense API'
+    },
+    {
+        id: 'nova_mini' as const,
+        name: 'Nova Mini',
+        description: 'Fast, low cost'
+    },
+    {
+        id: 'nova_pro' as const,
+        name: 'Nova Pro',
+        description: 'High accuracy'
+    },
+    {
+        id: 'azure_di' as const,
+        name: 'Azure Document Intelligence',
+        description: 'Requires credential setup'
+    },
+] as const;
+
+/**
+ * Legacy models (deprecated but kept for backward compatibility)
+ */
+export const AVAILABLE_MODELS = [
+    {
+        id: 'amazon.nova-lite-v1:0',
+        name: 'Nova Lite',
         description: 'Recommended, low cost'
     },
     {
-        modelId: 'us.amazon.nova-pro-v1:0',
-        tokenCode: 'nova-pro',
-        provider: 'aws-bedrock',
-        displayName: 'Nova Pro',
+        id: 'amazon.nova-pro-v1:0',
+        name: 'Nova Pro',
         description: 'Higher accuracy'
     },
     {
-        modelId: 'azure-document-intelligence',
-        tokenCode: 'azure-di',
-        provider: 'azure-openai',
-        displayName: 'Azure DI',
-        description: 'External provider (Document Intelligence)'
+        id: 'anthropic.claude-3-haiku-20240307-v1:0',
+        name: 'Claude 3 Haiku',
+        description: 'Alternative'
     },
-];
+] as const;

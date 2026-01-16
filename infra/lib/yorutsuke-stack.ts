@@ -5,6 +5,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as ssm from "aws-cdk-lib/aws-ssm";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -311,9 +312,16 @@ export class YorutsukeStack extends cdk.Stack {
     });
 
     // Lambda for instant processing (On-Demand OCR)
-    // @ai-intent: Load Azure DI credentials from environment to avoid hardcoding secrets
-    const azureDiEndpoint = process.env.AZURE_DI_ENDPOINT;
-    const azureDiApiKey = process.env.AZURE_DI_API_KEY;
+    // @ai-intent: Create Azure DI secret in Secrets Manager for runtime credential management
+    // Credentials can be updated without Lambda redeployment
+    const azureDiSecret = new secretsmanager.Secret(this, "AzureDISecret", {
+      secretName: `yorutsuke/${env}/azure-di-credentials`,
+      description: "Azure Document Intelligence credentials for receipt OCR",
+      removalPolicy:
+        env === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+    });
 
     const instantProcessLambda = new lambda.Function(this, "InstantProcessLambda", {
       functionName: `yorutsuke-instant-processor-us-${env}`,
@@ -326,11 +334,7 @@ export class YorutsukeStack extends cdk.Stack {
         BUCKET_NAME: imageBucket.bucketName,
         CONTROL_TABLE_NAME: controlTable.tableName,
         NOVA_PRO_INFERENCE_PROFILE: novaProInferenceProfileArn,
-        // Azure Document Intelligence (optional - only set if env vars provided)
-        ...(azureDiEndpoint && { AZURE_DI_ENDPOINT: azureDiEndpoint }),
-        ...(azureDiApiKey && { AZURE_DI_API_KEY: azureDiApiKey }),
-        // Note: Credentials loaded from process.env at deployment time
-        // Set AZURE_DI_ENDPOINT and AZURE_DI_API_KEY in your .env.local or shell
+        AZURE_CREDENTIALS_SECRET_ARN: azureDiSecret.secretArn,
       },
       timeout: cdk.Duration.minutes(2),
       memorySize: 512,
@@ -347,6 +351,7 @@ export class YorutsukeStack extends cdk.Stack {
     imageBucket.grantReadWrite(instantProcessLambda);
     transactionsTable.grantWriteData(instantProcessLambda);
     controlTable.grantReadData(instantProcessLambda);
+    azureDiSecret.grantRead(instantProcessLambda);
 
     // Grant Bedrock access
     instantProcessLambda.addToRolePolicy(
