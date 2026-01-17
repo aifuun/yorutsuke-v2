@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { BatchConfig, ComparisonModel } from '../types/batch';
-import { AVAILABLE_MODELS, AVAILABLE_PRIMARY_MODELS, AVAILABLE_COMPARISON_MODELS } from '../types/batch';
+import type { BatchConfig } from '../types/batch';
+import { AVAILABLE_PRIMARY_MODELS } from '../types/batch';
 import { api, endpoints } from '../api/client';
 
 interface ProcessingSettingsProps {
@@ -13,9 +13,6 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-    const [azureEndpoint, setAzureEndpoint] = useState('');
-    const [azureApiKey, setAzureApiKey] = useState('');
-    const [azureCredSaving, setAzureCredSaving] = useState(false);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -35,34 +32,6 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
 
     const updateField = (field: keyof BatchConfig, value: any) => {
         setLocalConfig(prev => ({ ...prev, [field]: value }));
-    };
-
-    const toggleComparisonModel = (modelId: ComparisonModel) => {
-        setLocalConfig(prev => ({
-            ...prev,
-            comparisonModels: prev.comparisonModels.includes(modelId)
-                ? prev.comparisonModels.filter(m => m !== modelId)
-                : [...prev.comparisonModels, modelId]
-        }));
-    };
-
-    const handleSaveAzureCredentials = async () => {
-        setAzureCredSaving(true);
-        setError(null);
-        try {
-            await api.post(endpoints.azureCredentials, {
-                endpoint: azureEndpoint,
-                apiKey: azureApiKey,
-            });
-            setSuccess(true);
-            setAzureEndpoint('');
-            setAzureApiKey('');
-            setTimeout(() => setSuccess(false), 3000);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to save Azure credentials');
-        } finally {
-            setAzureCredSaving(false);
-        }
     };
 
     return (
@@ -139,13 +108,13 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
                 )}
             </div>
 
-            {/* Primary Model Selection */}
-            <div className="mb-8 pb-8 border-b border-app-border">
+            {/* OCR Model Selection */}
+            <div className="mb-8">
                 <label className="block text-sm font-medium text-app-text-secondary mb-3">
-                    Primary OCR Model
+                    Receipt Recognition Service
                 </label>
                 <p className="text-xs text-app-text-secondary mb-4">
-                    Select which model to use for main receipt processing
+                    Select which service to use for receipt processing
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {AVAILABLE_PRIMARY_MODELS.map((model) => (
@@ -163,88 +132,6 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
                     ))}
                 </div>
             </div>
-
-            {/* Multi-Model Comparison */}
-            <div className="mb-8 pb-8 border-b border-app-border">
-                <label className="flex items-center gap-3 mb-4">
-                    <input
-                        type="checkbox"
-                        checked={localConfig.enableComparison}
-                        onChange={(e) => updateField('enableComparison', e.target.checked)}
-                        className="w-4 h-4 rounded cursor-pointer"
-                    />
-                    <span className="text-sm font-medium text-app-text">
-                        Enable Multi-Model Comparison
-                    </span>
-                </label>
-
-                {localConfig.enableComparison && (
-                    <div className="ml-7 space-y-2">
-                        <p className="text-xs text-app-text-secondary mb-3">
-                            Select additional models to compare against primary model
-                        </p>
-                        {AVAILABLE_COMPARISON_MODELS.map((model) => (
-                            <label
-                                key={model.id}
-                                className="flex items-center gap-3 p-3 rounded-lg border border-app-border hover:border-app-text-secondary/50 cursor-pointer transition-all"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={localConfig.comparisonModels.includes(model.id)}
-                                    onChange={() => toggleComparisonModel(model.id)}
-                                    className="w-4 h-4 rounded cursor-pointer"
-                                />
-                                <div className="flex-1">
-                                    <div className="text-sm font-medium text-app-text">{model.name}</div>
-                                    <div className="text-xs text-app-text-secondary">{model.description}</div>
-                                </div>
-                            </label>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Azure DI Credentials (Conditional) */}
-            {localConfig.enableComparison && localConfig.comparisonModels.includes('azure_di') && (
-                <div className="mb-8 pb-8 border-b border-app-border p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                    <h3 className="text-sm font-semibold text-amber-100 mb-4">
-                        Azure Document Intelligence Credentials
-                    </h3>
-                    <div className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-medium text-app-text-secondary mb-1">
-                                Azure Endpoint URL
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="https://your-resource.cognitiveservices.azure.com/"
-                                value={azureEndpoint}
-                                onChange={(e) => setAzureEndpoint(e.target.value)}
-                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text focus:outline-none focus:border-app-accent"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-app-text-secondary mb-1">
-                                API Key
-                            </label>
-                            <input
-                                type="password"
-                                placeholder="Your Azure DI API key (kept secure)"
-                                value={azureApiKey}
-                                onChange={(e) => setAzureApiKey(e.target.value)}
-                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text focus:outline-none focus:border-app-accent"
-                            />
-                        </div>
-                        <button
-                            onClick={handleSaveAzureCredentials}
-                            disabled={azureCredSaving || !azureEndpoint || !azureApiKey}
-                            className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-xs disabled:opacity-50"
-                        >
-                            {azureCredSaving ? 'Updating...' : 'Update Azure Credentials'}
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Action Area */}
             <div className="flex items-center gap-4">
