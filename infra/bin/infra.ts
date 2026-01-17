@@ -36,5 +36,4 @@ new YorutsukeAdminStack(app, `Yorutsuke2AdminStack-${env}`, {
   imageBucketName: `yorutsuke-images-us-${env}-${account}`,
   transactionsTableName: `yorutsuke-transactions-us-${env}`,
   quotasTableName: `yorutsuke-quotas-us-${env}`,
-  batchProcessLambdaName: `yorutsuke-batch-process-us-${env}`,
 });

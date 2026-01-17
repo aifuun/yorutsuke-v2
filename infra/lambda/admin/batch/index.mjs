@@ -13,6 +13,7 @@ const s3 = new S3Client({});
 
 const BATCH_LAMBDA_NAME = process.env.BATCH_PROCESS_LAMBDA_NAME;
 const IMAGE_BUCKET = process.env.IMAGE_BUCKET_NAME;
+const BATCH_MODE_DISABLED = process.env.BATCH_MODE_DISABLED === "true";
 
 /**
  * Get recent batch processing logs
@@ -119,6 +120,27 @@ export async function handler(event) {
 
   try {
     if (method === "GET") {
+      // Check if batch mode is disabled
+      if (BATCH_MODE_DISABLED) {
+        const pendingImages = await getPendingImages();
+        return {
+          statusCode: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+          body: JSON.stringify({
+            disabled: true,
+            message: "Batch processing mode has been removed. Using Instant mode only.",
+            note: "Images are processed immediately upon upload via instant-processor Lambda.",
+            pendingImages,
+            recentLogs: [],
+            lastResult: null,
+            scheduledTime: "N/A (Instant mode only)",
+          }),
+        };
+      }
+
       // Get batch status and recent logs
       const [recentLogs, pendingImages] = await Promise.all([
         getRecentLogs(50),
@@ -144,6 +166,22 @@ export async function handler(event) {
     }
 
     if (method === "POST") {
+      // Check if batch mode is disabled
+      if (BATCH_MODE_DISABLED) {
+        return {
+          statusCode: 403,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+          body: JSON.stringify({
+            error: "Batch processing is disabled",
+            message: "Batch mode has been removed. Using Instant mode only.",
+            note: "Images are processed automatically upon upload.",
+          }),
+        };
+      }
+
       // Manually trigger batch processing
       const body = JSON.parse(event.body || "{}");
 
