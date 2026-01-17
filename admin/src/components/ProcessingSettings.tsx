@@ -13,6 +13,9 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [azureEndpoint, setAzureEndpoint] = useState('');
+    const [azureApiKey, setAzureApiKey] = useState('');
+    const [azureCredSaving, setAzureCredSaving] = useState(false);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -34,89 +37,40 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
         setLocalConfig(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleSaveAzureCredentials = async () => {
+        setAzureCredSaving(true);
+        setError(null);
+        try {
+            await api.post(endpoints.azureCredentials, {
+                endpoint: azureEndpoint,
+                apiKey: azureApiKey,
+            });
+            setSuccess(true);
+            setAzureEndpoint('');
+            setAzureApiKey('');
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Failed to save Azure credentials');
+        } finally {
+            setAzureCredSaving(false);
+        }
+    };
+
     return (
         <div className="bg-app-surface border border-app-border rounded-lg p-6 mb-8">
             <h2 className="text-lg font-semibold text-app-text mb-4">
-                Processing Settings
+                Receipt Recognition Service
             </h2>
-
-            {/* Processing Mode */}
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-app-text-secondary mb-3">
-                    Processing Mode
-                </label>
-                <div className="space-y-3">
-                    <ModeOption
-                        value="instant"
-                        selected={localConfig.processingMode === 'instant'}
-                        label="Instant (On-Demand)"
-                        description="Process each receipt immediately after upload"
-                        recommended
-                        onClick={() => updateField('processingMode', 'instant')}
-                    />
-                    <ModeOption
-                        value="batch"
-                        selected={localConfig.processingMode === 'batch'}
-                        label="Batch Only (50% Discount)"
-                        description="Accumulate images and process after reaching threshold"
-                        onClick={() => updateField('processingMode', 'batch')}
-                    />
-                    <ModeOption
-                        value="hybrid"
-                        selected={localConfig.processingMode === 'hybrid'}
-                        label="Hybrid"
-                        description="Use Batch if threshold met, fallback to Instant on timeout"
-                        onClick={() => updateField('processingMode', 'hybrid')}
-                    />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* Conditional: Threshold */}
-                {(localConfig.processingMode === 'batch' || localConfig.processingMode === 'hybrid') && (
-                    <div>
-                        <label className="block text-sm font-medium text-app-text-secondary mb-2">
-                            Image Threshold
-                        </label>
-                        <input
-                            type="number"
-                            min={100}
-                            max={500}
-                            value={localConfig.imageThreshold}
-                            onChange={(e) => updateField('imageThreshold', parseInt(e.target.value))}
-                            className="w-full bg-app-bg border border-app-border rounded-lg px-4 py-2 text-app-text focus:outline-none focus:border-app-accent"
-                        />
-                        <p className="text-xs text-app-text-secondary mt-1">Minimum 100 for AWS Bedrock Batch</p>
-                    </div>
-                )}
-
-                {/* Conditional: Timeout */}
-                {localConfig.processingMode === 'hybrid' && (
-                    <div>
-                        <label className="block text-sm font-medium text-app-text-secondary mb-2">
-                            Timeout (minutes)
-                        </label>
-                        <input
-                            type="number"
-                            min={30}
-                            max={480}
-                            value={localConfig.timeoutMinutes}
-                            onChange={(e) => updateField('timeoutMinutes', parseInt(e.target.value))}
-                            className="w-full bg-app-bg border border-app-border rounded-lg px-4 py-2 text-app-text focus:outline-none focus:border-app-accent"
-                        />
-                    </div>
-                )}
-            </div>
 
             {/* OCR Model Selection */}
             <div className="mb-8">
                 <label className="block text-sm font-medium text-app-text-secondary mb-3">
-                    Receipt Recognition Service
+                    Select Recognition Service
                 </label>
                 <p className="text-xs text-app-text-secondary mb-4">
-                    Select which service to use for receipt processing
+                    Choose which service to use for receipt processing
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {AVAILABLE_PRIMARY_MODELS.map((model) => (
                         <div
                             key={model.id}
@@ -132,6 +86,48 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
                     ))}
                 </div>
             </div>
+
+            {/* Azure DI Credentials (Conditional) */}
+            {localConfig.primaryModelId === 'azure_di' && (
+                <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <h3 className="text-sm font-semibold text-amber-100 mb-4">
+                        Azure Document Intelligence Credentials
+                    </h3>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-medium text-app-text-secondary mb-1">
+                                Azure Endpoint URL
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="https://your-resource.cognitiveservices.azure.com/"
+                                value={azureEndpoint}
+                                onChange={(e) => setAzureEndpoint(e.target.value)}
+                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text focus:outline-none focus:border-app-accent"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-app-text-secondary mb-1">
+                                API Key
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="Your Azure DI API key (kept secure)"
+                                value={azureApiKey}
+                                onChange={(e) => setAzureApiKey(e.target.value)}
+                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text focus:outline-none focus:border-app-accent"
+                            />
+                        </div>
+                        <button
+                            onClick={handleSaveAzureCredentials}
+                            disabled={azureCredSaving || !azureEndpoint || !azureApiKey}
+                            className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-xs disabled:opacity-50"
+                        >
+                            {azureCredSaving ? 'Updating...' : 'Update Azure Credentials'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Action Area */}
             <div className="flex items-center gap-4">

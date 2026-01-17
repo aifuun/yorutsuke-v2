@@ -4,7 +4,7 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema, BatchConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
-import { MultiModelAnalyzer } from "/opt/nodejs/shared/model-analyzer.mjs";
+import { MultiModelAnalyzer, convertModelResultToOcrResult } from "/opt/nodejs/shared/model-analyzer.mjs";
 import { getAzureCredentials } from "/opt/nodejs/shared/azure-credentials.mjs";
 
 const s3 = new S3Client({});
@@ -140,6 +140,7 @@ export async function handler(event) {
             // @ai-intent: Cache at Lambda container level to avoid repeated DynamoDB reads
             let batchConfig = null;
             let modelId = "us.amazon.nova-lite-v1:0";
+            let useAzureAsPrimary = false;
             let enabledModels = ['textract', 'nova_mini', 'nova_pro']; // Default models
             let azureCredentials = null;
 
@@ -154,7 +155,27 @@ export async function handler(event) {
                     batchConfig = BatchConfigSchema.parse(rawConfig);
 
                     // Use primaryModelId if available, fall back to modelId for backward compatibility
-                    modelId = batchConfig.primaryModelId || batchConfig.modelId || modelId;
+                    const primaryModel = batchConfig.primaryModelId || batchConfig.modelId || modelId;
+
+                    // Check if Azure DI is selected as primary model
+                    if (primaryModel === 'azure_di') {
+                        useAzureAsPrimary = true;
+                        // Load Azure credentials for primary processing
+                        const secretArn = process.env.AZURE_CREDENTIALS_SECRET_ARN;
+                        if (secretArn) {
+                            azureCredentials = await getAzureCredentials(secretArn);
+                            if (!azureCredentials) {
+                                logger.error("AZURE_CREDENTIALS_REQUIRED_BUT_UNAVAILABLE", {
+                                    primaryModel,
+                                });
+                                throw new Error('Azure DI credentials not available');
+                            }
+                        } else {
+                            throw new Error('Azure DI selected but no secret ARN configured');
+                        }
+                    } else {
+                        modelId = primaryModel;
+                    }
 
                     // Load enabled models from config
                     if (batchConfig.enableComparison && batchConfig.comparisonModels?.length > 0) {
@@ -164,8 +185,9 @@ export async function handler(event) {
                             enableComparison: batchConfig.enableComparison,
                         });
 
-                        // Load Azure DI credentials if configured and enabled
+                        // Load Azure DI credentials if configured and enabled for comparison
                         if (
+                            !useAzureAsPrimary &&
                             enabledModels.includes('azure_di') &&
                             batchConfig.azureConfig?.secretArn
                         ) {
@@ -174,7 +196,7 @@ export async function handler(event) {
                             azureCredentials = await getAzureCredentials(secretArn);
 
                             if (azureCredentials) {
-                                logger.debug("AZURE_CREDENTIALS_LOADED", {
+                                logger.debug("AZURE_CREDENTIALS_LOADED_FOR_COMPARISON", {
                                     endpoint: azureCredentials.endpoint?.substring(0, 50),
                                 });
                             } else {
@@ -193,51 +215,83 @@ export async function handler(event) {
                 // Continue with defaults if config load fails
             }
 
-            const payload = {
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                image: {
-                                    format: imageFormat,
-                                    source: { bytes: imageBase64 },
-                                },
-                            },
-                            { text: ocrPrompt },
-                        ],
-                    },
-                ],
-                inferenceConfig: {
-                    maxTokens: 1024,
-                    temperature: 0.1,
-                },
-            };
-
-            const bedrockResponse = await bedrock.send(
-                new InvokeModelCommand({
-                    modelId: modelId,
-                    contentType: "application/json",
-                    accept: "application/json",
-                    body: JSON.stringify(payload),
-                })
-            );
-
-            const responseBody = JSON.parse(new TextDecoder().decode(bedrockResponse.body));
-            const ocrText = responseBody.output?.message?.content?.[0]?.text || "";
-
-            // 5. Pillar B: Airlock - Parse & Validate AI output
-            let jsonStr = ocrText.trim();
-            if (jsonStr.startsWith("```")) {
-                jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-            }
-
             let parsed;
-            try {
-                parsed = OcrResultSchema.parse(JSON.parse(jsonStr));
-            } catch (zodError) {
-                logger.error(EVENTS.AIRLOCK_BREACH, { userId, imageId, error: zodError.message, raw: jsonStr });
-                continue; // Skip this record on airlock breach
+
+            // 5. Call primary OCR service (Bedrock or Azure DI)
+            if (useAzureAsPrimary) {
+                // Use Azure DI as primary model
+                logger.info("USING_AZURE_DI_AS_PRIMARY", { imageId });
+
+                try {
+                    const azureResult = await analyzer.analyzeAzureDI(
+                        key,
+                        bucket,
+                        imageBase64,
+                        ctx.traceId,
+                        azureCredentials
+                    );
+
+                    // Convert ModelResultSchema to OcrResultSchema
+                    parsed = convertModelResultToOcrResult(azureResult);
+                    logger.debug("AZURE_DI_PRIMARY_RESULT", {
+                        imageId,
+                        vendor: azureResult.vendor,
+                        amount: azureResult.totalAmount,
+                    });
+                } catch (azureError) {
+                    logger.error("AZURE_DI_PRIMARY_FAILED", {
+                        imageId,
+                        error: azureError.message,
+                    });
+                    continue; // Skip this record on Azure DI failure
+                }
+            } else {
+                // Use Bedrock (Nova) as primary model
+                const payload = {
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    image: {
+                                        format: imageFormat,
+                                        source: { bytes: imageBase64 },
+                                    },
+                                },
+                                { text: ocrPrompt },
+                            ],
+                        },
+                    ],
+                    inferenceConfig: {
+                        maxTokens: 1024,
+                        temperature: 0.1,
+                    },
+                };
+
+                const bedrockResponse = await bedrock.send(
+                    new InvokeModelCommand({
+                        modelId: modelId,
+                        contentType: "application/json",
+                        accept: "application/json",
+                        body: JSON.stringify(payload),
+                    })
+                );
+
+                const responseBody = JSON.parse(new TextDecoder().decode(bedrockResponse.body));
+                const ocrText = responseBody.output?.message?.content?.[0]?.text || "";
+
+                // Pillar B: Airlock - Parse & Validate AI output
+                let jsonStr = ocrText.trim();
+                if (jsonStr.startsWith("```")) {
+                    jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+                }
+
+                try {
+                    parsed = OcrResultSchema.parse(JSON.parse(jsonStr));
+                } catch (zodError) {
+                    logger.error(EVENTS.AIRLOCK_BREACH, { userId, imageId, error: zodError.message, raw: jsonStr });
+                    continue; // Skip this record on airlock breach
+                }
             }
 
             // 5.5. Pillar R: Multi-Model Comparison

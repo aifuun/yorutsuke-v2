@@ -45,6 +45,11 @@ export const AVAILABLE_PRIMARY_MODELS = [
         name: 'Nova Pro',
         description: 'Higher accuracy (~¥0.06/image)'
     },
+    {
+        id: 'azure_di',
+        name: 'Azure Document Intelligence',
+        description: 'Requires credential setup'
+    },
 ] as const;
 
 /**

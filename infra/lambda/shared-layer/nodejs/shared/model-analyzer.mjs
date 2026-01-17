@@ -8,7 +8,7 @@ import DocumentIntelligence, {
 } from "@azure-rest/ai-document-intelligence";
 import { AzureKeyCredential } from "@azure/core-auth";
 import { logger } from "./logger.mjs";
-import { ModelResultSchema } from "./schemas.mjs";
+import { ModelResultSchema, OcrResultSchema } from "./schemas.mjs";
 
 const textractClient = new TextractClient({});
 const bedrockClient = new BedrockRuntimeClient({});
@@ -849,4 +849,27 @@ export class MultiModelAnalyzer {
 
     return result;
   }
+}
+
+/**
+ * Convert ModelResultSchema (from Azure DI/Textract) to OcrResultSchema
+ * @ai-intent: Bridge model comparison results to transaction creation format
+ *
+ * @param {Object} modelResult - Result from MultiModelAnalyzer
+ * @returns {Object} OcrResultSchema-compliant object
+ */
+export function convertModelResultToOcrResult(modelResult) {
+  // Default values
+  const today = new Date().toISOString().split('T')[0];
+
+  return {
+    amount: modelResult.totalAmount || 0,
+    type: 'expense', // Default to expense (receipts are typically expenses)
+    date: today, // Azure DI doesn't return date, use today
+    merchant: modelResult.vendor || 'Unknown',
+    category: 'other', // Default category, could be inferred from merchant/items
+    description: modelResult.lineItems
+      ? modelResult.lineItems.map(item => item.description).join(', ').substring(0, 100)
+      : 'Azure DI processed receipt',
+  };
 }
