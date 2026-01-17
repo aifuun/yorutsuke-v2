@@ -1,11 +1,10 @@
 // File Service - Handles compression, hash checking, DB operations
 // Pillar L: Pure business logic, no React dependencies
-// Pillar Q: Intent-ID for idempotency
 // Pillar N: TraceId for lifecycle tracking
 
 import { exists } from '@tauri-apps/plugin-fs';
-import type { ImageId, UserId, TraceId, IntentId } from '../../../00_kernel/types';
-import { createIntentId, createTraceId, ImageId as createImageId } from '../../../00_kernel/types';
+import type { ImageId, UserId, TraceId } from '../../../00_kernel/types';
+import { createTraceId, ImageId as createImageId } from '../../../00_kernel/types';
 import type { ReceiptImage, ImageStatus } from '../../../01_domains/receipt';
 import { emit } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
@@ -50,7 +49,6 @@ function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
   return {
     id: createImageId(row.id),
     userId,
-    intentId: (row.intent_id || createIntentId()) as IntentId,
     traceId: (row.trace_id || createTraceId()) as TraceId,
     status,
     localPath: row.original_path,
@@ -77,8 +75,7 @@ class FileService {
     id: ImageId,
     userId: UserId,
     inputPath: string,
-    traceId: TraceId,
-    intentId: IntentId
+    traceId: TraceId
   ): Promise<boolean> {
     // Prevent duplicate processing
     if (this.processingIds.has(id)) {
@@ -92,7 +89,7 @@ class FileService {
     let compressedPath: string | null = null;
 
     try {
-      logger.debug(EVENTS.IMAGE_PROCESSING_STARTED, { imageId: id, traceId, intentId });
+      logger.debug(EVENTS.IMAGE_PROCESSING_STARTED, { imageId: id, traceId });
 
       // Compress image (MD5 is calculated on WebP output)
       const result = await compressImage(inputPath, id);
@@ -135,7 +132,7 @@ class FileService {
       }
 
       // Save to database
-      await saveImage(id, userId, traceId, intentId, {
+      await saveImage(id, userId, traceId, {
         originalPath: result.originalPath,
         compressedPath: result.outputPath,
         originalSize: result.originalSize,
@@ -160,11 +157,11 @@ class FileService {
 
       captureStore.getState().processSuccess(id, result.outputPath, result.compressedSize, result.md5);
 
-      logger.info(EVENTS.IMAGE_SAVED, { imageId: id, traceId, intentId, md5: result.md5 });
+      logger.info(EVENTS.IMAGE_SAVED, { imageId: id, traceId, md5: result.md5 });
       return true;
     } catch (e) {
       const rawError = String(e);
-      logger.error(EVENTS.IMAGE_COMPRESSION_FAILED, { imageId: id, traceId, intentId, error: rawError });
+      logger.error(EVENTS.IMAGE_COMPRESSION_FAILED, { imageId: id, traceId, error: rawError });
 
       // Clean up orphaned compressed file if it was created
       if (compressedPath) {

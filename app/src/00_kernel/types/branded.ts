@@ -10,8 +10,9 @@ export type ImageId = Brand<string, 'ImageId'>;
 export type TransactionId = Brand<string, 'TransactionId'>;
 export type ReportId = Brand<string, 'ReportId'>;
 
-// Pillar Q: Intent-ID for idempotency
-// Same intentId = same user action (even if retried)
+// DEPRECATED v11: IntentId no longer used (removed in Issue #145)
+// Rationale: Backend never implemented idempotency checks, traceId provides sufficient tracking
+// Kept for backward compatibility only - do not use in new code
 export type IntentId = Brand<string, 'IntentId'>;
 
 // Pillar N: Trace-ID for observability
@@ -24,7 +25,8 @@ export const ImageId = (id: string): ImageId => id as ImageId;
 export const TransactionId = (id: string): TransactionId => id as TransactionId;
 export const ReportId = (id: string): ReportId => id as ReportId;
 
-// IntentId generator - creates new intent for each user action
+// DEPRECATED v11: IntentId constructor and generator (Issue #145)
+// Do not use in new code - use traceId instead
 export const IntentId = (id: string): IntentId => id as IntentId;
 export const createIntentId = (): IntentId => {
   try {

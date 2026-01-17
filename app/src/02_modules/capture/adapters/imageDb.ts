@@ -3,7 +3,7 @@
 // Pillar I: Adapter layer isolates SQLite from business logic
 
 import { select, execute, type ImageRow } from '../../../00_kernel/storage';
-import { ImageId, type ImageId as ImageIdType, type TraceId, type IntentId, type UserId } from '../../../00_kernel/types';
+import { ImageId, type ImageId as ImageIdType, type TraceId, type UserId } from '../../../00_kernel/types';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 
 /**
@@ -40,7 +40,6 @@ export async function savePendingImage(
   id: ImageIdType,
   userId: UserId,
   traceId: TraceId,
-  intentId: IntentId,
   originalPath: string,
   originalName: string | null,
 ): Promise<void> {
@@ -49,8 +48,8 @@ export async function savePendingImage(
   await execute(
     `INSERT INTO images (
       id, user_id, trace_id, intent_id, original_path, original_name, status
-    ) VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-    [String(id), String(userId), String(traceId), String(intentId), originalPath, originalName],
+    ) VALUES (?, ?, ?, NULL, ?, ?, 'pending')`,
+    [String(id), String(userId), String(traceId), originalPath, originalName],
   );
 
   logger.info(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, status: 'pending' });
@@ -65,7 +64,6 @@ export async function saveImage(
   id: ImageIdType,
   userId: UserId,
   traceId: TraceId,
-  intentId: IntentId,
   data: {
     originalPath: string;
     compressedPath: string | null;
@@ -78,7 +76,7 @@ export async function saveImage(
     s3Key: string | null;
   },
 ): Promise<void> {
-  logger.debug(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, intentId, status: data.status, phase: 'start' });
+  logger.debug(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, status: data.status, phase: 'start' });
 
   await execute(
     `UPDATE images SET
@@ -104,7 +102,7 @@ export async function saveImage(
     ],
   );
 
-  logger.info(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId, intentId });
+  logger.info(EVENTS.IMAGE_SAVED, { imageId: id, userId, traceId });
 }
 
 /**
