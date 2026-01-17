@@ -4,12 +4,10 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema } from "/opt/nodejs/shared/schemas.mjs";
-import { MultiModelAnalyzer } from "/opt/nodejs/shared/model-analyzer.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const bedrock = new BedrockRuntimeClient({});
-const analyzer = new MultiModelAnalyzer();
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
@@ -192,26 +190,9 @@ export async function handler(event) {
                 continue; // Skip this record on airlock breach
             }
 
-            // 5.5. Pillar R: Multi-Model Comparison
-            // @ai-intent: Run all 4 models in parallel, store results but don't block on failures
-            let modelComparison = null;
-            try {
-                const traceId = ctx.traceId;
-                modelComparison = await analyzer.analyzeReceipt({
-                    imageBase64,
-                    s3Key: key,
-                    bucket,
-                    traceId,
-                    imageId,
-                });
-            } catch (analyzerError) {
-                logger.warn("MULTI_MODEL_ANALYSIS_FAILED", {
-                    imageId,
-                    error: analyzerError.message,
-                    reason: "Non-blocking, continuing with Nova Mini result only"
-                });
-                // Don't throw - continue with Nova Mini result as primary
-            }
+            // 5.5. Extract confidence from Bedrock response (if available)
+            // @ai-intent: Nova models may provide confidence in metadata, default to null if not available
+            const confidence = null; // Nova Lite doesn't provide confidence in current API
 
             // 6. Pillar B: Validate complete transaction object
             const now = new Date().toISOString();
@@ -234,12 +215,8 @@ export async function handler(event) {
                 createdAt: now,
                 updatedAt: now,
                 confirmedAt: null,
-                ...(modelComparison && {
-                    modelComparison,
-                    comparisonStatus: modelComparison.comparisonStatus,
-                    comparisonTimestamp: modelComparison.comparisonTimestamp,
-                    comparisonErrors: modelComparison.comparisonErrors,
-                }),
+                processingModel: modelId, // Model configured in Admin Panel
+                ...(confidence !== null && { confidence }), // Only include if available
             };
 
             if (isGuestUser(userId)) {
@@ -279,12 +256,8 @@ export async function handler(event) {
                     updatedAt: now,
                     confirmedAt: null,
                     validationErrors: validationResult.error.issues, // Store errors for debugging
-                    ...(modelComparison && {
-                        modelComparison,
-                        comparisonStatus: modelComparison.comparisonStatus,
-                        comparisonTimestamp: modelComparison.comparisonTimestamp,
-                        comparisonErrors: modelComparison.comparisonErrors,
-                    }),
+                    processingModel: modelId, // Model configured in Admin Panel
+                    ...(confidence !== null && { confidence }), // Only include if available
                     ...(isGuestUser(userId) && { ttl: getGuestTTL(), isGuest: true }),
                 };
             } else {

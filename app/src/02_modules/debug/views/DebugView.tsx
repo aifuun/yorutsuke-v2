@@ -488,10 +488,10 @@ export function DebugView() {
                         <span className="debug-tx-label">Description:</span>
                         <span className="debug-tx-value">{tx.description || '-'}</span>
                       </div>
-                      {tx.primaryModel && (
+                      {tx.processingModel && (
                         <div className="debug-tx-row">
-                          <span className="debug-tx-label">Primary Model:</span>
-                          <span className="debug-tx-value mono">{tx.primaryModel}</span>
+                          <span className="debug-tx-label">Processing Model:</span>
+                          <span className="debug-tx-value mono">{tx.processingModel}</span>
                         </div>
                       )}
                       {tx.confidence !== null && (

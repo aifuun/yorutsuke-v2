@@ -7,7 +7,7 @@
 - **Architecture**: Local-First + Cloud-Sync
 - **Local**: SQLite (Tauri plugin-sql)
 - **Cloud**: DynamoDB + S3
-- **Last Updated**: 2026-01-05
+- **Last Updated**: 2026-01-17
 
 ## Quick Index
 
@@ -176,6 +176,7 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 - v9: Added `primary_model_id` and `primary_confidence` (track which model processed transaction)
 - v10: Added `trace_id` to transactions (distributed tracing from frontend through backend)
 - v11: Deprecated `intent_id` (no longer generated, always NULL; traceId provides sufficient tracking)
+- v12: Simplified AI processing fields - removed `modelComparison`, `comparisonStatus`, `comparisonTimestamp`, `comparisonErrors`; replaced `primary_model_id` with `processingModel` (Issue #146)
 
 ### morning_reports / settings
 
@@ -189,18 +190,41 @@ See index for caching and user preferences.
 
 ```typescript
 interface CloudTransaction {
-  userId: string;           // PK - from Cognito
-  transactionId: string;    // SK - UUID
-  s3Key: string;            // S3 image path
-  amount: number | null;
-  merchant: string | null;
-  category: string | null;
-  receiptDate: string | null;
-  aiConfidence: number | null;
-  aiResult: object | null;  // Full AI response
-  status: 'uploaded' | 'processing' | 'processed' | 'failed' | 'skipped';
-  createdAt: string;        // ISO 8601
-  updatedAt: string;        // ISO 8601
+  // Keys
+  userId: string;                    // PK - from Cognito
+  transactionId: string;             // SK - UUID
+
+  // Transaction Data
+  imageId?: string;                  // ImageId (optional)
+  s3Key?: string;                    // S3 image path
+  amount: number;
+  type: 'income' | 'expense';
+  merchant: string;
+  merchantSource?: 'list_match' | 'ocr_fallback' | 'unknown' | 'user_edited';
+  category: string;
+  description: string;
+  date: string;                      // YYYY-MM-DD
+
+  // Status & Metadata
+  status: 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
+  aiProcessed: boolean;
+  version: number;
+
+  // AI Processing (simplified in v12)
+  processingModel?: string;          // Model ID from Admin Panel (e.g., 'us.amazon.nova-lite-v1:0')
+  confidence?: number;               // AI confidence score (0.0-1.0)
+
+  // Timestamps
+  createdAt: string;                 // ISO 8601
+  updatedAt: string;                 // ISO 8601
+  confirmedAt: string | null;        // ISO 8601 or null
+
+  // Error Handling
+  validationErrors?: Array<any>;     // Zod validation errors for debugging
+
+  // Guest Users
+  isGuest?: boolean;
+  ttl?: number;                      // Unix timestamp for guest data expiration
 }
 ```
 
