@@ -92,7 +92,7 @@ Deletes user data from AWS cloud storage (DynamoDB + S3).
 - Lambda must be deployed via CDK
 - Add Lambda URL to `.env.local`:
   ```bash
-  VITE_LAMBDA_ADMIN_DELETE_URL=https://xxx.lambda-url.ap-northeast-1.on.aws/
+  VITE_LAMBDA_ADMIN_DELETE_URL=https://xxx.lambda-url.us-east-1.on.aws/
   ```
 
 ### What Gets Deleted

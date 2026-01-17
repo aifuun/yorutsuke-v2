@@ -5,8 +5,8 @@
 ## Overview
 
 **Environments**: dev, staging, prod
-**Region**: ap-northeast-1 (Tokyo)
-**Last Updated**: 2025-01
+**Region**: us-east-1 (N. Virginia) - Primary deployment region
+**Last Updated**: 2026-01
 
 ---
 
@@ -36,7 +36,7 @@ cdk --version  # 2.170+
 ```bash
 # Configure AWS profile
 aws configure --profile dev
-# Enter: Access Key, Secret Key, Region (ap-northeast-1), Output (json)
+# Enter: Access Key, Secret Key, Region (us-east-1), Output (json)
 
 # Verify access
 aws sts get-caller-identity --profile dev
@@ -61,10 +61,11 @@ npm install
 
 # Create .env.local (get values from CDK outputs)
 cat > .env.local << EOF
-VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.ap-northeast-1.on.aws
-VITE_LAMBDA_CONFIG_URL=https://xxx.lambda-url.ap-northeast-1.on.aws
+VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.us-east-1.on.aws
+VITE_LAMBDA_SYNC_URL=https://xxx.lambda-url.us-east-1.on.aws
+VITE_LAMBDA_CONFIG_URL=https://xxx.lambda-url.us-east-1.on.aws
 VITE_COGNITO_CLIENT_ID=xxx
-VITE_COGNITO_USER_POOL_ID=ap-northeast-1_xxx
+VITE_COGNITO_USER_POOL_ID=us-east-1_xxx
 EOF
 ```
 
@@ -89,7 +90,7 @@ cd infra
 npm install
 
 # Bootstrap CDK (once per account/region)
-cdk bootstrap aws://{ACCOUNT_ID}/ap-northeast-1 --profile dev
+cdk bootstrap aws://{ACCOUNT_ID}/us-east-1 --profile dev
 ```
 
 ### 2. Deploy Stack

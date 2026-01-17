@@ -165,14 +165,16 @@ cd app && npm test             # Run tests
 {
   "identifier": "http:default",
   "allow": [
-    { "url": "https://*.lambda-url.ap-northeast-1.on.aws/*" },
     { "url": "https://*.lambda-url.us-east-1.on.aws/*" },
+    { "url": "https://*.lambda-url.ap-northeast-1.on.aws/*" },
     { "url": "https://*.execute-api.us-east-1.amazonaws.com/*" },
-    { "url": "https://*.s3.ap-northeast-1.amazonaws.com/*" },
-    { "url": "https://s3.ap-northeast-1.amazonaws.com/*" }
+    { "url": "https://*.s3.us-east-1.amazonaws.com/*" },
+    { "url": "https://s3.us-east-1.amazonaws.com/*" }
   ]
 }
 ```
+
+**Note**: Both `us-east-1` (primary) and `ap-northeast-1` (legacy) regions are supported for backward compatibility.
 
 **Adding New Services**: When integrating new AWS resources, update the HTTP allow list in `default.json`.
 

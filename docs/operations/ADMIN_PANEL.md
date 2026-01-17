@@ -16,9 +16,9 @@
 
 | Resource | Value |
 |----------|-------|
-| User Pool | `ap-northeast-1_INc3k2PPP` |
+| User Pool | `us-east-1_XXXXXXXXX` (from CDK output) |
 | Admin User | `admin@yorutsuke.local` |
-| Region | ap-northeast-1 |
+| Region | us-east-1 |
 
 ### First-time Setup
 

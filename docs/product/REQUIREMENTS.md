@@ -143,7 +143,7 @@
 ## Constraints
 
 - **Technical**: Must use Tauri 2 for small app size
-- **Technical**: AWS ap-northeast-1 region (Tokyo) for low latency
+- **Technical**: AWS us-east-1 region (N. Virginia) - Primary deployment region for cost optimization
 - **Business**: ¥1,000/day hard cost limit
 - **Business**: Free tier must be sustainable
 

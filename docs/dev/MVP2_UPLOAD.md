@@ -79,7 +79,7 @@ cdk deploy YorutsukePresignStack --profile dev
 
 # 配置 Lambda URL
 cd app
-echo "VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.ap-northeast-1.on.aws" >> .env.local
+echo "VITE_LAMBDA_PRESIGN_URL=https://xxx.lambda-url.us-east-1.on.aws" >> .env.local
 npm run tauri dev
 ```
 

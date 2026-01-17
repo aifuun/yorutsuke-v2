@@ -12,7 +12,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 ENV=${1:-dev}
 STACK_NAME="Yorutsuke2Stack-${ENV}"
 OUTPUT_FILE="${PROJECT_ROOT}/app/.env.local"
-REGION="ap-northeast-1"
+REGION="us-east-1"
 
 echo "Fetching outputs from ${STACK_NAME}..."
 
@@ -43,7 +43,7 @@ cat > "$OUTPUT_FILE" << EOF
 # Do not edit manually - run ./scripts/sync-env.sh to refresh
 
 # AWS Region
-VITE_AWS_REGION=ap-northeast-1
+VITE_AWS_REGION=us-east-1
 
 # Cognito
 VITE_USER_POOL_ID=$(get_output "UserPoolId")
@@ -51,6 +51,7 @@ VITE_USER_POOL_CLIENT_ID=$(get_output "UserPoolClientId")
 
 # Lambda URLs
 VITE_LAMBDA_PRESIGN_URL=$(get_output "PresignLambdaUrl")
+VITE_LAMBDA_SYNC_URL=$(get_output "TransactionsLambdaUrl")
 VITE_LAMBDA_CONFIG_URL=$(get_output "ConfigLambdaUrl")
 VITE_LAMBDA_TRANSACTIONS_URL=$(get_output "TransactionsLambdaUrl")
 VITE_LAMBDA_REPORT_URL=$(get_output "ReportLambdaUrl")
