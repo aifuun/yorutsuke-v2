@@ -109,6 +109,32 @@ class AutoSyncService {
   }
 
   /**
+   * Start the sync timer
+   * Public method for explicit control (e.g., before removing all data, start it after operations complete)
+   */
+  start(): void {
+    if (!this.userId) {
+      logger.warn('auto_sync_start', { reason: 'no_user_set' });
+      return;
+    }
+    if (this.syncTimer) {
+      logger.debug('auto_sync_start', { status: 'already_running' });
+      return;
+    }
+    logger.info('auto_sync_start', { userId: this.userId });
+    this.restartSyncTimer();
+  }
+
+  /**
+   * Stop the sync timer
+   * Public method for explicit control (e.g., before removing all data)
+   */
+  stop(): void {
+    logger.info('auto_sync_stop');
+    this.stopSyncTimer();
+  }
+
+  /**
    * Restart the sync timer
    * Every 3 seconds: Check if operation is needed, execute, then alternate
    * ✅ Force next operation to 'pull' on restart (network recovery)

@@ -226,10 +226,11 @@ export class YorutsukeAdminStack extends cdk.Stack {
       restApiName: `yorutsuke-admin-api-us-${env}`,
       description: "Admin API for Yorutsuke",
       defaultCorsPreflightOptions: {
-        // @security: Restrict CORS to CloudFront domains only (not ALL_ORIGINS)
+        // @security: Restrict CORS to whitelisted admin domains
         allowOrigins: [
           `https://${distribution.distributionDomainName}`,
-          // TODO: Add "https://panel2.yorutsuke.rolligen.com" once custom domain is enabled with proper certificate
+          "https://admin.yoru.rolligen.com",
+          "https://panel2.yorutsuke.rolligen.com",
         ],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [

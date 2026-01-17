@@ -13,36 +13,6 @@ export const OcrResultSchema = z.object({
     description: z.string().optional().default(''),
 });
 
-/**
- * Model Analysis Result Schema (unified format for all models)
- * Used for multi-model comparison (Textract, Nova Mini/Pro, Claude Sonnet)
- */
-export const ModelResultSchema = z.object({
-    vendor: z.string().optional(),
-    lineItems: z.array(z.object({
-        description: z.string(),
-        quantity: z.number().optional(),
-        unitPrice: z.number().optional(),
-        totalPrice: z.number().optional(),
-    })).optional(),
-    subtotal: z.number().optional(),
-    taxAmount: z.number().optional(),
-    taxRate: z.number().optional(), // 8% or 10% for Japan
-    totalAmount: z.number().optional(),
-    confidence: z.number().optional(), // 0-100 confidence score
-    rawResponse: z.record(z.any()).optional(), // @ai-intent: Store raw API response for debugging
-});
-
-/**
- * Multi-Model Comparison Schema
- * Stores results from all 4 models for A/B testing
- */
-export const ModelComparisonSchema = z.object({
-    textract: ModelResultSchema.optional(),
-    nova_mini: ModelResultSchema.optional(),
-    nova_pro: ModelResultSchema.optional(),
-    claude_sonnet: ModelResultSchema.optional(),
-});
 
 /**
  * DynamoDB Transaction Schema
@@ -67,15 +37,9 @@ export const TransactionSchema = z.object({
     confirmedAt: z.string().nullable().default(null),
     validationErrors: z.array(z.any()).optional(), // @ai-intent: Store Zod validation errors for debugging
 
-    // Multi-model comparison (Pillar R: Observability for model evaluation)
-    modelComparison: ModelComparisonSchema.optional(),
-    comparisonStatus: z.enum(['pending', 'completed', 'failed']).optional(),
-    comparisonTimestamp: z.string().optional(),
-    comparisonErrors: z.array(z.object({
-        model: z.string(),
-        error: z.string(),
-        timestamp: z.string().optional(),
-    })).optional(),
+    // AI Processing Metadata (simplified)
+    processingModel: z.string().optional(), // Model ID configured in Admin Panel (e.g., 'us.amazon.nova-lite-v1:0')
+    confidence: z.number().min(0).max(1).optional(), // AI confidence score (0.0-1.0)
 
     isGuest: z.boolean().optional(),
     ttl: z.number().optional(),
@@ -87,7 +51,7 @@ export const BatchConfigSchema = z.object({
     processingMode: z.enum(['instant', 'batch', 'hybrid']),
     imageThreshold: z.number().min(100).max(500),
     timeoutMinutes: z.number().min(30).max(480),
-    modelId: z.string().default('amazon.nova-lite-v1:0'),
+    modelId: z.string().default('us.amazon.nova-lite-v1:0'),  // Must include region prefix
     updatedAt: z.string(),
     updatedBy: z.string(),
 });

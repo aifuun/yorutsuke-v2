@@ -287,12 +287,14 @@ Full list: `docs/architecture/ADR/README.md`
 - Separate UI from logic (Pillar L: Headless) → See ADR-001
 - Use Service Pattern for global listeners (not React hooks) → ADR-001
 - When calling external AWS services (Lambda, API Gateway): add URL patterns to `app/src-tauri/capabilities/default.json` http:default permissions (Pillar B: Airlock)
+- **After CDK deployment**: Run `npm run sync-outputs` in `infra/` to sync environment variables → See `.claude/rules/cdk-deploy.md`
 
 **MUST NOT**:
 - Use primitive types for domain entities
 - Mix JSX in headless hooks
 - Trust raw API/IPC responses without parsing
 - Skip quota checks before upload
+- Skip CDK output sync (causes "User pool client does not exist" errors)
 
 ## AWS Resources
 

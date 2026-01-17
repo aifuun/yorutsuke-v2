@@ -584,6 +584,77 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // ========================================
+    // Admin Purge All Data Lambda (System-wide, Admin Only)
+    // ========================================
+    const adminPurgeAllLambda = new lambda.Function(this, "AdminPurgeAllLambda", {
+      functionName: `yorutsuke-admin-purge-all-us-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/admin-purge-all-data"),
+      environment: {
+        TRANSACTIONS_TABLE: transactionsTable.tableName,
+        IMAGES_BUCKET: imageBucket.bucketName,
+        LOG_GROUP: "/aws/lambda/yorutsuke-admin-purge",
+      },
+      timeout: cdk.Duration.minutes(5),
+      memorySize: 512,
+    });
+
+    // Grant DynamoDB permissions (Scan + BatchWrite for ALL data deletion)
+    adminPurgeAllLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "dynamodb:Scan",            // Scan all transactions (no userId filter)
+          "dynamodb:BatchWriteItem",  // Batch delete all transactions
+        ],
+        resources: [
+          transactionsTable.tableArn,
+        ],
+      })
+    );
+
+    // Grant S3 permissions (List + Delete for ALL images)
+    adminPurgeAllLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "s3:ListBucket",      // List all objects (no prefix filter)
+          "s3:DeleteObject",    // Delete all objects
+        ],
+        resources: [
+          imageBucket.bucketArn,
+          `${imageBucket.bucketArn}/*`,
+        ],
+      })
+    );
+
+    // Grant CloudWatch Logs permissions for audit trail
+    adminPurgeAllLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:CreateLogGroup",
+        ],
+        resources: [
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-admin-purge*`,
+        ],
+      })
+    );
+
+    // Lambda Function URL for admin purge all data
+    const adminPurgeAllUrl = adminPurgeAllLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],  // Wildcard includes all headers including x-admin-user-id
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -648,6 +719,11 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "AdminDeleteDataUrl", {
       value: adminDeleteDataUrl.url,
       exportName: `${id}-AdminDeleteDataUrl`,
+    });
+
+    new cdk.CfnOutput(this, "AdminPurgeAllUrl", {
+      value: adminPurgeAllUrl.url,
+      exportName: `${id}-AdminPurgeAllUrl`,
     });
   }
 }

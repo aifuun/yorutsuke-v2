@@ -8,7 +8,8 @@
     "cdk": "cdk",
     "synth": "cdk synth",
     "diff": "cdk diff --profile dev",
-    "deploy": "cdk deploy --profile dev",
+    "deploy": "cdk deploy --profile dev && npm run sync-outputs",
+    "sync-outputs": "bash ../scripts/sync-cdk-outputs.sh dev dev",
     "destroy": "cdk destroy --profile dev"
   },
   "devDependencies": {
