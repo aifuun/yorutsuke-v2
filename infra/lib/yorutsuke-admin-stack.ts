@@ -15,7 +15,6 @@ interface YorutsukeAdminStackProps extends cdk.StackProps {
   imageBucketName: string;
   transactionsTableName: string;
   quotasTableName: string;
-  batchProcessLambdaName: string;
 }
 
 export class YorutsukeAdminStack extends cdk.Stack {
@@ -221,67 +220,6 @@ export class YorutsukeAdminStack extends cdk.Stack {
     );
 
     // ========================================
-    // Lambda: Admin Batch Config
-    // ========================================
-    const batchConfigLambda = new lambda.Function(this, "AdminBatchConfigLambda", {
-      functionName: `yorutsuke-admin-batch-config-us-${env}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/batch-config"),
-      layers: [sharedLayer],
-      environment: {
-        CONTROL_TABLE_NAME: controlTable.tableName,
-      },
-      timeout: cdk.Duration.seconds(10),
-    });
-
-    controlTable.grantReadWriteData(batchConfigLambda);
-
-    // ========================================
-    // Lambda: Admin Batch
-    // ========================================
-    const batchLambda = new lambda.Function(this, "AdminBatchLambda", {
-      functionName: `yorutsuke-admin-batch-us-${env}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/batch"),
-      layers: [sharedLayer],
-      environment: {
-        BATCH_PROCESS_LAMBDA_NAME: props.batchProcessLambdaName,
-        IMAGE_BUCKET_NAME: props.imageBucketName,
-      },
-      timeout: cdk.Duration.seconds(30),
-    });
-
-    // Grant permissions to invoke batch lambda and read logs
-    batchLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["lambda:InvokeFunction"],
-        resources: [
-          `arn:aws:lambda:${this.region}:${this.account}:function:${props.batchProcessLambdaName}`,
-        ],
-      })
-    );
-    batchLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "logs:FilterLogEvents",
-          "logs:GetLogEvents",
-          "logs:DescribeLogStreams",
-        ],
-        resources: [
-          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/${props.batchProcessLambdaName}:*`,
-        ],
-      })
-    );
-    batchLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["s3:ListBucket"],
-        resources: [`arn:aws:s3:::${props.imageBucketName}`],
-      })
-    );
-
-    // ========================================
     // API Gateway with Cognito Authorization
     // ========================================
     const api = new apigateway.RestApi(this, "AdminApi", {
@@ -364,32 +302,6 @@ export class YorutsukeAdminStack extends cdk.Stack {
     costsResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(costsLambda),
-      authOptions
-    );
-
-    // /batch endpoint (legacy batch operations)
-    const batchResource = api.root.addResource("batch");
-    batchResource.addMethod(
-      "GET",
-      new apigateway.LambdaIntegration(batchLambda),
-      authOptions
-    );
-    batchResource.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(batchLambda),
-      authOptions
-    );
-
-    // /batch/config endpoint (new batch configuration)
-    const batchConfigResource = batchResource.addResource("config");
-    batchConfigResource.addMethod(
-      "GET",
-      new apigateway.LambdaIntegration(batchConfigLambda),
-      authOptions
-    );
-    batchConfigResource.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(batchConfigLambda),
       authOptions
     );
 
