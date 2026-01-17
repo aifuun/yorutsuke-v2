@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
@@ -9,6 +9,7 @@ const ddb = new DynamoDBClient({});
 const ssm = new SSMClient({});
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
+const INTENTS_TABLE_NAME = process.env.INTENTS_TABLE_NAME;  // Pillar Q: Idempotency
 const EMERGENCY_STOP_PARAM = process.env.EMERGENCY_STOP_PARAM;  // Circuit breaker
 
 // Cache emergency stop status (refresh every 60s)
@@ -118,6 +119,47 @@ async function incrementQuota(userId, date) {
   return parseInt(result.Attributes?.count?.N || "1");
 }
 
+/**
+ * Pillar Q: Check if intent was already processed
+ * @param {string} intentId
+ * @returns {Promise<{url: string, key: string} | null>} Cached result or null
+ */
+async function checkIntent(intentId) {
+  if (!INTENTS_TABLE_NAME || !intentId) return null;
+
+  const result = await ddb.send(
+    new GetItemCommand({
+      TableName: INTENTS_TABLE_NAME,
+      Key: { intentId: { S: intentId } },
+    })
+  );
+
+  if (result.Item?.result?.S) {
+    return JSON.parse(result.Item.result.S);
+  }
+  return null;
+}
+
+/**
+ * Pillar Q: Store intent result for idempotency
+ * @param {string} intentId
+ * @param {{url: string, key: string}} result
+ * @returns {Promise<void>}
+ */
+async function storeIntent(intentId, result) {
+  if (!INTENTS_TABLE_NAME || !intentId) return;
+
+  await ddb.send(
+    new PutItemCommand({
+      TableName: INTENTS_TABLE_NAME,
+      Item: {
+        intentId: { S: intentId },
+        result: { S: JSON.stringify(result) },
+        ttl: { N: String(getTTL()) },  // 7 days TTL
+      },
+    })
+  );
+}
 
 /**
  * Check if emergency stop is enabled (circuit breaker)
@@ -146,8 +188,15 @@ async function isEmergencyStop() {
 }
 
 export async function handler(event) {
-  // Initialize logging context
-  const ctx = initContext(event);
+  // Extract traceId from headers or body (before initContext)
+  const headers = event.headers || {};
+  const body = JSON.parse(event.body || "{}");
+  const headerTraceId = headers['x-trace-id'] || headers['X-Trace-Id'];
+  const bodyTraceId = body.traceId;
+  const explicitTraceId = headerTraceId || bodyTraceId;
+
+  // Initialize logging context with explicit traceId if provided
+  const ctx = initContext(event, explicitTraceId);
 
   try {
     // Handle CORS preflight
@@ -176,10 +225,10 @@ export async function handler(event) {
       };
     }
 
-    const body = JSON.parse(event.body || "{}");
-    const { userId, fileName, contentType, action, s3Key } = body;
+    // Body already parsed above for traceId extraction
+    const { userId, fileName, intentId, contentType, action, s3Key, traceId } = body;
 
-    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, action });
+    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, intentId, action });
 
     // Handle download action (GET presigned URL)
     if (action === 'download') {
@@ -198,7 +247,7 @@ export async function handler(event) {
 
       const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 }); // 1 hour
 
-      logger.info(EVENTS.PRESIGN_COMPLETED, { s3Key, action: 'download' });
+      logger.info(EVENTS.PRESIGN_COMPLETED, { s3Key, action: 'download', traceId: ctx.traceId });
 
       return {
         statusCode: 200,
@@ -207,7 +256,7 @@ export async function handler(event) {
           "Access-Control-Allow-Origin": "*",
           "X-Trace-Id": ctx.traceId,
         },
-        body: JSON.stringify({ url: signedUrl, key: s3Key }),
+        body: JSON.stringify({ url: signedUrl, key: s3Key, traceId: ctx.traceId }),
       };
     }
 
@@ -217,6 +266,20 @@ export async function handler(event) {
         statusCode: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ error: "MISSING_PARAMS", message: "Missing userId or fileName" }),
+      };
+    }
+
+    // Pillar Q: Check idempotency - return cached result if already processed
+    const cachedResult = await checkIntent(intentId);
+    if (cachedResult) {
+      logger.info(EVENTS.PRESIGN_CACHED, { intentId });
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify(cachedResult),
       };
     }
 
@@ -248,6 +311,12 @@ export async function handler(event) {
       Bucket: BUCKET_NAME,
       Key: key,
       ContentType: contentType || "image/jpeg",
+      // Pillar N: Include traceId in S3 metadata for distributed tracing
+      Metadata: {
+        'trace-id': ctx.traceId,
+        'intent-id': intentId || '',
+        'user-id': userId,
+      },
     });
 
     const signedUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
@@ -257,9 +326,12 @@ export async function handler(event) {
       await incrementQuota(userId, jstDate);
     }
 
-    const result = { url: signedUrl, key };
+    const result = { url: signedUrl, key, traceId: ctx.traceId };
 
-    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key });
+    // Pillar Q: Store intent result for idempotency
+    await storeIntent(intentId, result);
+
+    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key, intentId, traceId: ctx.traceId });
 
     return {
       statusCode: 200,

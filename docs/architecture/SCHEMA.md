@@ -162,7 +162,8 @@ CREATE TABLE transactions (
   version INTEGER DEFAULT 1,        -- v6: Optimistic locking
   dirty_sync INTEGER DEFAULT 0,     -- v8: 1=needs cloud sync, 0=synced
   primary_model_id TEXT,            -- v9: Which model processed (e.g., 'us.amazon.nova-lite-v1:0', 'azure_di')
-  primary_confidence REAL           -- v9: 0-100 confidence score from primary model
+  primary_confidence REAL,          -- v9: 0-100 confidence score from primary model
+  trace_id TEXT                     -- v10: Frontend traceId for end-to-end observability (Pillar N)
 );
 
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
@@ -176,6 +177,7 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 - v7: Removed FK constraint on `image_id` (soft reference for cloud sync)
 - v8: Added `dirty_sync` (track local changes needing cloud sync)
 - v9: Added `primary_model_id` and `primary_confidence` (track which model processed transaction)
+- v10: Added `trace_id` (distributed tracing from frontend through backend)
 
 ### morning_reports / settings
 
@@ -205,6 +207,9 @@ interface CloudTransaction {
   // Primary model metadata (v9: Track which model processed each transaction)
   primaryModelId?: string;     // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
   primaryConfidence?: number;  // 0-100 confidence score (if available)
+
+  // Distributed tracing (v10: End-to-end observability)
+  traceId?: string;            // Frontend-generated trace-{uuid} for tracking request flow
 
   // Multi-model comparison (optional, for A/B testing)
   modelComparison?: object;       // Results from all enabled models

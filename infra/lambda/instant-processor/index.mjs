@@ -59,6 +59,39 @@ function getGuestTTL() {
 }
 
 /**
+ * Recover original traceId from S3 object metadata
+ * Pillar N: Distributed tracing - bridge S3 event gap by querying metadata
+ * @param {string} bucket - S3 bucket name
+ * @param {string} key - S3 object key
+ * @returns {Promise<string|null>} Original traceId or null
+ */
+async function recoverTraceIdFromS3(bucket, key) {
+  try {
+    const command = new HeadObjectCommand({ Bucket: bucket, Key: key });
+    const response = await s3.send(command);
+
+    // S3 metadata keys are lowercased and prefixed with x-amz-meta-
+    // We stored as 'trace-id', S3 returns as 'trace-id' in Metadata object
+    const traceId = response.Metadata?.['trace-id'];
+
+    if (traceId) {
+      logger.debug('TRACE_ID_RECOVERED', { bucket, key, traceId });
+      return traceId;
+    }
+
+    logger.warn('TRACE_ID_NOT_FOUND_IN_METADATA', { bucket, key });
+    return null;
+  } catch (error) {
+    logger.error('TRACE_ID_RECOVERY_FAILED', {
+      bucket,
+      key,
+      error: error.message,
+    });
+    return null;
+  }
+}
+
+/**
  * Build OCR prompt with optional merchant list
  */
 function buildOCRPrompt(merchantList) {
@@ -89,8 +122,9 @@ JSON形式で返してください。マークダウンのコードブロック�
 }
 
 export async function handler(event) {
-    const ctx = initContext(event);
-    logger.info(EVENTS.IMAGE_PROCESSING_STARTED, { recordCount: event.Records.length });
+    // Initialize context with event-level traceId (may be overridden per-record)
+    const eventCtx = initContext(event);
+    logger.info(EVENTS.IMAGE_PROCESSING_STARTED, { recordCount: event.Records.length, traceId: eventCtx.traceId });
 
     // Load merchant list once at start (cached for subsequent invocations)
     const merchantList = await loadMerchantList();
@@ -99,6 +133,19 @@ export async function handler(event) {
     for (const record of event.Records) {
         const bucket = record.s3.bucket.name;
         const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
+
+        // Pillar N: Recover original traceId from S3 metadata
+        const recoveredTraceId = await recoverTraceIdFromS3(bucket, key);
+
+        // Re-initialize context with recovered traceId for this specific image
+        const ctx = initContext(event, recoveredTraceId);
+
+        logger.info(EVENTS.LAMBDA_INVOCATION, {
+            bucket,
+            key,
+            traceIdSource: recoveredTraceId ? 'S3_METADATA' : 'GENERATED',
+            traceId: ctx.traceId,
+        });
 
         // 1. Extract metadata from key: uploads/{userId}/{timestamp}-{filename}
         const keyParts = key.split('/');
@@ -348,6 +395,7 @@ export async function handler(event) {
                 confirmedAt: null,
                 primaryModelId,           // Track which model processed this
                 primaryConfidence,        // Confidence score (if available)
+                traceId: ctx.traceId,     // Pillar N: Distributed tracing
                 ...(modelComparison && {
                     modelComparison,
                     comparisonStatus: modelComparison.comparisonStatus,
@@ -456,7 +504,7 @@ export async function handler(event) {
                 Key: key,
             }));
 
-            logger.info(EVENTS.IMAGE_PROCESSING_COMPLETED, { userId, imageId, transactionId, s3Key: processedKey });
+            logger.info(EVENTS.IMAGE_PROCESSING_COMPLETED, { userId, imageId, transactionId, s3Key: processedKey, traceId: ctx.traceId });
 
         } catch (error) {
             logger.error(EVENTS.IMAGE_PROCESSING_FAILED, { userId, key, error: error.message });

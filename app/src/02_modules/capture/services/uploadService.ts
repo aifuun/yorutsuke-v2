@@ -177,7 +177,7 @@ class UploadService {
       }
 
       // Get presigned URL
-      const { url, key } = await getPresignedUrl(this.userId, `${id}.jpg`, intentId, 'image/jpeg');
+      const { url, key } = await getPresignedUrl(this.userId, `${id}.jpg`, intentId, traceId, 'image/jpeg');
 
       // Read file using Tauri fs plugin
       const fileData = await readFile(filePath);

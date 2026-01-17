@@ -1,8 +1,9 @@
 // Pillar B: Airlock - validate all API responses with Zod
 // Pillar Q: Intent-ID for idempotency
+// Pillar N: TraceId for distributed tracing
 import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
-import type { UserId, IntentId } from '../../../00_kernel/types';
+import type { UserId, IntentId, TraceId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
 import { mockPresignUrl, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
@@ -17,6 +18,7 @@ const UPLOAD_TIMEOUT_MS = 60_000;   // 60 seconds (for large images)
 const PresignResponseSchema = z.object({
   url: z.string().url(),
   key: z.string().min(1),
+  traceId: z.string().optional(),  // Backend echoes back traceId
 });
 
 type PresignResponse = z.infer<typeof PresignResponseSchema>;
@@ -41,6 +43,7 @@ export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
   intentId: IntentId,  // Pillar Q: Idempotency key
+  traceId: TraceId,    // Pillar N: Distributed tracing
   contentType: string = 'image/jpeg',
 ): Promise<PresignResponse> {
   // Mocking offline - simulate network failure
@@ -52,14 +55,17 @@ export async function getPresignedUrl(
   // Mocking online - return mock presign URL
   if (isMockingOnline()) {
     await mockDelay(100);
-    logger.debug(EVENTS.UPLOAD_STARTED, { phase: 'mock_presign', fileName });
-    return mockPresignUrl(userId, fileName);
+    logger.debug(EVENTS.UPLOAD_STARTED, { phase: 'mock_presign', fileName, traceId });
+    return { ...mockPresignUrl(userId, fileName), traceId };
   }
 
   const fetchPromise = fetch(PRESIGN_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, fileName, intentId, contentType }),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Trace-Id': traceId,  // Pillar N: Propagate traceId in header
+    },
+    body: JSON.stringify({ userId, fileName, intentId, contentType, traceId }),
   });
 
   const response = await withTimeout(

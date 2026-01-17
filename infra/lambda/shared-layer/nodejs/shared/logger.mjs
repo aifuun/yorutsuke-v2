@@ -61,9 +61,11 @@ export function getTraceId(event) {
  * Initialize logger context from Lambda event
  * Call at the start of each handler
  * @param {object} event - Lambda event
+ * @param {string|null} explicitTraceId - Optional explicit traceId (e.g., from S3 metadata)
  */
-export function initContext(event) {
-  const traceId = getTraceId(event);
+export function initContext(event, explicitTraceId = null) {
+  // Priority: explicit > header > generated
+  const traceId = explicitTraceId || getTraceId(event);
   const body = typeof event.body === 'string' ? JSON.parse(event.body || '{}') : event.body || {};
 
   setContext({

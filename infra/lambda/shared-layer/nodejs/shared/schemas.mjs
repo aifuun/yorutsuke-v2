@@ -71,6 +71,9 @@ export const TransactionSchema = z.object({
     primaryModelId: z.string().optional(), // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
     primaryConfidence: z.number().optional(), // 0-100 confidence score from primary model
 
+    // Distributed tracing (Pillar N: Context Propagation)
+    traceId: z.string().optional(), // Frontend-generated trace-{uuid} for end-to-end tracking
+
     // Multi-model comparison (Pillar R: Observability for model evaluation)
     modelComparison: ModelComparisonSchema.optional(),
     comparisonStatus: z.enum(['pending', 'completed', 'failed']).optional(),
