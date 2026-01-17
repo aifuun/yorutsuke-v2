@@ -13,13 +13,15 @@ import { resetTodayQuota } from '../../capture';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless';
 import { emit } from '../../../00_kernel/eventBus';
+import { logger } from '../../../00_kernel/telemetry';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { setMockMode, subscribeMockMode, getMockSnapshot, isSlowUpload, setSlowUpload, type MockMode } from '../../../00_kernel/config/mock';
 import { captureService } from '../../capture/services/captureService';
 import { captureStore } from '../../capture/stores/captureStore';
 import { uploadStore } from '../../capture/stores/uploadStore';
+import { autoSyncService } from '../../sync/services/autoSyncService';
 import type { UserId } from '../../../00_kernel/types';
-import { deleteUserData } from '../adapters';
+import { deleteUserData, purgeAllData } from '../adapters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Transaction } from '../../../01_domains/transaction';
 import './debug.css';
@@ -60,6 +62,9 @@ export function DebugView() {
 
   // Clear all data (local + cloud) state
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
+
+  // Admin purge all system data state
+  const [showPurgeAllDialog, setShowPurgeAllDialog] = useState(false);
 
   // Latest cloud transactions state
   const [latestCloudTransactions, setLatestCloudTransactions] = useState<Transaction[]>([]);
@@ -201,12 +206,18 @@ export function DebugView() {
 
     try {
       // Stop background services to prevent race conditions
+      // CRITICAL: Stop autoSyncService BEFORE deleting cloud data
+      // This prevents it from pulling deleted data back into local DB during the clear operation
+      logger.info('debug_clear_data_stopping_services');
       captureService.destroy();
+      autoSyncService.stop();  // Stop sync loop but keep service initialized
 
-      // Step 1: Delete from cloud
+      // Step 1: Delete from cloud (now safe - no auto-sync interference)
+      logger.info('debug_clear_data_deleting_cloud');
       const cloudResult = await deleteUserData(effectiveUserId as UserId, ['transactions', 'images']);
 
       // Step 2: Clear local database
+      logger.info('debug_clear_data_clearing_local_db');
       const localResults = await clearBusinessData();
 
       // Step 3: Clear memory stores
@@ -214,24 +225,79 @@ export function DebugView() {
       uploadStore.getState().clearTasks();
 
       const localCleared = Object.values(localResults).reduce((a, b) => a + b, 0);
+
+      logger.info('debug_clear_data_success', {
+        cloudTransactions: cloudResult.deleted.transactions || 0,
+        cloudImages: cloudResult.deleted.images || 0,
+        localRows: localCleared,
+      });
+
       setActionResult(
         `Deleted ${cloudResult.deleted.transactions || 0} transactions and ${cloudResult.deleted.images || 0} from cloud, ` +
         `cleared ${localCleared} local rows. Restarting...`
       );
 
-      // Step 4: Reload to reinitialize
+      // Step 4: Reload to reinitialize (autoSyncService will restart via setUser on app init)
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (e) {
+      logger.error('debug_clear_data_error', { error: String(e) });
       setActionResult('Error: ' + String(e));
       setActionStatus('idle');
+      // Re-initialize services on error
       captureService.init();
+      autoSyncService.start();  // Restart the sync loop
     }
   };
 
   const handleCancelClearAll = () => {
     setShowClearAllDialog(false);
+  };
+
+  const handleOpenPurgeAllDialog = () => {
+    setShowPurgeAllDialog(true);
+  };
+
+  const handleConfirmPurgeAll = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+
+    setShowPurgeAllDialog(false);
+    setActionStatus('running');
+    setActionResult('⚠️ Purging ALL system data for ALL users...');
+
+    try {
+      logger.info('admin_purge_all_data_started', { adminUserId: effectiveUserId });
+
+      // Call admin purge Lambda
+      const result = await purgeAllData(effectiveUserId);
+
+      logger.info('admin_purge_all_data_success', {
+        adminUserId: effectiveUserId,
+        deleted: result.deleted,
+      });
+
+      setActionResult(
+        `🔴 ADMIN PURGE COMPLETE!\n` +
+        `Deleted ${result.deleted.transactions} transactions and ${result.deleted.images} images for ALL USERS.\n` +
+        `Admin: ${result.adminUserId}\n` +
+        `Time: ${result.timestamp}`
+      );
+    } catch (e) {
+      logger.error('admin_purge_all_data_error', {
+        adminUserId: effectiveUserId,
+        error: String(e),
+      });
+      setActionResult('🔴 Error: ' + String(e));
+      setActionStatus('idle');
+    }
+  };
+
+  const handleCancelPurgeAll = () => {
+    setShowPurgeAllDialog(false);
   };
 
   const handleFetchLatestCloudTransactions = async () => {
@@ -361,8 +427,8 @@ export function DebugView() {
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.clearAllData')}</p>
-                <p className="setting-row__hint">{t('debug.clearAllDataHint')}</p>
+                <p className="setting-row__label">{t('debug.clearMyData')}</p>
+                <p className="setting-row__hint">{t('debug.clearMyDataHint')}</p>
               </div>
               <div className="setting-row__control">
                 <DeleteButton
@@ -370,7 +436,24 @@ export function DebugView() {
                   onClick={handleOpenClearAllDialog}
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
-                  {t('debug.clearAllDataButton')}
+                  {t('debug.clearMyDataButton')}
+                </DeleteButton>
+              </div>
+            </div>
+
+            <div className="setting-row setting-row--danger" style={{ backgroundColor: '#ffcccc', borderLeft: '4px solid #ff0000' }}>
+              <div className="setting-row__info">
+                <p className="setting-row__label" style={{ color: '#cc0000', fontWeight: 'bold' }}>🔴 ADMIN: Purge ALL System Data</p>
+                <p className="setting-row__hint">⚠️ DANGER: Deletes ALL transactions and images for ALL users worldwide. This action cannot be undone. Use only in emergencies.</p>
+              </div>
+              <div className="setting-row__control">
+                <DeleteButton
+                  size="sm"
+                  onClick={handleOpenPurgeAllDialog}
+                  disabled={actionStatus === 'running' || !effectiveUserId}
+                  style={{ backgroundColor: '#cc0000' }}
+                >
+                  🔴 PURGE ALL
                 </DeleteButton>
               </div>
             </div>
@@ -593,14 +676,36 @@ export function DebugView() {
       {/* Clear All Data (Local + Cloud) Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showClearAllDialog}
-        title={t('debug.clearAllDataConfirmTitle')}
-        message={t('debug.clearAllDataConfirmMessage')}
-        checkboxLabel={t('debug.clearAllDataConfirmCheckbox')}
-        confirmText={t('debug.clearAllDataButton')}
+        title={t('debug.clearMyDataConfirmTitle')}
+        message={t('debug.clearMyDataConfirmMessage')}
+        checkboxLabel={t('debug.clearMyDataConfirmCheckbox')}
+        confirmText={t('debug.clearMyDataButton')}
         cancelText={t('common.cancel')}
         variant="danger"
         onConfirm={handleConfirmClearAll}
         onCancel={handleCancelClearAll}
+      />
+
+      {/* Admin: Purge ALL System Data Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showPurgeAllDialog}
+        title="🔴 ADMIN PURGE - CONFIRM?"
+        message={
+          `🔴 WARNING - IRREVERSIBLE ACTION!\n\n` +
+          `This will PERMANENTLY DELETE:\n` +
+          `• ALL transactions for ALL users\n` +
+          `• ALL receipt images for ALL users\n` +
+          `• From DynamoDB and S3\n\n` +
+          `This action CANNOT be undone.\n` +
+          `Only proceed if this is an authorized emergency purge.\n\n` +
+          `Admin User ID: ${effectiveUserId || 'unknown'}`
+        }
+        checkboxLabel="I understand this will delete ALL data for ALL users and cannot be undone"
+        confirmText="🔴 YES, PURGE ALL"
+        cancelText={t('common.cancel')}
+        variant="danger"
+        onConfirm={handleConfirmPurgeAll}
+        onCancel={handleCancelPurgeAll}
       />
     </div>
   );

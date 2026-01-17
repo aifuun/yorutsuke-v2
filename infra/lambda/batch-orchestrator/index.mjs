@@ -37,7 +37,7 @@ const API_BASE_URL = process.env.API_BASE_URL || "https://api.example.com";
 const BatchOrchestratorInputSchema = z.object({
     intentId: z.string().min(1, "intentId required for idempotency"),
     pendingImageIds: z.array(z.string()).min(100, "Must have at least 100 images"),
-    modelId: z.string().default("amazon.nova-lite-v1:0"),
+    modelId: z.string().default("us.amazon.nova-lite-v1:0"),
     userId: z.string(),
     batchJobThreshold: z.number().min(100).max(500).default(100),
 });
@@ -69,7 +69,7 @@ JSON形式で返してください。マークダウンのコードブロック�
  * 
  * Each line is a JSON object for Bedrock Batch API:
  * {
- *   "modelId": "amazon.nova-lite-v1:0",
+ *   "modelId": "us.amazon.nova-lite-v1:0",
  *   "input": {
  *     "text": "prompt with base64 image"
  *   },
@@ -128,7 +128,7 @@ async function generateManifest(imageIds) {
 
             // Create manifest line (Bedrock Batch format)
             const manifestLine = JSON.stringify({
-                modelId: "amazon.nova-lite-v1:0",
+                modelId: "us.amazon.nova-lite-v1:0",
                 input,
                 customData: imageId,
             });
@@ -180,7 +180,7 @@ async function submitBatchJob(manifestUri, modelId) {
 
     const response = await bedrock.send(new CreateModelInvocationJobCommand({
         jobName,
-        modelId,  // e.g., "amazon.nova-lite-v1:0"
+        modelId,  // e.g., "us.amazon.nova-lite-v1:0"
         inputDataConfig: {
             s3InputDataConfig: {
                 s3Uri: manifestUri,

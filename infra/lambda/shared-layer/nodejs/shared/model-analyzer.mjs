@@ -225,7 +225,7 @@ export class MultiModelAnalyzer {
       };
 
       // Use Inference Profile ARN if available, otherwise fall back to model ID
-      const modelId = process.env.NOVA_PRO_INFERENCE_PROFILE || "amazon.nova-pro-v1:0";
+      const modelId = process.env.NOVA_PRO_INFERENCE_PROFILE || "us.amazon.nova-pro-v1:0";
 
       const response = await bedrockClient.send(
         new InvokeModelCommand({

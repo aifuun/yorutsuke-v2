@@ -14,6 +14,11 @@ function getAdminDeleteUrl(): string {
   return import.meta.env.VITE_LAMBDA_ADMIN_DELETE_URL || '';
 }
 
+// Get Admin Purge All Data Lambda URL
+function getAdminPurgeAllUrl(): string {
+  return import.meta.env.VITE_LAMBDA_ADMIN_PURGE_ALL_URL || '';
+}
+
 // Zod schema for delete data response
 const DeleteDataResponseSchema = z.object({
   userId: z.string(),
@@ -24,6 +29,19 @@ const DeleteDataResponseSchema = z.object({
 });
 
 type DeleteDataResponse = z.infer<typeof DeleteDataResponseSchema>;
+
+// Zod schema for purge all data response (admin only, system-wide)
+const PurgeAllDataResponseSchema = z.object({
+  action: z.literal('admin_purge_all_data'),
+  adminUserId: z.string(),
+  deleted: z.object({
+    transactions: z.number(),
+    images: z.number(),
+  }),
+  timestamp: z.string(),
+});
+
+type PurgeAllDataResponse = z.infer<typeof PurgeAllDataResponseSchema>;
 
 // Data types that can be deleted
 export type DataType = 'transactions' | 'images';
@@ -156,6 +174,118 @@ export async function deleteUserData(
       error: String(error),
       userId,
       types,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Purge ALL data from the system (admin only)
+ * DANGER: This deletes transactions and images for ALL users
+ * Requires admin authorization header
+ *
+ * Pillar B: Validate response with Zod schema
+ *
+ * Security: Requires x-admin-user-id header (admin authorization)
+ *
+ * @param adminUserId - Admin user ID (passed in header for audit trail)
+ * @returns Count of deleted items across all users
+ */
+export async function purgeAllData(adminUserId: string): Promise<PurgeAllDataResponse> {
+  // Validation
+  if (!adminUserId) {
+    throw new Error('adminUserId is required');
+  }
+
+  // Mocking offline - simulate network failure
+  if (isMockingOffline()) {
+    await mockDelay(100);
+    logger.debug(EVENTS.APP_ERROR, { component: 'adminApi', phase: 'mock_offline_purge_all' });
+    throw mockNetworkError('purge all data');
+  }
+
+  // Mocking online - return mock response
+  if (isMockingOnline()) {
+    await mockDelay(2000);
+    logger.debug(EVENTS.APP_ERROR, { component: 'adminApi', phase: 'mock_online_purge_all' });
+    return {
+      action: 'admin_purge_all_data',
+      adminUserId,
+      deleted: { transactions: 42, images: 128 },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  logger.info('admin_purge_all_data_started', { adminUserId });
+
+  // Get and check Lambda URL
+  const purgeAllUrl = getAdminPurgeAllUrl();
+  if (!purgeAllUrl) {
+    logger.error(EVENTS.APP_ERROR, {
+      component: 'adminApi',
+      error: 'VITE_LAMBDA_ADMIN_PURGE_ALL_URL not configured',
+      adminUserId,
+    });
+    throw new Error(
+      'VITE_LAMBDA_ADMIN_PURGE_ALL_URL not configured. Please deploy the Lambda and add URL to .env.local'
+    );
+  }
+
+  try {
+    const fetchPromise = fetch(purgeAllUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-user-id': adminUserId,
+      },
+    });
+
+    const response = await withTimeout(
+      fetchPromise,
+      DELETE_TIMEOUT_MS,
+      'Purge all data timeout (5 minutes)'
+    );
+
+    if (!response.ok) {
+      // Handle specific error codes
+      if (response.status === 401) {
+        throw new Error('401: Unauthorized - Admin user ID required');
+      }
+      if (response.status === 400) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`400: ${errorData.error || 'Invalid request'}`);
+      }
+      if (response.status === 500) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`500: ${errorData.error || 'Server error'}`);
+      }
+      throw new Error(`Purge failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Pillar B: Validate response with Zod schema
+    const parsed = PurgeAllDataResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      logger.error(EVENTS.APP_ERROR, {
+        component: 'adminApi',
+        error: 'Invalid purge response schema',
+        details: parsed.error.message,
+      });
+      throw new Error(`Invalid purge response: ${parsed.error.message}`);
+    }
+
+    logger.info('admin_purge_all_data_success', {
+      adminUserId,
+      deleted: parsed.data.deleted,
+    });
+
+    return parsed.data;
+  } catch (error) {
+    logger.error(EVENTS.APP_ERROR, {
+      component: 'adminApi',
+      error: String(error),
+      adminUserId,
     });
     throw error;
   }

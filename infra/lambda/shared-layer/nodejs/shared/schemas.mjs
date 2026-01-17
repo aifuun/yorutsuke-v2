@@ -51,7 +51,7 @@ export const BatchConfigSchema = z.object({
     processingMode: z.enum(['instant', 'batch', 'hybrid']),
     imageThreshold: z.number().min(100).max(500),
     timeoutMinutes: z.number().min(30).max(480),
-    modelId: z.string().default('amazon.nova-lite-v1:0'),
+    modelId: z.string().default('us.amazon.nova-lite-v1:0'),  // Must include region prefix
     updatedAt: z.string(),
     updatedBy: z.string(),
 });

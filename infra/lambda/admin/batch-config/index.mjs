@@ -10,7 +10,7 @@ const DEFAULT_CONFIG = {
     processingMode: 'instant',
     imageThreshold: 100,
     timeoutMinutes: 120,
-    modelId: 'amazon.nova-lite-v1:0',
+    modelId: 'us.amazon.nova-lite-v1:0',  // Must include region prefix for Bedrock API
     updatedAt: new Date().toISOString(),
     updatedBy: 'system',
 };
