@@ -220,47 +220,6 @@ export class YorutsukeAdminStack extends cdk.Stack {
     );
 
     // ========================================
-    // Lambda: Admin Batch Config
-    // ========================================
-    const batchConfigLambda = new lambda.Function(this, "AdminBatchConfigLambda", {
-      functionName: `yorutsuke-admin-batch-config-us-${env}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/batch-config"),
-      layers: [sharedLayer],
-      environment: {
-        CONTROL_TABLE_NAME: controlTable.tableName,
-      },
-      timeout: cdk.Duration.seconds(10),
-    });
-
-    controlTable.grantReadWriteData(batchConfigLambda);
-
-    // ========================================
-    // Lambda: Admin Batch
-    // ========================================
-    const batchLambda = new lambda.Function(this, "AdminBatchLambda", {
-      functionName: `yorutsuke-admin-batch-us-${env}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/batch"),
-      layers: [sharedLayer],
-      environment: {
-        IMAGE_BUCKET_NAME: props.imageBucketName,
-        BATCH_MODE_DISABLED: "true", // Batch processing removed (Issue #147)
-      },
-      timeout: cdk.Duration.seconds(30),
-    });
-
-    // Grant permissions to list S3 bucket for pending images count
-    batchLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["s3:ListBucket"],
-        resources: [`arn:aws:s3:::${props.imageBucketName}`],
-      })
-    );
-
-    // ========================================
     // API Gateway with Cognito Authorization
     // ========================================
     const api = new apigateway.RestApi(this, "AdminApi", {
@@ -342,32 +301,6 @@ export class YorutsukeAdminStack extends cdk.Stack {
     costsResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(costsLambda),
-      authOptions
-    );
-
-    // /batch endpoint (legacy batch operations)
-    const batchResource = api.root.addResource("batch");
-    batchResource.addMethod(
-      "GET",
-      new apigateway.LambdaIntegration(batchLambda),
-      authOptions
-    );
-    batchResource.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(batchLambda),
-      authOptions
-    );
-
-    // /batch/config endpoint (new batch configuration)
-    const batchConfigResource = batchResource.addResource("config");
-    batchConfigResource.addMethod(
-      "GET",
-      new apigateway.LambdaIntegration(batchConfigLambda),
-      authOptions
-    );
-    batchConfigResource.addMethod(
-      "POST",
-      new apigateway.LambdaIntegration(batchConfigLambda),
       authOptions
     );
 

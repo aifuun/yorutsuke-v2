@@ -289,7 +289,7 @@ export class YorutsukeStack extends cdk.Stack {
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
         BUCKET_NAME: imageBucket.bucketName,
-        CONTROL_TABLE_NAME: controlTable.tableName,
+        MODEL_ID: "us.amazon.nova-lite-v1:0", // Default model for OCR processing
         NOVA_PRO_INFERENCE_PROFILE: novaProInferenceProfileArn,
         CLAUDE_SONNET_INFERENCE_PROFILE: claudeSonnetInferenceProfileArn,
       },
@@ -307,7 +307,6 @@ export class YorutsukeStack extends cdk.Stack {
     // Grant permissions for instant processor
     imageBucket.grantReadWrite(instantProcessLambda);
     transactionsTable.grantWriteData(instantProcessLambda);
-    controlTable.grantReadData(instantProcessLambda);
     instantProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [

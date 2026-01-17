@@ -1,7 +1,7 @@
 import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { marshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema } from "/opt/nodejs/shared/schemas.mjs";
 import { MultiModelAnalyzer } from "/opt/nodejs/shared/model-analyzer.mjs";
@@ -13,7 +13,7 @@ const analyzer = new MultiModelAnalyzer();
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
-const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
+const MODEL_ID = process.env.MODEL_ID || "us.amazon.nova-lite-v1:0";
 
 // Guest data expires after 60 days
 const GUEST_TTL_DAYS = 60;
@@ -127,24 +127,7 @@ export async function handler(event) {
             }
             const imageBase64 = Buffer.concat(chunks).toString("base64");
 
-            // 4. Call Bedrock
-            // Fetch configuration for modelId
-            let modelId = "us.amazon.nova-lite-v1:0";
-            try {
-                const configResult = await ddb.send(new GetItemCommand({
-                    TableName: CONTROL_TABLE_NAME,
-                    Key: marshall({ key: 'batch_config' }),
-                }));
-                if (configResult.Item) {
-                    const config = unmarshall(configResult.Item);
-                    if (config.modelId) {
-                        modelId = config.modelId;
-                    }
-                }
-            } catch (err) {
-                logger.warn("Failed to fetch modelId from ControlTable, using default", { error: err.message });
-            }
-
+            // 4. Call Bedrock (using MODEL_ID from environment)
             const payload = {
                 messages: [
                     {
@@ -168,7 +151,7 @@ export async function handler(event) {
 
             const bedrockResponse = await bedrock.send(
                 new InvokeModelCommand({
-                    modelId: modelId,
+                    modelId: MODEL_ID,
                     contentType: "application/json",
                     accept: "application/json",
                     body: JSON.stringify(payload),
