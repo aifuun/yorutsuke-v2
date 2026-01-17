@@ -216,6 +216,8 @@ export async function handler(event) {
             }
 
             let parsed;
+            let primaryModelId;
+            let primaryConfidence;
 
             // 5. Call primary OCR service (Bedrock or Azure DI)
             if (useAzureAsPrimary) {
@@ -233,10 +235,13 @@ export async function handler(event) {
 
                     // Convert ModelResultSchema to OcrResultSchema
                     parsed = convertModelResultToOcrResult(azureResult);
+                    primaryModelId = 'azure_di';
+                    primaryConfidence = azureResult.confidence; // 0-100 confidence score
                     logger.debug("AZURE_DI_PRIMARY_RESULT", {
                         imageId,
                         vendor: azureResult.vendor,
                         amount: azureResult.totalAmount,
+                        confidence: primaryConfidence,
                     });
                 } catch (azureError) {
                     logger.error("AZURE_DI_PRIMARY_FAILED", {
@@ -288,6 +293,8 @@ export async function handler(event) {
 
                 try {
                     parsed = OcrResultSchema.parse(JSON.parse(jsonStr));
+                    primaryModelId = modelId; // e.g., 'us.amazon.nova-lite-v1:0'
+                    primaryConfidence = undefined; // Nova models don't return confidence score
                 } catch (zodError) {
                     logger.error(EVENTS.AIRLOCK_BREACH, { userId, imageId, error: zodError.message, raw: jsonStr });
                     continue; // Skip this record on airlock breach
@@ -339,6 +346,8 @@ export async function handler(event) {
                 createdAt: now,
                 updatedAt: now,
                 confirmedAt: null,
+                primaryModelId,           // Track which model processed this
+                primaryConfidence,        // Confidence score (if available)
                 ...(modelComparison && {
                     modelComparison,
                     comparisonStatus: modelComparison.comparisonStatus,
@@ -383,6 +392,8 @@ export async function handler(event) {
                     createdAt: now,
                     updatedAt: now,
                     confirmedAt: null,
+                    primaryModelId,           // Track which model processed this
+                    primaryConfidence,        // Confidence score (if available)
                     validationErrors: validationResult.error.issues, // Store errors for debugging
                     ...(modelComparison && {
                         modelComparison,

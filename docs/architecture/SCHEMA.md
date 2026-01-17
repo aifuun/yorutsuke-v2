@@ -7,7 +7,7 @@
 - **Architecture**: Local-First + Cloud-Sync
 - **Local**: SQLite (Tauri plugin-sql)
 - **Cloud**: DynamoDB + S3
-- **Last Updated**: 2026-01-17
+- **Last Updated**: 2026-01-05
 
 ## Quick Index
 
@@ -102,9 +102,9 @@ CREATE TABLE images (
   created_at TEXT DEFAULT (datetime('now')),
   uploaded_at TEXT,                 -- ISO 8601 (when uploaded to S3)
 
-  -- Observability (Pillar N)
-  trace_id TEXT,                    -- Request correlation (v2, enhanced in v10)
-  intent_id TEXT,                   -- DEPRECATED v11: Was idempotency key (v2), now always NULL
+  -- Observability (Pillar N, Q)
+  trace_id TEXT,                    -- Request correlation (v2)
+  intent_id TEXT,                   -- Idempotency key (v2)
 
   -- Error handling
   error TEXT,                       -- Error message for failed status (v4)
@@ -156,11 +156,13 @@ CREATE TABLE transactions (
   created_at TEXT NOT NULL,         -- ISO 8601 (processing time)
   updated_at TEXT NOT NULL,         -- ISO 8601 (last modification)
   confirmed_at TEXT,                -- ISO 8601 (null = unconfirmed)
-  confidence REAL,                  -- 0.0-1.0 (AI confidence)
+  confidence REAL,                  -- 0.0-1.0 (AI confidence) [DEPRECATED: use primary_confidence]
   raw_text TEXT,                    -- OCR result
   status TEXT DEFAULT 'unconfirmed',-- v6: 'unconfirmed'|'confirmed'|'deleted'
   version INTEGER DEFAULT 1,        -- v6: Optimistic locking
-  dirty_sync INTEGER DEFAULT 0      -- v8: 1=needs cloud sync, 0=synced
+  dirty_sync INTEGER DEFAULT 0,     -- v8: 1=needs cloud sync, 0=synced
+  primary_model_id TEXT,            -- v9: Which model processed (e.g., 'us.amazon.nova-lite-v1:0', 'azure_di')
+  primary_confidence REAL           -- v9: 0-100 confidence score from primary model
 );
 
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
@@ -174,9 +176,6 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 - v7: Removed FK constraint on `image_id` (soft reference for cloud sync)
 - v8: Added `dirty_sync` (track local changes needing cloud sync)
 - v9: Added `primary_model_id` and `primary_confidence` (track which model processed transaction)
-- v10: Added `trace_id` to transactions (distributed tracing from frontend through backend)
-- v11: Deprecated `intent_id` (no longer generated, always NULL; traceId provides sufficient tracking)
-- v12: Simplified AI processing fields - removed `modelComparison`, `comparisonStatus`, `comparisonTimestamp`, `comparisonErrors`; replaced `primary_model_id` with `processingModel` (Issue #146)
 
 ### morning_reports / settings
 
@@ -190,41 +189,27 @@ See index for caching and user preferences.
 
 ```typescript
 interface CloudTransaction {
-  // Keys
-  userId: string;                    // PK - from Cognito
-  transactionId: string;             // SK - UUID
+  userId: string;           // PK - from Cognito
+  transactionId: string;    // SK - UUID
+  s3Key: string;            // S3 image path
+  amount: number | null;
+  merchant: string | null;
+  category: string | null;
+  receiptDate: string | null;
+  aiConfidence: number | null;
+  aiResult: object | null;  // Full AI response
+  status: 'uploaded' | 'processing' | 'processed' | 'failed' | 'skipped';
+  createdAt: string;        // ISO 8601
+  updatedAt: string;        // ISO 8601
 
-  // Transaction Data
-  imageId?: string;                  // ImageId (optional)
-  s3Key?: string;                    // S3 image path
-  amount: number;
-  type: 'income' | 'expense';
-  merchant: string;
-  merchantSource?: 'list_match' | 'ocr_fallback' | 'unknown' | 'user_edited';
-  category: string;
-  description: string;
-  date: string;                      // YYYY-MM-DD
+  // Primary model metadata (v9: Track which model processed each transaction)
+  primaryModelId?: string;     // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
+  primaryConfidence?: number;  // 0-100 confidence score (if available)
 
-  // Status & Metadata
-  status: 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
-  aiProcessed: boolean;
-  version: number;
-
-  // AI Processing (simplified in v12)
-  processingModel?: string;          // Model ID from Admin Panel (e.g., 'us.amazon.nova-lite-v1:0')
-  confidence?: number;               // AI confidence score (0.0-1.0)
-
-  // Timestamps
-  createdAt: string;                 // ISO 8601
-  updatedAt: string;                 // ISO 8601
-  confirmedAt: string | null;        // ISO 8601 or null
-
-  // Error Handling
-  validationErrors?: Array<any>;     // Zod validation errors for debugging
-
-  // Guest Users
-  isGuest?: boolean;
-  ttl?: number;                      // Unix timestamp for guest data expiration
+  // Multi-model comparison (optional, for A/B testing)
+  modelComparison?: object;       // Results from all enabled models
+  comparisonStatus?: string;      // 'pending' | 'completed' | 'failed'
+  comparisonTimestamp?: string;   // ISO 8601
 }
 ```
 
