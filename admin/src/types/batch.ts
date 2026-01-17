@@ -21,8 +21,8 @@ export const AVAILABLE_MODELS = [
         description: 'Higher accuracy'
     },
     {
-        id: 'us.anthropic.claude-3-haiku-20240307-v1:0',
-        name: 'Claude 3 Haiku',
-        description: 'Alternative'
+        id: 'azure-di',
+        name: 'Azure DI',
+        description: 'Document Intelligence service'
     },
 ] as const;

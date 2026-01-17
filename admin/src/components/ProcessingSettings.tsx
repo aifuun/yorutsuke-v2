@@ -64,6 +64,99 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
 
     return (
         <div className="space-y-8">
+            {/* Model Selection */}
+            <div className="bg-app-surface border border-app-border rounded-lg p-6 mb-8">
+                <label className="block text-sm font-medium text-app-text-secondary mb-3">
+                    LLM Model
+                </label>
+                <div className="space-y-3">
+                    {AVAILABLE_MODELS.map((model) => (
+                        <label
+                            key={model.id}
+                            className="flex items-start p-3 rounded-lg border border-app-border hover:border-app-text-secondary/50 hover:bg-app-bg/50 cursor-pointer transition-all"
+                        >
+                            <input
+                                type="radio"
+                                name="modelId"
+                                value={model.id}
+                                checked={localConfig.modelId === model.id}
+                                onChange={(e) => updateField('modelId', e.target.value)}
+                                className="mt-1 w-4 h-4 cursor-pointer accent-app-accent"
+                            />
+                            <div className="ml-3 flex-1">
+                                <div className="font-medium text-app-text">{model.name}</div>
+                                <div className="text-xs text-app-text-secondary mt-1">{model.description}</div>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            {/* Azure Document Intelligence Credentials - Conditional */}
+            {localConfig.modelId === 'azure-di' && (
+                <div className="mb-8 p-4 border border-app-border rounded-lg bg-app-bg/50">
+                    <h3 className="text-sm font-semibold text-app-text mb-3 flex items-center gap-2">
+                        📄 Azure Document Intelligence Credentials
+                    </h3>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-medium text-app-text-secondary mb-2">
+                                Endpoint
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="https://your-resource.cognitiveservices.azure.com/"
+                                value={localConfig.azureEndpoint || ''}
+                                onChange={(e) => updateField('azureEndpoint', e.target.value)}
+                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text placeholder-app-text-secondary/50 focus:outline-none focus:border-app-accent"
+                            />
+                            <p className="text-xs text-app-text-secondary mt-1">Azure Document Intelligence endpoint URL</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-app-text-secondary mb-2">
+                                API Key
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="Enter your API key"
+                                value={localConfig.azureApiKey || ''}
+                                onChange={(e) => updateField('azureApiKey', e.target.value)}
+                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text placeholder-app-text-secondary/50 focus:outline-none focus:border-app-accent"
+                            />
+                            <p className="text-xs text-app-text-secondary mt-1">Your Azure Document Intelligence API key</p>
+                        </div>
+                        <div className="pt-2 flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={handleTestAzureConnection}
+                                disabled={testingAzure}
+                                className="px-3 py-1 text-xs bg-app-accent/20 text-app-accent border border-app-accent/50 rounded hover:bg-app-accent/30 transition-colors font-medium disabled:opacity-50"
+                            >
+                                {testingAzure ? 'Testing...' : 'Test Connection'}
+                            </button>
+                            {azureTestResult && (
+                                <span className={`text-xs font-medium ${azureTestResult.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
+                                    {azureTestResult}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Action Area */}
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent/80 transition-colors font-medium disabled:opacity-50"
+                >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+                {success && <span className="text-green-400 text-sm font-medium">✓ Config saved!</span>}
+                {error && <span className="text-red-400 text-sm font-medium">{error}</span>}
+            </div>
+
             {/* Model Information Card */}
             <div className="bg-app-surface border border-app-border rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-app-text mb-4">Available LLM Models</h3>
@@ -121,211 +214,6 @@ export function ProcessingSettings({ config, onSave }: ProcessingSettingsProps) 
                         </ul>
                     </div>
                 </div>
-            </div>
-
-            {/* Processing Settings Card */}
-            <div className="bg-app-surface border border-app-border rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-app-text mb-4">
-                    Processing Settings
-                </h2>
-
-            {/* Processing Mode */}
-            <div className="mb-6">
-                <label className="block text-sm font-medium text-app-text-secondary mb-3">
-                    Processing Mode
-                </label>
-                <div className="space-y-3">
-                    <ModeOption
-                        value="instant"
-                        selected={localConfig.processingMode === 'instant'}
-                        label="Instant (On-Demand)"
-                        description="Process each receipt immediately after upload"
-                        recommended
-                        onClick={() => updateField('processingMode', 'instant')}
-                    />
-                    <ModeOption
-                        value="batch"
-                        selected={localConfig.processingMode === 'batch'}
-                        label="Batch Only (50% Discount)"
-                        description="Accumulate images and process after reaching threshold"
-                        onClick={() => updateField('processingMode', 'batch')}
-                    />
-                    <ModeOption
-                        value="hybrid"
-                        selected={localConfig.processingMode === 'hybrid'}
-                        label="Hybrid"
-                        description="Use Batch if threshold met, fallback to Instant on timeout"
-                        onClick={() => updateField('processingMode', 'hybrid')}
-                    />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* Conditional: Threshold */}
-                {(localConfig.processingMode === 'batch' || localConfig.processingMode === 'hybrid') && (
-                    <div>
-                        <label className="block text-sm font-medium text-app-text-secondary mb-2">
-                            Image Threshold
-                        </label>
-                        <input
-                            type="number"
-                            min={100}
-                            max={500}
-                            value={localConfig.imageThreshold}
-                            onChange={(e) => updateField('imageThreshold', parseInt(e.target.value))}
-                            className="w-full bg-app-bg border border-app-border rounded-lg px-4 py-2 text-app-text focus:outline-none focus:border-app-accent"
-                        />
-                        <p className="text-xs text-app-text-secondary mt-1">Minimum 100 for AWS Bedrock Batch</p>
-                    </div>
-                )}
-
-                {/* Conditional: Timeout */}
-                {localConfig.processingMode === 'hybrid' && (
-                    <div>
-                        <label className="block text-sm font-medium text-app-text-secondary mb-2">
-                            Timeout (minutes)
-                        </label>
-                        <input
-                            type="number"
-                            min={30}
-                            max={480}
-                            value={localConfig.timeoutMinutes}
-                            onChange={(e) => updateField('timeoutMinutes', parseInt(e.target.value))}
-                            className="w-full bg-app-bg border border-app-border rounded-lg px-4 py-2 text-app-text focus:outline-none focus:border-app-accent"
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Model Selection */}
-            <div className="mb-8">
-                <label className="block text-sm font-medium text-app-text-secondary mb-3">
-                    LLM Model
-                </label>
-                <div className="space-y-3">
-                    {AVAILABLE_MODELS.map((model) => (
-                        <label
-                            key={model.id}
-                            className="flex items-start p-3 rounded-lg border border-app-border hover:border-app-text-secondary/50 hover:bg-app-bg/50 cursor-pointer transition-all"
-                        >
-                            <input
-                                type="radio"
-                                name="modelId"
-                                value={model.id}
-                                checked={localConfig.modelId === model.id}
-                                onChange={(e) => updateField('modelId', e.target.value)}
-                                className="mt-1 w-4 h-4 cursor-pointer accent-app-accent"
-                            />
-                            <div className="ml-3 flex-1">
-                                <div className="font-medium text-app-text">{model.name}</div>
-                                <div className="text-xs text-app-text-secondary mt-1">{model.description}</div>
-                            </div>
-                        </label>
-                    ))}
-                </div>
-            </div>
-
-            {/* Azure Document Intelligence Credentials - Conditional */}
-            {localConfig.modelId === 'us.anthropic.claude-3-haiku-20240307-v1:0' && (
-                <div className="mb-8 p-4 border border-app-border rounded-lg bg-app-bg/50">
-                    <h3 className="text-sm font-semibold text-app-text mb-3 flex items-center gap-2">
-                        📄 Azure Document Intelligence Credentials
-                    </h3>
-                    <div className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-medium text-app-text-secondary mb-2">
-                                Endpoint
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="https://your-resource.cognitiveservices.azure.com/"
-                                value={localConfig.azureEndpoint || ''}
-                                onChange={(e) => updateField('azureEndpoint', e.target.value)}
-                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text placeholder-app-text-secondary/50 focus:outline-none focus:border-app-accent"
-                            />
-                            <p className="text-xs text-app-text-secondary mt-1">Azure Document Intelligence endpoint URL</p>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-app-text-secondary mb-2">
-                                API Key
-                            </label>
-                            <input
-                                type="password"
-                                placeholder="Enter your API key"
-                                value={localConfig.azureApiKey || ''}
-                                onChange={(e) => updateField('azureApiKey', e.target.value)}
-                                className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-xs text-app-text placeholder-app-text-secondary/50 focus:outline-none focus:border-app-accent"
-                            />
-                            <p className="text-xs text-app-text-secondary mt-1">Your Azure Document Intelligence API key</p>
-                        </div>
-                        <div className="pt-2 flex items-center gap-3">
-                            <button
-                                type="button"
-                                onClick={handleTestAzureConnection}
-                                disabled={testingAzure}
-                                className="px-3 py-1 text-xs bg-app-accent/20 text-app-accent border border-app-accent/50 rounded hover:bg-app-accent/30 transition-colors font-medium disabled:opacity-50"
-                            >
-                                {testingAzure ? 'Testing...' : 'Test Connection'}
-                            </button>
-                            {azureTestResult && (
-                                <span className={`text-xs font-medium ${azureTestResult.startsWith('✅') ? 'text-green-400' : 'text-red-400'}`}>
-                                    {azureTestResult}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-                {/* Action Area */}
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="px-6 py-2 bg-app-accent text-white rounded-lg hover:bg-app-accent/80 transition-colors font-medium disabled:opacity-50"
-                    >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                    {success && <span className="text-green-400 text-sm font-medium">✓ Config saved!</span>}
-                    {error && <span className="text-red-400 text-sm font-medium">{error}</span>}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-interface ModeOptionProps {
-    value: string;
-    selected: boolean;
-    label: string;
-    description: string;
-    recommended?: boolean;
-    onClick: () => void;
-}
-
-function ModeOption({ selected, label, description, recommended, onClick }: ModeOptionProps) {
-    return (
-        <div
-            onClick={onClick}
-            className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${selected
-                ? 'border-app-accent bg-app-accent/10'
-                : 'border-app-border hover:border-app-text-secondary/50'
-                }`}
-        >
-            <div>
-                <div className="font-medium text-app-text flex items-center gap-2">
-                    {label}
-                    {recommended && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded uppercase font-bold">
-                            Recommended
-                        </span>
-                    )}
-                </div>
-                <div className="text-sm text-app-text-secondary">{description}</div>
-            </div>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected ? 'border-app-accent' : 'border-app-text-secondary'
-                }`}>
-                {selected && <div className="w-2.5 h-2.5 rounded-full bg-app-accent" />}
             </div>
         </div>
     );
