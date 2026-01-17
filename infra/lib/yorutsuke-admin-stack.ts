@@ -284,11 +284,11 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // ========================================
     // Lambda: Azure DI Credentials Management
     // ========================================
-    const azureSecretArn = `arn:aws:secretsmanager:${this.region}:${this.account}:secret:yorutsuke/${env}/azure-di-credentials`;
-    const azureSecret = secretsmanager.Secret.fromSecretPartialArn(
+    // Reference existing secret created by main stack
+    const azureSecret = secretsmanager.Secret.fromSecretNameV2(
       this,
       "AzureDISecret",
-      azureSecretArn
+      `yorutsuke/${env}/azure-di-credentials`
     );
 
     const azureCredentialsLambda = new lambda.Function(this, "AdminAzureCredentialsLambda", {
@@ -298,7 +298,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda/admin/azure-credentials"),
       layers: [sharedLayer],
       environment: {
-        AZURE_CREDENTIALS_SECRET_ARN: azureSecretArn,
+        AZURE_CREDENTIALS_SECRET_ARN: azureSecret.secretArn,
       },
       timeout: cdk.Duration.seconds(10),
     });
