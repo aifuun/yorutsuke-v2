@@ -99,7 +99,7 @@ export class YorutsukeStack extends cdk.Stack {
     });
 
     // DynamoDB Table for Admin Control/Config (Physical table managed by AdminStack)
-    const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", `yorutsuke-control-${env}`);
+    const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", `yorutsuke-control-us-${env}`);
 
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, "UserPool", {
