@@ -25,3 +25,23 @@ Thumbs.db
 
 # Claude (session-specific)
 .claude/archive/
+
+# Temporary files (prevent root directory pollution)
+# Rule: No temporary files in root directory
+# See .claude/rules/file-creation.md for details
+/*ANALYSIS*.md
+/*IMPLEMENTATION*.md
+/*QUICK*.md
+/*SAFETY*.md
+/*SYNC*.md
+/*POTENTIAL*.md
+/*CHANGELOG*.md
+/*TRAIN*.md
+/*STATUS*.sh
+/*TIMELINE*.sh
+/*SCHEDULE*.txt
+/temp-*
+/archives/
+/temp/
+/output/
+/analysis/
