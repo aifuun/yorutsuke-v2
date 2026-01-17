@@ -2,7 +2,7 @@
 // Pillar L: Pure orchestration, no React dependencies
 // Registers Tauri drag-drop listeners at app startup
 
-import { ImageId, UserId, createIntentId, createTraceId } from '../../../00_kernel/types';
+import { ImageId, UserId, createTraceId } from '../../../00_kernel/types';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import { MAX_DROP_COUNT } from '../../../01_domains/receipt';
 import { emit, on } from '../../../00_kernel/eventBus';
@@ -173,13 +173,10 @@ class CaptureService {
         continue;
       }
 
-      const intentId = createIntentId();
-
       // Create ReceiptImage and add to store
       const image: ReceiptImage = {
         id: item.id,
         userId: this.userId,
-        intentId,
         traceId: item.traceId,
         status: 'pending',
         localPath: item.localPath,
@@ -195,7 +192,7 @@ class CaptureService {
       };
 
       // Save to DB immediately for session recovery (IO first, then store)
-      await savePendingImage(image.id, this.userId, image.traceId, image.intentId, image.localPath, image.originalName);
+      await savePendingImage(image.id, this.userId, image.traceId, image.localPath, image.originalName);
 
       captureStore.getState().addImage(image);
 
@@ -249,8 +246,7 @@ class CaptureService {
       image.id,
       image.userId,
       image.localPath,
-      image.traceId,
-      image.intentId
+      image.traceId
     );
   }
 
@@ -281,10 +277,9 @@ class CaptureService {
       logger.debug(EVENTS.QUEUE_AUTO_UPLOAD, {
         imageId: image.id,
         traceId: image.traceId,
-        intentId: image.intentId,
       });
 
-      uploadService.enqueue(image.id, compressedPath, image.intentId, image.traceId);
+      uploadService.enqueue(image.id, compressedPath, image.traceId);
     }
   }
 

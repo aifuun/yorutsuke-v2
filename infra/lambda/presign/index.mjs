@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, UpdateItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
@@ -9,7 +9,6 @@ const ddb = new DynamoDBClient({});
 const ssm = new SSMClient({});
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
-const INTENTS_TABLE_NAME = process.env.INTENTS_TABLE_NAME;  // Pillar Q: Idempotency
 const EMERGENCY_STOP_PARAM = process.env.EMERGENCY_STOP_PARAM;  // Circuit breaker
 
 // Cache emergency stop status (refresh every 60s)
@@ -119,47 +118,6 @@ async function incrementQuota(userId, date) {
   return parseInt(result.Attributes?.count?.N || "1");
 }
 
-/**
- * Pillar Q: Check if intent was already processed
- * @param {string} intentId
- * @returns {Promise<{url: string, key: string} | null>} Cached result or null
- */
-async function checkIntent(intentId) {
-  if (!INTENTS_TABLE_NAME || !intentId) return null;
-
-  const result = await ddb.send(
-    new GetItemCommand({
-      TableName: INTENTS_TABLE_NAME,
-      Key: { intentId: { S: intentId } },
-    })
-  );
-
-  if (result.Item?.result?.S) {
-    return JSON.parse(result.Item.result.S);
-  }
-  return null;
-}
-
-/**
- * Pillar Q: Store intent result for idempotency
- * @param {string} intentId
- * @param {{url: string, key: string}} result
- * @returns {Promise<void>}
- */
-async function storeIntent(intentId, result) {
-  if (!INTENTS_TABLE_NAME || !intentId) return;
-
-  await ddb.send(
-    new PutItemCommand({
-      TableName: INTENTS_TABLE_NAME,
-      Item: {
-        intentId: { S: intentId },
-        result: { S: JSON.stringify(result) },
-        ttl: { N: String(getTTL()) },  // 7 days TTL
-      },
-    })
-  );
-}
 
 /**
  * Check if emergency stop is enabled (circuit breaker)
@@ -219,9 +177,9 @@ export async function handler(event) {
     }
 
     const body = JSON.parse(event.body || "{}");
-    const { userId, fileName, intentId, contentType, action, s3Key } = body;
+    const { userId, fileName, contentType, action, s3Key } = body;
 
-    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, intentId, action });
+    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, action });
 
     // Handle download action (GET presigned URL)
     if (action === 'download') {
@@ -259,20 +217,6 @@ export async function handler(event) {
         statusCode: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ error: "MISSING_PARAMS", message: "Missing userId or fileName" }),
-      };
-    }
-
-    // Pillar Q: Check idempotency - return cached result if already processed
-    const cachedResult = await checkIntent(intentId);
-    if (cachedResult) {
-      logger.info(EVENTS.PRESIGN_CACHED, { intentId });
-      return {
-        statusCode: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-        body: JSON.stringify(cachedResult),
       };
     }
 
@@ -315,10 +259,7 @@ export async function handler(event) {
 
     const result = { url: signedUrl, key };
 
-    // Pillar Q: Store intent result for idempotency
-    await storeIntent(intentId, result);
-
-    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key, intentId });
+    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key });
 
     return {
       statusCode: 200,

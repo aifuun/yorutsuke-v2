@@ -85,18 +85,6 @@ export class YorutsukeStack extends cdk.Stack {
           : cdk.RemovalPolicy.DESTROY,
     });
 
-    // DynamoDB Table for idempotency (Pillar Q)
-    const intentsTable = new dynamodb.Table(this, "IntentsTable", {
-      tableName: `yorutsuke-intents-us-${env}`,
-      partitionKey: { name: "intentId", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      timeToLiveAttribute: "ttl",
-      removalPolicy:
-        env === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
-    });
-
     // DynamoDB Table for Admin Control/Config (Physical table managed by AdminStack)
     const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", `yorutsuke-control-${env}`);
 
@@ -144,7 +132,6 @@ export class YorutsukeStack extends cdk.Stack {
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
         QUOTAS_TABLE_NAME: quotasTable.tableName,
-        INTENTS_TABLE_NAME: intentsTable.tableName,  // Pillar Q
         QUOTA_LIMIT: "50",
       },
       timeout: cdk.Duration.seconds(10),
@@ -152,7 +139,6 @@ export class YorutsukeStack extends cdk.Stack {
 
     imageBucket.grantPut(presignLambda);
     quotasTable.grantReadWriteData(presignLambda);
-    intentsTable.grantReadWriteData(presignLambda);  // Pillar Q
 
     // Lambda Function URL for presign
     const presignUrl = presignLambda.addFunctionUrl({
@@ -715,11 +701,6 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "QuotasTableName", {
       value: quotasTable.tableName,
       exportName: `${id}-QuotasTable`,
-    });
-
-    new cdk.CfnOutput(this, "IntentsTableName", {
-      value: intentsTable.tableName,
-      exportName: `${id}-IntentsTable`,
     });
 
     new cdk.CfnOutput(this, "QuotaLambdaUrl", {

@@ -1,8 +1,7 @@
 // Upload Store - Zustand vanilla store for upload queue
 // Pillar D: FSM - no boolean flags
-// Pillar Q: Intent-ID for idempotency
 import { createStore } from 'zustand/vanilla';
-import type { ImageId, IntentId, TraceId } from '../../../00_kernel/types';
+import type { ImageId, TraceId } from '../../../00_kernel/types';
 import type { UploadErrorType } from '../../../00_kernel/eventBus/types';
 
 // Constants
@@ -14,7 +13,6 @@ export type TaskStatus = 'idle' | 'uploading' | 'success' | 'failed' | 'retrying
 
 export interface UploadTask {
   id: ImageId;
-  intentId: IntentId;  // Pillar Q: Idempotency key
   traceId: TraceId;    // Pillar N: Lifecycle tracking
   filePath: string;
   status: TaskStatus;

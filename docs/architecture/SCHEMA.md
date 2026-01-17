@@ -102,9 +102,9 @@ CREATE TABLE images (
   created_at TEXT DEFAULT (datetime('now')),
   uploaded_at TEXT,                 -- ISO 8601 (when uploaded to S3)
 
-  -- Observability (Pillar N, Q)
-  trace_id TEXT,                    -- Request correlation (v2)
-  intent_id TEXT,                   -- Idempotency key (v2)
+  -- Observability (Pillar N)
+  trace_id TEXT,                    -- Request correlation (v2, enhanced in v10)
+  intent_id TEXT,                   -- DEPRECATED v11: Was idempotency key (v2), now always NULL
 
   -- Error handling
   error TEXT,                       -- Error message for failed status (v4)
@@ -173,6 +173,9 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 - v6: Added `status` (for cloud sync), `version` (optimistic locking)
 - v7: Removed FK constraint on `image_id` (soft reference for cloud sync)
 - v8: Added `dirty_sync` (track local changes needing cloud sync)
+- v9: Added `primary_model_id` and `primary_confidence` (track which model processed transaction)
+- v10: Added `trace_id` to transactions (distributed tracing from frontend through backend)
+- v11: Deprecated `intent_id` (no longer generated, always NULL; traceId provides sufficient tracking)
 
 ### morning_reports / settings
 
