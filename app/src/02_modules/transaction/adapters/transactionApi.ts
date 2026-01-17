@@ -22,6 +22,26 @@ const TransactionCategorySchema = z.enum([
   'food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other'
 ]);
 
+// Model result schema for modelComparison
+const ModelResultSchema = z.object({
+  vendor: z.string().optional(),
+  confidence: z.number().optional(),
+  totalAmount: z.number().optional(),
+  subtotal: z.number().optional(),
+  taxAmount: z.number().optional(),
+  taxRate: z.number().optional(),
+}).passthrough();
+
+// Model comparison schema
+const ModelComparisonSchema = z.object({
+  textract: ModelResultSchema.nullable().optional(),
+  nova_mini: ModelResultSchema.nullable().optional(),
+  nova_pro: ModelResultSchema.nullable().optional(),
+  claude_sonnet: ModelResultSchema.nullable().optional(),
+  comparisonTimestamp: z.string().optional(),
+  comparisonErrors: z.array(z.any()).optional(),
+}).passthrough().optional();
+
 // Zod schema for transaction response (Cloud DynamoDB format)
 const CloudTransactionSchema = z.object({
   userId: z.string(),
@@ -43,6 +63,8 @@ const CloudTransactionSchema = z.object({
   validationErrors: z.array(z.any()).optional(),
   isGuest: z.boolean().optional(),
   ttl: z.number().optional(),
+  // Model comparison data
+  modelComparison: ModelComparisonSchema,
 });
 
 // API response schema
@@ -70,10 +92,44 @@ function withTimeout<T>(
 }
 
 /**
+ * Extract primary model and confidence from modelComparison
+ * Returns the first successful model result
+ */
+function extractPrimaryModel(modelComparison: CloudTransaction['modelComparison']): {
+  primaryModel: string | null;
+  confidence: number | null;
+} {
+  if (!modelComparison) {
+    return { primaryModel: null, confidence: null };
+  }
+
+  // Check models in priority order
+  const models = [
+    { key: 'nova_mini', data: modelComparison.nova_mini },
+    { key: 'nova_pro', data: modelComparison.nova_pro },
+    { key: 'textract', data: modelComparison.textract },
+    { key: 'claude_sonnet', data: modelComparison.claude_sonnet },
+  ];
+
+  for (const model of models) {
+    if (model.data && model.data.confidence !== undefined) {
+      return {
+        primaryModel: model.key,
+        confidence: model.data.confidence / 100, // Convert 0-100 to 0-1
+      };
+    }
+  }
+
+  return { primaryModel: null, confidence: null };
+}
+
+/**
  * Map cloud transaction to domain transaction
  * (DynamoDB format → Frontend domain model)
  */
 function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
+  const { primaryModel, confidence } = extractPrimaryModel(cloudTx.modelComparison);
+
   return {
     id: TransactionId(cloudTx.transactionId),
     userId: UserIdConstructor(cloudTx.userId),
@@ -89,8 +145,9 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     createdAt: cloudTx.createdAt,
     updatedAt: cloudTx.updatedAt,
     status: cloudTx.status,
-    confidence: null, // Not stored in DynamoDB
+    confidence,
     rawText: null, // Not stored in DynamoDB
+    primaryModel,
   };
 }
 

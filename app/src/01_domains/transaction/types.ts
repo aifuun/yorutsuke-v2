@@ -33,8 +33,9 @@ export interface Transaction {
   status: TransactionStatus; // Sync status (unconfirmed/confirmed/deleted/needs_review)
 
   // AI extraction metadata
-  confidence: number | null;  // 0-1 from Nova Lite
+  confidence: number | null;  // 0-1 from AI model
   rawText: string | null;     // OCR result
+  primaryModel: string | null; // Model used for extraction (e.g., 'nova_mini', 'textract')
 }
 
 // Daily summary for morning report
