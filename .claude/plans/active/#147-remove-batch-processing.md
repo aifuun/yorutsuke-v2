@@ -22,18 +22,49 @@ Currently using **Instant mode** only. Batch processing Lambda exists but is unu
 - [x] Remove BatchErrorAlarm and BatchInvocationAlarm CloudWatch alarms
 - [x] Update admin stack to remove batchProcessLambdaName parameter
 - [x] Update admin/batch Lambda to handle disabled mode gracefully
+- [x] **Complete removal** of admin/batch and admin/batch-config Lambdas (Option A)
+- [x] Move modelId from DynamoDB to environment variable
 - [ ] MultiModelAnalyzer is still used by instant-processor (will be removed in Issue #146)
 
 ### Phase 3: Verification
 - [x] Verify CDK diff shows clean removal
-- [x] Admin batch endpoint returns "disabled" message gracefully
-- [ ] Commit changes
-- [ ] Update GitHub issue
+- [x] Both main and admin stacks show expected changes
+- [x] Commit changes (2 commits)
+- [x] Update GitHub PR (#148)
+- [x] Push to remote
+
+## Completion Summary
+
+### Total Deletions
+- **7 AWS resources** in main stack (BatchProcessLambda, EventBridge rule, CloudWatch alarms, etc.)
+- **2 admin Lambdas** (batch status + batch config)
+- **4 API endpoints** (/batch GET/POST, /batch/config GET/POST)
+- **~700 lines of code** removed total
+
+### Commits
+1. `3d44143` - Initial batch-process Lambda removal + documentation archive
+2. `a5e30e5` - Admin endpoints removal + modelId to environment variable
+
+### Architecture Changes
+**Before**: DynamoDB control table → instant-processor reads modelId dynamically
+**After**: Environment variable MODEL_ID → instant-processor uses fixed value
+
+### Benefits
+- ✅ Simpler configuration management
+- ✅ Fewer runtime dependencies (no control table read)
+- ✅ Easier to change model (CDK redeploy vs. admin API call)
+- ✅ Complete batch processing removal (no dead code)
+
+### Future Re-implementation Path
+All knowledge preserved in `docs/archive/BATCH_PROCESSING.md` including:
+- AWS Batch Inference requirements and cost savings
+- Implementation patterns and code examples
+- When to reconsider (>100 images/day)
 
 ## Keep (Do NOT Remove)
-- Admin panel batch config UI (future use)
-- Control table schema (processingMode field)
+- Control table (for future features like emergency stop)
 - Instant-processor Lambda (currently active)
+- Batch-orchestrator and batch-result-handler (for future batch mode)
 
 ## Files to Create/Modify
 
