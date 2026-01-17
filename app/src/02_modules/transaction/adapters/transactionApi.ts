@@ -9,7 +9,7 @@ import { mockTransactionPull, mockNetworkError } from '../../../00_kernel/mocks'
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 
 // Transactions Lambda URL
-const TRANSACTIONS_URL = 'https://yy2xogwnhx4sxu7tbmt6ax67r40zhzzo.lambda-url.ap-northeast-1.on.aws/';
+const TRANSACTIONS_URL = 'https://yq7fcp4d2oivugpbyapddkzyji0dvzkt.lambda-url.us-east-1.on.aws/';
 
 // Timeouts
 const FETCH_TIMEOUT_MS = 10_000; // 10 seconds
