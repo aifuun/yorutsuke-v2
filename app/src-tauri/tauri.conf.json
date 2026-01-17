@@ -46,7 +46,6 @@
     ]
   },
   "plugins": {
-    "http": {},
     "sql": {
       "preload": [
         "sqlite:yorutsuke.db"

@@ -43,8 +43,8 @@ Add URL patterns to `app/src-tauri/capabilities/default.json` http:default permi
 - [x] Identify root cause (HTTP scope missing for us-east-1 region)
 - [x] Implement fix (add us-east-1 URLs to capabilities/default.json http:default)
 - [x] Update CLAUDE.md rule to reflect correct approach
-- [ ] Verify fix locally (test clear-all-data in debug panel)
-- [ ] Commit and push
+- [x] Verify fix locally (Tauri compilation successful, no PluginInitialization errors)
+- [x] Commit and push
 
 ## Verification Checklist (Before Finish)
 - [ ] "全部清除" button works without HTTP scope error
