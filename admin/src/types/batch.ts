@@ -9,20 +9,40 @@ export interface BatchConfig {
     updatedBy: string;
 }
 
-export const AVAILABLE_MODELS = [
+/**
+ * Model Configuration Interface (Issue #149)
+ */
+export interface ModelConfig {
+    modelId: string;
+    tokenCode: string;
+    provider: 'aws-bedrock' | 'azure-openai';
+    displayName: string;
+    description: string;
+    config?: Record<string, any>;
+    updatedAt?: string;
+    updatedBy?: string;
+}
+
+export const AVAILABLE_MODELS: ModelConfig[] = [
     {
-        id: 'us.amazon.nova-lite-v1:0',
-        name: 'Nova Lite',
+        modelId: 'us.amazon.nova-lite-v1:0',
+        tokenCode: 'nova-lite',
+        provider: 'aws-bedrock',
+        displayName: 'Nova Lite',
         description: 'Recommended, low cost'
     },
     {
-        id: 'us.amazon.nova-pro-v1:0',
-        name: 'Nova Pro',
+        modelId: 'us.amazon.nova-pro-v1:0',
+        tokenCode: 'nova-pro',
+        provider: 'aws-bedrock',
+        displayName: 'Nova Pro',
         description: 'Higher accuracy'
     },
     {
-        id: 'azure-di',
-        name: 'Azure DI',
-        description: 'Document Intelligence service'
+        modelId: 'azure-document-intelligence',
+        tokenCode: 'azure-di',
+        provider: 'azure-openai',
+        displayName: 'Azure DI',
+        description: 'External provider (Document Intelligence)'
     },
-] as const;
+];
