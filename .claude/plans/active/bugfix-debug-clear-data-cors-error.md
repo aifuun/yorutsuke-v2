@@ -18,27 +18,31 @@ This is a **Tauri HTTP scope error** - the Lambda URL is not in the allowed CORS
 
 ### Root Cause Found
 - `adminApi.ts` uses Tauri's `@tauri-apps/plugin-http` fetch plugin
-- Lambda URL (`*.lambda-url.us-east-1.on.aws`) not in Tauri's HTTP scope
-- `tauri.conf.json` was missing HTTP plugin scope configuration
+- Debug panel calls Lambda URL in `us-east-1` region
+- `capabilities/default.json` only had HTTP scope for `ap-northeast-1` region
+- Missing `us-east-1` Lambda and API Gateway URLs in capability permissions
 
-### Solution
-Add HTTP scope to `tauri.conf.json` to allow AWS Lambda and API Gateway URLs:
+### Solution (Tauri 2 Capabilities-Based)
+Add URL patterns to `app/src-tauri/capabilities/default.json` http:default permissions:
 ```json
-"plugins": {
-  "http": {
-    "scope": [
-      "https://*.execute-api.us-east-1.amazonaws.com",
-      "https://*.lambda-url.us-east-1.on.aws"
-    ]
-  }
+{
+  "identifier": "http:default",
+  "allow": [
+    { "url": "https://*.lambda-url.ap-northeast-1.on.aws/*" },
+    { "url": "https://*.lambda-url.us-east-1.on.aws/*" },
+    { "url": "https://*.execute-api.us-east-1.amazonaws.com/*" },
+    { "url": "https://*.s3.ap-northeast-1.amazonaws.com/*" },
+    { "url": "https://s3.ap-northeast-1.amazonaws.com/*" }
+  ]
 }
 ```
 
 ## Implementation
 
 ### Steps
-- [x] Identify root cause (HTTP scope not configured)
-- [x] Implement fix (add http plugin scope in tauri.conf.json)
+- [x] Identify root cause (HTTP scope missing for us-east-1 region)
+- [x] Implement fix (add us-east-1 URLs to capabilities/default.json http:default)
+- [x] Update CLAUDE.md rule to reflect correct approach
 - [ ] Verify fix locally (test clear-all-data in debug panel)
 - [ ] Commit and push
 

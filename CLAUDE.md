@@ -214,7 +214,7 @@ Full list: `docs/architecture/ADR/README.md`
 - Separate UI from logic (Pillar L: Headless) → See ADR-001
 - Use Service Pattern for global listeners (not React hooks) → ADR-001
 - Add Intent-ID for batch operations (Pillar Q) → See ADR-005
-- When calling external AWS services (Lambda, API Gateway): update `app/src-tauri/tauri.conf.json` http.scope **before** code review
+- When calling external AWS services (Lambda, API Gateway): add URL patterns to `app/src-tauri/capabilities/default.json` http:default permissions (Pillar B: Airlock)
 
 **MUST NOT**:
 - Use primitive types for domain entities

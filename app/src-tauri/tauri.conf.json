@@ -46,12 +46,7 @@
     ]
   },
   "plugins": {
-    "http": {
-      "scope": [
-        "https://*.execute-api.us-east-1.amazonaws.com",
-        "https://*.lambda-url.us-east-1.on.aws"
-      ]
-    },
+    "http": {},
     "sql": {
       "preload": [
         "sqlite:yorutsuke.db"
