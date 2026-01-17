@@ -316,6 +316,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
         // @security: Restrict CORS to CloudFront domains only (not ALL_ORIGINS)
         allowOrigins: [
           `https://${distribution.distributionDomainName}`,
+          "https://admin.yoru.rolligen.com",
           "https://admin.yorutsuke.rolligen.com",
           "https://admin-yoru.rolligen.com",
         ],
