@@ -24,15 +24,7 @@ Local-first AI accounting assistant for second-hand business users. Drag receipt
 3. **Check checklists** - Use `.prot/checklists/` before and after coding
 4. **Avoid generic factories** - Use explicit functions (e.g., `parseUser` not `createParser`)
 
-### Debugging Rules
-
-**排查顺序**: 本地 Logs → 云端 Logs → 模拟代码流程 → 最小复现
-
-详见 `.claude/rules/debugging.md`
-
-### Time Handling
-
-**存储和运算用 UTC，显示和选择用本地时区** → 详见 `.claude/rules/time-handling.md`
+See also: `.claude/rules/debugging.md`, `.claude/rules/time-handling.md`
 
 ### Work Flow
 
@@ -105,42 +97,38 @@ Receipt Drop  →  Local SQLite  →  S3 Upload  →  Nova Lite OCR  →  Transa
 
 ## Project Structure
 
-```
-yorutsuke-v2/
-├── app/src/                # React frontend
-│   ├── 00_kernel/          # EventBus, Logger, Context, Types
-│   ├── 01_domains/         # Pure business logic (receipt/, transaction/)
-│   ├── 02_modules/         # Feature modules
-│   │   ├── capture/        # Image capture & upload (T2)
-│   │   ├── report/         # Morning report (T1)
-│   │   ├── transaction/    # Transaction management (T2)
-│   │   └── settings/       # User settings
-│   └── 03_migrations/      # Data upcasters
-├── app/src-tauri/          # Rust backend (IPC commands)
-├── infra/                  # AWS CDK (lib/, lambda/)
-├── docs/                   # Source of Truth
-├── .claude/                # Claude Code config (commands/, rules/)
-└── .prot/                  # AI_DEV_PROT v15 (CHEATSHEET.md)
-```
+| Directory | Purpose |
+|-----------|---------|
+| **`/app`** | Desktop app (Tauri 2 + React 19) - user-facing receipt capture & sync |
+| **`/admin`** | Admin web panel (Vite + React) - operational monitoring & batch config |
+| **`/infra`** | AWS CDK - two stacks (App + Admin) + Lambda functions + shared layer |
+| **`/docs`** | Source of truth - architecture, design, operations, dev workflow |
+| **`/.claude`** | Claude Code config - development rules, workflow templates, active plans |
+| **`/.prot`** | AI_DEV_PROT v15 - pillars, checklists, patterns |
 
 ## Commands
 
 ```bash
-# Development
-cd app && npm run tauri dev    # Run Tauri app
-cd app && npm run dev          # Run React only
+# Desktop App (Tauri)
+cd app && npm run tauri dev    # Dev with hot reload
+cd app && npm run tauri build  # Build binary
 
-# Build
-cd app && npm run tauri build  # Build desktop app
-cd app && npm run build        # Build React
+# Admin Panel (Vite)
+cd admin && npm run dev        # Dev server (http://localhost:5173)
+cd admin && npm run build      # Build for production
 
-# Infrastructure
-cd infra && npm run diff       # Preview CDK changes
-cd infra && npm run deploy     # Deploy to AWS (--profile dev)
+# Infrastructure (AWS CDK)
+cd infra && npm run diff       # Preview changes
+cd infra && npm run deploy     # Deploy both stacks (--profile dev)
 
-# Test
-cd app && npm test             # Run tests
+# Layer-only deploy (≤10s after modifying shared-layer/)
+cd infra/lambda/shared-layer && zip -r /tmp/layer.zip nodejs/
+aws lambda publish-layer-version --layer-name yorutsuke-shared-dev --zip-file fileb:///tmp/layer.zip --profile dev
 ```
+
+## Infrastructure
+
+**Two AWS CDK Stacks**: Main App (S3 → Lambda instant-processor → Bedrock OCR → DynamoDB), Admin Panel (Cognito + API Gateway + CloudFront). Shared Lambda layer contains model-analyzer, logger, schemas. Deploy with: `cd infra && npm run deploy`.
 
 ## Test Assets
 
@@ -253,45 +241,9 @@ Full list: `docs/architecture/ADR/README.md`
 cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .  # View today's logs
 ```
 
-## Design System Integration
+## Design System
 
-**Read before developing ANY UI component**: `.claude/rules/design-system.md`
-
-### Pre-Development Checklist
-- [ ] Read relevant design doc from `docs/design/`
-- [ ] Identify required tokens (Color, Typography, Spacing, etc.)
-- [ ] Check accessibility requirements (WCAG AA/AAA)
-- [ ] Follow implementation pattern (no hard-coded values)
-- [ ] Verify component in design spec before coding
-
-### Design System Structure
-| Layer | Location | Coverage |
-|-------|----------|----------|
-| **Tokens** | `docs/design/COLOR.md`, `TYPOGRAPHY.md`, `SPACING.md`, etc. | 25-color palette, font scales, animations |
-| **Components** | `docs/design/BUTTONS.md`, `FORMS.md`, `FEEDBACK.md`, `ICONS.md` | 15+ UI components verified |
-| **Views** | `docs/design/0X-*.md` | 5 complete screen specifications |
-| **A11y** | `docs/design/ACCESSIBILITY.md` | WCAG 2.1 AA/AAA compliance |
-
-### Token Usage Rules
-1. **No hard-coded values** - use `--color-*`, `--space-*`, `--text-*` tokens only
-2. **Semantic colors** - use `--color-primary`, `--text-default`, not `--blue-500`
-3. **Copy structure directly** - don't invent, follow design spec exactly
-4. **Include accessibility** - ARIA labels, focus states, reduced motion support
-
-### Quick Start
-```bash
-# Read design system rules
-cat .claude/rules/design-system.md
-
-# Check specific component
-cat docs/design/BUTTONS.md        # For buttons
-cat docs/design/FORMS.md          # For form inputs
-cat docs/design/FEEDBACK.md       # For toast/modal
-
-# Verify tokens
-grep "^--color" app/src/styles.css
-grep "^--space" app/src/styles.css
-```
+**Read before any UI work**: `.claude/rules/design-system.md` + `docs/design/` (Tokens, Components, Views, A11y)
 
 ## Memory & Context
 
@@ -308,35 +260,10 @@ grep "^--space" app/src/styles.css
 | **Architecture** | `docs/architecture/README.md` | Index → LAYERS, PATTERNS, FLOWS, SCHEMA, ADR |
 | **Requirements** | `docs/product/REQUIREMENTS.md` | Feature specs, acceptance criteria |
 | **MVP Plan** | `docs/dev/MVP_PLAN.md` | Roadmap & current phase |
-| **Design System** | `docs/design/` | 19 specs: Foundation (6), Components (7), Views (5), A11y (1) → See `.claude/rules/design-system.md` |
+| **Design System** | `docs/design/` | Tokens, Components, Views, A11y |
 | **Operations** | `docs/operations/` | LOGGING.md, QUOTA.md |
-| **Developer Guides** | `docs/guides/` | Step-by-step guides for tools & workflows (Lambda, Azure DI, etc.) |
 
-### Developer Guides (`docs/guides/`)
-
-**Purpose**: Detailed, practical guides for specific tools, workflows, and integrations.
-
-**Naming Convention**: Files should describe scope, tool/functionality, and context
-- ✅ `CDK-WATCH-QUICK-START.md` - AWS CDK Watch, quick start
-- ✅ `LAMBDA-DEVELOPMENT-WORKFLOW.md` - Lambda development, complete workflow
-- ✅ `AZURE-DI-SDK-LOCAL-TESTING.md` - Azure DI SDK, local testing
-- ✅ `docs/guides/azure-di/` - Subdirectory for related guides by tool/feature
-
-**Current Guides**:
-- `README.md` - Navigation index (start here)
-- `CDK-WATCH-QUICK-START.md` - 3-command cloud testing with AWS CDK Watch
-- `LAMBDA-DEVELOPMENT-WORKFLOW.md` - Complete Lambda dev workflow (Pure Node.js → cdk watch → cdk deploy)
-- `DEVELOPMENT-WORKFLOW-ASSESSMENT.md` - Comparison of SAM vs LocalStack vs cdk watch
-- `MIGRATION-SUMMARY.md` - Migration from LocalStack/SAM to cdk watch
-- `azure-di/` - Azure Document Intelligence integration guides
-
-**When to Create a New Guide**:
-1. **Multi-step procedure** for a tool/technology
-2. **Workflow comparison** or decision guide
-3. **Integration tutorial** with external services
-4. **Best practices** for development process
-
-**Not in Guides**: Architecture decisions (→ `docs/architecture/ADR/`), design specs (→ `docs/design/`), requirements (→ `docs/product/`)
+**Developer Guides**: `docs/guides/README.md` (see there for Lambda, CDK, Azure DI, and other workflow guides)
 
 ---
 @.prot/CHEATSHEET.md

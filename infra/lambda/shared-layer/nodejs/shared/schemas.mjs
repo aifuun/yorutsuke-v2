@@ -67,6 +67,10 @@ export const TransactionSchema = z.object({
     confirmedAt: z.string().nullable().default(null),
     validationErrors: z.array(z.any()).optional(), // @ai-intent: Store Zod validation errors for debugging
 
+    // Primary model metadata (Pillar R: Track which model processed this transaction)
+    primaryModelId: z.string().optional(), // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
+    primaryConfidence: z.number().optional(), // 0-100 confidence score from primary model
+
     // Multi-model comparison (Pillar R: Observability for model evaluation)
     modelComparison: ModelComparisonSchema.optional(),
     comparisonStatus: z.enum(['pending', 'completed', 'failed']).optional(),
