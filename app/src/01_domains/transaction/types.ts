@@ -33,9 +33,10 @@ export interface Transaction {
   status: TransactionStatus; // Sync status (unconfirmed/confirmed/deleted/needs_review)
 
   // AI extraction metadata
-  confidence: number | null;      // 0-1 from AI model
-  rawText: string | null;         // OCR result
-  processingModel: string | null; // Model ID from Admin Panel (e.g., 'us.amazon.nova-lite-v1:0')
+  confidence: number | null;          // [DEPRECATED: use primaryConfidence] 0-1 scale
+  rawText: string | null;             // OCR result
+  primaryModelId: string | null;      // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
+  primaryConfidence: number | null;   // 0-100 confidence score (if available)
 }
 
 // Daily summary for morning report

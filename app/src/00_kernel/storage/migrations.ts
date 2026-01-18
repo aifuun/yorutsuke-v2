@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 9;
+const CURRENT_VERSION = 10;
 
 /**
  * Run all migrations on database
@@ -65,6 +65,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 9) {
     await migration_v9(db);
     await setVersion(db, 9);
+  }
+
+  if (version < 10) {
+    await migration_v10(db);
+    await setVersion(db, 10);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -382,6 +387,28 @@ async function migration_v9(db: Database): Promise<void> {
   await safeAddColumn(db, 'transactions', 's3_key', 'TEXT');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 9, phase: 'complete' });
+}
+
+/**
+ * Migration v10: Add Model Metadata (Issue #151)
+ * Purpose: Track which AI model processed each transaction + confidence score
+ * - primary_model_id: e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
+ * - primary_confidence: 0-100 confidence score (if available)
+ */
+async function migration_v10(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, {
+    version: 10,
+    name: 'add_model_metadata',
+    phase: 'start'
+  });
+
+  // Add primary_model_id column (nullable - old transactions won't have this)
+  await safeAddColumn(db, 'transactions', 'primary_model_id', 'TEXT');
+
+  // Add primary_confidence column (nullable - not all models return confidence)
+  await safeAddColumn(db, 'transactions', 'primary_confidence', 'REAL');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 10, phase: 'complete' });
 }
 
 // ============================================================================
