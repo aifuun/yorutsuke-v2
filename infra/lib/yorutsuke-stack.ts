@@ -241,7 +241,7 @@ export class YorutsukeStack extends cdk.Stack {
       authType: lambda.FunctionUrlAuthType.NONE,
       cors: {
         allowedOrigins: ["*"],
-        allowedMethods: [lambda.HttpMethod.POST, lambda.HttpMethod.OPTIONS],
+        allowedMethods: [lambda.HttpMethod.POST],  // OPTIONS is handled automatically
         allowedHeaders: ["*"],
       },
     });
