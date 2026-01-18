@@ -16,3 +16,4 @@ vi.mock('@tauri-apps/plugin-sql', () => ({
 // Mock environment variables
 vi.stubEnv('VITE_LAMBDA_PRESIGN_URL', 'https://mock.lambda/presign');
 vi.stubEnv('VITE_LAMBDA_QUOTA_URL', 'https://mock.lambda/quota');
+vi.stubEnv('VITE_LAMBDA_SYNC_URL', 'https://mock.lambda/sync');

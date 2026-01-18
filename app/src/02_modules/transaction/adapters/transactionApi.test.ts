@@ -277,5 +277,120 @@ describe('transactionApi', () => {
       expect(tx.confidence).toBe(null); // Not in cloud
       expect(tx.rawText).toBe(null); // Not in cloud
     });
+
+    it('TC-1.9: Maps primaryModelId and primaryConfidence from cloud', async () => {
+      // Given: Cloud response with model metadata
+      const mockResponse = {
+        transactions: [
+          {
+            userId: 'user-123',
+            transactionId: 'tx-1',
+            imageId: 'img-1',
+            amount: 1000,
+            type: 'expense',
+            date: '2026-01-01',
+            merchant: 'Test Merchant',
+            category: 'shopping',
+            description: 'Test purchase',
+            status: 'confirmed',
+            createdAt: '2026-01-01T10:00:00Z',
+            updatedAt: '2026-01-01T10:00:00Z',
+            version: 1,
+            primaryModelId: 'us.amazon.nova-lite-v1:0',
+            primaryConfidence: 85.5,
+          },
+        ],
+        nextCursor: null,
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      // When: Fetch transactions
+      const result = await fetchTransactions(testUserId);
+
+      // Then: Model metadata mapped correctly
+      expect(result).toHaveLength(1);
+      expect(result[0].primaryModelId).toBe('us.amazon.nova-lite-v1:0');
+      expect(result[0].primaryConfidence).toBe(85.5);
+    });
+
+    it('TC-1.10: Handles missing model metadata from cloud (backward compatibility)', async () => {
+      // Given: Cloud response WITHOUT model metadata (old format)
+      const mockResponse = {
+        transactions: [
+          {
+            userId: 'user-123',
+            transactionId: 'tx-2',
+            imageId: 'img-2',
+            amount: 2000,
+            type: 'income',
+            date: '2026-01-02',
+            merchant: 'Old Merchant',
+            category: 'other',
+            description: 'Old format transaction',
+            status: 'unconfirmed',
+            createdAt: '2026-01-02T10:00:00Z',
+            updatedAt: '2026-01-02T10:00:00Z',
+            version: 1,
+            // No primaryModelId or primaryConfidence
+          },
+        ],
+        nextCursor: null,
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      // When: Fetch transactions
+      const result = await fetchTransactions(testUserId);
+
+      // Then: No error, model fields are NULL
+      expect(result).toHaveLength(1);
+      expect(result[0].primaryModelId).toBeNull();
+      expect(result[0].primaryConfidence).toBeNull();
+    });
+
+    it('TC-1.11: Rejects invalid confidence values (Zod validation)', async () => {
+      // Given: Cloud response with invalid confidence (150, should be 0-100)
+      const mockResponse = {
+        transactions: [
+          {
+            userId: 'user-123',
+            transactionId: 'tx-3',
+            imageId: 'img-3',
+            amount: 3000,
+            type: 'expense',
+            date: '2026-01-03',
+            merchant: 'Invalid Merchant',
+            category: 'other',
+            description: 'Invalid confidence',
+            status: 'confirmed',
+            createdAt: '2026-01-03T10:00:00Z',
+            updatedAt: '2026-01-03T10:00:00Z',
+            version: 1,
+            primaryModelId: 'us.amazon.nova-lite-v1:0',
+            primaryConfidence: 150, // Invalid! Must be 0-100
+          },
+        ],
+        nextCursor: null,
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+
+      // When: Fetch transactions
+      // Then: Zod throws validation error
+      await expect(fetchTransactions(testUserId)).rejects.toThrow(/Invalid transaction response/);
+    });
   });
 });
