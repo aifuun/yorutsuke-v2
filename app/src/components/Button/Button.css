@@ -87,6 +87,20 @@
   background: var(--slate-200);
 }
 
+/* Warning Variant */
+.btn--warning {
+  background: var(--color-warning);
+  color: white;
+}
+
+.btn--warning:hover:not(:disabled) {
+  background: var(--amber-600);
+}
+
+.btn--warning:active:not(:disabled) {
+  background: var(--amber-700);
+}
+
 /* Danger Variant */
 .btn--danger {
   background: var(--rose-500);

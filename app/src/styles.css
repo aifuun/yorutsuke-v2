@@ -815,9 +815,17 @@ body {
 }
 
 /* Control fills the right column */
-.setting-row__control .select,
-.setting-row__control .btn {
+.setting-row__control .select {
   width: 100%;
+}
+
+/* Only full-width for regular/large buttons, not small ones */
+.setting-row__control .btn:not(.btn--sm) {
+  width: 100%;
+}
+
+.setting-row__control .btn--sm {
+  width: auto;
 }
 
 .setting-row__control .toggle-switch {
