@@ -461,6 +461,18 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   );
 }
 
+// Helper function to format model names
+function formatModelName(modelId: string): string {
+  const modelMap: Record<string, string> = {
+    'us.amazon.nova-lite-v1:0': 'Nova Lite',
+    'us.amazon.nova-mini-v1:0': 'Nova Mini',
+    'us.amazon.nova-pro-v1:0': 'Nova Pro',
+    'azure_di': 'Azure DI',
+    'textract': 'Textract',
+  };
+  return modelMap[modelId] || modelId;
+}
+
 // Header component
 // Transaction Card component
 interface TransactionCardProps {
@@ -559,6 +571,23 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
           )}
           {isConfirmed && (
             <span className="tag tag--confirmed">✓</span>
+          )}
+          {transaction.primaryModelId && (
+            <span
+              className="tag tag--model"
+              title={`Processed by ${formatModelName(transaction.primaryModelId)}${
+                transaction.primaryConfidence
+                  ? ` (${transaction.primaryConfidence}% confidence)`
+                  : ''
+              }`}
+            >
+              🤖 {formatModelName(transaction.primaryModelId)}
+              {transaction.primaryConfidence && (
+                <span className="tag--confidence">
+                  {Math.round(transaction.primaryConfidence)}%
+                </span>
+              )}
+            </span>
           )}
         </div>
       </div>
