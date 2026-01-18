@@ -1,11 +1,12 @@
 // Pillar L: Views are pure JSX, logic in Service layer
 // MVP0: Migrated from headless hooks to Service pattern
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { AlertTriangle, FileText } from 'lucide-react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useCaptureQueue, useCaptureStats, useRejection } from '../hooks/useCaptureState';
 import { useDragState } from '../hooks/useDragState';
 import { useQuota } from '../hooks/useQuotaState';
+import { useUploadStats } from '../hooks/useUploadState';
 import { captureService } from '../services/captureService';
 import { quotaService } from '../services/quotaService';
 import { useNetworkStatus } from '../../../00_kernel/network';
@@ -95,9 +96,25 @@ export function CaptureView() {
 
   // New Service-based hooks (MVP0)
   const queue = useCaptureQueue();
-  const { pendingCount, uploadedCount } = useCaptureStats();
+  const { pendingCount, uploadedCount, failedCount: captureFailedCount } = useCaptureStats();
+  const { failedCount: uploadFailedCount } = useUploadStats();
   const { isDragging, dragHandlers } = useDragState();
   const { rejection, clearRejection } = useRejection();
+
+  // Handle retry all failed items
+  const handleRetryAll = useCallback(() => {
+    // Retry failed compression (capture failed images)
+    const failedImages = queue.filter(img => img.status === 'failed');
+    failedImages.forEach(img => {
+      captureService.retryImage(img.id);
+    });
+
+    // Retry failed uploads
+    captureService.retryAllFailed();
+  }, [queue]);
+
+  // Check if there are any failed items (compression or upload)
+  const hasFailedItems = captureFailedCount > 0 || uploadFailedCount > 0;
 
   // Auto-clear rejection after 5 seconds
   useEffect(() => {
@@ -127,9 +144,17 @@ export function CaptureView() {
     );
   }
 
-  // Use quota.used from API/DB (not store queue count)
-  const quotaPercent = quota.limit > 0 ? (quota.used / quota.limit) * 100 : 0;
+  // Use quota.totalUsed from LocalQuota (not store queue count)
+  const quotaPercent = quota.totalLimit > 0 ? (quota.totalUsed / quota.totalLimit) * 100 : 0;
   const quotaVariant = quotaPercent >= 100 ? 'error' : quotaPercent >= 80 ? 'warning' : 'success';
+
+  // Daily quota color logic
+  const dailyPercent = quota.dailyRate > 0 ? (quota.usedToday / quota.dailyRate) * 100 : 0;
+  const dailyVariant =
+    quota.dailyRate === 0 ? 'income' :        // Pro tier: unlimited daily (green)
+    dailyPercent >= 100 ? 'error' :           // Red
+    dailyPercent >= 80 ? 'warning' :          // Orange
+    'success';                                // Blue
 
   return (
     <div className="capture">
@@ -199,9 +224,21 @@ export function CaptureView() {
           {queue.length > 0 && (
             <div className="card card--list queue-card">
               <div className="queue-header">
-                <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
-                {queue.some(img => img.status === 'uploaded') && (
-                  <span className="queue-header__hint">{t('capture.aiProcessingSoon')}</span>
+                <div className="queue-header__left">
+                  <h2 className="card--list__header">{t('capture.processingQueue')}</h2>
+                  {queue.some(img => img.status === 'uploaded') && (
+                    <span className="queue-header__hint">{t('capture.aiProcessingSoon')}</span>
+                  )}
+                </div>
+                {hasFailedItems && (
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    onClick={handleRetryAll}
+                    aria-label={t('capture.retryAll')}
+                  >
+                    {t('capture.retryAll')}
+                  </button>
                 )}
               </div>
               <div className="card--list__items">
@@ -260,14 +297,27 @@ export function CaptureView() {
 
           {/* Stats Row */}
           <div className="stats-row">
+            {/* Monthly Quota */}
             <div className={`card card--summary ${quotaVariant === 'error' ? 'is-expense' : quotaVariant === 'warning' ? 'is-warning' : 'is-info'}`}>
-              <p className="card--summary__label">{t('capture.quota')}</p>
-              <p className="card--summary__value">{quota.used}/{quota.limit}</p>
+              <p className="card--summary__label">{t('capture.monthlyQuota')}</p>
+              <p className="card--summary__value">{quota.totalUsed}/{quota.totalLimit}</p>
             </div>
+
+            {/* Daily Rate */}
+            <div className={`card card--summary ${dailyVariant === 'income' ? 'is-income' : dailyVariant === 'error' ? 'is-expense' : dailyVariant === 'warning' ? 'is-warning' : 'is-info'}`}>
+              <p className="card--summary__label">{t('capture.dailyRate')}</p>
+              <p className="card--summary__value">
+                {quota.dailyRate === 0 ? '∞' : `${quota.usedToday}/${quota.dailyRate}`}
+              </p>
+            </div>
+
+            {/* Pending */}
             <div className="card card--summary is-pending">
               <p className="card--summary__label">{t('capture.pending')}</p>
               <p className="card--summary__value">{pendingCount}</p>
             </div>
+
+            {/* Session/Uploaded */}
             <div className="card card--summary is-income">
               <p className="card--summary__label">{t('capture.uploaded')}</p>
               <p className="card--summary__value">{uploadedCount}</p>

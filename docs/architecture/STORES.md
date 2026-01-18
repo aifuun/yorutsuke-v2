@@ -163,21 +163,39 @@ interface SyncAction {
 
 ## quotaStore
 
-User quota state.
+User quota state (Permit v2).
 
 ```typescript
-interface QuotaStore {
-  // State
-  used: number;
-  limit: number;
-  tier: 'guest' | 'free' | 'basic' | 'pro';
-  resetsAt: string | null;
+// FSM State
+type QuotaState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; stats: UsageStats }
+  | { status: 'error'; error: string; cachedStats?: UsageStats };
 
-  // Derived
-  // remaining: number
-  // isLimitReached: boolean
+// Computed status (via getQuotaStatus())
+interface QuotaStatus {
+  // Total quota
+  totalUsed: number;
+  totalLimit: number;
+  remainingTotal: number;
+
+  // Daily quota
+  usedToday: number;
+  dailyRate: number;
+  remainingDaily: number | typeof Infinity;
+
+  // Status
+  isLimitReached: boolean;
+  tier: 'guest' | 'free' | 'basic' | 'pro';
+  isGuest: boolean;
+  isExpired: boolean;
 }
 ```
+
+**Data Source**: Synced from `LocalQuota` (localStorage)
+
+**Updates**: After `upload:complete` event, `quotaService` calls `LocalQuota.incrementUsage()` then syncs to store.
 
 ## Store vs SQLite
 

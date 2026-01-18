@@ -1,9 +1,9 @@
 // Pillar B: Airlock - validate all API responses with Zod
-// Pillar Q: Intent-ID for idempotency
 // Pillar N: TraceId for distributed tracing
 import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
-import type { UserId, IntentId, TraceId } from '../../../00_kernel/types';
+import type { UserId, TraceId } from '../../../00_kernel/types';
+import type { UploadPermit } from '../../../01_domains/quota';
 import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
 import { mockPresignUrl, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
@@ -42,9 +42,9 @@ function withTimeout<T>(
 export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
-  intentId: IntentId,  // Pillar Q: Idempotency key
   traceId: TraceId,    // Pillar N: Distributed tracing
   contentType: string = 'image/jpeg',
+  permit?: UploadPermit | null,  // Permit v2: Optional signed permit for quota validation
 ): Promise<PresignResponse> {
   // Mocking offline - simulate network failure
   if (isMockingOffline()) {
@@ -59,13 +59,25 @@ export async function getPresignedUrl(
     return { ...mockPresignUrl(userId, fileName), traceId };
   }
 
+  // Prepare request body (include permit if provided for Permit v2 validation)
+  const requestBody: Record<string, unknown> = {
+    userId,
+    fileName,
+    contentType,
+    traceId,
+  };
+
+  if (permit) {
+    requestBody.permit = permit;
+  }
+
   const fetchPromise = fetch(PRESIGN_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Trace-Id': traceId,  // Pillar N: Propagate traceId in header
     },
-    body: JSON.stringify({ userId, fileName, intentId, contentType, traceId }),
+    body: JSON.stringify(requestBody),
   });
 
   const response = await withTimeout(

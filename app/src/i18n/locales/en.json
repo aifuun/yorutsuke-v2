@@ -347,6 +347,8 @@
   },
   "capture": {
     "quota": "Quota",
+    "monthlyQuota": "Monthly Quota",
+    "dailyRate": "Daily Rate",
     "remaining": "{{count}} uploads remaining",
     "quotaFull": "Quota reached",
     "dropHere": "Drop receipts here",

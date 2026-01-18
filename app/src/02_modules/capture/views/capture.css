@@ -199,6 +199,12 @@
   margin-bottom: 16px;
 }
 
+.queue-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .queue-header .card--list__header {
   margin-bottom: 0;
 }
@@ -404,10 +410,10 @@
   color: var(--slate-600);
 }
 
-/* Stats Row - 3-column grid for capture stats */
+/* Stats Row - 4-column grid for capture stats (Monthly, Daily, Pending, Session) */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 

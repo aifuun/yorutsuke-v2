@@ -388,7 +388,7 @@ headers: {
 
 ### POST /presign
 
-Get S3 presigned URL for image upload.
+Get S3 presigned URL for image upload (Permit v2).
 
 **Request**:
 ```typescript
@@ -396,15 +396,29 @@ interface PresignRequest {
   userId: string;
   fileName: string;
   contentType: string;  // 'image/jpeg'
+
+  // Permit v2 (optional for backward compatibility)
+  permit?: {
+    userId: string;
+    totalLimit: number;
+    dailyRate: number;
+    expiresAt: string;      // ISO 8601
+    issuedAt: string;       // ISO 8601
+    signature: string;      // HMAC-SHA256 hex (64 chars)
+    tier: 'guest' | 'free' | 'basic' | 'pro';
+  };
+
+  // Distributed tracing
+  traceId?: string;
 }
 ```
 
 **Response**:
 ```typescript
 interface PresignResponse {
-  url: string;    // S3 presigned PUT URL
-  key: string;    // S3 object key
-  expiresIn: 300; // seconds
+  url: string;      // S3 presigned PUT URL
+  key: string;      // S3 object key
+  traceId: string;  // Request trace ID
 }
 ```
 
@@ -412,8 +426,20 @@ interface PresignResponse {
 | Code | Meaning |
 |------|---------|
 | 400 | Missing required fields |
-| 403 | Quota exceeded |
+| 403 | QUOTA_EXCEEDED (legacy) / INVALID_SIGNATURE / PERMIT_EXPIRED |
 | 500 | Internal error |
+| 503 | SERVICE_UNAVAILABLE (emergency stop) |
+
+**Validation Flow**:
+- If `permit` provided → Verify HMAC-SHA256 signature (Permit v2)
+- If no `permit` → Fall back to legacy quotas table (deprecated)
+
+**Signature Verification**:
+```javascript
+const message = `${userId}:${totalLimit}:${dailyRate}:${expiresAt}:${issuedAt}`;
+const expectedSig = HMAC-SHA256(message, SECRET_KEY);
+if (permit.signature !== expectedSig) return 403;
+```
 
 ---
 
@@ -615,9 +641,60 @@ interface ProcessingConfigResponse {
 
 ---
 
-### POST /quota
+### POST /issue-permit
 
-Check user quota.
+Issue signed upload permit (Permit v2).
+
+**Request**:
+```typescript
+interface IssuePermitRequest {
+  userId: string;
+  validDays?: number;  // Optional, defaults to tier config (30 days)
+}
+```
+
+**Response**:
+```typescript
+interface IssuePermitResponse {
+  permit: {
+    userId: string;
+    totalLimit: number;       // Total upload quota (e.g., 500 for guest)
+    dailyRate: number;        // Daily rate limit (0 = unlimited)
+    expiresAt: string;        // ISO 8601 (30 days from issuance)
+    issuedAt: string;         // ISO 8601
+    signature: string;        // HMAC-SHA256 hex (64 chars)
+    tier: 'guest' | 'free' | 'basic' | 'pro';
+  };
+}
+```
+
+**Tier Configuration**:
+| Tier | Total Limit | Daily Rate | Valid Days |
+|------|-------------|------------|------------|
+| guest | 500 | 30 | 30 |
+| free | 1000 | 50 | 30 |
+| basic | 3000 | 100 | 30 |
+| pro | 10000 | 0 (unlimited) | 30 |
+
+**Signature**:
+```javascript
+const message = `${userId}:${totalLimit}:${dailyRate}:${expiresAt}:${issuedAt}`;
+const signature = HMAC-SHA256(message, SECRET_KEY);
+```
+
+**Errors**:
+| Code | Meaning |
+|------|---------|
+| 400 | Missing userId or invalid format |
+| 500 | Failed to retrieve secret key |
+
+---
+
+### POST /quota (DEPRECATED)
+
+**Status**: Deprecated in Permit v2. Use `LocalQuota` instead.
+
+Check user quota (legacy system).
 
 **Request**:
 ```typescript
@@ -635,6 +712,8 @@ interface QuotaResponse {
   resetsAt: string;  // ISO 8601
 }
 ```
+
+**Migration Note**: This endpoint is replaced by the Permit v2 system. New clients should use `/issue-permit` and track quota locally via `LocalQuota`.
 
 ---
 

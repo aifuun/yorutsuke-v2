@@ -3,3 +3,4 @@ export * from './imageDb';
 export * from './uploadApi';
 export * from './tauriDragDrop';
 export * from './quotaApi';
+export * from './permitApi';

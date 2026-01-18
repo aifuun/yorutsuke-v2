@@ -1,0 +1,16 @@
+{
+  "name": "issue-permit-lambda",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Issue signed upload permits for users",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  }
+}

@@ -86,18 +86,6 @@ export class YorutsukeStack extends cdk.Stack {
           : cdk.RemovalPolicy.DESTROY,
     });
 
-    // DynamoDB Table for idempotency (Pillar Q)
-    const intentsTable = new dynamodb.Table(this, "IntentsTable", {
-      tableName: `yorutsuke-intents-us-${env}`,
-      partitionKey: { name: "intentId", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      timeToLiveAttribute: "ttl",
-      removalPolicy:
-        env === "prod"
-          ? cdk.RemovalPolicy.RETAIN
-          : cdk.RemovalPolicy.DESTROY,
-    });
-
     // DynamoDB Table for Admin Control/Config (Physical table managed by AdminStack)
     const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", `yorutsuke-control-us-${env}`);
 
@@ -158,6 +146,25 @@ export class YorutsukeStack extends cdk.Stack {
       description: "Shared utilities for Yorutsuke Lambdas",
     });
 
+    // ========================================
+    // Permit Secret for Upload Quota (v2 System)
+    // (Must be defined before Lambdas that use it)
+    // ========================================
+    const permitSecret = new secretsmanager.Secret(this, "PermitSecret", {
+      secretName: `yorutsuke-permit-secret-us-${env}`,
+      description: "Secret key for signing upload permits (HMAC-SHA256)",
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({}),
+        generateStringKey: "key",
+        excludeCharacters: " %+~`#$&*()|[]{}:;<>?!'/@\"\\",
+        passwordLength: 64,
+      },
+      removalPolicy:
+        env === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+    });
+
     // Lambda for presigned URLs
     const presignLambda = new lambda.Function(this, "PresignLambda", {
       functionName: `yorutsuke-presign-us-${env}`,
@@ -168,15 +175,15 @@ export class YorutsukeStack extends cdk.Stack {
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
         QUOTAS_TABLE_NAME: quotasTable.tableName,
-        INTENTS_TABLE_NAME: intentsTable.tableName,  // Pillar Q
         QUOTA_LIMIT: "50",
+        PERMIT_SECRET_KEY_ARN: permitSecret.secretArn,  // NEW: Permit v2 support
       },
       timeout: cdk.Duration.seconds(10),
     });
 
     imageBucket.grantPut(presignLambda);
     quotasTable.grantReadWriteData(presignLambda);
-    intentsTable.grantReadWriteData(presignLambda);  // Pillar Q
+    permitSecret.grantRead(presignLambda);  // NEW: Grant read access to permit secret
 
     // Lambda Function URL for presign
     const presignUrl = presignLambda.addFunctionUrl({
@@ -210,6 +217,31 @@ export class YorutsukeStack extends cdk.Stack {
       cors: {
         allowedOrigins: ["*"],
         allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],
+      },
+    });
+
+    // Lambda for issuing permits (Permit v2 System)
+    const issuePermitLambda = new lambda.Function(this, "IssuePermitLambda", {
+      functionName: `yorutsuke-issue-permit-us-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/issue-permit"),
+      environment: {
+        PERMIT_SECRET_KEY_ARN: permitSecret.secretArn,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    // Grant read access to permit secret
+    permitSecret.grantRead(issuePermitLambda);
+
+    // Lambda Function URL for issue-permit
+    const issuePermitUrl = issuePermitLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.POST],  // OPTIONS is handled automatically
         allowedHeaders: ["*"],
       },
     });
@@ -680,14 +712,15 @@ export class YorutsukeStack extends cdk.Stack {
       exportName: `${id}-QuotasTable`,
     });
 
-    new cdk.CfnOutput(this, "IntentsTableName", {
-      value: intentsTable.tableName,
-      exportName: `${id}-IntentsTable`,
-    });
-
     new cdk.CfnOutput(this, "QuotaLambdaUrl", {
       value: quotaUrl.url,
       exportName: `${id}-QuotaUrl`,
+    });
+
+    new cdk.CfnOutput(this, "IssuePermitLambdaUrl", {
+      value: issuePermitUrl.url,
+      exportName: `${id}-IssuePermitUrl`,
+      description: "Lambda URL for issuing upload permits (Permit v2 system)",
     });
 
     new cdk.CfnOutput(this, "ConfigLambdaUrl", {

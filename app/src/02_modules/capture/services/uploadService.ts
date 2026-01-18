@@ -4,7 +4,7 @@
 // Pillar Q: Intent-ID for idempotency
 
 import { readFile } from '@tauri-apps/plugin-fs';
-import type { ImageId, UserId, IntentId, TraceId } from '../../../00_kernel/types';
+import type { ImageId, UserId, TraceId } from '../../../00_kernel/types';
 import { emit } from '../../../00_kernel/eventBus';
 import { isNetworkOnline, setupNetworkListeners } from '../../../00_kernel/network';
 import { isMockingOffline } from '../../../00_kernel/config/mock';
@@ -14,10 +14,11 @@ import { canUpload } from '../../../01_domains/receipt';
 // Polling interval (1 second) - rate limit is enforced separately by canUpload()
 const UPLOAD_POLL_INTERVAL_MS = 1000;
 import { getPresignedUrl, uploadToS3 } from '../adapters';
-import { fetchQuota } from '../adapters';
 import { uploadStore, shouldRetry, classifyError, RETRY_DELAYS } from '../stores/uploadStore';
+import { quotaStore } from '../stores/quotaStore';
 import { captureStore } from '../stores/captureStore';
 import { fileService } from './fileService';
+import { quotaService } from './quotaService';
 
 class UploadService {
   private initialized = false;
@@ -76,9 +77,9 @@ class UploadService {
   /**
    * Add file to upload queue
    */
-  enqueue(id: ImageId, filePath: string, intentId: IntentId, traceId: TraceId): void {
-    logger.info(EVENTS.UPLOAD_ENQUEUED, { imageId: id, intentId, traceId });
-    uploadStore.getState().enqueue({ id, intentId, traceId, filePath });
+  enqueue(id: ImageId, filePath: string, traceId: TraceId): void {
+    logger.info(EVENTS.UPLOAD_ENQUEUED, { imageId: id, traceId });
+    uploadStore.getState().enqueue({ id, traceId, filePath });
     this.startPolling();
   }
 
@@ -131,24 +132,34 @@ class UploadService {
       return;
     }
 
-    // Check rate limit before processing
-    const quota = await fetchQuota(this.userId);
-    const quotaCheck = canUpload(quota.used, quota.limit, this.lastUploadTime);
+    // Check quota limits before processing (Permit v2)
+    const quotaStatus = quotaStore.getState().getQuotaStatus();
 
-    if (!quotaCheck.allowed) {
-      if (quotaCheck.type === 'quota_exceeded') {
-        // Daily quota exceeded - stop polling
-        logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { reason: quotaCheck.reason, used: quota.used, limit: quota.limit });
-        uploadStore.getState().pause('quota');
-        this.stopPolling();
-      }
+    // Check total/daily quota limits
+    if (quotaStatus.isLimitReached) {
+      // Quota exceeded (total or daily) - stop polling
+      logger.warn(EVENTS.QUOTA_LIMIT_REACHED, {
+        totalUsed: quotaStatus.totalUsed,
+        totalLimit: quotaStatus.totalLimit,
+        usedToday: quotaStatus.usedToday,
+        dailyRate: quotaStatus.dailyRate,
+        tier: quotaStatus.tier,
+      });
+      uploadStore.getState().pause('quota');
+      this.stopPolling();
+      return;
+    }
+
+    // Check rate limit (2 second minimum interval)
+    const quotaCheck = canUpload(quotaStatus.usedToday, quotaStatus.dailyRate || quotaStatus.totalLimit, this.lastUploadTime);
+    if (!quotaCheck.allowed && quotaCheck.type === 'rate_limited') {
       // Rate limited - just wait for next poll cycle
       return;
     }
 
     // Process first idle task
     const task = idleTasks[0];
-    await this.processTask(task.id, task.filePath, task.intentId, task.traceId);
+    await this.processTask(task.id, task.filePath, task.traceId);
   }
 
   /**
@@ -158,7 +169,6 @@ class UploadService {
   private async processTask(
     id: ImageId,
     filePath: string,
-    intentId: IntentId,
     traceId: TraceId
   ): Promise<void> {
     if (!this.userId) return;
@@ -176,8 +186,9 @@ class UploadService {
         throw new Error('Offline');
       }
 
-      // Get presigned URL
-      const { url, key } = await getPresignedUrl(this.userId, `${id}.jpg`, intentId, traceId, 'image/jpeg');
+      // Get presigned URL (include permit for Permit v2 validation)
+      const permit = quotaService.getPermit();
+      const { url, key } = await getPresignedUrl(this.userId, `${id}.jpg`, traceId, 'image/jpeg', permit);
 
       // Read file using Tauri fs plugin
       const fileData = await readFile(filePath);

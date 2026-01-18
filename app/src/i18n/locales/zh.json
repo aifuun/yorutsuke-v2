@@ -349,6 +349,8 @@
   },
   "capture": {
     "quota": "配额",
+    "monthlyQuota": "每月配额",
+    "dailyRate": "每日速率",
     "remaining": "剩余 {{count}} 次上传",
     "quotaFull": "配额已用完",
     "dropHere": "拖放收据到这里",

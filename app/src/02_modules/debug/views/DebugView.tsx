@@ -9,7 +9,7 @@ import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction';
-import { resetTodayQuota } from '../../capture';
+import { resetTodayQuota, getImageStats } from '../../capture';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless';
 import { emit } from '../../../00_kernel/eventBus';
@@ -17,6 +17,7 @@ import { logger } from '../../../00_kernel/telemetry';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { setMockMode, subscribeMockMode, getMockSnapshot, isSlowUpload, setSlowUpload, type MockMode } from '../../../00_kernel/config/mock';
 import { captureService } from '../../capture/services/captureService';
+import { quotaService } from '../../capture/services/quotaService';
 import { captureStore } from '../../capture/stores/captureStore';
 import { uploadStore } from '../../capture/stores/uploadStore';
 import { autoSyncService } from '../../sync/services/autoSyncService';
@@ -144,10 +145,69 @@ export function DebugView() {
       // Emit event so quotaService can refresh
       emit('quota:reset', { count });
     } catch (e) {
-      setActionResult('Error');
+      setActionResult(`Error: ${String(e)}`);
+    } finally {
+      setActionStatus('idle');
+    }
+  };
+
+  const handleDiagnoseQuota = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
     }
 
-    setActionStatus('idle');
+    setActionStatus('running');
+    setActionResult('Diagnosing...');
+
+    try {
+      const stats = await getImageStats(effectiveUserId as UserId);
+      const statusList = Object.entries(stats.byStatus)
+        .map(([status, count]) => `${status}:${count}`)
+        .join(', ');
+
+      const recentInfo = stats.recentUploads
+        .map((img, idx) => `\n  ${idx + 1}. ${img.id.slice(0, 8)} | ${img.status} | uploaded_at: ${img.uploaded_at || 'NULL'}`)
+        .join('');
+
+      const mockMode = getMockSnapshot();
+      const mockStatus = mockMode === 'off' ? 'Real API' : mockMode === 'online' ? 'Mock Online' : 'Mock Offline';
+
+      setActionResult(
+        `📊 Database Stats:\n` +
+        `Total images: ${stats.total}\n` +
+        `By status: ${statusList || '(empty)'}\n` +
+        `Uploaded (all time): ${stats.uploadedAll}\n` +
+        `Uploaded (last 24h): ${stats.uploadedLast24h}\n` +
+        `\n🔍 Recent 10 images:${recentInfo || '\n  (none)'}\n` +
+        `\n💡 Current quota display: ${quota.totalUsed}/${quota.totalLimit}\n` +
+        `🔌 Mock mode: ${mockStatus}`
+      );
+    } catch (e) {
+      setActionResult(`Error: ${String(e)}`);
+    } finally {
+      setActionStatus('idle');
+    }
+  };
+
+  const handleRefreshQuota = async () => {
+    if (!effectiveUserId) {
+      setActionResult('No user ID');
+      return;
+    }
+
+    setActionStatus('running');
+    setActionResult('Refreshing permit...');
+
+    try {
+      // Note: quotaService.refreshPermit() is private, use setUser to trigger refresh
+      await quotaService.setUser(effectiveUserId);
+      setActionResult(`✅ Permit refreshed: ${quota.totalUsed}/${quota.totalLimit}`);
+    } catch (e) {
+      setActionResult(`Error: ${String(e)}`);
+    } finally {
+      setActionStatus('idle');
+    }
   };
 
   const handleClearSettings = async () => {
@@ -360,6 +420,40 @@ export function DebugView() {
             </div>
 
             {/* Danger Actions */}
+            <div className="setting-row">
+              <div className="setting-row__info">
+                <p className="setting-row__label">Diagnose Quota</p>
+                <p className="setting-row__hint">Show database stats and quota details</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm"
+                  onClick={handleDiagnoseQuota}
+                  disabled={actionStatus === 'running' || !effectiveUserId}
+                >
+                  Diagnose
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-row">
+              <div className="setting-row__info">
+                <p className="setting-row__label">Refresh Quota</p>
+                <p className="setting-row__hint">Force refresh quota from API/database</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm"
+                  onClick={handleRefreshQuota}
+                  disabled={actionStatus === 'running' || !effectiveUserId}
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
                 <p className="setting-row__label">{t('debug.resetQuota')}</p>
@@ -433,7 +527,7 @@ export function DebugView() {
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">Quota</span>
-                <span className="debug-value mono">{quota.used} / {quota.limit}</span>
+                <span className="debug-value mono">{quota.totalUsed} / {quota.totalLimit}</span>
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">Theme</span>

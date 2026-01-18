@@ -194,7 +194,7 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
       expect(mockOnSyncNow).toHaveBeenCalledTimes(1);
@@ -216,11 +216,14 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
-      // Check loading state
-      expect(screen.getByText(`⟳ ${RECOVERY_I18N.SYNC_NOW_LOADING}`)).toBeInTheDocument();
+      // Check loading state - button text doesn't change, but it gets disabled
+      await waitFor(() => {
+        const loadingButton = screen.getByRole('button', { name: /Sync Now/i });
+        expect(loadingButton).toBeDisabled();
+      });
 
       // Resolve sync
       resolveSync!();
@@ -241,7 +244,7 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
       await waitFor(() => {
@@ -261,7 +264,7 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
       await waitFor(() => {
@@ -274,7 +277,7 @@ describe('RecoveryPrompt', () => {
       expect(mockOnClose).not.toHaveBeenCalled();
 
       // Should return to idle state
-      expect(screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Sync Now/i })).toBeInTheDocument();
     });
 
     it('should disable button during sync', async () => {
@@ -293,12 +296,13 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
-      // Button should be disabled
+      // Button should be disabled during sync
       await waitFor(() => {
-        expect(screen.getByText(`⟳ ${RECOVERY_I18N.SYNC_NOW_LOADING}`)).toBeDisabled();
+        const loadingButton = screen.getByRole('button', { name: /Sync Now/i });
+        expect(loadingButton).toBeDisabled();
       });
 
       resolveSync!();
@@ -320,12 +324,12 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
       // Discard button should also be disabled
       await waitFor(() => {
-        const discardButton = screen.getByText(/Discard/);
+        const discardButton = screen.getByRole('button', { name: /Discard/i });
         expect(discardButton).toBeDisabled();
       });
 
@@ -346,7 +350,7 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
       expect(mockOnDiscard).toHaveBeenCalledTimes(1);
@@ -368,11 +372,14 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
-      // Check loading state
-      expect(screen.getByText(`⟳ ${RECOVERY_I18N.DISCARD_LOADING}`)).toBeInTheDocument();
+      // Check loading state - button text doesn't change, but it gets disabled
+      await waitFor(() => {
+        const loadingButton = screen.getByRole('button', { name: /Discard Changes/i });
+        expect(loadingButton).toBeDisabled();
+      });
 
       // Resolve discard
       resolveDiscard!();
@@ -393,7 +400,7 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
       await waitFor(() => {
@@ -413,7 +420,7 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
       await waitFor(() => {
@@ -426,7 +433,7 @@ describe('RecoveryPrompt', () => {
       expect(mockOnClose).not.toHaveBeenCalled();
 
       // Should return to idle state
-      expect(screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Discard Changes/i })).toBeInTheDocument();
     });
 
     it('should disable button during discard', async () => {
@@ -445,12 +452,13 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
-      // Button should be disabled
+      // Button should be disabled during discard
       await waitFor(() => {
-        expect(screen.getByText(`⟳ ${RECOVERY_I18N.DISCARD_LOADING}`)).toBeDisabled();
+        const loadingButton = screen.getByRole('button', { name: /Discard Changes/i });
+        expect(loadingButton).toBeDisabled();
       });
 
       resolveDiscard!();
@@ -472,12 +480,12 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
       // Sync button should also be disabled
       await waitFor(() => {
-        const syncButton = screen.getByText(/Sync Now/);
+        const syncButton = screen.getByRole('button', { name: /Sync Now/i });
         expect(syncButton).toBeDisabled();
       });
 
@@ -514,7 +522,7 @@ describe('RecoveryPrompt', () => {
       );
 
       // First attempt - fail
-      const syncButton = screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`);
+      const syncButton = screen.getByRole('button', { name: /Sync Now/i });
       fireEvent.click(syncButton);
 
       await waitFor(() => {
@@ -524,7 +532,8 @@ describe('RecoveryPrompt', () => {
       });
 
       // Second attempt - succeed
-      fireEvent.click(syncButton);
+      const retryButton = screen.getByRole('button', { name: /Sync Now/i });
+      fireEvent.click(retryButton);
 
       await waitFor(() => {
         expect(mockOnClose).toHaveBeenCalled();
@@ -549,7 +558,7 @@ describe('RecoveryPrompt', () => {
       );
 
       // First attempt - fail
-      const discardButton = screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`);
+      const discardButton = screen.getByRole('button', { name: /Discard Changes/i });
       fireEvent.click(discardButton);
 
       await waitFor(() => {
@@ -559,7 +568,8 @@ describe('RecoveryPrompt', () => {
       });
 
       // Second attempt - succeed
-      fireEvent.click(discardButton);
+      const retryButton = screen.getByRole('button', { name: /Discard Changes/i });
+      fireEvent.click(retryButton);
 
       await waitFor(() => {
         expect(mockOnClose).toHaveBeenCalled();
@@ -753,8 +763,8 @@ describe('RecoveryPrompt', () => {
         />
       );
 
-      expect(screen.getByText(`↻ ${RECOVERY_I18N.SYNC_NOW}`)).toBeInTheDocument();
-      expect(screen.getByText(`🗑️ ${RECOVERY_I18N.DISCARD}`)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Sync Now/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Discard Changes/i })).toBeInTheDocument();
     });
   });
 });

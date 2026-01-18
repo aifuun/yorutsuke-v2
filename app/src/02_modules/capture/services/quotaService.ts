@@ -1,21 +1,18 @@
-// Quota Service - Business logic for quota management
+// Quota Service - Business logic for quota management (Permit v2)
 // Pillar L: Pure orchestration, no React dependencies
-// @listen upload:complete - Refresh quota after successful upload
-// @listen quota:reset - Refresh quota after debug reset
+// @listen upload:complete - Increment local usage after successful upload
+// @listen quota:reset - Refresh permit after debug reset
 
 import type { UserId } from '../../../00_kernel/types';
 import { on } from '../../../00_kernel/eventBus';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { fetchQuota } from '../adapters';
+import { localQuota } from '../../../01_domains/quota';
+import { fetchPermit } from '../adapters/permitApi';
 import { quotaStore } from '../stores/quotaStore';
-
-// Refresh intervals
-const PERIODIC_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
 
 class QuotaService {
   private initialized = false;
   private userId: UserId | null = null;
-  private periodicInterval: ReturnType<typeof setInterval> | null = null;
   private cleanupUploadListener: (() => void) | null = null;
   private cleanupResetListener: (() => void) | null = null;
 
@@ -30,77 +27,122 @@ class QuotaService {
     }
     this.initialized = true;
 
-    // @listen upload:complete - Refresh after upload
+    // @listen upload:complete - Increment local usage after upload
     this.cleanupUploadListener = on('upload:complete', () => {
       if (this.userId) {
         logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'upload_complete' });
-        this.refresh();
+        // Pillar: IO-First Pattern - LocalQuota updates localStorage synchronously
+        localQuota.incrementUsage();
+        // Then sync to store (UI update)
+        this.syncToStore();
       }
     });
 
-    // @listen quota:reset - Refresh after debug reset
+    // @listen quota:reset - Refresh permit after debug reset
     this.cleanupResetListener = on('quota:reset', () => {
       if (this.userId) {
         logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'quota_reset' });
-        this.refresh();
+        this.refreshPermit();
       }
     });
 
     // Visibility change listener
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
-    logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'QuotaService' });
+    logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'QuotaService', system: 'permit_v2' });
   }
 
   /**
-   * Set current user and start periodic refresh
+   * Set current user and fetch permit if needed
    */
-  setUser(userId: UserId | null): void {
+  async setUser(userId: UserId | null): Promise<void> {
     this.userId = userId;
 
-    // Clear existing interval
-    if (this.periodicInterval) {
-      clearInterval(this.periodicInterval);
-      this.periodicInterval = null;
-    }
-
     if (userId) {
-      // Initial fetch
-      this.refresh();
+      // Check if we need to fetch a new permit
+      const permit = localQuota.getPermit();
+      const isExpired = localQuota.isExpired();
 
-      // Start periodic refresh
-      this.periodicInterval = setInterval(() => {
-        logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'periodic' });
-        this.refresh();
-      }, PERIODIC_REFRESH_MS);
+      if (!permit || isExpired) {
+        logger.info(EVENTS.QUOTA_REFRESHED, {
+          trigger: 'setUser',
+          hasPermit: !!permit,
+          isExpired,
+        });
+        await this.refreshPermit();
+      } else {
+        // Permit is valid, just sync to store
+        this.syncToStore();
+      }
     }
   }
 
   /**
-   * Refresh quota from API
+   * Fetch new permit from API and update local storage
+   * Pillar: IO-First Pattern - Complete IO before updating store
    */
-  async refresh(): Promise<void> {
+  async refreshPermit(): Promise<void> {
     if (!this.userId) return;
 
     quotaStore.getState().startFetch();
 
     try {
-      const quota = await fetchQuota(this.userId);
-      logger.info(EVENTS.QUOTA_REFRESHED, { used: quota.used, limit: quota.limit });
-      quotaStore.getState().fetchSuccess(quota);
+      // 1. IO operation first
+      const permit = await fetchPermit(this.userId);
+
+      // 2. Update local storage
+      localQuota.setPermit(permit);
+
+      // 3. Then update UI store
+      this.syncToStore();
+
+      logger.info(EVENTS.QUOTA_REFRESHED, {
+        system: 'permit_v2',
+        tier: permit.tier,
+        totalLimit: permit.totalLimit,
+        dailyRate: permit.dailyRate,
+      });
     } catch (e) {
-      logger.error(EVENTS.APP_ERROR, { context: 'quota_refresh', error: String(e) });
+      logger.error(EVENTS.APP_ERROR, { context: 'permit_refresh', error: String(e) });
       quotaStore.getState().fetchError(String(e));
     }
   }
 
   /**
-   * Handle visibility change - refresh when app becomes visible
+   * Sync LocalQuota state to quotaStore (UI update)
+   */
+  private syncToStore(): void {
+    const stats = localQuota.getUsageStats();
+    if (stats) {
+      quotaStore.getState().updateFromPermit(stats);
+    }
+  }
+
+  /**
+   * Get current permit (for uploadApi)
+   */
+  getPermit() {
+    return localQuota.getPermit();
+  }
+
+  /**
+   * Handle visibility change - check permit expiration when app becomes visible
    */
   private handleVisibilityChange = (): void => {
     if (document.visibilityState === 'visible' && this.userId) {
       logger.debug(EVENTS.QUOTA_REFRESHED, { trigger: 'visibility_change' });
-      this.refresh();
+
+      // Check if permit has expired
+      if (localQuota.isExpired()) {
+        logger.info(EVENTS.QUOTA_REFRESHED, {
+          trigger: 'visibility_change',
+          action: 'permit_expired_refresh',
+        });
+        this.refreshPermit();
+      } else {
+        // Just sync current state to store
+        this.syncToStore();
+      }
     }
   };
 
@@ -108,11 +150,6 @@ class QuotaService {
    * Cleanup resources
    */
   destroy(): void {
-    if (this.periodicInterval) {
-      clearInterval(this.periodicInterval);
-      this.periodicInterval = null;
-    }
-
     this.cleanupUploadListener?.();
     this.cleanupResetListener?.();
 

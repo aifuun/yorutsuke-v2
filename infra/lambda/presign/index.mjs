@@ -1,20 +1,26 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDBClient, UpdateItemCommand, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
+import crypto from 'crypto';
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const ssm = new SSMClient({});
+const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || 'ap-northeast-1' });
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
-const INTENTS_TABLE_NAME = process.env.INTENTS_TABLE_NAME;  // Pillar Q: Idempotency
 const EMERGENCY_STOP_PARAM = process.env.EMERGENCY_STOP_PARAM;  // Circuit breaker
+const PERMIT_SECRET_KEY_ARN = process.env.PERMIT_SECRET_KEY_ARN;
 
 // Cache emergency stop status (refresh every 60s)
 let emergencyStopCache = { value: false, expiry: 0 };
 const CACHE_TTL_MS = 60_000;
+
+// Cache for permit secret key (Lambda container reuse)
+let cachedPermitSecretKey = null;
 
 // Tier-based quota limits
 const TIER_LIMITS = {
@@ -119,47 +125,6 @@ async function incrementQuota(userId, date) {
   return parseInt(result.Attributes?.count?.N || "1");
 }
 
-/**
- * Pillar Q: Check if intent was already processed
- * @param {string} intentId
- * @returns {Promise<{url: string, key: string} | null>} Cached result or null
- */
-async function checkIntent(intentId) {
-  if (!INTENTS_TABLE_NAME || !intentId) return null;
-
-  const result = await ddb.send(
-    new GetItemCommand({
-      TableName: INTENTS_TABLE_NAME,
-      Key: { intentId: { S: intentId } },
-    })
-  );
-
-  if (result.Item?.result?.S) {
-    return JSON.parse(result.Item.result.S);
-  }
-  return null;
-}
-
-/**
- * Pillar Q: Store intent result for idempotency
- * @param {string} intentId
- * @param {{url: string, key: string}} result
- * @returns {Promise<void>}
- */
-async function storeIntent(intentId, result) {
-  if (!INTENTS_TABLE_NAME || !intentId) return;
-
-  await ddb.send(
-    new PutItemCommand({
-      TableName: INTENTS_TABLE_NAME,
-      Item: {
-        intentId: { S: intentId },
-        result: { S: JSON.stringify(result) },
-        ttl: { N: String(getTTL()) },  // 7 days TTL
-      },
-    })
-  );
-}
 
 /**
  * Check if emergency stop is enabled (circuit breaker)
@@ -185,6 +150,78 @@ async function isEmergencyStop() {
     logger.warn(EVENTS.PRESIGN_FAILED, { step: "emergency_stop_check", error: error.message });
     return false; // Fail open - don't block uploads on SSM errors
   }
+}
+
+/**
+ * Get permit secret key from Secrets Manager (cached)
+ * @returns {Promise<string>}
+ */
+async function getPermitSecretKey() {
+  if (cachedPermitSecretKey) return cachedPermitSecretKey;
+
+  if (!PERMIT_SECRET_KEY_ARN) {
+    throw new Error('PERMIT_SECRET_KEY_ARN not configured');
+  }
+
+  try {
+    const response = await secretsClient.send(
+      new GetSecretValueCommand({ SecretId: PERMIT_SECRET_KEY_ARN })
+    );
+    cachedPermitSecretKey = response.SecretString;
+    return cachedPermitSecretKey;
+  } catch (error) {
+    logger.error(EVENTS.PRESIGN_FAILED, { step: 'get_secret_key', error: error.message });
+    throw new Error('Failed to retrieve permit secret key');
+  }
+}
+
+/**
+ * Verify permit signature
+ * @param {object} permit - Permit object with signature
+ * @param {string} secretKey - Secret key for verification
+ * @returns {boolean} True if signature is valid
+ */
+function verifyPermitSignature(permit, secretKey) {
+  const message = `${permit.userId}:${permit.totalLimit}:${permit.dailyRate}:${permit.expiresAt}:${permit.issuedAt}`;
+  const expectedSignature = crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+  return permit.signature === expectedSignature;
+}
+
+/**
+ * Check if permit has expired
+ * @param {string} expiresAt - ISO 8601 timestamp
+ * @returns {boolean} True if expired
+ */
+function isPermitExpired(expiresAt) {
+  return new Date(expiresAt).getTime() < Date.now();
+}
+
+/**
+ * Validate permit structure and signature
+ * @param {object} permit - Permit to validate
+ * @returns {Promise<{valid: boolean, reason?: string}>}
+ */
+async function validatePermit(permit) {
+  // Check required fields
+  const requiredFields = ['userId', 'totalLimit', 'dailyRate', 'expiresAt', 'issuedAt', 'signature'];
+  for (const field of requiredFields) {
+    if (!(field in permit)) {
+      return { valid: false, reason: `Missing required field: ${field}` };
+    }
+  }
+
+  // Check expiration
+  if (isPermitExpired(permit.expiresAt)) {
+    return { valid: false, reason: 'PERMIT_EXPIRED' };
+  }
+
+  // Verify signature
+  const secretKey = await getPermitSecretKey();
+  if (!verifyPermitSignature(permit, secretKey)) {
+    return { valid: false, reason: 'INVALID_SIGNATURE' };
+  }
+
+  return { valid: true };
 }
 
 export async function handler(event) {
@@ -226,9 +263,9 @@ export async function handler(event) {
     }
 
     // Body already parsed above for traceId extraction
-    const { userId, fileName, intentId, contentType, action, s3Key, traceId } = body;
+    const { userId, fileName, contentType, action, s3Key, traceId, permit } = body;
 
-    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, intentId, action });
+    logger.info(EVENTS.PRESIGN_STARTED, { userId, fileName, action, hasPermit: !!permit });
 
     // Handle download action (GET presigned URL)
     if (action === 'download') {
@@ -269,39 +306,50 @@ export async function handler(event) {
       };
     }
 
-    // Pillar Q: Check idempotency - return cached result if already processed
-    const cachedResult = await checkIntent(intentId);
-    if (cachedResult) {
-      logger.info(EVENTS.PRESIGN_CACHED, { intentId });
-      return {
-        statusCode: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-        body: JSON.stringify(cachedResult),
-      };
-    }
+    // NEW: Permit-based quota validation (Permit v2 system)
+    if (permit && PERMIT_SECRET_KEY_ARN) {
+      logger.info(EVENTS.PRESIGN_STARTED, { step: 'validating_permit', userId });
 
-    const jstDate = getJSTDate();
-
-    // Check quota before generating presigned URL
-    if (QUOTAS_TABLE_NAME) {
-      const currentUsage = await getQuotaUsage(userId, jstDate);
-      const quotaLimit = getQuotaLimit(userId);
-      if (currentUsage >= quotaLimit) {
-        logger.warn(EVENTS.QUOTA_EXCEEDED, { userId, used: currentUsage, limit: quotaLimit });
+      const validation = await validatePermit(permit);
+      if (!validation.valid) {
+        logger.warn(EVENTS.QUOTA_EXCEEDED, { userId, reason: validation.reason, system: 'permit_v2' });
         return {
           statusCode: 403,
           headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
           body: JSON.stringify({
-            error: "QUOTA_EXCEEDED",
-            message: `Daily upload limit (${quotaLimit}) exceeded`,
-            used: currentUsage,
-            limit: quotaLimit,
-            tier: getUserTier(userId),
+            error: validation.reason || "INVALID_PERMIT",
+            message: "Permit validation failed",
           }),
         };
+      }
+
+      // Permit validation passed - skip old quota system
+      logger.info(EVENTS.PRESIGN_STARTED, { step: 'permit_validated', userId, system: 'permit_v2' });
+    } else {
+      // LEGACY: Fall back to old quota system (quotas DynamoDB table)
+      const jstDate = getJSTDate();
+
+      if (QUOTAS_TABLE_NAME) {
+        const currentUsage = await getQuotaUsage(userId, jstDate);
+        const quotaLimit = getQuotaLimit(userId);
+        if (currentUsage >= quotaLimit) {
+          logger.warn(EVENTS.QUOTA_EXCEEDED, { userId, used: currentUsage, limit: quotaLimit, system: 'legacy' });
+          return {
+            statusCode: 403,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            body: JSON.stringify({
+              error: "QUOTA_EXCEEDED",
+              message: `Daily upload limit (${quotaLimit}) exceeded`,
+              used: currentUsage,
+              limit: quotaLimit,
+              tier: getUserTier(userId),
+            }),
+          };
+        }
+
+        // Increment quota after successful check (legacy system only)
+        // Note: Permit v2 doesn't need cloud-side quota tracking
+        await incrementQuota(userId, jstDate);
       }
     }
 
@@ -314,24 +362,19 @@ export async function handler(event) {
       // Pillar N: Include traceId in S3 metadata for distributed tracing
       Metadata: {
         'trace-id': ctx.traceId,
-        'intent-id': intentId || '',
         'user-id': userId,
       },
     });
 
-    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
+    // Pillar N: Presigned URL valid for 30 minutes to accommodate slow networks
+    // (Frontend timeout is 60s, but network delays may add up)
+    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 1800 });
 
-    // Increment quota after successful presign generation
-    if (QUOTAS_TABLE_NAME) {
-      await incrementQuota(userId, jstDate);
-    }
+    // Note: Quota increment moved to legacy path above (only for non-permit requests)
 
     const result = { url: signedUrl, key, traceId: ctx.traceId };
 
-    // Pillar Q: Store intent result for idempotency
-    await storeIntent(intentId, result);
-
-    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key, intentId, traceId: ctx.traceId });
+    logger.info(EVENTS.PRESIGN_COMPLETED, { userId, key, traceId: ctx.traceId });
 
     return {
       statusCode: 200,

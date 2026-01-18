@@ -5,9 +5,9 @@
 ## Overview
 
 - **Architecture**: Local-First + Cloud-Sync
-- **Local**: SQLite (Tauri plugin-sql)
-- **Cloud**: DynamoDB + S3
-- **Last Updated**: 2026-01-05
+- **Local**: SQLite (Tauri plugin-sql) + localStorage (quota permits)
+- **Cloud**: DynamoDB + S3 + AWS Secrets Manager (permit signing)
+- **Last Updated**: 2026-01-18 (Permit v2 quota system)
 
 ## Quick Index
 
@@ -63,12 +63,18 @@
 │  └─────────────────┘         └─────────────────────┘                       │
 │                                                                             │
 │  ┌─────────────────┐         ┌─────────────────────┐                       │
-│  │    Cognito      │         │    DynamoDB         │                       │
-│  │   User Pool     │────────▶│      users          │                       │
-│  │                 │  userId │                     │                       │
-│  │  Email/Password │         │  userId (PK)        │                       │
-│  └─────────────────┘         │  tier               │                       │
-│                              │  quota_used         │                       │
+│  │    Cognito      │         │  Secrets Manager    │                       │
+│  │   User Pool     │         │                     │                       │
+│  │                 │         │  permit-secret-key  │  HMAC-SHA256 key      │
+│  │  Email/Password │         │  (rotatable)        │  for permit signing   │
+│  └─────────────────┘         └─────────────────────┘                       │
+│                                                                             │
+│  ┌─────────────────┐         ┌─────────────────────┐                       │
+│  │ issue-permit Λ  │         │   presign Lambda    │                       │
+│  │                 │         │                     │                       │
+│  │ Issues signed   │         │ Verifies permit     │  Permit v2 system:    │
+│  │ upload permits  │         │ signature before    │  Client-side quota    │
+│  └─────────────────┘         │ generating S3 URL   │  with signed permits  │
 │                              └─────────────────────┘                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -218,19 +224,48 @@ interface CloudTransaction {
 }
 ```
 
-### users
+### Quota Management (Permit v2)
+
+**Architecture**: Client-side quota tracking with signed permits.
 
 ```typescript
-interface CloudUser {
-  userId: string;           // PK - from Cognito sub
-  email: string;
-  tier: 'free' | 'basic' | 'pro';
-  quotaUsedToday: number;   // Images uploaded today
-  quotaResetAt: string;     // ISO 8601 (JST midnight)
-  createdAt: string;
-  updatedAt: string;
+// Issued by issue-permit Lambda
+interface UploadPermit {
+  userId: string;
+  totalLimit: number;       // Total upload quota (e.g., 500 for guest)
+  dailyRate: number;        // Daily rate limit (0 = unlimited for Pro)
+  expiresAt: string;        // ISO 8601 (permit expiration, e.g., 30 days)
+  issuedAt: string;         // ISO 8601 (issuance time)
+  signature: string;        // HMAC-SHA256 signature (prevents tampering)
+  tier: 'guest' | 'free' | 'basic' | 'pro';
+}
+
+// Stored in localStorage
+interface LocalQuotaData {
+  permit: UploadPermit;
+  totalUsed: number;
+  dailyUsage: Record<string, number>;  // { "2026-01-18": 25 }
 }
 ```
+
+**Tier Configuration**:
+
+| Tier | Total Limit | Daily Rate | Valid Days |
+|------|-------------|------------|------------|
+| guest | 500 | 30 | 30 |
+| free | 1000 | 50 | 30 |
+| basic | 3000 | 100 | 30 |
+| pro | 10000 | 0 (unlimited) | 30 |
+
+**Storage**: `localStorage['yorutsuke:quota']`
+
+**Validation Flow**:
+1. Frontend checks `LocalQuota.checkCanUpload()` (instant)
+2. Frontend includes permit in presign request
+3. presign Lambda verifies HMAC-SHA256 signature
+4. If valid → generate S3 URL, else reject (403)
+
+**Migration Note**: Legacy quota system (DynamoDB quotas table) removed in v2. Old clients without permits fall back to basic quota checking (backward compatibility during transition).
 
 ---
 
