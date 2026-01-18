@@ -97,10 +97,10 @@ export const AzureCredentialsSchema = z.object({
 });
 
 /**
- * Admin Batch Configuration Schema
+ * System Configuration Schema (for model selection and processing settings)
  * @ai-intent: Extended to support dynamic model selection without redeployment
  */
-export const BatchConfigSchema = z.object({
+export const SystemConfigSchema = z.object({
     processingMode: z.enum(['instant', 'batch', 'hybrid']),
     imageThreshold: z.number().min(100).max(500),
     timeoutMinutes: z.number().min(30).max(480),
@@ -124,3 +124,6 @@ export const BatchConfigSchema = z.object({
     updatedAt: z.string(),
     updatedBy: z.string(),
 });
+
+// Backward compatibility alias (deprecated - will be removed in next version)
+export const BatchConfigSchema = SystemConfigSchema;

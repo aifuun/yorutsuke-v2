@@ -127,6 +127,29 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // ========================================
+    // Parameter Store for Model Metadata (Pillar R: Observability)
+    // ========================================
+    // Default fallback model (immutable, guaranteed available)
+    new ssm.StringParameter(this, "DefaultFallbackModel", {
+      parameterName: `/yorutsuke/${env}/model/fallback`,
+      stringValue: "us.amazon.nova-lite-v1:0",
+      tier: ssm.ParameterTier.STANDARD,
+      description: "Default fallback model - Nova Lite (cannot be overridden)",
+    });
+
+    // Available Bedrock models
+    new ssm.StringParameter(this, "AvailableBedrockModels", {
+      parameterName: `/yorutsuke/${env}/models/bedrock`,
+      stringValue: JSON.stringify({
+        "nova-lite": "us.amazon.nova-lite-v1:0",
+        "nova-mini": "us.amazon.nova-mini-v1:0",
+        "nova-pro": "us.amazon.nova-pro-v1:0",
+      }),
+      tier: ssm.ParameterTier.STANDARD,
+      description: "Available AWS Bedrock model IDs for dynamic model selection",
+    });
+
     // Lambda Layer for shared code
     const sharedLayer = new lambda.LayerVersion(this, "SharedLayer", {
       layerVersionName: `yorutsuke-shared-${env}`,
@@ -293,23 +316,6 @@ export class YorutsukeStack extends cdk.Stack {
     const ACCOUNT_ID = "696249060859";
     const novaProInferenceProfileArn = `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.amazon.nova-pro-v1:0`;
     // Claude models use foundation-model/* pattern (no inference profile for 3.5 Sonnet)
-
-    // Lambda for batch processing (OCR)
-    const batchProcessLambda = new lambda.Function(this, "BatchProcessLambda", {
-      functionName: `yorutsuke-batch-process-us-${env}`,
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/batch-process"),
-      layers: [sharedLayer],
-      environment: {
-        BUCKET_NAME: imageBucket.bucketName,
-        TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
-        MAX_IMAGES_PER_RUN: "100",
-        NOVA_PRO_INFERENCE_PROFILE: novaProInferenceProfileArn,
-      },
-      timeout: cdk.Duration.minutes(5),
-      memorySize: 512,
-    });
 
     // Lambda for instant processing (On-Demand OCR)
     // @ai-intent: Create Azure DI secret in Secrets Manager for runtime credential management
@@ -506,40 +512,6 @@ export class YorutsukeStack extends cdk.Stack {
       { prefix: "batch-output/" }
     );
 
-    // Grant permissions for instant processor
-    imageBucket.grantReadWrite(batchProcessLambda);
-    transactionsTable.grantWriteData(batchProcessLambda);
-
-    // Grant Bedrock access
-    batchProcessLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "bedrock:InvokeModel",
-          "bedrock-runtime:InvokeModel",
-        ],
-        resources: [
-          "arn:aws:bedrock:*:*:foundation-model/*",
-          `arn:aws:bedrock:${this.region}:*:inference-profile/*`,
-          // Explicit permission for specific inference profiles
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.amazon.nova-pro-v1:0`,
-          `arn:aws:bedrock:${this.region}:${ACCOUNT_ID}:inference-profile/us.anthropic.claude-sonnet-4-5-20250929-v1:0`,
-        ],
-      })
-    );
-
-    // EventBridge Rule: Fallback schedule at 02:00 JST (17:00 UTC previous day)
-    // Note: With configurable processing modes, this is only used for Batch/Hybrid modes
-    // when automatic S3 triggers are not sufficient
-    const batchRule = new events.Rule(this, "BatchProcessRule", {
-      ruleName: `yorutsuke-batch-process-us-${env}`,
-      schedule: events.Schedule.cron({
-        minute: "0",
-        hour: "17", // 02:00 JST = 17:00 UTC (previous day) - fallback only
-      }),
-      enabled: env === "prod", // Only enable in production
-    });
-
-    batchRule.addTarget(new targets.LambdaFunction(batchProcessLambda));
 
     // ========================================
     // Cost Control & Monitoring (Issue #37)
@@ -604,40 +576,6 @@ export class YorutsukeStack extends cdk.Stack {
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
     presignErrorAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
-
-    // Alarm: Batch process Lambda errors (LLM failures)
-    const batchErrorAlarm = new cloudwatch.Alarm(this, "BatchErrorAlarm", {
-      alarmName: `yorutsuke-batch-errors-${env}`,
-      alarmDescription: "Batch process (LLM) errors detected",
-      metric: batchProcessLambda.metricErrors({
-        statistic: "Sum",
-        period: cdk.Duration.hours(1),
-      }),
-      threshold: 10,
-      evaluationPeriods: 1,
-      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-    });
-    batchErrorAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
-
-    // Alarm: Batch process invocations > 900/day (LLM cost control)
-    const batchInvocationAlarm = new cloudwatch.Alarm(
-      this,
-      "BatchInvocationAlarm",
-      {
-        alarmName: `yorutsuke-batch-invocations-${env}`,
-        alarmDescription: "LLM invocations approaching daily limit (900/day)",
-        metric: batchProcessLambda.metricInvocations({
-          statistic: "Sum",
-          period: cdk.Duration.hours(24),
-        }),
-        threshold: 900,
-        evaluationPeriods: 1,
-        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      }
-    );
-    batchInvocationAlarm.addAlarmAction(new cw_actions.SnsAction(alertsTopic));
 
     // Alarm: All Lambda concurrent executions (global throttle warning)
     const throttleAlarm = new cloudwatch.Alarm(this, "ThrottleAlarm", {

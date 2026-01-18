@@ -220,13 +220,13 @@ export class YorutsukeAdminStack extends cdk.Stack {
     );
 
     // ========================================
-    // Lambda: Admin Batch Config
+    // Lambda: Admin Model Config
     // ========================================
-    const batchConfigLambda = new lambda.Function(this, "AdminBatchConfigLambda", {
-      functionName: `yorutsuke-admin-batch-config-us-${env}`,
+    const modelConfigLambda = new lambda.Function(this, "AdminModelConfigLambda", {
+      functionName: `yorutsuke-admin-model-config-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/batch-config"),
+      code: lambda.Code.fromAsset("lambda/admin/model-config"),
       layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
@@ -234,7 +234,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(10),
     });
 
-    controlTable.grantReadWriteData(batchConfigLambda);
+    controlTable.grantReadWriteData(modelConfigLambda);
 
 
     // ========================================
@@ -349,17 +349,16 @@ export class YorutsukeAdminStack extends cdk.Stack {
       authOptions
     );
 
-    // /batch/config endpoint (batch configuration)
-    const batchResource = api.root.addResource("batch");
-    const batchConfigResource = batchResource.addResource("config");
-    batchConfigResource.addMethod(
+    // /config endpoint (system configuration)
+    const configResource = api.root.addResource("config");
+    configResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(batchConfigLambda),
+      new apigateway.LambdaIntegration(modelConfigLambda),
       authOptions
     );
-    batchConfigResource.addMethod(
+    configResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(batchConfigLambda),
+      new apigateway.LambdaIntegration(modelConfigLambda),
       authOptions
     );
 

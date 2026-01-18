@@ -83,7 +83,6 @@ export const endpoints = {
   stats: '/stats',
   control: '/control',
   costs: '/costs',
-  batch: '/batch',
-  batchConfig: '/batch/config',
+  modelConfig: '/config',
   azureCredentials: '/azure-credentials',
 };

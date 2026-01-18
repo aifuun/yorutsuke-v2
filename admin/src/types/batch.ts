@@ -4,9 +4,9 @@
 export type ComparisonModel = 'textract' | 'nova_mini' | 'nova_pro' | 'azure_di';
 
 /**
- * Batch configuration interface with model selection support
+ * System configuration interface with model selection support
  */
-export interface BatchConfig {
+export interface SystemConfig {
     processingMode: 'instant' | 'batch' | 'hybrid';
     imageThreshold: number;
     timeoutMinutes: number;
@@ -30,6 +30,11 @@ export interface BatchConfig {
     updatedAt: string;
     updatedBy: string;
 }
+
+/**
+ * Backward compatibility alias (deprecated - will be removed in next version)
+ */
+export type BatchConfig = SystemConfig;
 
 /**
  * Primary models for main OCR processing
