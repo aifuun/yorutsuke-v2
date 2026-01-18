@@ -715,6 +715,7 @@ export function DebugView() {
         title={t('debug.clearMyDataConfirmTitle')}
         message={t('debug.clearMyDataConfirmMessage')}
         checkboxLabel={t('debug.clearMyDataConfirmCheckbox')}
+        defaultChecked={true}
         confirmText={t('debug.clearMyDataButton')}
         cancelText={t('common.cancel')}
         variant="danger"

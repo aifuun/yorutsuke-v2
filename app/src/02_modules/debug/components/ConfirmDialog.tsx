@@ -8,6 +8,7 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
   checkboxLabel?: string;
+  defaultChecked?: boolean;
   confirmText?: string;
   cancelText?: string;
   onConfirm: () => void;
@@ -20,20 +21,21 @@ export function ConfirmDialog({
   title,
   message,
   checkboxLabel,
+  defaultChecked = false,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   onConfirm,
   onCancel,
   variant = 'danger',
 }: ConfirmDialogProps) {
-  const [isChecked, setIsChecked] = useState(false);
+  const [isChecked, setIsChecked] = useState(defaultChecked);
 
   // Reset checkbox when dialog opens/closes
   useEffect(() => {
     if (!isOpen) {
-      setIsChecked(false);
+      setIsChecked(defaultChecked);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultChecked]);
 
   // ESC key to cancel
   useEffect(() => {
