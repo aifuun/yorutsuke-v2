@@ -247,6 +247,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     status: random() < confirmRatio ? 'confirmed' : 'unconfirmed',
     confidence,
     rawText: null,
+    processingModel: null,
   };
 }
 

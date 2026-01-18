@@ -451,7 +451,6 @@ export function DebugView() {
                   size="sm"
                   onClick={handleOpenPurgeAllDialog}
                   disabled={actionStatus === 'running' || !effectiveUserId}
-                  style={{ backgroundColor: '#cc0000' }}
                 >
                   🔴 PURGE ALL
                 </DeleteButton>

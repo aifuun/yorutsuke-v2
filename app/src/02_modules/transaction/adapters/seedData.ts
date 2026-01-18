@@ -243,6 +243,7 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     status,
     confidence,
     rawText: null,
+    processingModel: null,
   };
 }
 

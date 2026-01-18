@@ -20,6 +20,7 @@ interface DbTransaction {
   updated_at: string;
   confidence: number | null;
   raw_text: string | null;
+  processing_model: string | null; // v14: Processing model metadata
   status: string | null; // v6: Cloud sync support
   version: number | null; // v6: Optimistic locking
 }
@@ -42,6 +43,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     status: (row.status as TransactionStatus) || 'unconfirmed',
     confidence: row.confidence,
     rawText: row.raw_text,
+    processingModel: row.processing_model,
   };
 }
 

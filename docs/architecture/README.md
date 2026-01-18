@@ -14,6 +14,7 @@
 | [LAYERS.md](./LAYERS.md) | Four-layer architecture definition | Understanding system structure |
 | [PATTERNS.md](./PATTERNS.md) | Core patterns: Service, State, Events | Writing new code |
 | [FLOWS.md](./FLOWS.md) | Data flow diagrams | Debugging, feature planning |
+| [RECEIPT_PROCESSING.md](./RECEIPT_PROCESSING.md) | Complete pipeline: upload → parsing | Receipt processing details |
 | [SCHEMA.md](./SCHEMA.md) | Data model (entities, tables) | Database work |
 | [MODELS.md](./MODELS.md) | Row vs Domain mappings | Type safety at boundaries |
 | [STORES.md](./STORES.md) | Zustand runtime state | State management |

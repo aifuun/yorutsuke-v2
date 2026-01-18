@@ -68,6 +68,7 @@ function transformTransaction(raw: z.infer<typeof TransactionSchema>): Transacti
     userId: UserIdConstructor(raw.userId),
     imageId: raw.imageId ? ImageId(raw.imageId) : null,
     s3Key: null, // Report API doesn't include S3 keys
+    processingModel: null, // Report API doesn't include processing model
   };
 }
 

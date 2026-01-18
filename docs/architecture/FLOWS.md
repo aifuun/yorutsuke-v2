@@ -128,6 +128,8 @@ React: User drops image
 
 AI processing with three configurable modes via Admin Panel.
 
+> **📖 For detailed processing pipeline with dynamic model selection, see [RECEIPT_PROCESSING.md](./RECEIPT_PROCESSING.md)**
+
 ### Mode Selection
 
 | Mode | API | Min Images | Trigger | Cost |
@@ -346,6 +348,7 @@ React: App launch / Navigate to Report
 
 - [LAYERS.md](./LAYERS.md) - System structure
 - [PATTERNS.md](./PATTERNS.md) - State patterns
+- [RECEIPT_PROCESSING.md](./RECEIPT_PROCESSING.md) - Detailed receipt upload→parsing pipeline with model selection
 - [SCHEMA.md](./SCHEMA.md) - Data model
 - [README.md](./README.md) - Architecture index
 
