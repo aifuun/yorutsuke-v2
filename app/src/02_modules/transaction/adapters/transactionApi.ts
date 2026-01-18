@@ -43,7 +43,10 @@ const CloudTransactionSchema = z.object({
   validationErrors: z.array(z.any()).optional(),
   isGuest: z.boolean().optional(),
   ttl: z.number().optional(),
-  // AI Processing Metadata (simplified)
+  // AI Processing Metadata
+  primaryModelId: z.string().optional().nullable(),
+  primaryConfidence: z.number().min(0).max(100).optional().nullable(),
+  // Deprecated fields (for backward compatibility)
   processingModel: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
 });
@@ -94,7 +97,8 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     status: cloudTx.status,
     confidence: cloudTx.confidence ?? null,
     rawText: null, // Not stored in DynamoDB
-    processingModel: cloudTx.processingModel ?? null,
+    primaryModelId: cloudTx.primaryModelId ?? null,
+    primaryConfidence: cloudTx.primaryConfidence ?? null,
   };
 }
 
@@ -255,6 +259,8 @@ export async function syncTransactions(
       updatedAt: tx.updatedAt,
       createdAt: tx.createdAt,
       status: tx.status,
+      primaryModelId: tx.primaryModelId,
+      primaryConfidence: tx.primaryConfidence,
     })),
   };
 
