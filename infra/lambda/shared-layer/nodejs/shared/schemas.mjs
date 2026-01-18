@@ -55,3 +55,18 @@ export const BatchConfigSchema = z.object({
     updatedAt: z.string(),
     updatedBy: z.string(),
 });
+
+/**
+ * Model Configuration Schema (Issue #149)
+ * Dynamic model selection for receipt processing
+ */
+export const ModelConfigSchema = z.object({
+    modelId: z.string(), // Full model ID (e.g., "us.amazon.nova-lite-v1:0")
+    tokenCode: z.string(), // Short code for UI (e.g., "nova-lite")
+    provider: z.enum(['aws-bedrock', 'azure-openai']), // AI provider
+    displayName: z.string(), // Human-readable name (e.g., "Nova Lite")
+    description: z.string(), // Description for UI (e.g., "Low cost, recommended")
+    config: z.record(z.any()).optional(), // Provider-specific config (e.g., Azure endpoint)
+    updatedAt: z.string(), // ISO timestamp
+    updatedBy: z.string(), // Cognito sub
+});

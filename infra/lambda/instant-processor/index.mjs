@@ -1,7 +1,7 @@
 import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
-import { marshall } from "@aws-sdk/util-dynamodb";
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema } from "/opt/nodejs/shared/schemas.mjs";
 
@@ -11,13 +11,56 @@ const bedrock = new BedrockRuntimeClient({});
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
-const MODEL_ID = process.env.MODEL_ID || "us.amazon.nova-lite-v1:0";
+const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
+const DEFAULT_MODEL_ID = process.env.MODEL_ID || "us.amazon.nova-lite-v1:0";
 
 // Guest data expires after 60 days
 const GUEST_TTL_DAYS = 60;
 
 // Cached merchant list (persists across invocations in same Lambda container)
 let cachedMerchantList = null;
+
+// Cached model config (persists across invocations in same Lambda container)
+let cachedModelConfig = null;
+
+/**
+ * Load model config from DynamoDB (cached in memory after first load)
+ * Falls back to environment variable if DynamoDB read fails
+ */
+async function loadModelConfig() {
+  if (cachedModelConfig) {
+    logger.debug('MODEL_CONFIG_CACHE_HIT', { modelId: cachedModelConfig.modelId });
+    return cachedModelConfig;
+  }
+
+  try {
+    const response = await ddb.send(new GetItemCommand({
+      TableName: CONTROL_TABLE_NAME,
+      Key: marshall({ key: 'modelConfig' }),
+    }));
+
+    if (response.Item) {
+      cachedModelConfig = unmarshall(response.Item).value;
+      logger.info('MODEL_CONFIG_LOADED', {
+        modelId: cachedModelConfig.modelId,
+        tokenCode: cachedModelConfig.tokenCode,
+        provider: cachedModelConfig.provider,
+      });
+      return cachedModelConfig;
+    }
+  } catch (error) {
+    logger.warn('MODEL_CONFIG_LOAD_FAILED', { error: String(error) });
+  }
+
+  // Fallback to environment variable
+  cachedModelConfig = {
+    modelId: DEFAULT_MODEL_ID,
+    tokenCode: 'nova-lite',
+    provider: 'aws-bedrock',
+  };
+  logger.info('MODEL_CONFIG_FALLBACK', { modelId: DEFAULT_MODEL_ID });
+  return cachedModelConfig;
+}
 
 /**
  * Load merchant list from S3 (cached in memory after first load)
@@ -88,6 +131,10 @@ JSON形式で返してください。マークダウンのコードブロック�
 export async function handler(event) {
     const ctx = initContext(event);
     logger.info(EVENTS.IMAGE_PROCESSING_STARTED, { recordCount: event.Records.length });
+
+    // Load model config once at start (cached for subsequent invocations)
+    const modelConfig = await loadModelConfig();
+    const MODEL_ID = modelConfig.modelId;
 
     // Load merchant list once at start (cached for subsequent invocations)
     const merchantList = await loadMerchantList();

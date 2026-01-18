@@ -220,6 +220,23 @@ export class YorutsukeAdminStack extends cdk.Stack {
     );
 
     // ========================================
+    // Lambda: Admin Model Config
+    // ========================================
+    const modelConfigLambda = new lambda.Function(this, "AdminModelConfigLambda", {
+      functionName: `yorutsuke-admin-model-config-us-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/admin/model-config"),
+      layers: [sharedLayer],
+      environment: {
+        CONTROL_TABLE_NAME: controlTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    controlTable.grantReadWriteData(modelConfigLambda);
+
+    // ========================================
     // API Gateway with Cognito Authorization
     // ========================================
     const api = new apigateway.RestApi(this, "AdminApi", {
@@ -302,6 +319,20 @@ export class YorutsukeAdminStack extends cdk.Stack {
     costsResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(costsLambda),
+      authOptions
+    );
+
+    // /model/config endpoint
+    const modelResource = api.root.addResource("model");
+    const modelConfigResource = modelResource.addResource("config");
+    modelConfigResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(modelConfigLambda),
+      authOptions
+    );
+    modelConfigResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(modelConfigLambda),
       authOptions
     );
 
