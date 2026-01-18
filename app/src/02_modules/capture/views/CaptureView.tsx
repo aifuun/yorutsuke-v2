@@ -148,6 +148,14 @@ export function CaptureView() {
   const quotaPercent = quota.totalLimit > 0 ? (quota.totalUsed / quota.totalLimit) * 100 : 0;
   const quotaVariant = quotaPercent >= 100 ? 'error' : quotaPercent >= 80 ? 'warning' : 'success';
 
+  // Daily quota color logic
+  const dailyPercent = quota.dailyRate > 0 ? (quota.usedToday / quota.dailyRate) * 100 : 0;
+  const dailyVariant =
+    quota.dailyRate === 0 ? 'income' :        // Pro tier: unlimited daily (green)
+    dailyPercent >= 100 ? 'error' :           // Red
+    dailyPercent >= 80 ? 'warning' :          // Orange
+    'success';                                // Blue
+
   return (
     <div className="capture">
       <CaptureHeaderComponent date={today} dayOfWeek={dayOfWeek} title={t('nav.capture')} />
@@ -289,14 +297,27 @@ export function CaptureView() {
 
           {/* Stats Row */}
           <div className="stats-row">
+            {/* Monthly Quota */}
             <div className={`card card--summary ${quotaVariant === 'error' ? 'is-expense' : quotaVariant === 'warning' ? 'is-warning' : 'is-info'}`}>
-              <p className="card--summary__label">{t('capture.quota')}</p>
+              <p className="card--summary__label">{t('capture.monthlyQuota')}</p>
               <p className="card--summary__value">{quota.totalUsed}/{quota.totalLimit}</p>
             </div>
+
+            {/* Daily Rate */}
+            <div className={`card card--summary ${dailyVariant === 'income' ? 'is-income' : dailyVariant === 'error' ? 'is-expense' : dailyVariant === 'warning' ? 'is-warning' : 'is-info'}`}>
+              <p className="card--summary__label">{t('capture.dailyRate')}</p>
+              <p className="card--summary__value">
+                {quota.dailyRate === 0 ? '∞' : `${quota.usedToday}/${quota.dailyRate}`}
+              </p>
+            </div>
+
+            {/* Pending */}
             <div className="card card--summary is-pending">
               <p className="card--summary__label">{t('capture.pending')}</p>
               <p className="card--summary__value">{pendingCount}</p>
             </div>
+
+            {/* Session/Uploaded */}
             <div className="card card--summary is-income">
               <p className="card--summary__label">{t('capture.uploaded')}</p>
               <p className="card--summary__value">{uploadedCount}</p>

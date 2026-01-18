@@ -349,6 +349,8 @@
   },
   "capture": {
     "quota": "配額",
+    "monthlyQuota": "月間クォータ",
+    "dailyRate": "日次レート",
     "remaining": "残り{{count}}枚アップロード可能",
     "quotaFull": "配額に達しました",
     "dropHere": "レシートをここにドロップ",
