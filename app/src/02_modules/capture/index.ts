@@ -46,4 +46,4 @@ export type {
 export { ALLOWED_EXTENSIONS } from './types';
 
 // Adapters (for cross-module access)
-export { updateImagesUserId, getImageById, updateImageS3Key, createImageRecord, resetTodayQuota, deleteImageRecord } from './adapters/imageDb';
+export { updateImagesUserId, getImageById, updateImageS3Key, createImageRecord, resetTodayQuota, deleteImageRecord, getImageStats } from './adapters/imageDb';

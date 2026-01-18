@@ -1,71 +1,56 @@
-// Quota Store - Zustand vanilla store for quota state
+// Quota Store - Zustand vanilla store for quota state (Permit v2)
 // Pillar D: FSM - no boolean flags
 // Pillar J: Locality - state near usage
 import { createStore } from 'zustand/vanilla';
-import type { QuotaResponse, UserTier, GuestExpirationInfo } from '../adapters';
+import type { UsageStats } from '../../../01_domains/quota/LocalQuota';
+
+type UserTier = 'guest' | 'free' | 'basic' | 'pro';
 
 // Default values for offline/guest mode
-// Must match TIER_LIMITS.guest in quotaApi.ts
 const DEFAULTS = {
-  limit: 30,
+  totalLimit: 30,
+  dailyRate: 30,
   tier: 'guest' as UserTier,
 };
 
-// Warning threshold for guest data expiration
-const EXPIRATION_WARNING_DAYS = 14;
-
 /**
- * Quota status with computed fields
+ * Quota status with computed fields (Permit v2)
  */
 export interface QuotaStatus {
-  used: number;
-  limit: number;
-  remaining: number;
+  // Total quota
+  totalUsed: number;
+  totalLimit: number;
+  remainingTotal: number;
+
+  // Daily quota
+  usedToday: number;
+  dailyRate: number;
+  remainingDaily: number | typeof Infinity;
+
+  // Status
   isLimitReached: boolean;
-  resetsAt: string | null;
   tier: UserTier;
   isGuest: boolean;
-  guestExpiration: GuestExpirationInfo | null;
-  showExpirationWarning: boolean;
+  isExpired: boolean;
 }
 
-// FSM State
+// FSM State (Permit v2)
 export type QuotaState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'success'; quota: QuotaResponse }
-  | { status: 'error'; error: string; cachedQuota?: QuotaResponse };
+  | { status: 'success'; stats: UsageStats }
+  | { status: 'error'; error: string; cachedStats?: UsageStats };
 
 export interface QuotaActions {
   startFetch: () => void;
-  fetchSuccess: (quota: QuotaResponse) => void;
+  updateFromPermit: (stats: UsageStats) => void;
   fetchError: (error: string) => void;
   getQuotaStatus: () => QuotaStatus;
 }
 
 export type QuotaStore = QuotaState & QuotaActions;
 
-// Helper to compute guest fields
-function computeGuestFields(quota: QuotaResponse | undefined) {
-  if (!quota) {
-    return {
-      isGuest: true,
-      guestExpiration: null,
-      showExpirationWarning: false,
-    };
-  }
-
-  const isGuest = quota.tier === 'guest';
-  const guestExpiration = quota.guest || null;
-  const showExpirationWarning =
-    isGuest &&
-    guestExpiration !== null &&
-    guestExpiration.daysUntilExpiration <= EXPIRATION_WARNING_DAYS;
-
-  return { isGuest, guestExpiration, showExpirationWarning };
-}
-
-// Create vanilla store
+// Create vanilla store (Permit v2)
 export const quotaStore = createStore<QuotaStore>((set, get) => ({
   // Initial state
   status: 'idle',
@@ -73,58 +58,65 @@ export const quotaStore = createStore<QuotaStore>((set, get) => ({
   // Actions
   startFetch: () => set({ status: 'loading' }),
 
-  fetchSuccess: (quota) => set({ status: 'success', quota }),
+  updateFromPermit: (stats) => set({ status: 'success', stats }),
 
   fetchError: (error) => {
     const current = get();
     set({
       status: 'error',
       error,
-      cachedQuota: current.status === 'success' ? current.quota : undefined,
+      cachedStats: current.status === 'success' ? current.stats : undefined,
     });
   },
 
-  // Computed quota status
+  // Computed quota status (Permit v2)
   getQuotaStatus: () => {
     const state = get();
 
     if (state.status === 'success') {
-      const guestFields = computeGuestFields(state.quota);
       return {
-        used: state.quota.used,
-        limit: state.quota.limit,
-        remaining: state.quota.remaining,
-        isLimitReached: state.quota.remaining <= 0,
-        resetsAt: state.quota.resetsAt,
-        tier: state.quota.tier,
-        ...guestFields,
+        totalUsed: state.stats.totalUsed,
+        totalLimit: state.stats.totalLimit,
+        remainingTotal: state.stats.remainingTotal,
+        usedToday: state.stats.usedToday,
+        dailyRate: state.stats.dailyRate,
+        remainingDaily: state.stats.remainingDaily,
+        isLimitReached: state.stats.remainingTotal <= 0 ||
+                        (state.stats.dailyRate > 0 && state.stats.remainingDaily === 0),
+        tier: state.stats.tier,
+        isGuest: state.stats.tier === 'guest',
+        isExpired: state.stats.isExpired,
       };
     }
 
-    if (state.status === 'error' && state.cachedQuota) {
-      const guestFields = computeGuestFields(state.cachedQuota);
+    if (state.status === 'error' && state.cachedStats) {
       return {
-        used: state.cachedQuota.used,
-        limit: state.cachedQuota.limit,
-        remaining: state.cachedQuota.remaining,
-        isLimitReached: state.cachedQuota.remaining <= 0,
-        resetsAt: state.cachedQuota.resetsAt,
-        tier: state.cachedQuota.tier,
-        ...guestFields,
+        totalUsed: state.cachedStats.totalUsed,
+        totalLimit: state.cachedStats.totalLimit,
+        remainingTotal: state.cachedStats.remainingTotal,
+        usedToday: state.cachedStats.usedToday,
+        dailyRate: state.cachedStats.dailyRate,
+        remainingDaily: state.cachedStats.remainingDaily,
+        isLimitReached: state.cachedStats.remainingTotal <= 0 ||
+                        (state.cachedStats.dailyRate > 0 && state.cachedStats.remainingDaily === 0),
+        tier: state.cachedStats.tier,
+        isGuest: state.cachedStats.tier === 'guest',
+        isExpired: state.cachedStats.isExpired,
       };
     }
 
     // Default for loading/idle/error-without-cache
     return {
-      used: 0,
-      limit: DEFAULTS.limit,
-      remaining: DEFAULTS.limit,
+      totalUsed: 0,
+      totalLimit: DEFAULTS.totalLimit,
+      remainingTotal: DEFAULTS.totalLimit,
+      usedToday: 0,
+      dailyRate: DEFAULTS.dailyRate,
+      remainingDaily: DEFAULTS.dailyRate,
       isLimitReached: false,
-      resetsAt: null,
       tier: DEFAULTS.tier,
       isGuest: true,
-      guestExpiration: null,
-      showExpirationWarning: false,
+      isExpired: false,
     };
   },
 }));

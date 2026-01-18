@@ -74,7 +74,7 @@ React: User drops image
 ┌─────────────────┐
 │ Service:        │  Orchestration
 │ - Generate IDs  │  imageId, traceId, intentId
-│ - Check quota   │  from Zustand store
+│ - Check quota   │  from LocalQuota (Permit v2)
 │ - Update store  │  captureStore.setState()
 └─────────────────┘
       │

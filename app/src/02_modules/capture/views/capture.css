@@ -199,6 +199,12 @@
   margin-bottom: 16px;
 }
 
+.queue-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .queue-header .card--list__header {
   margin-bottom: 0;
 }

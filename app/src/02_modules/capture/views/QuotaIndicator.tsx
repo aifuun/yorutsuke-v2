@@ -26,40 +26,13 @@ function getQuotaLevel(used: number, limit: number): QuotaLevel {
   return 'ok';
 }
 
-/**
- * Format time until reset
- * @param resetsAt ISO timestamp
- * @returns Formatted string like "3h 24m" or null if invalid
- */
-function formatTimeUntilReset(resetsAt: string | null): string | null {
-  if (!resetsAt) return null;
-
-  const now = new Date();
-  const reset = new Date(resetsAt);
-  const diffMs = reset.getTime() - now.getTime();
-
-  if (diffMs <= 0) return null;
-
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-}
 
 export function QuotaIndicator({ quota, isLoading, onRefresh }: QuotaIndicatorProps) {
   const { t } = useTranslation();
 
   const level = useMemo(
-    () => getQuotaLevel(quota.used, quota.limit),
-    [quota.used, quota.limit]
-  );
-
-  const timeUntilReset = useMemo(
-    () => formatTimeUntilReset(quota.resetsAt),
-    [quota.resetsAt]
+    () => getQuotaLevel(quota.totalUsed, quota.totalLimit),
+    [quota.totalUsed, quota.totalLimit]
   );
 
   return (
@@ -74,26 +47,28 @@ export function QuotaIndicator({ quota, isLoading, onRefresh }: QuotaIndicatorPr
       <div className="quota-indicator__main">
         <span className="quota-indicator__label">{t('quota.label')}</span>
         <span className="quota-indicator__value">
-          {isLoading ? '...' : `${quota.used}/${quota.limit}`}
+          {isLoading ? '...' : `${quota.totalUsed}/${quota.totalLimit}`}
         </span>
       </div>
 
-      {quota.isLimitReached ? (
+      {/* Show daily limit if applicable */}
+      {quota.dailyRate > 0 && (
+        <div className="quota-indicator__status">
+          {t('quota.dailyUsage')}: {quota.usedToday}/{quota.dailyRate}
+        </div>
+      )}
+
+      {/* Show limit reached message */}
+      {quota.isLimitReached && (
         <div className="quota-indicator__status quota-indicator__status--limit">
           {t('quota.limitReached')}
         </div>
-      ) : timeUntilReset ? (
-        <div className="quota-indicator__status">
-          {t('quota.resetsIn', { time: timeUntilReset })}
-        </div>
-      ) : null}
+      )}
 
-      {/* Guest expiration warning */}
-      {quota.showExpirationWarning && quota.guestExpiration && (
+      {/* Show permit expired warning */}
+      {quota.isExpired && (
         <div className="quota-indicator__expiration-warning">
-          {t('quota.guestExpiration', {
-            days: quota.guestExpiration.daysUntilExpiration,
-          })}
+          {t('quota.permitExpired')}
         </div>
       )}
 
@@ -101,7 +76,7 @@ export function QuotaIndicator({ quota, isLoading, onRefresh }: QuotaIndicatorPr
       <div className="quota-indicator__bar">
         <div
           className="quota-indicator__bar-fill"
-          style={{ width: `${Math.min(100, (quota.used / quota.limit) * 100)}%` }}
+          style={{ width: `${Math.min(100, (quota.totalUsed / quota.totalLimit) * 100)}%` }}
         />
       </div>
     </div>

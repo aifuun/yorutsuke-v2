@@ -209,6 +209,7 @@ export async function countTodayUploads(userId: UserId): Promise<number> {
     `SELECT COUNT(*) as count FROM images
      WHERE user_id = ?
      AND status = 'uploaded'
+     AND uploaded_at IS NOT NULL
      AND uploaded_at >= datetime('now', '-24 hours')`,
     [String(userId)],
   );
@@ -216,6 +217,73 @@ export async function countTodayUploads(userId: UserId): Promise<number> {
   const count = rows[0]?.count ?? 0;
   logger.debug(EVENTS.QUOTA_CHECKED, { userId, count, phase: 'rolling_24h_count' });
   return count;
+}
+
+/**
+ * Get detailed image statistics for debugging
+ * Returns counts by status and recent uploaded images info
+ */
+export async function getImageStats(userId: UserId): Promise<{
+  total: number;
+  byStatus: Record<string, number>;
+  uploadedLast24h: number;
+  uploadedAll: number;
+  recentUploads: Array<{ id: string; status: string; uploaded_at: string | null; created_at: string }>;
+}> {
+  // Total count
+  const totalRows = await select<Array<{ count: number }>>(
+    `SELECT COUNT(*) as count FROM images WHERE user_id = ?`,
+    [String(userId)],
+  );
+  const total = totalRows[0]?.count ?? 0;
+
+  // Count by status
+  const statusRows = await select<Array<{ status: string; count: number }>>(
+    `SELECT status, COUNT(*) as count FROM images WHERE user_id = ? GROUP BY status`,
+    [String(userId)],
+  );
+  const byStatus: Record<string, number> = {};
+  statusRows.forEach(row => {
+    byStatus[row.status] = row.count;
+  });
+
+  // Uploaded in last 24 hours
+  const last24hRows = await select<Array<{ count: number }>>(
+    `SELECT COUNT(*) as count FROM images
+     WHERE user_id = ?
+     AND status = 'uploaded'
+     AND uploaded_at IS NOT NULL
+     AND uploaded_at >= datetime('now', '-24 hours')`,
+    [String(userId)],
+  );
+  const uploadedLast24h = last24hRows[0]?.count ?? 0;
+
+  // All uploaded (regardless of time)
+  const allUploadedRows = await select<Array<{ count: number }>>(
+    `SELECT COUNT(*) as count FROM images
+     WHERE user_id = ?
+     AND status = 'uploaded'`,
+    [String(userId)],
+  );
+  const uploadedAll = allUploadedRows[0]?.count ?? 0;
+
+  // Recent uploaded images
+  const recentRows = await select<Array<{ id: string; status: string; uploaded_at: string | null; created_at: string }>>(
+    `SELECT id, status, uploaded_at, created_at
+     FROM images
+     WHERE user_id = ?
+     ORDER BY created_at DESC
+     LIMIT 10`,
+    [String(userId)],
+  );
+
+  return {
+    total,
+    byStatus,
+    uploadedLast24h,
+    uploadedAll,
+    recentUploads: recentRows,
+  };
 }
 
 /**
@@ -263,11 +331,23 @@ export async function updateImagesUserId(
 export async function resetTodayQuota(userId: UserId): Promise<number> {
   logger.warn(EVENTS.QUOTA_CHECKED, { userId, phase: 'reset_quota_start' });
 
+  // First, check what images exist for this user (debug)
+  const allImagesRows = await select<Array<{ id: string; status: string; uploaded_at: string | null }>>(
+    `SELECT id, status, uploaded_at FROM images WHERE user_id = ? ORDER BY created_at DESC LIMIT 10`,
+    [String(userId)],
+  );
+  logger.debug(EVENTS.QUOTA_CHECKED, {
+    userId,
+    phase: 'reset_quota_debug',
+    recentImages: allImagesRows,
+  });
+
   // Get count of uploads in last 24 hours
   const countRows = await select<Array<{ count: number }>>(
     `SELECT COUNT(*) as count FROM images
      WHERE user_id = ?
      AND status = 'uploaded'
+     AND uploaded_at IS NOT NULL
      AND uploaded_at >= datetime('now', '-24 hours')`,
     [String(userId)],
   );
@@ -284,6 +364,7 @@ export async function resetTodayQuota(userId: UserId): Promise<number> {
      SET uploaded_at = datetime(uploaded_at, '-25 hours')
      WHERE user_id = ?
      AND status = 'uploaded'
+     AND uploaded_at IS NOT NULL
      AND uploaded_at >= datetime('now', '-24 hours')`,
     [String(userId)],
   );
