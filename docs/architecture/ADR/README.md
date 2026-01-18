@@ -29,6 +29,7 @@ An Architecture Decision Record captures a single decision along with its contex
 | [014](./014-lambda-layer-version-management.md) | Lambda Layer Version Management | Accepted | 2026-01 |
 | [015](./015-sdk-over-rest-api.md) | SDK Over REST API | Accepted | 2026-01 |
 | [016](./016-lambda-local-first-testing.md) | Lambda Local-First Testing | Accepted | 2026-01 |
+| [017](./017-permit-quota-system.md) | Permit-Based Quota System | Accepted | 2026-01 |
 | [018](./018-cdk-watch-cloud-driven-testing.md) | cdk watch Cloud-Driven Testing | Accepted | 2026-01 |
 
 ## ADR Template
