@@ -3,7 +3,7 @@ import { DynamoDBClient, PutItemCommand, GetItemCommand } from "@aws-sdk/client-
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
-import { OcrResultSchema, TransactionSchema, BatchConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
+import { OcrResultSchema, TransactionSchema, SystemConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
 import { MultiModelAnalyzer, convertModelResultToOcrResult } from "/opt/nodejs/shared/model-analyzer.mjs";
 import { getAzureCredentials } from "/opt/nodejs/shared/azure-credentials.mjs";
 
@@ -183,9 +183,9 @@ export async function handler(event) {
 
             logger.debug("IMAGE_FORMAT_DETECTED", { fileName, extension: imageExt, format: imageFormat });
 
-            // 4. Load batch configuration (Pillar B: Airlock - validate config)
+            // 4. Load system configuration (Pillar B: Airlock - validate config)
             // @ai-intent: Cache at Lambda container level to avoid repeated DynamoDB reads
-            let batchConfig = null;
+            let systemConfig = null;
             let modelId = "us.amazon.nova-lite-v1:0";
             let useAzureAsPrimary = false;
             let enabledModels = ['textract', 'nova_mini', 'nova_pro']; // Default models
@@ -194,15 +194,15 @@ export async function handler(event) {
             try {
                 const configResult = await ddb.send(new GetItemCommand({
                     TableName: CONTROL_TABLE_NAME,
-                    Key: marshall({ key: 'batch_config' }),
+                    Key: marshall({ key: 'system_config' }),
                 }));
                 if (configResult.Item) {
                     const rawConfig = unmarshall(configResult.Item);
                     // Pillar B: Validate configuration against schema
-                    batchConfig = BatchConfigSchema.parse(rawConfig);
+                    systemConfig = SystemConfigSchema.parse(rawConfig);
 
                     // Use primaryModelId if available, fall back to modelId for backward compatibility
-                    const primaryModel = batchConfig.primaryModelId || batchConfig.modelId || modelId;
+                    const primaryModel = systemConfig.primaryModelId || systemConfig.modelId || modelId;
 
                     // Check if Azure DI is selected as primary model
                     if (primaryModel === 'azure_di') {
@@ -225,21 +225,21 @@ export async function handler(event) {
                     }
 
                     // Load enabled models from config
-                    if (batchConfig.enableComparison && batchConfig.comparisonModels?.length > 0) {
-                        enabledModels = batchConfig.comparisonModels;
+                    if (systemConfig.enableComparison && systemConfig.comparisonModels?.length > 0) {
+                        enabledModels = systemConfig.comparisonModels;
                         logger.debug("MODEL_COMPARISON_ENABLED", {
                             models: enabledModels,
-                            enableComparison: batchConfig.enableComparison,
+                            enableComparison: systemConfig.enableComparison,
                         });
 
                         // Load Azure DI credentials if configured and enabled for comparison
                         if (
                             !useAzureAsPrimary &&
                             enabledModels.includes('azure_di') &&
-                            batchConfig.azureConfig?.secretArn
+                            systemConfig.azureConfig?.secretArn
                         ) {
                             const secretArn = process.env.AZURE_CREDENTIALS_SECRET_ARN ||
-                                batchConfig.azureConfig.secretArn;
+                                systemConfig.azureConfig.secretArn;
                             azureCredentials = await getAzureCredentials(secretArn);
 
                             if (azureCredentials) {
@@ -291,11 +291,74 @@ export async function handler(event) {
                         confidence: primaryConfidence,
                     });
                 } catch (azureError) {
-                    logger.error("AZURE_DI_PRIMARY_FAILED", {
+                    logger.warn("AZURE_DI_PRIMARY_FAILED", {
                         imageId,
                         error: azureError.message,
                     });
-                    continue; // Skip this record on Azure DI failure
+
+                    // FALLBACK: Try Bedrock Nova Lite as guaranteed fallback
+                    logger.info("FALLING_BACK_TO_NOVA_LITE", { imageId });
+                    try {
+                        const fallbackPayload = {
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: [
+                                        {
+                                            image: {
+                                                format: imageFormat,
+                                                source: { bytes: imageBase64 },
+                                            },
+                                        },
+                                        { text: ocrPrompt },
+                                    ],
+                                },
+                            ],
+                            inferenceConfig: {
+                                maxTokens: 1024,
+                                temperature: 0.1,
+                            },
+                        };
+
+                        const fallbackBedrockResponse = await bedrock.send(
+                            new InvokeModelCommand({
+                                modelId: "us.amazon.nova-lite-v1:0",  // Guaranteed fallback model
+                                contentType: "application/json",
+                                accept: "application/json",
+                                body: JSON.stringify(fallbackPayload),
+                            })
+                        );
+
+                        const fallbackResponseBody = JSON.parse(
+                            new TextDecoder().decode(fallbackBedrockResponse.body)
+                        );
+                        const fallbackOcrText = fallbackResponseBody.output?.message?.content?.[0]?.text || "";
+
+                        // Pillar B: Airlock - Parse & Validate AI output
+                        let fallbackJsonStr = fallbackOcrText.trim();
+                        if (fallbackJsonStr.startsWith("```")) {
+                            fallbackJsonStr = fallbackJsonStr
+                                .replace(/```json?\n?/g, "")
+                                .replace(/```/g, "")
+                                .trim();
+                        }
+
+                        parsed = OcrResultSchema.parse(JSON.parse(fallbackJsonStr));
+                        primaryModelId = "us.amazon.nova-lite-v1:0";
+                        primaryConfidence = undefined;
+
+                        logger.info("FALLBACK_SUCCESS", {
+                            imageId,
+                            fallbackModel: "us.amazon.nova-lite-v1:0",
+                        });
+                    } catch (fallbackError) {
+                        logger.error("FALLBACK_FAILED_SKIPPING_RECORD", {
+                            imageId,
+                            primaryError: azureError.message,
+                            fallbackError: fallbackError.message,
+                        });
+                        continue;  // Only skip if both Azure DI and fallback fail
+                    }
                 }
             } else {
                 // Use Bedrock (Nova) as primary model

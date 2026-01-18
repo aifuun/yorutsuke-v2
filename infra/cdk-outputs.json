@@ -1,0 +1,28 @@
+{
+  "Yorutsuke2Stack-dev": {
+    "ReportLambdaUrl": "https://zglx3vnptyfmgplecpx4sguvei0rqcfi.lambda-url.us-east-1.on.aws/",
+    "PresignLambdaUrl": "https://gvyvjau4dc6qe6ygdnuuxal64q0audhy.lambda-url.us-east-1.on.aws/",
+    "EmergencyStopParamName": "/yorutsuke/dev/emergency-stop",
+    "QuotaLambdaUrl": "https://wvis25wd55ed5fjjkvfvndh5nq0xqfvi.lambda-url.us-east-1.on.aws/",
+    "ImageBucketName": "yorutsuke-images-us-dev-696249060859",
+    "IntentsTableName": "yorutsuke-intents-us-dev",
+    "AdminDeleteDataUrl": "https://uf65y54k774qe6zpuvaybiopva0kfmsn.lambda-url.us-east-1.on.aws/",
+    "UserPoolClientId": "1old25ib9bifi0os6rg8jp9h88",
+    "AlertsTopicArn": "arn:aws:sns:us-east-1:696249060859:yorutsuke-alerts-us-dev",
+    "UserPoolId": "us-east-1_cvc8ARpZN",
+    "QuotasTableName": "yorutsuke-quotas-us-dev",
+    "TransactionsTableName": "yorutsuke-transactions-us-dev",
+    "TransactionsLambdaUrl": "https://yq7fcp4d2oivugpbyapddkzyji0dvzkt.lambda-url.us-east-1.on.aws/",
+    "ConfigLambdaUrl": "https://ar3464shhk2nidnsgabqrza6cm0knbhn.lambda-url.us-east-1.on.aws/"
+  },
+  "Yorutsuke2AdminStack-dev": {
+    "AdminApiUrl": "https://q5exxtu422.execute-api.us-east-1.amazonaws.com/prod/",
+    "AdminUserPoolId": "us-east-1_o54Ki3ABd",
+    "AdminUserPoolClientId": "5otc7ulrshm23acll34ju7598s",
+    "AdminCloudFrontUrl": "https://dnd9hlw1qg5qv.cloudfront.net",
+    "ControlTableName": "yorutsuke-control-us-dev",
+    "AdminApiId": "q5exxtu422",
+    "AdminApiEndpointACFD5967": "https://q5exxtu422.execute-api.us-east-1.amazonaws.com/prod/",
+    "AdminBucketName": "yorutsuke-admin-us-dev-696249060859"
+  }
+}

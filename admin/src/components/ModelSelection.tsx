@@ -22,7 +22,7 @@ export function ModelSelection({ config, onSave }: ModelSelectionProps) {
         setError(null);
         setSuccess(false);
         try {
-            const updated = await api.post<BatchConfig>(endpoints.batchConfig, localConfig);
+            const updated = await api.post<BatchConfig>(endpoints.modelConfig, localConfig);
             onSave(updated);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);

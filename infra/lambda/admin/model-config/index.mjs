@@ -1,153 +1,122 @@
-import { DynamoDBClient, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
+import { SystemConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
 
-const ddb = new DynamoDBClient({});
-const CONTROL_TABLE_NAME = process.env.CONTROL_TABLE_NAME;
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const CONTROL_TABLE = process.env.CONTROL_TABLE_NAME;
 
-// Default model configuration
 const DEFAULT_CONFIG = {
-  modelId: "us.amazon.nova-lite-v1:0",
-  tokenCode: "nova-lite",
-  provider: "aws-bedrock",
-  displayName: "Nova Lite",
-  description: "Default model (low cost, recommended)",
-  config: {},
+    processingMode: 'instant',
+    imageThreshold: 100,
+    timeoutMinutes: 120,
+    primaryModelId: 'us.amazon.nova-lite-v1:0',
+    enableComparison: false,
+    comparisonModels: [],
+    azureConfig: null,
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'system',
 };
 
-/**
- * Model Config Lambda
- *
- * Endpoints:
- * - GET  /model/config - Read current model configuration
- * - POST /model/config - Update model configuration
- *
- * Storage: DynamoDB control table (key: "modelConfig")
- */
-export async function handler(event) {
-  const method = event.httpMethod;
+export const handler = async (event) => {
+    const ctx = initContext(event);
+    logger.info(EVENTS.API_REQUEST_RECEIVED, {
+        method: event.requestContext?.http?.method,
+        path: event.requestContext?.http?.path
+    });
 
-  try {
-    if (method === 'GET') {
-      return await handleGet();
+    const method = event.requestContext?.http?.method || event.httpMethod;
+
+    try {
+        if (method === 'GET') {
+            return await getConfig();
+        } else if (method === 'POST') {
+            const body = JSON.parse(event.body || '{}');
+            const userId = event.requestContext?.authorizer?.claims?.sub || 'anonymous';
+            return await updateConfig(body, userId);
+        } else {
+            return response(405, { error: 'Method not allowed' });
+        }
+    } catch (error) {
+        logger.error(EVENTS.UNEXPECTED_ERROR, { error: error.message, stack: error.stack });
+        return response(500, { error: 'Internal server error' });
+    }
+};
+
+async function getConfig() {
+    const result = await ddb.send(new GetCommand({
+        TableName: CONTROL_TABLE,
+        Key: { key: 'system_config' },
+    }));
+
+    if (!result.Item) {
+        logger.info("Initializing default config in ControlTable");
+        const config = { ...DEFAULT_CONFIG, key: 'system_config' };
+        await ddb.send(new PutCommand({
+            TableName: CONTROL_TABLE,
+            Item: config,
+        }));
+        const { key, ...rest } = config;
+        return response(200, rest);
     }
 
-    if (method === 'POST') {
-      return await handlePost(event);
+    const { key, ...config } = result.Item;
+    return response(200, config);
+}
+
+async function updateConfig(body, userId) {
+    // 1. Get current config for merging
+    const currentResult = await ddb.send(new GetCommand({
+        TableName: CONTROL_TABLE,
+        Key: { key: 'system_config' },
+    }));
+    const current = currentResult.Item || { ...DEFAULT_CONFIG, key: 'system_config' };
+
+    // 2. Prepare update
+    let updateData = {
+        ...current,
+        ...body,
+        updatedAt: new Date().toISOString(),
+        updatedBy: userId,
+    };
+
+    // 2.5 Backward compatibility: migrate old modelId to primaryModelId
+    // @ai-intent: Support old field names during migration period (1 sprint)
+    if (updateData.modelId && !updateData.primaryModelId) {
+        updateData.primaryModelId = updateData.modelId;
+        logger.info("MIGRATED_MODEL_ID_TO_PRIMARY", { userId });
     }
 
-    return {
-      statusCode: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
-  } catch (error) {
-    console.error('MODEL_CONFIG_ERROR', { error: error.message, method });
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({ error: 'Internal server error', message: error.message }),
-    };
-  }
+    // 3. Validate with Zod (Pillar B: Airlock)
+    try {
+        const validated = SystemConfigSchema.parse(updateData);
+
+        // 4. Save to DynamoDB
+        await ddb.send(new PutCommand({
+            TableName: CONTROL_TABLE,
+            Item: {
+                key: 'system_config',
+                ...validated,
+            },
+        }));
+
+        logger.info("Config updated successfully", { userId, mode: validated.processingMode });
+        return response(200, validated);
+    } catch (zodError) {
+        logger.warn(EVENTS.AIRLOCK_BREACH, { error: zodError.errors });
+        return response(400, { errors: zodError.errors });
+    }
 }
 
-/**
- * GET /model/config - Read current configuration
- */
-async function handleGet() {
-  const response = await ddb.send(new GetItemCommand({
-    TableName: CONTROL_TABLE_NAME,
-    Key: marshall({ key: 'modelConfig' }),
-  }));
-
-  // Return default config if not set
-  if (!response.Item) {
-    console.log('MODEL_CONFIG_DEFAULT', { config: DEFAULT_CONFIG });
+function response(statusCode, body) {
     return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(DEFAULT_CONFIG),
+        statusCode,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        },
+        body: JSON.stringify(body),
     };
-  }
-
-  const config = unmarshall(response.Item).value;
-  console.log('MODEL_CONFIG_READ', { modelId: config.modelId, tokenCode: config.tokenCode });
-
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify(config),
-  };
 }
-
-/**
- * POST /model/config - Update configuration
- */
-async function handlePost(event) {
-  const body = JSON.parse(event.body);
-  const userSub = event.requestContext?.authorizer?.claims?.sub || 'unknown';
-
-  // Validate required fields
-  if (!body.modelId || !body.tokenCode || !body.provider) {
-    return {
-      statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({
-        error: 'Missing required fields',
-        required: ['modelId', 'tokenCode', 'provider']
-      }),
-    };
-  }
-
-  // Build config with metadata
-  const config = {
-    modelId: body.modelId,
-    tokenCode: body.tokenCode,
-    provider: body.provider,
-    displayName: body.displayName || body.tokenCode,
-    description: body.description || '',
-    config: body.config || {},
-    updatedAt: new Date().toISOString(),
-    updatedBy: userSub,
-  };
-
-  // Write to DynamoDB
-  await ddb.send(new PutItemCommand({
-    TableName: CONTROL_TABLE_NAME,
-    Item: marshall({
-      key: 'modelConfig',
-      value: config,
-    }),
-  }));
-
-  console.log('MODEL_CONFIG_UPDATED', {
-    modelId: config.modelId,
-    tokenCode: config.tokenCode,
-    updatedBy: userSub,
-  });
-
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify({ success: true, config }),
-  };
-}
-
-// Force deploy: 2026-01-17 (dynamic model configuration)

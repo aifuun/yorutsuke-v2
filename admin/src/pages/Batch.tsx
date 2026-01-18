@@ -72,7 +72,7 @@ export function Batch() {
     try {
       const [statusData, configData] = await Promise.all([
         api.get<BatchStatus>(endpoints.batch),
-        api.get<BatchConfig>(endpoints.batchConfig)
+        api.get<BatchConfig>(endpoints.modelConfig)
       ]);
       setStatus(statusData);
       setConfig(configData);
