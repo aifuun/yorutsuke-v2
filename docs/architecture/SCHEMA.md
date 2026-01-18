@@ -167,9 +167,9 @@ CREATE TABLE transactions (
   status TEXT DEFAULT 'unconfirmed',-- v6: 'unconfirmed'|'confirmed'|'deleted'
   version INTEGER DEFAULT 1,        -- v6: Optimistic locking
   dirty_sync INTEGER DEFAULT 0,     -- v8: 1=needs cloud sync, 0=synced
-  primary_model_id TEXT,            -- v9: Which model processed (e.g., 'us.amazon.nova-lite-v1:0', 'azure_di')
-  primary_confidence REAL,          -- v9: 0-100 confidence score from primary model
-  trace_id TEXT                     -- v10: Frontend traceId for end-to-end observability (Pillar N)
+  s3_key TEXT,                      -- v9: S3 object key for image sync optimization
+  primary_model_id TEXT,            -- v10: Model identifier (e.g., 'us.amazon.nova-lite-v1:0', 'azure_di')
+  primary_confidence REAL           -- v10: 0-100 confidence score (if available)
 );
 
 CREATE INDEX idx_transactions_user_id ON transactions(user_id);
@@ -182,8 +182,8 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 - v6: Added `status` (for cloud sync), `version` (optimistic locking)
 - v7: Removed FK constraint on `image_id` (soft reference for cloud sync)
 - v8: Added `dirty_sync` (track local changes needing cloud sync)
-- v9: Added `primary_model_id` and `primary_confidence` (track which model processed transaction)
-- v10: Added `trace_id` (distributed tracing from frontend through backend)
+- v9: Added `s3_key` (S3 object key for efficient image sync)
+- v10: Added `primary_model_id`, `primary_confidence` (track which AI model processed transaction)
 
 ### morning_reports / settings
 
