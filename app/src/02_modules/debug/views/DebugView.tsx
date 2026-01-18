@@ -21,7 +21,7 @@ import { captureStore } from '../../capture/stores/captureStore';
 import { uploadStore } from '../../capture/stores/uploadStore';
 import { autoSyncService } from '../../sync/services/autoSyncService';
 import type { UserId } from '../../../00_kernel/types';
-import { deleteUserData, purgeAllData } from '../adapters';
+import { deleteUserData } from '../adapters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Transaction } from '../../../01_domains/transaction';
 import './debug.css';
@@ -62,9 +62,6 @@ export function DebugView() {
 
   // Clear all data (local + cloud) state
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
-
-  // Admin purge all system data state
-  const [showPurgeAllDialog, setShowPurgeAllDialog] = useState(false);
 
   // Latest cloud transactions state
   const [latestCloudTransactions, setLatestCloudTransactions] = useState<Transaction[]>([]);
@@ -255,51 +252,6 @@ export function DebugView() {
     setShowClearAllDialog(false);
   };
 
-  const handleOpenPurgeAllDialog = () => {
-    setShowPurgeAllDialog(true);
-  };
-
-  const handleConfirmPurgeAll = async () => {
-    if (!effectiveUserId) {
-      setActionResult('No user ID');
-      return;
-    }
-
-    setShowPurgeAllDialog(false);
-    setActionStatus('running');
-    setActionResult('⚠️ Purging ALL system data for ALL users...');
-
-    try {
-      logger.info('admin_purge_all_data_started', { adminUserId: effectiveUserId });
-
-      // Call admin purge Lambda
-      const result = await purgeAllData(effectiveUserId);
-
-      logger.info('admin_purge_all_data_success', {
-        adminUserId: effectiveUserId,
-        deleted: result.deleted,
-      });
-
-      setActionResult(
-        `🔴 ADMIN PURGE COMPLETE!\n` +
-        `Deleted ${result.deleted.transactions} transactions and ${result.deleted.images} images for ALL USERS.\n` +
-        `Admin: ${result.adminUserId}\n` +
-        `Time: ${result.timestamp}`
-      );
-    } catch (e) {
-      logger.error('admin_purge_all_data_error', {
-        adminUserId: effectiveUserId,
-        error: String(e),
-      });
-      setActionResult('🔴 Error: ' + String(e));
-      setActionStatus('idle');
-    }
-  };
-
-  const handleCancelPurgeAll = () => {
-    setShowPurgeAllDialog(false);
-  };
-
   const handleFetchLatestCloudTransactions = async () => {
     if (!effectiveUserId) {
       setActionResult('No user ID');
@@ -437,22 +389,6 @@ export function DebugView() {
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
                   {t('debug.clearMyDataButton')}
-                </DeleteButton>
-              </div>
-            </div>
-
-            <div className="setting-row setting-row--danger" style={{ backgroundColor: '#ffcccc', borderLeft: '4px solid #ff0000' }}>
-              <div className="setting-row__info">
-                <p className="setting-row__label" style={{ color: '#cc0000', fontWeight: 'bold' }}>🔴 ADMIN: Purge ALL System Data</p>
-                <p className="setting-row__hint">⚠️ DANGER: Deletes ALL transactions and images for ALL users worldwide. This action cannot be undone. Use only in emergencies.</p>
-              </div>
-              <div className="setting-row__control">
-                <DeleteButton
-                  size="sm"
-                  onClick={handleOpenPurgeAllDialog}
-                  disabled={actionStatus === 'running' || !effectiveUserId}
-                >
-                  🔴 PURGE ALL
                 </DeleteButton>
               </div>
             </div>
@@ -786,27 +722,6 @@ export function DebugView() {
         onCancel={handleCancelClearAll}
       />
 
-      {/* Admin: Purge ALL System Data Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={showPurgeAllDialog}
-        title="🔴 ADMIN PURGE - CONFIRM?"
-        message={
-          `🔴 WARNING - IRREVERSIBLE ACTION!\n\n` +
-          `This will PERMANENTLY DELETE:\n` +
-          `• ALL transactions for ALL users\n` +
-          `• ALL receipt images for ALL users\n` +
-          `• From DynamoDB and S3\n\n` +
-          `This action CANNOT be undone.\n` +
-          `Only proceed if this is an authorized emergency purge.\n\n` +
-          `Admin User ID: ${effectiveUserId || 'unknown'}`
-        }
-        checkboxLabel="I understand this will delete ALL data for ALL users and cannot be undone"
-        confirmText="🔴 YES, PURGE ALL"
-        cancelText={t('common.cancel')}
-        variant="danger"
-        onConfirm={handleConfirmPurgeAll}
-        onCancel={handleCancelPurgeAll}
-      />
     </div>
   );
 }
