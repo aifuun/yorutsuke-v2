@@ -2,11 +2,8 @@ import { TextractClient, AnalyzeExpenseCommand } from "@aws-sdk/client-textract"
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import DocumentIntelligence, {
-  isUnexpected,
-  parseResultIdFromResponse,
-} from "@azure-rest/ai-document-intelligence";
-import { AzureKeyCredential } from "@azure/core-auth";
+// @ai-intent: Azure DI packages use dynamic import to avoid loading when not needed
+// This prevents Lambda initialization failure when Azure DI is not configured
 import { logger } from "./logger.mjs";
 import { ModelResultSchema, OcrResultSchema } from "./schemas.mjs";
 
@@ -407,6 +404,7 @@ export class MultiModelAnalyzer {
    */
   /**
    * Analyze via Azure Document Intelligence
+   * @ai-intent: Uses dynamic import to load Azure SDK only when needed (prevents init errors)
    * @param {string} s3Key - S3 object key (currently unused, kept for compatibility)
    * @param {string} bucket - S3 bucket name (currently unused, kept for compatibility)
    * @param {string} imageBase64 - Base64-encoded receipt image
@@ -415,6 +413,16 @@ export class MultiModelAnalyzer {
    */
   async analyzeAzureDI(s3Key, bucket, imageBase64, traceId, credentials) {
     try {
+      // Dynamic import: Load Azure packages only when Azure DI is actually used
+      // This prevents Lambda initialization failures when Azure DI packages are not installed
+      logger.debug("AZURE_DI_LOADING_SDK", { traceId });
+
+      // Note: Azure packages currently not installed in SharedLayer
+      // If Azure DI is needed, run: cd infra/lambda/shared-layer/nodejs && npm install
+      // For now, this will throw error if called (which is OK - Azure DI not currently used)
+      const { default: DocumentIntelligence } = await import("@azure-rest/ai-document-intelligence");
+      const { AzureKeyCredential } = await import("@azure/core-auth");
+
       const endpoint = credentials?.endpoint?.replace(/\/$/, ''); // Remove trailing slash
       const apiKey = credentials?.apiKey;
 
