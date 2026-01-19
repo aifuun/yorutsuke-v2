@@ -1,10 +1,11 @@
 {
   "dependencies": {
     "zod": "^4.3.5",
+    "@azure-rest/ai-document-intelligence": "^1.0.0",
+    "@azure/core-auth": "^1.5.0",
     "@aws-sdk/client-textract": "^3.968.0",
     "@aws-sdk/client-bedrock-runtime": "^3.968.0",
     "@aws-sdk/client-s3": "^3.968.0",
     "@aws-sdk/s3-request-presigner": "^3.968.0"
-  },
-  "comment": "Azure DI packages (@azure-rest/ai-document-intelligence, @azure/core-auth) use dynamic imports and are optional. Install only if Azure DI model is needed."
+  }
 }
