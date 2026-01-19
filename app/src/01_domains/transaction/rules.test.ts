@@ -29,6 +29,8 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   status: 'unconfirmed',
   confidence: 0.95,
   rawText: null,
+  primaryModelId: null,
+  primaryConfidence: null,
   ...overrides,
 });
 
