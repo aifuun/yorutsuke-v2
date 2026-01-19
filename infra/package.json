@@ -10,7 +10,10 @@
     "diff": "cdk diff --profile dev",
     "deploy": "cdk deploy --profile dev && npm run sync-outputs",
     "sync-outputs": "bash ../scripts/sync-cdk-outputs.sh dev dev",
-    "destroy": "cdk destroy --profile dev"
+    "destroy": "cdk destroy --profile dev",
+    "txn:latest": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs dev 10",
+    "txn:latest:prod": "AWS_PROFILE=prod node ../scripts/query-latest-transactions.mjs prod 10",
+    "txn:query": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -21,6 +24,8 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.971.0",
+    "@aws-sdk/util-dynamodb": "^3.971.0",
     "aws-cdk-lib": "^2.170.0",
     "constructs": "^10.4.0"
   }

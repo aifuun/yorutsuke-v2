@@ -188,7 +188,7 @@ export async function handler(event) {
             let systemConfig = null;
             let modelId = "us.amazon.nova-lite-v1:0";
             let useAzureAsPrimary = false;
-            let enabledModels = ['textract', 'nova_mini', 'nova_pro']; // Default models
+            let enabledModels = []; // Empty by default, only populate if comparison is enabled
             let azureCredentials = null;
 
             try {

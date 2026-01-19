@@ -9,7 +9,7 @@ import crypto from 'crypto';
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const ssm = new SSMClient({});
-const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || 'ap-northeast-1' });
+const secretsClient = new SecretsManagerClient({ region: process.env.AWS_REGION || 'us-east-1' });
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const QUOTAS_TABLE_NAME = process.env.QUOTAS_TABLE_NAME;
 const EMERGENCY_STOP_PARAM = process.env.EMERGENCY_STOP_PARAM;  // Circuit breaker

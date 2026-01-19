@@ -23,7 +23,7 @@ const TIER_CONFIGS = {
 let cachedSecretKey = null;
 
 const secretsClient = new SecretsManagerClient({
-  region: process.env.AWS_REGION || 'ap-northeast-1',
+  region: process.env.AWS_REGION || 'us-east-1',
 });
 
 /**
