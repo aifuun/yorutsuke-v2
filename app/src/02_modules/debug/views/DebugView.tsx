@@ -600,17 +600,17 @@ export function DebugView() {
                         <span className="debug-tx-label">Description:</span>
                         <span className="debug-tx-value">{tx.description || '-'}</span>
                       </div>
-                      {tx.processingModel && (
+                      {tx.primaryModelId && (
                         <div className="debug-tx-row">
                           <span className="debug-tx-label">Processing Model:</span>
-                          <span className="debug-tx-value mono">{tx.processingModel}</span>
+                          <span className="debug-tx-value mono">{tx.primaryModelId}</span>
                         </div>
                       )}
-                      {tx.confidence !== null && (
+                      {tx.primaryConfidence !== null && (
                         <div className="debug-tx-row">
                           <span className="debug-tx-label">Confidence:</span>
                           <span className="debug-tx-value">
-                            {(tx.confidence * 100).toFixed(1)}%
+                            {tx.primaryConfidence.toFixed(1)}%
                           </span>
                         </div>
                       )}

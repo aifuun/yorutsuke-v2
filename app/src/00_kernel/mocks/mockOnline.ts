@@ -121,7 +121,8 @@ export function mockTransactionPull(
   status: 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
   confidence: number | null;
   rawText: string | null;
-  processingModel: string | null;
+  primaryModelId: string | null;
+  primaryConfidence: number | null;
 }> {
   const now = new Date();
   const transactions = [];
@@ -147,7 +148,8 @@ export function mockTransactionPull(
       status: (i % 3 === 0 ? 'confirmed' : 'unconfirmed') as 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review',
       confidence: i % 2 === 0 ? (0.85 + Math.random() * 0.15) : null,
       rawText: null as string | null,
-      processingModel: i % 2 === 0 ? 'us.amazon.nova-lite-v1:0' : null,
+      primaryModelId: i % 2 === 0 ? 'us.amazon.nova-lite-v1:0' : null,
+      primaryConfidence: i % 2 === 0 ? (85 + Math.random() * 15) : null,
     });
   }
 
