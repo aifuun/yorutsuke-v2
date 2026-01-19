@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Layout } from '../components/Layout';
 import { ModelSelection } from '../components/ModelSelection';
 import { api, endpoints } from '../api/client';
-import type { BatchConfig } from '../types/batch';
+import type { BatchConfig } from '../types/config';
 
 export function Models() {
   const [config, setConfig] = useState<BatchConfig | null>(null);

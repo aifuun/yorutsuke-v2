@@ -10,7 +10,6 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Control } from './pages/Control';
 import { Costs } from './pages/Costs';
-import { Batch } from './pages/Batch';
 import { Models } from './pages/Models';
 
 /**
@@ -90,14 +89,6 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <Costs />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/batch"
-        element={
-          <ProtectedRoute>
-            <Batch />
           </ProtectedRoute>
         }
       />

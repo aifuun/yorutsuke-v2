@@ -19,12 +19,7 @@ const navItems: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/control', label: 'Control', icon: '🔴' },
   { path: '/costs', label: 'Costs', icon: '💰' },
-  { path: '/batch', label: 'Batch', icon: '⚙️' },
-<<<<<<< HEAD
-  { path: '/models', label: 'Models', icon: '☁️' },
-=======
   { path: '/models', label: 'Models', icon: '🤖' },
->>>>>>> c5f5fe9 (refactor: separate model selection into dedicated Models page)
 ];
 
 export function Layout({ children }: LayoutProps) {

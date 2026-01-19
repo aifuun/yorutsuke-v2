@@ -1,4 +1,8 @@
 /**
+ * System configuration types - Model selection and processing settings
+ */
+
+/**
  * Comparison model type - selectable models for multi-model analysis
  */
 export type ComparisonModel = 'textract' | 'nova_mini' | 'nova_pro' | 'azure_di';
@@ -7,32 +11,28 @@ export type ComparisonModel = 'textract' | 'nova_mini' | 'nova_pro' | 'azure_di'
  * System configuration interface with model selection support
  */
 export interface SystemConfig {
-    processingMode: 'instant' | 'batch' | 'hybrid';
-    imageThreshold: number;
-    timeoutMinutes: number;
+    // Processing mode (instant only, batch removed)
+    processingMode: 'instant';
 
-    // Primary model selection (new)
+    // Primary model selection
     primaryModelId: string;
 
-    // Multi-model comparison configuration (new)
+    // Multi-model comparison configuration
     enableComparison: boolean;
     comparisonModels: ComparisonModel[];
 
-    // Azure DI configuration (new)
+    // Azure DI configuration
     azureConfig?: {
         enabled: boolean;
         secretArn: string;
     } | null;
-
-    // Backward compatibility
-    modelId?: string;
 
     updatedAt: string;
     updatedBy: string;
 }
 
 /**
- * Backward compatibility alias (deprecated - will be removed in next version)
+ * Backward compatibility alias
  */
 export type BatchConfig = SystemConfig;
 
@@ -80,26 +80,5 @@ export const AVAILABLE_COMPARISON_MODELS = [
         id: 'azure_di' as const,
         name: 'Azure Document Intelligence',
         description: 'Requires credential setup'
-    },
-] as const;
-
-/**
- * Legacy models (deprecated but kept for backward compatibility)
- */
-export const AVAILABLE_MODELS = [
-    {
-        id: 'amazon.nova-lite-v1:0',
-        name: 'Nova Lite',
-        description: 'Recommended, low cost'
-    },
-    {
-        id: 'amazon.nova-pro-v1:0',
-        name: 'Nova Pro',
-        description: 'Higher accuracy'
-    },
-    {
-        id: 'anthropic.claude-3-haiku-20240307-v1:0',
-        name: 'Claude 3 Haiku',
-        description: 'Alternative'
     },
 ] as const;

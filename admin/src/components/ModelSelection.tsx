@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { BatchConfig } from '../types/batch';
-import { AVAILABLE_PRIMARY_MODELS } from '../types/batch';
+import type { BatchConfig } from '../types/config';
+import { AVAILABLE_PRIMARY_MODELS } from '../types/config';
 import { api, endpoints } from '../api/client';
 
 interface ModelSelectionProps {

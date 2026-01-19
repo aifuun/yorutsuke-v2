@@ -29,7 +29,14 @@ ADMIN_OUTPUTS=$(AWS_PROFILE=$PROFILE aws cloudformation describe-stacks \
 ADMIN_USER_POOL_ID=$(echo "$ADMIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="AdminUserPoolId") | .OutputValue')
 ADMIN_CLIENT_ID=$(echo "$ADMIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="AdminUserPoolClientId") | .OutputValue')
 ADMIN_API_URL=$(echo "$ADMIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="AdminApiUrl") | .OutputValue')
+
+# Main stack Lambda URLs
 MAIN_CONFIG_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="ConfigLambdaUrl") | .OutputValue')
+MAIN_PRESIGN_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="PresignLambdaUrl") | .OutputValue')
+MAIN_QUOTA_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="QuotaLambdaUrl") | .OutputValue')
+MAIN_TRANSACTIONS_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="TransactionsLambdaUrl") | .OutputValue')
+MAIN_ISSUE_PERMIT_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="IssuePermitLambdaUrl") | .OutputValue')
+MAIN_ADMIN_DELETE_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="AdminDeleteDataUrl") | .OutputValue')
 
 echo ""
 echo "✅ Extracted values:"
@@ -37,6 +44,11 @@ echo "   AdminUserPoolId: $ADMIN_USER_POOL_ID"
 echo "   AdminUserPoolClientId: $ADMIN_CLIENT_ID"
 echo "   AdminApiUrl: $ADMIN_API_URL"
 echo "   ConfigLambdaUrl: $MAIN_CONFIG_LAMBDA"
+echo "   PresignLambdaUrl: $MAIN_PRESIGN_LAMBDA"
+echo "   QuotaLambdaUrl: $MAIN_QUOTA_LAMBDA"
+echo "   TransactionsLambdaUrl: $MAIN_TRANSACTIONS_LAMBDA"
+echo "   IssuePermitLambdaUrl: $MAIN_ISSUE_PERMIT_LAMBDA"
+echo "   AdminDeleteDataUrl: $MAIN_ADMIN_DELETE_LAMBDA"
 
 # Update admin/.env
 echo ""
@@ -55,18 +67,20 @@ EOF
 
 echo "✅ admin/.env updated"
 
-# Update app/.env if needed (for config lambda)
-if [ -f "app/.env.local" ]; then
-  echo ""
-  echo "📝 Updating app/.env.local..."
-  # Replace or add VITE_LAMBDA_CONFIG_URL
-  if grep -q "VITE_LAMBDA_CONFIG_URL" app/.env.local; then
-    sed -i '' "s|VITE_LAMBDA_CONFIG_URL=.*|VITE_LAMBDA_CONFIG_URL=$MAIN_CONFIG_LAMBDA|" app/.env.local
-  else
-    echo "VITE_LAMBDA_CONFIG_URL=$MAIN_CONFIG_LAMBDA" >> app/.env.local
-  fi
-  echo "✅ app/.env.local updated"
-fi
+# Update app/.env.local with all Lambda URLs
+echo ""
+echo "📝 Updating app/.env.local..."
+cat > app/.env.local << EOF
+# Lambda Function URLs (from CDK deploy)
+VITE_LAMBDA_CONFIG_URL=$MAIN_CONFIG_LAMBDA
+VITE_LAMBDA_PRESIGN_URL=$MAIN_PRESIGN_LAMBDA
+VITE_LAMBDA_QUOTA_URL=$MAIN_QUOTA_LAMBDA
+VITE_LAMBDA_SYNC_URL=$MAIN_TRANSACTIONS_LAMBDA
+VITE_LAMBDA_ISSUE_PERMIT_URL=$MAIN_ISSUE_PERMIT_LAMBDA
+VITE_LAMBDA_ADMIN_DELETE_URL=$MAIN_ADMIN_DELETE_LAMBDA
+EOF
+
+echo "✅ app/.env.local updated"
 
 echo ""
 echo "🎉 CDK outputs synced successfully!"

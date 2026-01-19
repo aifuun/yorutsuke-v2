@@ -18,11 +18,6 @@ interface Stats {
     total: number;
   };
   activeUsers: number;
-  batch: {
-    invocations: number;
-    errors: number;
-    lastRun: string | null;
-  };
   generatedAt: string;
 }
 
@@ -118,20 +113,6 @@ export function Dashboard() {
                 subtitle="Users with quota records today"
                 icon="👥"
                 color="purple"
-              />
-              <StatCard
-                title="Batch Invocations"
-                value={stats.batch.invocations}
-                subtitle="Last 24 hours"
-                icon="⚙️"
-                color="blue"
-              />
-              <StatCard
-                title="Batch Errors"
-                value={stats.batch.errors}
-                subtitle="Last 24 hours"
-                icon={stats.batch.errors > 0 ? '❌' : '✅'}
-                color={stats.batch.errors > 0 ? 'red' : 'green'}
               />
             </div>
 
