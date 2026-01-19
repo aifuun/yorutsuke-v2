@@ -9,6 +9,7 @@ export type ComparisonModel = 'textract' | 'nova_mini' | 'nova_pro' | 'azure_di'
 
 /**
  * System configuration interface with model selection support
+ * BREAKING CHANGE: Batch processing removed, only instant mode supported
  */
 export interface SystemConfig {
     // Processing mode (instant only, batch removed)
@@ -17,16 +18,17 @@ export interface SystemConfig {
     // Primary model selection
     primaryModelId: string;
 
-    // Multi-model comparison configuration
+    // Multi-model comparison configuration (future feature)
     enableComparison: boolean;
     comparisonModels: ComparisonModel[];
 
-    // Azure DI configuration
+    // Azure DI configuration (optional)
     azureConfig?: {
         enabled: boolean;
         secretArn: string;
     } | null;
 
+    // Metadata
     updatedAt: string;
     updatedBy: string;
 }
