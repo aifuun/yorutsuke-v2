@@ -9,8 +9,6 @@ const CONTROL_TABLE = process.env.CONTROL_TABLE_NAME;
 const DEFAULT_CONFIG = {
     processingMode: 'instant',  // Only instant mode supported (batch removed)
     primaryModelId: 'us.amazon.nova-lite-v1:0',
-    enableComparison: false,
-    comparisonModels: [],
     azureConfig: null,
     updatedAt: new Date().toISOString(),
     updatedBy: 'system',

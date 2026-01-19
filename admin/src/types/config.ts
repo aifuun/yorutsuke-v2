@@ -3,13 +3,9 @@
  */
 
 /**
- * Comparison model type - selectable models for multi-model analysis
- */
-export type ComparisonModel = 'textract' | 'nova_mini' | 'nova_pro' | 'azure_di';
-
-/**
  * System configuration interface with model selection support
  * BREAKING CHANGE: Batch processing removed, only instant mode supported
+ * BREAKING CHANGE: Multi-model comparison removed, single model only
  */
 export interface SystemConfig {
     // Processing mode (instant only, batch removed)
@@ -18,11 +14,7 @@ export interface SystemConfig {
     // Primary model selection
     primaryModelId: string;
 
-    // Multi-model comparison configuration (future feature)
-    enableComparison: boolean;
-    comparisonModels: ComparisonModel[];
-
-    // Azure DI configuration (optional)
+    // Azure DI configuration (optional, only if azure_di is selected as primaryModelId)
     azureConfig?: {
         enabled: boolean;
         secretArn: string;
@@ -54,32 +46,6 @@ export const AVAILABLE_PRIMARY_MODELS = [
     },
     {
         id: 'azure_di',
-        name: 'Azure Document Intelligence',
-        description: 'Requires credential setup'
-    },
-] as const;
-
-/**
- * Comparison models for multi-model analysis
- */
-export const AVAILABLE_COMPARISON_MODELS = [
-    {
-        id: 'textract' as const,
-        name: 'AWS Textract',
-        description: 'AnalyzeExpense API'
-    },
-    {
-        id: 'nova_mini' as const,
-        name: 'Nova Mini',
-        description: 'Fast, low cost'
-    },
-    {
-        id: 'nova_pro' as const,
-        name: 'Nova Pro',
-        description: 'High accuracy'
-    },
-    {
-        id: 'azure_di' as const,
         name: 'Azure Document Intelligence',
         description: 'Requires credential setup'
     },

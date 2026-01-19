@@ -100,20 +100,17 @@ export const AzureCredentialsSchema = z.object({
  * System Configuration Schema (for model selection and processing settings)
  * @ai-intent: Extended to support dynamic model selection without redeployment
  * BREAKING CHANGE: Batch processing removed, only instant mode supported
+ * BREAKING CHANGE: Multi-model comparison removed, single model only
  */
 export const SystemConfigSchema = z.object({
     processingMode: z.enum(['instant']),  // Batch/Hybrid removed
     imageThreshold: z.number().min(100).max(500).optional(),  // Optional (not used in instant mode)
     timeoutMinutes: z.number().min(30).max(480).optional(),  // Optional (not used in instant mode)
 
-    // Primary model selection (new)
+    // Primary model selection
     primaryModelId: z.string().default('us.amazon.nova-lite-v1:0'),
 
-    // Multi-model comparison configuration (new)
-    enableComparison: z.boolean().default(false),
-    comparisonModels: z.array(z.enum(['textract', 'nova_mini', 'nova_pro', 'azure_di'])).default([]),
-
-    // Azure DI configuration (new)
+    // Azure DI configuration (optional, only if azure_di is selected as primaryModelId)
     azureConfig: z.object({
         enabled: z.boolean(),
         secretArn: z.string(),

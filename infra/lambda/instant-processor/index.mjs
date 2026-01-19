@@ -188,7 +188,6 @@ export async function handler(event) {
             let systemConfig = null;
             let modelId = "us.amazon.nova-lite-v1:0";
             let useAzureAsPrimary = false;
-            let enabledModels = []; // Empty by default, only populate if comparison is enabled
             let azureCredentials = null;
 
             try {
@@ -222,36 +221,6 @@ export async function handler(event) {
                         }
                     } else {
                         modelId = primaryModel;
-                    }
-
-                    // Load enabled models from config
-                    if (systemConfig.enableComparison && systemConfig.comparisonModels?.length > 0) {
-                        enabledModels = systemConfig.comparisonModels;
-                        logger.debug("MODEL_COMPARISON_ENABLED", {
-                            models: enabledModels,
-                            enableComparison: systemConfig.enableComparison,
-                        });
-
-                        // Load Azure DI credentials if configured and enabled for comparison
-                        if (
-                            !useAzureAsPrimary &&
-                            enabledModels.includes('azure_di') &&
-                            systemConfig.azureConfig?.secretArn
-                        ) {
-                            const secretArn = process.env.AZURE_CREDENTIALS_SECRET_ARN ||
-                                systemConfig.azureConfig.secretArn;
-                            azureCredentials = await getAzureCredentials(secretArn);
-
-                            if (azureCredentials) {
-                                logger.debug("AZURE_CREDENTIALS_LOADED_FOR_COMPARISON", {
-                                    endpoint: azureCredentials.endpoint?.substring(0, 50),
-                                });
-                            } else {
-                                logger.warn("AZURE_CREDENTIALS_NOT_AVAILABLE", { secretArn });
-                                // Remove azure_di from enabled models if credentials unavailable
-                                enabledModels = enabledModels.filter(m => m !== 'azure_di');
-                            }
-                        }
                     }
                 }
             } catch (err) {
@@ -411,30 +380,6 @@ export async function handler(event) {
                 }
             }
 
-            // 5.5. Pillar R: Multi-Model Comparison
-            // @ai-intent: Run enabled models in parallel, store results but don't block on failures
-            let modelComparison = null;
-            try {
-                const traceId = ctx.traceId;
-                modelComparison = await analyzer.analyzeReceipt({
-                    imageBase64,
-                    imageFormat,
-                    s3Key: key,
-                    bucket,
-                    traceId,
-                    imageId,
-                    enabledModels,        // Use configured models
-                    azureCredentials,     // Pass credentials if available
-                });
-            } catch (analyzerError) {
-                logger.warn("MULTI_MODEL_ANALYSIS_FAILED", {
-                    imageId,
-                    error: analyzerError.message,
-                    reason: "Non-blocking, continuing with primary model result only"
-                });
-                // Don't throw - continue with primary model result as main transaction
-            }
-
             // 6. Pillar B: Validate complete transaction object
             const now = new Date().toISOString();
             // Use final processed/ path, not uploads/ (image will be moved to processed/)
@@ -459,12 +404,6 @@ export async function handler(event) {
                 primaryModelId,           // Track which model processed this
                 primaryConfidence,        // Confidence score (if available)
                 traceId: ctx.traceId,     // Pillar N: Distributed tracing
-                ...(modelComparison && {
-                    modelComparison,
-                    comparisonStatus: modelComparison.comparisonStatus,
-                    comparisonTimestamp: modelComparison.comparisonTimestamp,
-                    comparisonErrors: modelComparison.comparisonErrors,
-                }),
             };
 
             if (isGuestUser(userId)) {
@@ -506,12 +445,6 @@ export async function handler(event) {
                     primaryModelId,           // Track which model processed this
                     primaryConfidence,        // Confidence score (if available)
                     validationErrors: validationResult.error.issues, // Store errors for debugging
-                    ...(modelComparison && {
-                        modelComparison,
-                        comparisonStatus: modelComparison.comparisonStatus,
-                        comparisonTimestamp: modelComparison.comparisonTimestamp,
-                        comparisonErrors: modelComparison.comparisonErrors,
-                    }),
                     ...(isGuestUser(userId) && { ttl: getGuestTTL(), isGuest: true }),
                 };
             } else {
