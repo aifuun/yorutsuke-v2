@@ -390,15 +390,16 @@ async function migration_v9(db: Database): Promise<void> {
 }
 
 /**
- * Migration v10: Add Model Metadata (Issue #151)
- * Purpose: Track which AI model processed each transaction + confidence score
+ * Migration v10: Add Model Metadata and TraceId (Issue #151)
+ * Purpose: Track which AI model processed each transaction + distributed tracing
  * - primary_model_id: e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
  * - primary_confidence: 0-100 confidence score (if available)
+ * - trace_id: Frontend-generated trace-{uuid} for end-to-end tracking (Pillar N)
  */
 async function migration_v10(db: Database): Promise<void> {
   logger.info(EVENTS.DB_MIGRATION_APPLIED, {
     version: 10,
-    name: 'add_model_metadata',
+    name: 'add_model_metadata_and_traceid',
     phase: 'start'
   });
 
@@ -407,6 +408,12 @@ async function migration_v10(db: Database): Promise<void> {
 
   // Add primary_confidence column (nullable - not all models return confidence)
   await safeAddColumn(db, 'transactions', 'primary_confidence', 'REAL');
+
+  // Add trace_id column for distributed tracing (Pillar N)
+  await safeAddColumn(db, 'transactions', 'trace_id', 'TEXT');
+
+  // Create index for trace_id (for debugging and log correlation)
+  await safeCreateIndex(db, 'idx_transactions_trace_id', 'transactions', 'trace_id');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 10, phase: 'complete' });
 }

@@ -37,6 +37,9 @@ export interface Transaction {
   rawText: string | null;             // OCR result
   primaryModelId: string | null;      // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
   primaryConfidence: number | null;   // 0-100 confidence score (if available)
+
+  // Distributed tracing (Pillar N)
+  traceId: string | null;             // Frontend-generated trace-{uuid} for end-to-end tracking
 }
 
 // Daily summary for morning report

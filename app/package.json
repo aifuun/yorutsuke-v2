@@ -30,7 +30,11 @@
     "env:sync": "../scripts/sync-env.sh",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "db:summary": "node ../scripts/query-local-db.mjs --summary",
+    "db:transactions": "node ../scripts/query-local-db.mjs transactions 20",
+    "db:images": "node ../scripts/query-local-db.mjs images 20",
+    "db:query": "node ../scripts/query-local-db.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

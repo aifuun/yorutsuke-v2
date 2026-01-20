@@ -46,6 +46,8 @@ const CloudTransactionSchema = z.object({
   // AI Processing Metadata
   primaryModelId: z.string().optional().nullable(),
   primaryConfidence: z.number().min(0).max(100).optional().nullable(),
+  // Distributed Tracing (Pillar N)
+  traceId: z.string().optional().nullable(),
   // Deprecated fields (for backward compatibility)
   processingModel: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
@@ -99,6 +101,7 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     rawText: null, // Not stored in DynamoDB
     primaryModelId: cloudTx.primaryModelId ?? null,
     primaryConfidence: cloudTx.primaryConfidence ?? null,
+    traceId: cloudTx.traceId ?? null, // Distributed tracing
   };
 }
 

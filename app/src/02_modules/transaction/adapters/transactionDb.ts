@@ -22,6 +22,7 @@ interface DbTransaction {
   raw_text: string | null;
   primary_model_id: string | null; // v10: AI model identifier
   primary_confidence: number | null; // v10: AI confidence score (0-100)
+  trace_id: string | null; // v10: Distributed tracing (Pillar N)
   processing_model: string | null; // [DEPRECATED] Use primary_model_id
   status: string | null; // v6: Cloud sync support
   version: number | null; // v6: Optimistic locking
@@ -47,6 +48,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     rawText: row.raw_text,
     primaryModelId: row.primary_model_id,
     primaryConfidence: row.primary_confidence,
+    traceId: row.trace_id, // Distributed tracing
   };
 }
 
@@ -209,8 +211,8 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
 
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confidence, raw_text, primary_model_id, primary_confidence, status, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confidence, raw_text, primary_model_id, primary_confidence, trace_id, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
@@ -229,6 +231,7 @@ export async function saveTransaction(transaction: Transaction): Promise<void> {
       transaction.rawText,
       transaction.primaryModelId,
       transaction.primaryConfidence,
+      transaction.traceId, // Distributed tracing
       transaction.status || 'unconfirmed', // Use transaction status or default to unconfirmed
       1, // Default version for new transactions
     ],
@@ -249,8 +252,8 @@ export async function upsertTransaction(transaction: Transaction): Promise<void>
   // INSERT OR REPLACE will update all fields if transaction.id already exists
   await database.execute(
     `INSERT OR REPLACE INTO transactions
-     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, primary_model_id, primary_confidence, status, version)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, primary_model_id, primary_confidence, trace_id, status, version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       transaction.id,
       transaction.userId,
@@ -270,6 +273,7 @@ export async function upsertTransaction(transaction: Transaction): Promise<void>
       transaction.rawText,
       transaction.primaryModelId,
       transaction.primaryConfidence,
+      transaction.traceId, // Distributed tracing
       transaction.status,
       1, // Version from cloud (will be synced in future)
     ],
@@ -438,8 +442,8 @@ export async function bulkUpsertTransactions(transactions: Transaction[]): Promi
     const confirmedAtValue = tx.status === 'confirmed' ? tx.updatedAt : null;
     await database.execute(
       `INSERT OR REPLACE INTO transactions
-       (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, primary_model_id, primary_confidence, status, version, dirty_sync)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, user_id, image_id, s3_key, type, category, amount, currency, description, merchant, date, created_at, updated_at, confirmed_at, confidence, raw_text, primary_model_id, primary_confidence, trace_id, status, version, dirty_sync)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         tx.id,
         tx.userId,
@@ -459,6 +463,7 @@ export async function bulkUpsertTransactions(transactions: Transaction[]): Promi
         tx.rawText,
         tx.primaryModelId,
         tx.primaryConfidence,
+        tx.traceId, // Distributed tracing
         tx.status,
         1, // Default version
         0, // Don't mark cloud data as dirty
