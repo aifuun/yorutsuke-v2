@@ -332,9 +332,26 @@ class AutoSyncService {
 
     const traceId = createTraceId();
 
-    logger.info('auto_sync_pull_execute', { userId: this.userId });
+    // 🔍 INVESTIGATION: Log pull parameters
+    logger.info('auto_sync_pull_execute', {
+      userId: this.userId,
+      traceId,
+      startDate: undefined,  // Auto-sync pulls ALL transactions (no date filter)
+      endDate: undefined,
+      note: 'Auto-sync pulls without date filters to catch all cloud transactions',
+    });
 
     const result = await pullTransactions(this.userId, traceId);
+
+    // 🔍 INVESTIGATION: Log detailed pull result
+    logger.info('auto_sync_pull_complete', {
+      userId: this.userId,
+      traceId,
+      synced: result.synced,
+      conflicts: result.conflicts,
+      errorCount: result.errors.length,
+      errors: result.errors.length > 0 ? result.errors : undefined,
+    });
 
     return {
       synced: result.synced,

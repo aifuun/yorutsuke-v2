@@ -408,7 +408,7 @@ export class YorutsukeStack extends cdk.Stack {
       })
     );
 
-    // Grant Textract access for expense analysis (model comparison)
+    // Grant Textract access (currently unused, reserved for future use)
     instantProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,

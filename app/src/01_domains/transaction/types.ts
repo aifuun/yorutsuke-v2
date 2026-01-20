@@ -14,7 +14,7 @@ export type TransactionCategory =
 export type TransactionType = 'income' | 'expense';
 
 // Transaction status (for cloud sync)
-export type TransactionStatus = 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
+export type TransactionStatus = 'unconfirmed' | 'confirmed' | 'deleted';
 
 export interface Transaction {
   id: TransactionId;
