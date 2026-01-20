@@ -25,7 +25,9 @@ This document is a pure index of architectural decisions. All implementation det
 - [014-lambda-layer-version-management.md](../docs/architecture/ADR/014-lambda-layer-version-management.md) - Lambda Layer version management and publishing
 - [015-sdk-over-rest-api.md](../docs/architecture/ADR/015-sdk-over-rest-api.md) - Use official SDKs over raw REST API for third-party integrations
 - [016-lambda-local-first-testing.md](../docs/architecture/ADR/016-lambda-local-first-testing.md) - Three-tier Lambda testing strategy (pure logic → AWS integration → production)
-- [018-cdk-watch-cloud-driven-testing.md](../docs/architecture/ADR/018-cdk-watch-cloud-driven-testing.md) - cdk watch for cloud-driven Lambda integration testing (Supersedes ADR-017)
+- [017-permit-quota-system.md](../docs/architecture/ADR/017-permit-quota-system.md) - Client-side quota validation with signed permits (v2)
+- [018-cdk-watch-cloud-driven-testing.md](../docs/architecture/ADR/018-cdk-watch-cloud-driven-testing.md) - cdk watch for cloud-driven Lambda integration testing
+- [019-traceid-distributed-tracing.md](../docs/architecture/ADR/019-traceid-distributed-tracing.md) - End-to-end traceId propagation (frontend → S3 → Lambda → DynamoDB)
 
 ## References
 
@@ -35,6 +37,6 @@ This document is a pure index of architectural decisions. All implementation det
 
 ---
 
-**Last Updated**: 2026-01-14 (ADR-015, 016, 018 added - Image format migration, Lambda testing strategy, cdk watch cloud-driven testing)
+**Last Updated**: 2026-01-20 (ADR-017, 019 added - Permit quota system, TraceId distributed tracing)
 **Purpose**: Pure ADR index (no project tracking)
 **Update Rule**: Add ADR link when closing major architectural issues

@@ -14,8 +14,8 @@ export const OcrResultSchema = z.object({
 });
 
 /**
- * Model Analysis Result Schema (unified format for all models)
- * Used for multi-model comparison (Textract, Nova Mini/Pro, Claude Sonnet)
+ * Model Analysis Result Schema
+ * Unified format for Azure DI analysis results
  */
 export const ModelResultSchema = z.object({
     vendor: z.string().optional(),
@@ -33,16 +33,7 @@ export const ModelResultSchema = z.object({
     rawResponse: z.record(z.any()).optional(), // @ai-intent: Store raw API response for debugging
 });
 
-/**
- * Multi-Model Comparison Schema
- * Stores results from all 4 models for A/B testing
- */
-export const ModelComparisonSchema = z.object({
-    textract: ModelResultSchema.optional(),
-    nova_mini: ModelResultSchema.optional(),
-    nova_pro: ModelResultSchema.optional(),
-    azure_di: ModelResultSchema.optional(),
-});
+// ModelComparisonSchema removed - single model only (no multi-model comparison)
 
 /**
  * DynamoDB Transaction Schema
@@ -59,7 +50,7 @@ export const TransactionSchema = z.object({
     merchantSource: z.enum(['list_match', 'ocr_fallback', 'unknown', 'user_edited']).optional(), // @ai-intent: Track merchant matching source for analytics
     category: z.string(),
     description: z.string(),
-    status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
+    status: z.enum(['unconfirmed', 'confirmed', 'deleted']),
     aiProcessed: z.boolean().default(true),
     version: z.number().default(1),
     createdAt: z.string(),
@@ -74,16 +65,7 @@ export const TransactionSchema = z.object({
     // Distributed tracing (Pillar N: Context Propagation)
     traceId: z.string().optional(), // Frontend-generated trace-{uuid} for end-to-end tracking
 
-    // Multi-model comparison (Pillar R: Observability for model evaluation)
-    modelComparison: ModelComparisonSchema.optional(),
-    comparisonStatus: z.enum(['pending', 'completed', 'failed']).optional(),
-    comparisonTimestamp: z.string().optional(),
-    comparisonErrors: z.array(z.object({
-        model: z.string(),
-        error: z.string(),
-        timestamp: z.string().optional(),
-    })).optional(),
-
+    // Guest user TTL
     isGuest: z.boolean().optional(),
     ttl: z.number().optional(),
 });
@@ -98,9 +80,8 @@ export const AzureCredentialsSchema = z.object({
 
 /**
  * System Configuration Schema (for model selection and processing settings)
- * @ai-intent: Extended to support dynamic model selection without redeployment
- * BREAKING CHANGE: Batch processing removed, only instant mode supported
- * BREAKING CHANGE: Multi-model comparison removed, single model only
+ * @ai-intent: Dynamic model selection without redeployment
+ * Single model processing only (instant mode)
  */
 export const SystemConfigSchema = z.object({
     processingMode: z.enum(['instant']),  // Batch/Hybrid removed
@@ -123,5 +104,5 @@ export const SystemConfigSchema = z.object({
     updatedBy: z.string(),
 });
 
-// Backward compatibility alias (deprecated - will be removed in next version)
+// Backward compatibility alias (deprecated)
 export const BatchConfigSchema = SystemConfigSchema;

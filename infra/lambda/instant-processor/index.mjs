@@ -4,13 +4,12 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema, SystemConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
-import { MultiModelAnalyzer, convertModelResultToOcrResult } from "/opt/nodejs/shared/model-analyzer.mjs";
+import { analyzeAzureDI, convertModelResultToOcrResult } from "/opt/nodejs/shared/model-analyzer.mjs";
 import { getAzureCredentials } from "/opt/nodejs/shared/azure-credentials.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const bedrock = new BedrockRuntimeClient({});
-const analyzer = new MultiModelAnalyzer();
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
@@ -241,18 +240,41 @@ export async function handler(event) {
                 logger.info("USING_AZURE_DI_AS_PRIMARY", { imageId });
 
                 try {
-                    const azureResult = await analyzer.analyzeAzureDI(
-                        key,
-                        bucket,
+                    const azureResult = await analyzeAzureDI(
                         imageBase64,
                         ctx.traceId,
                         azureCredentials
                     );
 
+                    // 🔍 INVESTIGATION: Log FULL Azure DI result for debugging
+                    logger.info("AZURE_DI_RAW_RESULT", {
+                        imageId,
+                        fullResult: JSON.stringify(azureResult),
+                        vendor: azureResult.vendor,
+                        totalAmount: azureResult.totalAmount,
+                        subtotal: azureResult.subtotal,
+                        taxAmount: azureResult.taxAmount,
+                        taxRate: azureResult.taxRate,
+                        confidence: azureResult.confidence,
+                        lineItemCount: azureResult.lineItems?.length || 0,
+                        traceId: ctx.traceId,
+                    });
+
                     // Convert ModelResultSchema to OcrResultSchema
                     parsed = convertModelResultToOcrResult(azureResult);
                     primaryModelId = 'azure_di';
                     primaryConfidence = azureResult.confidence; // 0-100 confidence score
+
+                    // 🔍 INVESTIGATION: Log converted OcrResult
+                    logger.info("AZURE_DI_CONVERTED_RESULT", {
+                        imageId,
+                        convertedAmount: parsed.amount,
+                        convertedType: parsed.type,
+                        convertedDate: parsed.date,
+                        convertedMerchant: parsed.merchant,
+                        traceId: ctx.traceId,
+                    });
+
                     logger.debug("AZURE_DI_PRIMARY_RESULT", {
                         imageId,
                         vendor: azureResult.vendor,
@@ -416,7 +438,9 @@ export async function handler(event) {
             let transaction;
 
             if (!validationResult.success) {
-                // @ai-intent: Create transaction with needs_review status for manual correction
+                // @ai-intent: Create transaction with unconfirmed status for manual correction
+                // If Azure DI fails to extract amount, still create transaction with amount=0
+                // User will see it in ledger and can manually edit
                 logger.warn(EVENTS.AIRLOCK_BREACH, {
                     userId,
                     imageId,
@@ -424,19 +448,19 @@ export async function handler(event) {
                     raw: JSON.stringify(transactionData)
                 });
 
-                // Create fallback transaction with needs_review status
+                // Create fallback transaction with unconfirmed status
                 transaction = {
                     userId,
                     transactionId,
                     imageId,
                     s3Key: processedKey, // Store S3 key for image sync optimization
-                    amount: parsed.amount || 0,
+                    amount: parsed.amount || 0, // Default to 0 if extraction failed
                     type: parsed.type || 'expense',
                     date: parsed.date || new Date().toISOString().split('T')[0], // Use today if empty
                     merchant: parsed.merchant || 'Unknown',
                     category: parsed.category || 'other',
-                    description: parsed.description || 'Validation failed - needs review',
-                    status: 'needs_review', // Mark for manual review
+                    description: parsed.description || 'AI extraction incomplete - please verify',
+                    status: 'unconfirmed', // Status: unconfirmed (user can manually edit)
                     aiProcessed: true,
                     version: 1,
                     createdAt: now,
