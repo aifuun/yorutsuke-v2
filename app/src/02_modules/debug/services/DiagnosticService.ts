@@ -8,17 +8,17 @@
  * Phase 2: Auto-trigger via queue (future)
  *
  * @see ADR-001: Service Layer Pattern
+ * @see Pillar I: Firewall - uses adapter layer (not direct Tauri invoke)
  * @see Pillar L: Headless (pure TS, testable without React)
  * @see Pillar N: TraceId for observability
  */
 
-import { invoke } from '@tauri-apps/api/core';
 import { nanoid } from 'nanoid';
+import { collectLocalDiagnosticData, uploadDiagnosticReportIpc } from '../adapters/diagnosticIpc';
 import type { UserId } from '../../../00_kernel/types';
 import type {
   LocalDiagnosticData,
   DiagnosticExportResult,
-  DiagnosticExportSuccess,
   DiagnosticExportError,
   DiagnosticContext,
 } from '../types/diagnostic';
@@ -113,21 +113,20 @@ export class DiagnosticService {
   /**
    * Collect local diagnostic data from device
    *
-   * Invokes Tauri IPC command to gather:
+   * Calls adapter which invokes Tauri IPC command to gather:
    * - SQLite data (transactions, images, settings)
    * - Debug logs (last 500 entries)
    * - System information (OS, locale, timezone)
    * - App state (sync status, queue state)
    *
    * @param traceId - Trace ID for log correlation
-   * @returns Local diagnostic data
+   * @returns Local diagnostic data (validated at boundary)
    * @throws DiagnosticError on failure
    */
   private async collectLocalData(traceId: string): Promise<LocalDiagnosticData> {
     try {
-      const data = await this.invokeWithTimeout<LocalDiagnosticData>(
-        'collect_diagnostic_data',
-        { traceId },
+      const data = await this.invokeWithTimeout(
+        collectLocalDiagnosticData(traceId),
         REQUEST_TIMEOUT_MS
       );
 
@@ -144,7 +143,7 @@ export class DiagnosticService {
   /**
    * Upload diagnostic report to cloud via Lambda
    *
-   * Invokes Tauri IPC command which:
+   * Calls adapter which invokes Tauri IPC command which:
    * 1. Sends local data + auth token to Lambda
    * 2. Lambda collects cloud data (DynamoDB, S3, CloudWatch)
    * 3. Lambda generates report
@@ -167,15 +166,8 @@ export class DiagnosticService {
     // Retry logic for transient failures
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const result = await this.invokeWithTimeout<DiagnosticExportSuccess>(
-          'upload_diagnostic_report',
-          {
-            userId,
-            token,
-            localData,
-            traceId,
-            attempt,
-          },
+        const result = await this.invokeWithTimeout(
+          uploadDiagnosticReportIpc(String(userId), token, localData, traceId, attempt),
           REQUEST_TIMEOUT_MS
         );
 
@@ -240,23 +232,15 @@ export class DiagnosticService {
   }
 
   /**
-   * Invoke Tauri IPC command with timeout protection
+   * Execute promise with timeout protection
    *
-   * @param command - IPC command name
-   * @param args - Command arguments
+   * @param promise - Promise to execute (from adapter layer)
    * @param timeoutMs - Timeout in milliseconds
-   * @returns Command result
-   * @throws Error on timeout or command failure
+   * @returns Promise result
+   * @throws Error on timeout or promise failure
    */
-  private async invokeWithTimeout<T>(
-    command: string,
-    args: Record<string, unknown>,
-    timeoutMs: number
-  ): Promise<T> {
-    return Promise.race([
-      invoke<T>(command, args),
-      this.createTimeoutPromise(timeoutMs),
-    ]);
+  private async invokeWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([promise, this.createTimeoutPromise(timeoutMs)]);
   }
 
   /**
