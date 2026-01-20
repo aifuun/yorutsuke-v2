@@ -711,6 +711,10 @@ export class YorutsukeStack extends cdk.Stack {
       environment: {
         TRANSACTIONS_TABLE: transactionsTable.tableName,
         DIAGNOSTICS_BUCKET: diagnosticsBucket.bucketName,
+        // Cloud data collection limits (configurable)
+        MAX_CLOUD_TRANSACTIONS: process.env.DIAGNOSTIC_MAX_CLOUD_TRANSACTIONS || "10",
+        MAX_CLOUD_LOGS: process.env.DIAGNOSTIC_MAX_CLOUD_LOGS || "20",
+        CLOUD_LOGS_LOOKBACK_HOURS: process.env.DIAGNOSTIC_CLOUD_LOGS_LOOKBACK_HOURS || "24",
       },
       timeout: cdk.Duration.seconds(60),
       memorySize: 512,

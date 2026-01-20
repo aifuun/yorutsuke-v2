@@ -28,6 +28,11 @@ const logsClient = new CloudWatchLogsClient({ region: process.env.AWS_REGION || 
 const DIAGNOSTICS_BUCKET = process.env.DIAGNOSTICS_BUCKET || "yorutsuke-diagnostics-dev";
 const TRANSACTIONS_TABLE = process.env.TRANSACTIONS_TABLE || "yorutsuke-transactions-us-dev";
 
+// Cloud data collection limits (configurable via environment variables)
+const MAX_CLOUD_TRANSACTIONS = parseInt(process.env.MAX_CLOUD_TRANSACTIONS || "10", 10);
+const MAX_CLOUD_LOGS = parseInt(process.env.MAX_CLOUD_LOGS || "20", 10);
+const CLOUD_LOGS_LOOKBACK_HOURS = parseInt(process.env.CLOUD_LOGS_LOOKBACK_HOURS || "24", 10);
+
 // ============================================================================
 // Response Builders
 // ============================================================================
@@ -86,14 +91,14 @@ async function collectCloudData(userId, traceId) {
         ExpressionAttributeValues: {
           ":userId": { S: userId },
         },
-        Limit: 50, // Limit to 50 transactions for diagnostic report
+        Limit: MAX_CLOUD_TRANSACTIONS * 2, // Scan more to account for filtering
       };
 
       const scanResult = await dynamoClient.send(new ScanCommand(params));
 
       // Convert DynamoDB items to readable format (extract all fields)
       if (scanResult.Items && scanResult.Items.length > 0) {
-        transactions.push(...scanResult.Items.slice(0, 10).map(item => {
+        transactions.push(...scanResult.Items.slice(0, MAX_CLOUD_TRANSACTIONS).map(item => {
           // Helper to convert DynamoDB format to plain JS objects recursively
           const convertDynamoItem = (dynamoItem) => {
             const result = {};
@@ -130,15 +135,15 @@ async function collectCloudData(userId, traceId) {
 
       const params = {
         logGroupName,
-        startTime: Date.now() - 24 * 60 * 60 * 1000, // Last 24 hours
+        startTime: Date.now() - CLOUD_LOGS_LOOKBACK_HOURS * 60 * 60 * 1000,
         interleaved: true,
-        limit: 100, // Limit to 100 log events
+        limit: MAX_CLOUD_LOGS * 2, // Fetch more to account for filtering
       };
 
       const logsResult = await logsClient.send(new FilterLogEventsCommand(params));
 
       if (logsResult.events && logsResult.events.length > 0) {
-        cloudWatchLogs.push(...logsResult.events.slice(0, 20).map(event => ({
+        cloudWatchLogs.push(...logsResult.events.slice(0, MAX_CLOUD_LOGS).map(event => ({
           timestamp: event.timestamp,
           message: event.message || "",
         })));
