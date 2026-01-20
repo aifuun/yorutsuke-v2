@@ -56,10 +56,6 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
           reportId: result.reportId,
         });
         window.open(result.s3Url, '_blank');
-        logger.debug('DIAGNOSTIC_DOWNLOAD_RESET', {
-          reportId: result.reportId,
-        });
-        diagnosticService.reset();
       } else {
         logger.warn('DIAGNOSTIC_DOWNLOAD_NO_URL', {
           reportId: result.reportId,
