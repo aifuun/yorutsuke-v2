@@ -110,67 +110,51 @@ async function generateAndUploadReport(userId, localData, cloudData, traceId) {
   const reportJson = JSON.stringify(reportData, null, 2);
   const fileSize = Buffer.byteLength(reportJson, "utf-8");
 
-  // Check if user is authenticated (can upload to S3)
-  const userType = getUserType(userId);
-  if (userType === "authenticated") {
-    try {
-      logger.info("DIAGNOSTIC_UPLOADING_TO_S3", {
-        traceId,
-        userId,
-        reportId,
-        fileSize,
-      });
-
-      // Upload to S3
-      const s3Key = `${userId}/${reportId}.json`;
-      await s3Client.send(
-        new PutObjectCommand({
-          Bucket: DIAGNOSTICS_BUCKET,
-          Key: s3Key,
-          Body: reportJson,
-          ContentType: "application/json",
-        })
-      );
-
-      // Generate S3 presigned URL (7-day expiry)
-      const s3Url = `https://${DIAGNOSTICS_BUCKET}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${s3Key}`;
-
-      logger.info("DIAGNOSTIC_UPLOAD_SUCCESS", {
-        traceId,
-        reportId,
-        s3Url: s3Url.split("?")[0], // Log without query params
-      });
-
-      return {
-        reportId,
-        s3Url,
-        timestamp,
-        fileSize,
-      };
-    } catch (error) {
-      logger.error("DIAGNOSTIC_S3_UPLOAD_ERROR", {
-        traceId,
-        userId,
-        error: error.message,
-      });
-      // For authenticated users, fail if S3 upload fails
-      throw error;
-    }
-  } else {
-    // Guest user: return local data info (no S3 upload)
-    logger.info("DIAGNOSTIC_LOCAL_ONLY", {
+  // Upload to S3 for all users (guest + authenticated)
+  // Access control via userId prefix + IAM policies
+  try {
+    logger.info("DIAGNOSTIC_UPLOADING_TO_S3", {
       traceId,
       userId,
       reportId,
       fileSize,
     });
 
+    // Upload to S3
+    const s3Key = `${userId}/${reportId}.json`;
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: DIAGNOSTICS_BUCKET,
+        Key: s3Key,
+        Body: reportJson,
+        ContentType: "application/json",
+      })
+    );
+
+    // Generate S3 presigned URL (7-day expiry) for all users
+    const s3Url = `https://${DIAGNOSTICS_BUCKET}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${s3Key}`;
+
+    logger.info("DIAGNOSTIC_UPLOAD_SUCCESS", {
+      traceId,
+      userId,
+      reportId,
+      s3Url: s3Url.split("?")[0], // Log without query params
+    });
+
     return {
       reportId,
-      s3Url: "", // No S3 URL for guest users
+      s3Url,
       timestamp,
       fileSize,
     };
+  } catch (error) {
+    logger.error("DIAGNOSTIC_S3_UPLOAD_ERROR", {
+      traceId,
+      userId,
+      error: error.message,
+    });
+    // If S3 upload fails, retry logic is handled by Service layer
+    throw error;
   }
 }
 
