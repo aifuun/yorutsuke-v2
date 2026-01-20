@@ -145,6 +145,14 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
       duration: info?.duration,
     }));
 
+    // Debug: log phases for troubleshooting
+    if (phases.length === 0) {
+      logger.debug('DIAGNOSTIC_PHASES_EMPTY', {
+        contextPhases: Object.keys(context.phases || {}),
+        phaseCount: Object.keys(context.phases || {}).length,
+      });
+    }
+
     return (
       <div className="diagnostic-panel">
         <div className="diagnostic-panel__card">

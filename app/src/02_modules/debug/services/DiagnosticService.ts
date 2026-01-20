@@ -262,12 +262,18 @@ export class DiagnosticService {
    *
    * @param phase - Phase to update
    * @param status - New status
-   * @param options - Additional options (progress, duration, error, details)
+   * @param options - Additional options (progress, duration, error, details, description)
    */
   private updatePhase(
     phase: DiagnosticPhase,
     status: PhaseStatus,
-    options?: { progress?: number; duration?: number; error?: string; details?: Record<string, unknown> }
+    options?: {
+      progress?: number;
+      duration?: number;
+      error?: string;
+      details?: Record<string, unknown>;
+      description?: string;
+    }
   ) {
     if (!this.context) return;
 
