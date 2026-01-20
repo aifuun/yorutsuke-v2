@@ -8,7 +8,7 @@
 - **Local**: SQLite (Tauri plugin-sql) + localStorage (quota permits) + settings table
 - **Cloud**: DynamoDB + S3 + AWS Secrets Manager (permit signing)
 - **Observability**: TraceId for distributed tracing (frontend → Lambda → S3 → DynamoDB)
-- **Last Updated**: 2026-01-19 (TraceId implementation + localStorage documentation + settings table)
+- **Last Updated**: 2026-01-20 (Remove multi-model comparison + add transaction date extraction)
 
 ## Quick Index
 
@@ -160,7 +160,8 @@ CREATE TABLE transactions (
   currency TEXT DEFAULT 'JPY',      -- Currency code
   description TEXT NOT NULL,
   merchant TEXT,
-  date TEXT NOT NULL,               -- 'YYYY-MM-DD' (invoice date)
+  merchant_source TEXT,             -- 'list_match'|'ocr_fallback'|'unknown'|'user_edited' (track source)
+  date TEXT NOT NULL,               -- 'YYYY-MM-DD' (transaction date from receipt, extracted via Azure DI TransactionDate)
   created_at TEXT NOT NULL,         -- ISO 8601 (processing time)
   updated_at TEXT NOT NULL,         -- ISO 8601 (last modification)
   confirmed_at TEXT,                -- ISO 8601 (null = unconfirmed)
@@ -170,8 +171,8 @@ CREATE TABLE transactions (
   version INTEGER DEFAULT 1,        -- v6: Optimistic locking
   dirty_sync INTEGER DEFAULT 0,     -- v8: 1=needs cloud sync, 0=synced
   s3_key TEXT,                      -- v9: S3 object key for image sync optimization
-  primary_model_id TEXT,            -- v10: Model identifier (e.g., 'us.amazon.nova-lite-v1:0', 'azure_di')
-  primary_confidence REAL,          -- v10: 0-100 confidence score (if available)
+  primary_model_id TEXT,            -- v10: Single model identifier (e.g., 'us.amazon.nova-lite-v1:0', 'azure_di')
+  primary_confidence REAL,          -- v10: 0-100 confidence score from primary model
   trace_id TEXT                     -- v10: Distributed tracing ID from image processing
 );
 
@@ -186,7 +187,8 @@ CREATE INDEX idx_transactions_status ON transactions(status);
 - v7: Removed FK constraint on `image_id` (soft reference for cloud sync)
 - v8: Added `dirty_sync` (track local changes needing cloud sync)
 - v9: Added `s3_key` (S3 object key for efficient image sync)
-- v10: Added `primary_model_id`, `primary_confidence` (AI model metadata), `trace_id` (distributed tracing)
+- v10: Added `primary_model_id`, `primary_confidence` (single model metadata), `trace_id` (distributed tracing)
+- v11: Added `merchant_source` (track merchant matching source); `date` now extracts from receipt TransactionDate via Azure DI
 
 ### settings
 
@@ -271,27 +273,36 @@ interface CloudTransaction {
   s3Key: string;            // S3 image path
   amount: number | null;
   merchant: string | null;
+  merchantSource?: string;  // 'list_match' | 'ocr_fallback' | 'unknown' | 'user_edited' (track merchant matching source)
   category: string | null;
-  receiptDate: string | null;
-  aiConfidence: number | null;
+  date: string | null;      // Transaction date (YYYY-MM-DD) extracted from receipt via Azure DI TransactionDate field
+  aiConfidence: number | null;  // Deprecated: use primaryConfidence
   aiResult: object | null;  // Full AI response
-  status: 'uploaded' | 'processing' | 'processed' | 'failed' | 'skipped';
+  status: 'uploaded' | 'processing' | 'processed' | 'failed' | 'skipped' | 'unconfirmed' | 'confirmed' | 'deleted';
   createdAt: string;        // ISO 8601
   updatedAt: string;        // ISO 8601
+  confirmedAt: string | null;  // ISO 8601 (null = unconfirmed)
 
-  // Primary model metadata (v9: Track which model processed each transaction)
+  // Single model metadata (v9+: Track which model processed this transaction)
   primaryModelId?: string;     // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
   primaryConfidence?: number;  // 0-100 confidence score (if available)
 
   // Distributed tracing (v10: End-to-end observability)
   traceId?: string;            // Frontend-generated trace-{uuid} for tracking request flow
 
-  // Multi-model comparison (optional, for A/B testing)
-  modelComparison?: object;       // Results from all enabled models
-  comparisonStatus?: string;      // 'pending' | 'completed' | 'failed'
-  comparisonTimestamp?: string;   // ISO 8601
+  // Optimistic locking
+  version: number;          // For concurrency control
+
+  // Guest user TTL
+  isGuest?: boolean;
+  ttl?: number;             // Unix timestamp for DynamoDB TTL (guest users only)
 }
 ```
+
+**Important Notes**:
+- **Multi-model comparison removed** (2026-01-20): Previously had `modelComparison`, `comparisonStatus`, `comparisonTimestamp` fields for A/B testing multiple OCR models. Now simplified to single model processing with `primaryModelId` tracking.
+- **Transaction date extraction**: The `date` field now extracts actual receipt date from Azure DI's `TransactionDate` field (not processing date).
+- **Merchant source tracking**: Added `merchantSource` to track whether merchant name came from list matching, OCR fallback, or user editing.
 
 ### Quota Management (Permit v2)
 
