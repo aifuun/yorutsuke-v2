@@ -7,9 +7,16 @@
  * Bridges DiagnosticService calls to Rust/Tauri handlers:
  * - collect_diagnostic_data: Collects local device data
  * - upload_diagnostic_report: Calls Lambda with local data
+ *
+ * Runtime mock mode support:
+ * - When `isMockingOnline()`: Returns mock data (no real IPC calls)
+ * - When `isMockingOffline()`: Simulates network failures
+ * - Otherwise: Calls real Tauri handlers
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
+import { logger } from '../../../00_kernel/telemetry';
 import type { LocalDiagnosticData, DiagnosticExportSuccess } from '../types/diagnostic';
 
 // ============================================================================
@@ -51,6 +58,92 @@ interface RawDiagnosticExportSuccess {
   s3Url: string;
   timestamp: string;
   fileSize: number;
+}
+
+// ============================================================================
+// Mock Data Generators (used for both runtime mocking and tests)
+// ============================================================================
+
+/**
+ * Generate realistic mock local diagnostic data
+ */
+export function generateMockLocalDiagnosticData(overrides?: Partial<LocalDiagnosticData>): LocalDiagnosticData {
+  return {
+    timestamp: new Date().toISOString(),
+    appVersion: '0.1.0-alpha.11',
+    platform: 'darwin',
+    systemInfo: {
+      osVersion: '14.2',
+      locale: 'en-US',
+      timezone: 'UTC+9',
+    },
+    localStorage: {
+      transactions: [
+        {
+          id: 'txn-001' as any,
+          userId: 'user-test' as any,
+          imageId: null,
+          s3Key: null,
+          type: 'expense' as any,
+          category: 'shopping' as any,
+          amount: 1500,
+          currency: 'JPY',
+          description: 'Test transaction',
+          merchant: null,
+          date: new Date().toISOString(),
+          status: 'confirmed' as any,
+          primaryModelId: null,
+          primaryConfidence: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          traceId: null,
+        } as any,
+      ],
+      images: [
+        {
+          id: 'img-001',
+          imageId: 'img-001',
+          size: 2048,
+          uploadedAt: new Date().toISOString(),
+          status: 'uploaded',
+        },
+      ],
+      settings: {
+        theme: 'light',
+        debugEnabled: true,
+      },
+    },
+    appState: {
+      lastSyncTime: new Date(Date.now() - 3600000).toISOString(),
+      queuedImages: 0,
+      syncStatus: 'idle',
+      dbSize: '5.2 MB',
+    },
+    debugLogs: [
+      {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'App started',
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * Generate mock successful export response
+ */
+export function generateMockDiagnosticExportSuccess(
+  overrides?: Partial<DiagnosticExportSuccess>
+): DiagnosticExportSuccess {
+  return {
+    success: true,
+    reportId: `diag-${Date.now()}`,
+    s3Url: `https://yorutsuke-diagnostics-dev.s3.us-east-1.amazonaws.com/user-test/diag-${Date.now()}.json?X-Amz-Expires=604800`,
+    timestamp: new Date().toISOString(),
+    fileSize: 102400,
+    ...overrides,
+  };
 }
 
 // ============================================================================
@@ -110,14 +203,18 @@ function validateDiagnosticExportSuccess(raw: unknown): DiagnosticExportSuccess 
 }
 
 // ============================================================================
-// IPC Commands
+// IPC Commands (with runtime mock support)
 // ============================================================================
 
 /**
  * Collect local diagnostic data from device
  *
- * Invokes Tauri command: collect_diagnostic_data
- * Responsible for:
+ * Behavior:
+ * - Online mock mode: Returns mock data with simulated delay
+ * - Offline mock mode: Throws network error
+ * - Production: Invokes real Tauri command: collect_diagnostic_data
+ *
+ * Real Tauri command is responsible for:
  * - Reading SQLite database (transactions, images, settings)
  * - Collecting debug logs (last 500 entries)
  * - Getting system information
@@ -125,9 +222,24 @@ function validateDiagnosticExportSuccess(raw: unknown): DiagnosticExportSuccess 
  *
  * @param traceId - Trace ID for log correlation
  * @returns Local diagnostic data (validated)
- * @throws Error on IPC failure or validation error
+ * @throws Error on IPC failure, validation error, or simulated network failure
  */
 export async function collectLocalDiagnosticData(traceId: string): Promise<LocalDiagnosticData> {
+  // Handle offline mock mode (simulate network failure)
+  if (isMockingOffline()) {
+    logger.debug('DIAGNOSTIC_OFFLINE_MOCK', { traceId });
+    await mockDelay();
+    throw new Error('Network error (offline mock mode)');
+  }
+
+  // Handle online mock mode (return realistic mock data)
+  if (isMockingOnline()) {
+    logger.debug('DIAGNOSTIC_ONLINE_MOCK', { traceId });
+    await mockDelay();
+    return generateMockLocalDiagnosticData();
+  }
+
+  // Production: Call real Tauri IPC command
   const raw = await invoke<RawLocalDiagnosticData>('collect_diagnostic_data', { traceId });
   return validateLocalDiagnosticData(raw);
 }
@@ -135,8 +247,12 @@ export async function collectLocalDiagnosticData(traceId: string): Promise<Local
 /**
  * Upload diagnostic report to cloud via Lambda
  *
- * Invokes Tauri command: upload_diagnostic_report
- * Tauri handler is responsible for:
+ * Behavior:
+ * - Online mock mode: Returns mock S3 URL with simulated delay
+ * - Offline mock mode: Throws network error
+ * - Production: Invokes real Tauri command: upload_diagnostic_report
+ *
+ * Real Tauri command is responsible for:
  * 1. Calling Lambda function with auth token
  * 2. Lambda queries cloud data (DynamoDB, S3, CloudWatch)
  * 3. Lambda generates combined report
@@ -149,7 +265,7 @@ export async function collectLocalDiagnosticData(traceId: string): Promise<Local
  * @param traceId - Trace ID for log correlation
  * @param attempt - Retry attempt number (for logging)
  * @returns Success response with S3 URL (validated)
- * @throws Error on IPC failure or validation error
+ * @throws Error on IPC failure, validation error, or simulated network failure
  */
 export async function uploadDiagnosticReportIpc(
   userId: string,
@@ -158,6 +274,21 @@ export async function uploadDiagnosticReportIpc(
   traceId: string,
   attempt: number
 ): Promise<DiagnosticExportSuccess> {
+  // Handle offline mock mode (simulate network failure)
+  if (isMockingOffline()) {
+    logger.debug('DIAGNOSTIC_UPLOAD_OFFLINE_MOCK', { traceId, attempt });
+    await mockDelay();
+    throw new Error('Network error (offline mock mode)');
+  }
+
+  // Handle online mock mode (return realistic mock S3 URL)
+  if (isMockingOnline()) {
+    logger.debug('DIAGNOSTIC_UPLOAD_ONLINE_MOCK', { traceId, userId, attempt });
+    await mockDelay();
+    return generateMockDiagnosticExportSuccess();
+  }
+
+  // Production: Call real Tauri IPC command
   const raw = await invoke<RawDiagnosticExportSuccess>('upload_diagnostic_report', {
     userId,
     token,

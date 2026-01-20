@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { DiagnosticService } from './DiagnosticService';
 import { UserId } from '../../../00_kernel/types';
 import * as diagnosticIpc from '../adapters/diagnosticIpc';
-import { generateMockLocalDiagnosticData, generateMockDiagnosticExportSuccess } from '../adapters/__mocks__/diagnosticIpc';
+import { generateMockLocalDiagnosticData, generateMockDiagnosticExportSuccess } from '../adapters/diagnosticIpc';
 
 // Mock the diagnosticIpc adapter
 vi.mock('../adapters/diagnosticIpc');
