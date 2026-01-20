@@ -614,6 +614,19 @@ export function DebugView() {
                           </span>
                         </div>
                       )}
+                      {tx.primaryModelId === 'azure_di' && (tx as any).modelComparison?.azure_di && (
+                        <div className="debug-tx-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                          <span className="debug-tx-label">Azure DI Raw Data:</span>
+                          <div style={{ fontSize: '10px', fontFamily: 'monospace', background: '#f5f5f5', padding: '8px', borderRadius: '4px', width: '100%', overflow: 'auto' }}>
+                            <div>Vendor: {(tx as any).modelComparison.azure_di.vendor || 'null'}</div>
+                            <div>Total: ¥{(tx as any).modelComparison.azure_di.totalAmount ?? 'null'}</div>
+                            <div>Subtotal: ¥{(tx as any).modelComparison.azure_di.subtotal ?? 'null'}</div>
+                            <div>Tax: ¥{(tx as any).modelComparison.azure_di.taxAmount ?? 'null'}</div>
+                            <div>Tax Rate: {(tx as any).modelComparison.azure_di.taxRate ?? 'null'}</div>
+                            <div>Line Items: {(tx as any).modelComparison.azure_di.lineItems?.length || 0}</div>
+                          </div>
+                        </div>
+                      )}
                       {tx.imageId && (
                         <div className="debug-tx-row">
                           <span className="debug-tx-label">Image ID:</span>
@@ -716,6 +729,23 @@ export function DebugView() {
                                 <div>{(tx as any).modelComparison.claude_sonnet.vendor || '-'}</div>
                                 <div>¥{(tx as any).modelComparison.claude_sonnet.totalAmount || '-'} (tax: ¥{(tx as any).modelComparison.claude_sonnet.taxAmount || '0'})</div>
                                 <div>Confidence: {(tx as any).modelComparison.claude_sonnet.confidence || '-'}%</div>
+                              </div>
+                            ) : (
+                              <div className="debug-model-details">
+                                <span style={{ color: '#999' }}>No result</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Azure DI */}
+                          <div className="debug-model-item">
+                            <div className="debug-model-name">Azure DI</div>
+                            {(tx as any).modelComparison.azure_di ? (
+                              <div className="debug-model-details">
+                                <div>{(tx as any).modelComparison.azure_di.vendor || '-'}</div>
+                                <div>¥{(tx as any).modelComparison.azure_di.totalAmount || '-'} (tax: ¥{(tx as any).modelComparison.azure_di.taxAmount || '0'})</div>
+                                <div>Subtotal: ¥{(tx as any).modelComparison.azure_di.subtotal || '-'}</div>
+                                <div>Confidence: {(tx as any).modelComparison.azure_di.confidence || '-'}%</div>
                               </div>
                             ) : (
                               <div className="debug-model-details">

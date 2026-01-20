@@ -526,11 +526,44 @@ export class MultiModelAnalyzer {
       // Extract key fields from Azure response
       // Azure DI v4.0 uses valueString, valueNumber, valueArray, valueObject properties
       // Support both prebuilt-receipt and prebuilt-invoice field names
+
+      // 🔍 DEBUG: Log available field names to identify correct ones
+      logger.debug("AZURE_DI_AVAILABLE_FIELDS", {
+        fieldNames: Object.keys(fields),
+        hasTotal: !!fields.Total,
+        hasTotalAmount: !!fields.TotalAmount,
+        hasInvoiceTotal: !!fields.InvoiceTotal,
+        hasReceiptTotal: !!fields.ReceiptTotal,
+        hasSubtotal: !!fields.Subtotal,
+        hasSubtotalAmount: !!fields.SubtotalAmount,
+        hasSubTotal: !!fields.SubTotal,
+      });
+
+      // 🔍 DEBUG: Log the actual content of Total field to see structure
+      if (fields.Total) {
+        logger.debug("AZURE_DI_TOTAL_FIELD_CONTENT", {
+          totalField: JSON.stringify(fields.Total),
+          hasValueNumber: fields.Total.valueNumber !== undefined,
+          hasValueString: fields.Total.valueString !== undefined,
+          valueCurrency: fields.Total.valueCurrency,
+          type: fields.Total.type,
+        });
+      }
+
       const result = {
         vendor: fields.MerchantName?.valueString || fields.VendorName?.valueString || "Unknown",
-        totalAmount: this.parseAzureAmount(fields.Total) || this.parseAzureAmount(fields.TotalAmount),
+        // Try all known total field names (different models use different names)
+        totalAmount:
+          this.parseAzureAmount(fields.Total) ||
+          this.parseAzureAmount(fields.TotalAmount) ||
+          this.parseAzureAmount(fields.InvoiceTotal) ||
+          this.parseAzureAmount(fields.ReceiptTotal),
         taxAmount: this.parseAzureAmount(fields.Tax) || this.parseAzureAmount(fields.TotalTax),
-        subtotal: this.parseAzureAmount(fields.Subtotal) || this.parseAzureAmount(fields.SubtotalAmount),
+        // Try all known subtotal field names (note: SubTotal has capital T)
+        subtotal:
+          this.parseAzureAmount(fields.Subtotal) ||
+          this.parseAzureAmount(fields.SubtotalAmount) ||
+          this.parseAzureAmount(fields.SubTotal),
         taxRate: this.parseAzureAmount(fields.TaxRate),
         confidence: this.calculateAzureConfidence(fields),
         lineItems: this.extractAzureLineItems(fields.Items),
@@ -539,9 +572,16 @@ export class MultiModelAnalyzer {
       logger.debug("AZURE_DI_EXTRACTED_RESULT", {
         vendor: result.vendor,
         totalAmount: result.totalAmount,
+        subtotal: result.subtotal,
         taxAmount: result.taxAmount,
+        taxRate: result.taxRate,
         confidence: result.confidence,
         lineItemCount: result.lineItems?.length || 0,
+        extractionSuccess: {
+          hasTotal: result.totalAmount !== undefined,
+          hasSubtotal: result.subtotal !== undefined,
+          hasTax: result.taxAmount !== undefined,
+        },
       });
 
       return ModelResultSchema.parse(result);
@@ -555,12 +595,20 @@ export class MultiModelAnalyzer {
 
   /**
    * Parse amount field from Azure response
-   * Azure DI v4.0 uses valueNumber for numeric fields, valueString for string representation
+   * Azure DI v4.0 uses:
+   * - valueCurrency.amount for currency fields (e.g., Total, TotalTax)
+   * - valueNumber for numeric fields
+   * - valueString for string representation
    */
   parseAzureAmount(field) {
     if (!field) return undefined;
 
-    // Try valueNumber first (Azure DI v4.0 native format)
+    // Try valueCurrency.amount first (used for currency fields like Total)
+    if (field.valueCurrency && typeof field.valueCurrency.amount === "number") {
+      return field.valueCurrency.amount;
+    }
+
+    // Try valueNumber (used for non-currency numeric fields)
     if (typeof field.valueNumber === "number") {
       return field.valueNumber;
     }
@@ -862,8 +910,21 @@ export function convertModelResultToOcrResult(modelResult) {
   // Default values
   const today = new Date().toISOString().split('T')[0];
 
+  // Try totalAmount first, fall back to subtotal if available
+  // @ai-intent: Don't use || 0 fallback - let validation fail if no amount found
+  // This triggers needs_review status in instant-processor instead of silent 0
+  const amount = modelResult.totalAmount ?? modelResult.subtotal ?? undefined;
+
+  if (!amount && amount !== 0) {
+    logger.warn('AZURE_DI_NO_AMOUNT_EXTRACTED', {
+      totalAmount: modelResult.totalAmount,
+      subtotal: modelResult.subtotal,
+      vendor: modelResult.vendor,
+    });
+  }
+
   return {
-    amount: modelResult.totalAmount || 0,
+    amount: amount,
     type: 'expense', // Default to expense (receipts are typically expenses)
     date: today, // Azure DI doesn't return date, use today
     merchant: modelResult.vendor || 'Unknown',
