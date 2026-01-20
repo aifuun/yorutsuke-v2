@@ -91,24 +91,26 @@ async function collectCloudData(userId, traceId) {
 
       const scanResult = await dynamoClient.send(new ScanCommand(params));
 
-      // Convert DynamoDB items to readable format (extract key fields for diagnostics)
+      // Convert DynamoDB items to readable format (extract all fields)
       if (scanResult.Items && scanResult.Items.length > 0) {
-        transactions.push(...scanResult.Items.slice(0, 10).map(item => ({
-          id: item.id?.S || "unknown",
-          imageId: item.imageId?.S || "",
-          type: item.type?.S || "",
-          category: item.category?.S || "",
-          amount: item.amount?.N || "0",
-          currency: item.currency?.S || "JPY",
-          description: item.description?.S || "",
-          merchant: item.merchant?.S || "",
-          date: item.date?.S || "",
-          status: item.status?.S || "unknown",
-          primaryModelId: item.primaryModelId?.S || "",
-          primaryConfidence: item.primaryConfidence?.N || "",
-          createdAt: item.createdAt?.S || "",
-          updatedAt: item.updatedAt?.S || "",
-        })));
+        transactions.push(...scanResult.Items.slice(0, 10).map(item => {
+          // Helper to convert DynamoDB format to plain JS objects recursively
+          const convertDynamoItem = (dynamoItem) => {
+            const result = {};
+            for (const [key, value] of Object.entries(dynamoItem)) {
+              // Handle different DynamoDB types
+              if (value.S) result[key] = value.S;
+              else if (value.N) result[key] = value.N;
+              else if (value.BOOL) result[key] = value.BOOL;
+              else if (value.NULL) result[key] = null;
+              else if (value.L) result[key] = value.L.map(convertDynamoItem);
+              else if (value.M) result[key] = convertDynamoItem(value.M);
+              else result[key] = value;
+            }
+            return result;
+          };
+          return convertDynamoItem(item);
+        }));
       }
 
       logger.info("DIAGNOSTIC_TRANSACTIONS_COLLECTED", {
