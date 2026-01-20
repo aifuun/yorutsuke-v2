@@ -137,6 +137,15 @@ export async function uploadDiagnosticReport(
       fileSize: validated.fileSize,
     });
 
+    // Log full S3 URL for debugging download issues
+    if (validated.s3Url) {
+      logger.debug('DIAGNOSTIC_S3_URL_RECEIVED', {
+        traceId,
+        s3Url: validated.s3Url,
+        urlLength: validated.s3Url.length,
+      });
+    }
+
     return validated;
   } catch (error) {
     const errorMessage =

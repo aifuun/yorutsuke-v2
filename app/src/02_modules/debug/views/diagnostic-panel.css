@@ -1,93 +1,208 @@
-/* Diagnostic Export Panel
- * Component for collecting and exporting diagnostic data
- * Follows design system tokens (Pillar C: Design System)
+/**
+ * Diagnostic Panel Styles
+ *
+ * Simple, clean design following project design system:
+ * - Use design tokens for colors, spacing, typography
+ * - Responsive layout
+ * - Accessibility compliant
  */
 
+/* ============================================================================
+   Container & Card
+   ============================================================================ */
+
 .diagnostic-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  padding: var(--space-4);
 }
 
-/* ===================================================================
- * Section
- * =================================================================== */
-
-.diagnostic-panel__section {
+.diagnostic-panel__card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  box-shadow: var(--shadow-1);
 }
 
-.diagnostic-panel__section--success {
+.diagnostic-panel__card--success {
   border-color: var(--color-success);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.02) 0%, rgba(34, 197, 94, 0.05) 100%);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(5, 150, 105, 0.05) 100%);
 }
 
-.diagnostic-panel__section--error {
+.diagnostic-panel__card--error {
   border-color: var(--color-error);
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.02) 0%, rgba(239, 68, 68, 0.05) 100%);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(239, 68, 68, 0.05) 100%);
 }
 
-/* ===================================================================
- * Title
- * =================================================================== */
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.diagnostic-panel__header {
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
 
 .diagnostic-panel__title {
+  margin: 0;
   font-size: var(--text-lg);
   font-weight: 700;
-  color: var(--text-default);
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* ===================================================================
- * Idle State - Info & Button
- * =================================================================== */
-
-.diagnostic-panel__info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .diagnostic-panel__description {
+  margin: var(--space-2) 0 0 0;
   font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin: 0;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
-/* Button */
-.diagnostic-panel__button {
-  padding: var(--space-3) var(--space-4);
+.diagnostic-panel__success-icon,
+.diagnostic-panel__error-icon {
+  font-size: 3em;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+/* ============================================================================
+   Progress Section
+   ============================================================================ */
+
+.diagnostic-panel__progress-section {
+  margin-bottom: var(--space-6);
+}
+
+.diagnostic-panel__progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-default);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.diagnostic-panel__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease-out;
+}
+
+.diagnostic-panel__progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.diagnostic-panel__progress-text {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.diagnostic-panel__progress-percent {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+  min-width: 3em;
+}
+
+.diagnostic-panel__progress-time {
   font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.diagnostic-panel__current-step {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: right;
+  flex: 1;
+}
+
+/* ============================================================================
+   Report Info
+   ============================================================================ */
+
+.diagnostic-panel__report-info {
+  background: var(--bg-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.diagnostic-panel__info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  padding: var(--space-2) 0;
+}
+
+.diagnostic-panel__info-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.diagnostic-panel__info-label {
   font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.diagnostic-panel__info-value {
+  color: var(--text-secondary);
+  word-break: break-all;
+  text-align: right;
+  flex: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+}
+
+/* ============================================================================
+   Error Message
+   ============================================================================ */
+
+.diagnostic-panel__error-message {
+  background: var(--bg-default);
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.diagnostic-panel__error-message p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* ============================================================================
+   Actions (Buttons)
+   ============================================================================ */
+
+.diagnostic-panel__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.diagnostic-panel__button {
+  flex: 1;
+  min-width: 120px;
+  padding: var(--space-3) var(--space-4);
   border: none;
   border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: white;
+  font-size: var(--text-sm);
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-out),
-              opacity var(--duration-fast) var(--ease-out);
-  display: inline-flex;
+  transition: all var(--duration-fast) var(--ease-out);
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  white-space: nowrap;
-}
-
-.diagnostic-panel__button:hover:not(:disabled) {
-  background: var(--color-primary-hover, #2563eb);
-}
-
-.diagnostic-panel__button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 .diagnostic-panel__button:disabled {
@@ -95,379 +210,111 @@
   cursor: not-allowed;
 }
 
-.diagnostic-panel__button--secondary {
-  background: var(--bg-secondary, #e5e7eb);
-  color: var(--text-default);
-}
-
-.diagnostic-panel__button--secondary:hover:not(:disabled) {
-  background: var(--bg-secondary-hover, #d1d5db);
-}
-
-.diagnostic-panel__button--retry {
-  background: var(--color-warning, #f59e0b);
-}
-
-.diagnostic-panel__button--retry:hover:not(:disabled) {
-  background: var(--color-warning-hover, #d97706);
-}
-
-/* ===================================================================
- * Progress State - Logo Flow
- * =================================================================== */
-
-.diagnostic-panel__progress {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-4);
-  background: rgba(59, 130, 246, 0.02);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(59, 130, 246, 0.1);
-}
-
-/* Logo Flow Container */
-.diagnostic-panel__logo-flow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  min-height: 80px;
-}
-
-/* Each Step in Flow */
-.diagnostic-panel__logo-step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 1;
-  min-width: 60px;
-  max-width: 80px;
-}
-
-/* Logo Circle */
-.diagnostic-panel__logo-circle {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-secondary, #f3f4f6);
-  border: 2px solid var(--border);
-  transition: all var(--duration-normal, 300ms) var(--ease-out);
-  flex-shrink: 0;
-}
-
-.diagnostic-panel__logo {
-  font-size: 28px;
-  line-height: 1;
-  filter: grayscale(100%);
-  transition: filter var(--duration-normal, 300ms) var(--ease-out);
-}
-
-/* Status: Pending (Gray) */
-.diagnostic-panel__logo-step--pending .diagnostic-panel__logo-circle {
-  background: var(--bg-secondary, #f3f4f6);
-  border-color: var(--border-light, #e5e7eb);
-}
-
-.diagnostic-panel__logo-step--pending .diagnostic-panel__logo {
-  filter: grayscale(100%) opacity(0.5);
-}
-
-/* Status: In Progress (Current - Animated) */
-.diagnostic-panel__logo-step--in_progress .diagnostic-panel__logo-circle {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.diagnostic-panel__logo-step--in_progress .diagnostic-panel__logo {
-  filter: grayscale(0%) brightness(1.1);
-  color: white;
-  animation: bounce 1.5s ease-in-out infinite;
-}
-
-/* Status: Completed (Colored) */
-.diagnostic-panel__logo-step--completed .diagnostic-panel__logo-circle {
-  background: var(--color-success);
-  border-color: var(--color-success);
-}
-
-.diagnostic-panel__logo-step--completed .diagnostic-panel__logo {
-  filter: grayscale(0%) brightness(1.2);
-  color: white;
-}
-
-/* Status: Failed (Red) */
-.diagnostic-panel__logo-step--failed .diagnostic-panel__logo-circle {
-  background: var(--color-error);
-  border-color: var(--color-error);
-}
-
-.diagnostic-panel__logo-step--failed .diagnostic-panel__logo {
-  filter: grayscale(0%) brightness(1.1);
-  color: white;
-}
-
-/* Connector Line */
-.diagnostic-panel__logo-connector {
-  flex: 1;
-  height: 3px;
-  background: var(--border);
-  margin: 0 calc(var(--space-2) * -1);
-  transition: background-color var(--duration-normal, 300ms) var(--ease-out);
-  min-width: 20px;
-}
-
-.diagnostic-panel__logo-connector.completed {
-  background: var(--color-success);
-}
-
-/* Animations */
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
-  }
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .diagnostic-panel__logo-circle,
-  .diagnostic-panel__logo {
-    animation: none;
-  }
-
-  .diagnostic-panel__logo-step--in_progress .diagnostic-panel__logo-circle {
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-  }
-}
-
-/* Progress Details */
-.diagnostic-panel__progress-details {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.diagnostic-panel__progress-bar {
-  width: 100%;
-  height: 8px;
-  background: var(--bg-secondary, #e5e7eb);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.diagnostic-panel__progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 0%,
-    var(--color-success) 100%
-  );
-  transition: width var(--duration-normal, 300ms) var(--ease-out);
-  border-radius: 4px;
-}
-
-.diagnostic-panel__progress-text {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--text-sm);
-}
-
-.diagnostic-panel__progress-percent {
-  font-weight: 600;
-  color: var(--text-default);
-}
-
-.diagnostic-panel__progress-time {
-  color: var(--text-muted);
-  font-size: var(--text-xs, 12px);
-}
-
-/* ===================================================================
- * Loading State - Spinner (Legacy)
- * =================================================================== */
-
-.diagnostic-panel__loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-8);
-}
-
-.diagnostic-panel__spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--slate-200);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .diagnostic-panel__spinner {
-    animation: none;
-    border-top-color: var(--color-primary);
-  }
-}
-
-.diagnostic-panel__status {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin: 0;
-  text-align: center;
-}
-
-/* ===================================================================
- * Success State
- * =================================================================== */
-
-.diagnostic-panel__success {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  align-items: center;
-  text-align: center;
-  padding: var(--space-4);
-}
-
-.diagnostic-panel__success-icon {
-  font-size: 48px;
-  line-height: 1;
-}
-
-.diagnostic-panel__success-message {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-success);
-  margin: 0;
-}
-
-.diagnostic-panel__details {
-  align-self: stretch;
-  background: rgba(34, 197, 94, 0.05);
-  border: 1px solid rgba(34, 197, 94, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.diagnostic-panel__detail {
-  font-size: var(--text-sm);
-  color: var(--text-default);
-  margin: 0;
-  text-align: left;
-  line-height: 1.5;
-}
-
-.diagnostic-panel__detail strong {
-  color: var(--text-default);
-  font-weight: 600;
-}
-
-.diagnostic-panel__actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-self: stretch;
-  margin-top: var(--space-2);
-}
-
-/* Download button */
-.diagnostic-panel__download-button {
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  border: 2px solid var(--color-success);
-  border-radius: var(--radius-md);
-  background: var(--color-success);
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-out);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-}
-
-.diagnostic-panel__download-button:hover {
-  background: var(--color-success-hover, #16a34a);
-}
-
-.diagnostic-panel__download-button:focus-visible {
-  outline: 2px solid var(--color-success);
+.diagnostic-panel__button:focus-visible {
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* ===================================================================
- * Error State
- * =================================================================== */
-
-.diagnostic-panel__error {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  align-items: center;
-  text-align: center;
-  padding: var(--space-4);
+/* Primary Button */
+.diagnostic-panel__button--primary {
+  background: var(--color-primary);
+  color: white;
 }
 
-.diagnostic-panel__error-icon {
-  font-size: 48px;
-  line-height: 1;
+.diagnostic-panel__button--primary:hover:not(:disabled) {
+  background: var(--color-primary-dark, #2563eb);
+  box-shadow: var(--shadow-2);
 }
 
-.diagnostic-panel__error-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-error);
-  margin: 0;
+.diagnostic-panel__button--primary:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-.diagnostic-panel__error-message {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin: 0;
-  line-height: 1.5;
+/* Secondary Button */
+.diagnostic-panel__button--secondary {
+  background: var(--bg-default);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
 }
 
-/* ===================================================================
- * Responsive Design
- * =================================================================== */
+.diagnostic-panel__button--secondary:hover:not(:disabled) {
+  background: var(--bg-card);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-2);
+}
+
+.diagnostic-panel__button--secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
 
 @media (max-width: 640px) {
-  .diagnostic-panel__section {
+  .diagnostic-panel {
+    padding: var(--space-2);
+  }
+
+  .diagnostic-panel__card {
     padding: var(--space-4);
+  }
+
+  .diagnostic-panel__progress-info {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .diagnostic-panel__current-step {
+    text-align: left;
+  }
+
+  .diagnostic-panel__info-row {
+    flex-direction: column;
+  }
+
+  .diagnostic-panel__info-value {
+    text-align: left;
   }
 
   .diagnostic-panel__actions {
     flex-direction: column;
+  }
+
+  .diagnostic-panel__button {
+    min-width: auto;
+  }
+}
+
+/* ============================================================================
+   Accessibility: Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .diagnostic-panel__progress-fill {
+    transition: none;
+  }
+
+  .diagnostic-panel__button {
+    transition: none;
+  }
+
+  .diagnostic-panel__button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   Dark Mode Support
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .diagnostic-panel__card {
+    background: var(--bg-card);
+    border-color: var(--border);
+  }
+
+  .diagnostic-panel__info-row {
+    border-color: var(--border);
   }
 }
