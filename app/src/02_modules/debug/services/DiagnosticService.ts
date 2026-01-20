@@ -46,10 +46,9 @@ import { VALID_STATE_TRANSITIONS } from '../types/diagnostic';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 30000;
-const STEP_DELAY_MS = 5000; // 5-second delay between FSM steps for visibility
 
 // Data collection limits for efficient diagnostics
-const MAX_DEBUG_LOGS = 50; // Was 500, now 50 error/warn logs
+const MAX_DEBUG_LOGS = 50; // Limit to 50 error/warn logs
 const MAX_TRANSACTIONS = 30; // Limit to last 30 transactions
 const ONLY_ERROR_WARN_LOGS = true; // Filter to ERROR/WARN/INFO only, exclude DEBUG
 
@@ -141,18 +140,6 @@ Diagnostic Export FSM State Diagram:
           └→ collecting (retry)
     `;
   }
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Sleep for specified milliseconds
- * @param ms Milliseconds to sleep
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================================================
@@ -353,20 +340,6 @@ export class DiagnosticService {
         description: `Collected ${localData.debugLogs.length} logs, ${localData.localStorage.transactions.length} transactions, ${localData.localStorage.images.length} images`,
       });
 
-      logger.debug('DIAGNOSTIC_PHASE_DELAY_START', {
-        traceId: this.context.traceId,
-        phase: 'step1_local_collection',
-        delayMs: STEP_DELAY_MS,
-      });
-
-      // Wait 5 seconds before next step
-      await sleep(STEP_DELAY_MS);
-
-      logger.debug('DIAGNOSTIC_PHASE_DELAY_END', {
-        traceId: this.context.traceId,
-        phase: 'step1_local_collection',
-      });
-
       // FSM: collecting → uploading
       this.transitionState('uploading', 'Local data collection complete');
       this.context.currentPhase = 'step2_upload_local';
@@ -394,23 +367,14 @@ export class DiagnosticService {
         description: `Uploaded ${(result as any).fileSize} bytes successfully`,
       });
 
-      // Wait 5 seconds before next step
-      await sleep(STEP_DELAY_MS);
-
       // Mark remaining steps as completed (lambda handled them)
       this.updatePhase('step3_cloud_collection', 'completed', {
         description: 'Cloud data collection completed by Lambda',
       });
 
-      // Wait 5 seconds
-      await sleep(STEP_DELAY_MS);
-
       this.updatePhase('step4_merge', 'completed', {
         description: 'Merging completed successfully',
       });
-
-      // Wait 5 seconds
-      await sleep(STEP_DELAY_MS);
 
       this.updatePhase('step5_generate_link', 'completed', {
         description: `Report ready for download (ID: ${(result as any).reportId})`,
