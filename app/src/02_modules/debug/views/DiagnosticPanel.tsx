@@ -42,28 +42,32 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
     await diagnosticService.execute(userId);
   }, [userId]);
 
-  const handleDownload = useCallback(() => {
-    logger.debug('DIAGNOSTIC_DOWNLOAD_INITIATED', {
+  const handleCopyLink = useCallback(() => {
+    logger.debug('DIAGNOSTIC_COPY_LINK_INITIATED', {
       hasResult: !!result,
       isSuccess: result ? isDiagnosticExportSuccess(result) : false,
     });
 
     if (result && isDiagnosticExportSuccess(result)) {
       if (result.s3Url) {
-        logger.info('DIAGNOSTIC_DOWNLOAD_OPENING', {
+        logger.info('DIAGNOSTIC_COPY_LINK', {
           s3Url: result.s3Url,
           urlLength: result.s3Url.length,
           reportId: result.reportId,
         });
-        window.open(result.s3Url, '_blank');
+        navigator.clipboard.writeText(result.s3Url).then(() => {
+          logger.debug('DIAGNOSTIC_LINK_COPIED', {
+            reportId: result.reportId,
+          });
+        });
       } else {
-        logger.warn('DIAGNOSTIC_DOWNLOAD_NO_URL', {
+        logger.warn('DIAGNOSTIC_COPY_LINK_NO_URL', {
           reportId: result.reportId,
           fileSize: result.fileSize,
         });
       }
     } else {
-      logger.error('DIAGNOSTIC_DOWNLOAD_INVALID_STATE', {
+      logger.error('DIAGNOSTIC_COPY_LINK_INVALID_STATE', {
         hasResult: !!result,
         isSuccess: result ? isDiagnosticExportSuccess(result) : false,
       });
@@ -233,11 +237,11 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
             {hasUrl && (
               <button
                 className="diagnostic-panel__button diagnostic-panel__button--primary"
-                onClick={handleDownload}
+                onClick={handleCopyLink}
                 title={result.s3Url}
                 type="button"
               >
-                📥 {t('diagnostic.button.download')}
+                🔗 {t('diagnostic.button.copy_link')}
               </button>
             )}
             <button
