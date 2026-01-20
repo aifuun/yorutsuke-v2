@@ -43,14 +43,15 @@ import { VALID_STATE_TRANSITIONS } from '../types/diagnostic';
 // Constants
 // ============================================================================
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1000;
-const REQUEST_TIMEOUT_MS = 30000;
-
-// Data collection limits for efficient diagnostics
-const MAX_DEBUG_LOGS = 50; // Limit to 50 error/warn logs
-const MAX_TRANSACTIONS = 30; // Limit to last 30 transactions
-const ONLY_ERROR_WARN_LOGS = true; // Filter to ERROR/WARN/INFO only, exclude DEBUG
+// ============================================================================
+// Configuration from environment variables (can be overridden in .env.local)
+// ============================================================================
+const MAX_DEBUG_LOGS = parseInt(import.meta.env.VITE_DIAGNOSTIC_MAX_LOGS || '50', 10);
+const MAX_TRANSACTIONS = parseInt(import.meta.env.VITE_DIAGNOSTIC_MAX_TRANSACTIONS || '30', 10);
+const ONLY_ERROR_WARN_LOGS = import.meta.env.VITE_DIAGNOSTIC_LOG_FILTER === 'false' ? false : true;
+const MAX_RETRIES = parseInt(import.meta.env.VITE_DIAGNOSTIC_MAX_RETRIES || '3', 10);
+const RETRY_DELAY_MS = parseInt(import.meta.env.VITE_DIAGNOSTIC_RETRY_DELAY_MS || '1000', 10);
+const REQUEST_TIMEOUT_MS = parseInt(import.meta.env.VITE_DIAGNOSTIC_REQUEST_TIMEOUT_MS || '30000', 10);
 
 // ============================================================================
 // Zustand Vanilla Store (Pillar L: Pure TS state management)
