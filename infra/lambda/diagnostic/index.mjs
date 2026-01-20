@@ -14,14 +14,16 @@
  * Access control via userId prefix + IAM policies
  * No authentication token required
  */
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { CloudWatchLogsClient, FilterLogEventsCommand } from "@aws-sdk/client-cloudwatch-logs";
 import { logger } from "/opt/nodejs/shared/logger.mjs";
 import { nanoid } from "nanoid";
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" });
 const s3Client = new S3Client({ region: process.env.AWS_REGION || "us-east-1" });
+const logsClient = new CloudWatchLogsClient({ region: process.env.AWS_REGION || "us-east-1" });
 
 const DIAGNOSTICS_BUCKET = process.env.DIAGNOSTICS_BUCKET || "yorutsuke-diagnostics-dev";
 const TRANSACTIONS_TABLE = process.env.TRANSACTIONS_TABLE || "yorutsuke-transactions-us-dev";
@@ -69,19 +71,84 @@ function getUserType(userId) {
 // ============================================================================
 
 async function collectCloudData(userId, traceId) {
+  const errors = [];
+  const transactions = [];
+  const cloudWatchLogs = [];
+
   try {
     logger.info("DIAGNOSTIC_COLLECTING_CLOUD_DATA", { traceId, userId });
 
-    // TODO: Implement cloud data collection
-    // - Query DynamoDB for user's transactions
-    // - List S3 for user's images
-    // - Fetch CloudWatch logs (if needed)
+    // 1. Query DynamoDB for user's transactions
+    try {
+      const params = {
+        TableName: TRANSACTIONS_TABLE,
+        FilterExpression: "userId = :userId",
+        ExpressionAttributeValues: {
+          ":userId": { S: userId },
+        },
+        Limit: 50, // Limit to 50 transactions for diagnostic report
+      };
+
+      const scanResult = await dynamoClient.send(new ScanCommand(params));
+
+      // Convert DynamoDB items to readable format
+      if (scanResult.Items && scanResult.Items.length > 0) {
+        transactions.push(...scanResult.Items.slice(0, 10).map(item => ({
+          id: item.id?.S || "unknown",
+          amount: item.amount?.N || "0",
+          description: item.description?.S || "",
+          status: item.status?.S || "unknown",
+          createdAt: item.createdAt?.S || "",
+        })));
+      }
+
+      logger.info("DIAGNOSTIC_TRANSACTIONS_COLLECTED", {
+        traceId,
+        userId,
+        count: transactions.length,
+      });
+    } catch (e) {
+      const msg = `Failed to collect DynamoDB transactions: ${e.message}`;
+      logger.warn("DIAGNOSTIC_DYNAMODB_ERROR", { traceId, userId, error: msg });
+      errors.push(msg);
+    }
+
+    // 2. Fetch CloudWatch logs for this Lambda function
+    try {
+      const logGroupName = `/aws/lambda/${process.env.AWS_LAMBDA_FUNCTION_NAME || "diagnostic"}`;
+
+      const params = {
+        logGroupName,
+        startTime: Date.now() - 24 * 60 * 60 * 1000, // Last 24 hours
+        interleaved: true,
+        limit: 100, // Limit to 100 log events
+      };
+
+      const logsResult = await logsClient.send(new FilterLogEventsCommand(params));
+
+      if (logsResult.events && logsResult.events.length > 0) {
+        cloudWatchLogs.push(...logsResult.events.slice(0, 20).map(event => ({
+          timestamp: event.timestamp,
+          message: event.message || "",
+        })));
+      }
+
+      logger.info("DIAGNOSTIC_LOGS_COLLECTED", {
+        traceId,
+        userId,
+        count: cloudWatchLogs.length,
+      });
+    } catch (e) {
+      const msg = `Failed to collect CloudWatch logs: ${e.message}`;
+      logger.warn("DIAGNOSTIC_LOGS_ERROR", { traceId, userId, error: msg });
+      errors.push(msg);
+    }
 
     return {
-      transactions: [],
+      transactions,
       images: [],
-      cloudWatchLogs: [],
-      errors: [],
+      cloudWatchLogs,
+      errors,
     };
   } catch (error) {
     logger.error("DIAGNOSTIC_CLOUD_DATA_ERROR", {
@@ -90,12 +157,12 @@ async function collectCloudData(userId, traceId) {
       error: error.message,
     });
     // Don't fail the entire export if cloud collection fails
-    // Return empty cloud data instead
+    // Return partial cloud data with errors
     return {
-      transactions: [],
+      transactions,
       images: [],
-      cloudWatchLogs: [],
-      errors: [error.message],
+      cloudWatchLogs,
+      errors: [...errors, error.message],
     };
   }
 }
