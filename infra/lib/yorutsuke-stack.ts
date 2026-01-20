@@ -751,15 +751,18 @@ export class YorutsukeStack extends cdk.Stack {
       })
     );
 
-    // Grant CloudWatch Logs read permissions for user-specific log streams
+    // Grant CloudWatch Logs read permissions for diagnostic log collection
     // Pillar N: Observability - Access to structured logs
     diagnosticLambda.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: [
-          "logs:GetLogEvents",  // Retrieve recent log entries
+          "logs:FilterLogEvents",  // Search and filter log events
+          "logs:GetLogEvents",     // Retrieve recent log entries
+          "logs:DescribeLogStreams", // Describe log streams
         ],
         resources: [
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-diagnostic-us-${env}:*`,
           `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-instant-processor-us-${env}:*`,
         ],
       })
