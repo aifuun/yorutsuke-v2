@@ -65,15 +65,17 @@ function withTimeout<T>(
 /**
  * Send diagnostic report to Lambda for processing
  *
- * Lambda determines access level based on userId prefix:
- * - "device-*" (guest): Returns local data only, s3Url = ""
- * - "user-*" (authenticated): Collects cloud data, returns S3 presigned URL
+ * Lambda collects both local and cloud data for all users:
+ * - "device-*" (guest): Full diagnostic export with cloud metadata
+ * - "user-*" (authenticated): Full diagnostic export with cloud metadata
+ *
+ * Returns S3 presigned URL (7-day expiry) for all users
  *
  * @param userId - User ID (determines access level via prefix)
  * @param localData - Local diagnostic data collected on device
  * @param traceId - Trace ID for log correlation
  * @param attempt - Retry attempt number (for logging)
- * @returns Validated diagnostic export response
+ * @returns Validated diagnostic export response with S3 URL and cloud data
  * @throws Error on network failure or validation error
  */
 export async function uploadDiagnosticReport(

@@ -1,13 +1,18 @@
 /**
  * Diagnostic Export Lambda Handler
  *
- * Pillar: Processes diagnostic data collection based on userId prefix
- * - "device-*" (guest): Collects local + cloud data, uploads to S3, returns presigned URL
- * - "user-*" (authenticated): Collects local + cloud data, uploads to S3, returns presigned URL
+ * Processes diagnostic data collection for all users (guest + authenticated)
+ * - Collects local data (sent from client)
+ * - Collects cloud data (DynamoDB transactions, S3 metadata, CloudWatch logs)
+ * - Combines both into single report
+ * - Uploads to S3 with presigned URL (7-day expiry)
  *
- * All users get S3 presigned URLs (7-day expiry)
+ * User types (based on userId prefix):
+ * - "device-*" (guest): Full diagnostic export with cloud data
+ * - "user-*" (authenticated): Full diagnostic export with cloud data
+ *
  * Access control via userId prefix + IAM policies
- * No token required
+ * No authentication token required
  */
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -60,7 +65,7 @@ function getUserType(userId) {
 }
 
 // ============================================================================
-// Cloud Data Collection (for authenticated users only)
+// Cloud Data Collection (for all users)
 // ============================================================================
 
 async function collectCloudData(userId, traceId) {
@@ -75,6 +80,7 @@ async function collectCloudData(userId, traceId) {
     return {
       transactions: [],
       images: [],
+      cloudWatchLogs: [],
       errors: [],
     };
   } catch (error) {
@@ -88,6 +94,7 @@ async function collectCloudData(userId, traceId) {
     return {
       transactions: [],
       images: [],
+      cloudWatchLogs: [],
       errors: [error.message],
     };
   }
@@ -208,11 +215,8 @@ export async function handler(event, context) {
       attempt,
     });
 
-    // Collect cloud data for authenticated users only
-    let cloudData = null;
-    if (userType === "authenticated") {
-      cloudData = await collectCloudData(userId, traceId);
-    }
+    // Collect cloud data for all users (guest + authenticated)
+    const cloudData = await collectCloudData(userId, traceId);
 
     // Generate report and upload
     const result = await generateAndUploadReport(userId, localData, cloudData, traceId);
