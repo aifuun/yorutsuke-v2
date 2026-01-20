@@ -23,7 +23,7 @@ interface DiagnosticPanelProps {
 
 export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   const { t } = useTranslation();
-  const { state, result, error, tokenLoading, exportDiagnosticData, reset } =
+  const { state, result, error, exportDiagnosticData, reset } =
     useDiagnosticExportLogic(userId);
 
   const handleExport = useCallback(() => {
@@ -44,12 +44,8 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   // =========================================================================
 
   if (state === 'idle') {
-    const isDisabled = !userId || tokenLoading;
-    const disabledReason = !userId
-      ? t('diagnostic.disabled.no_user')
-      : tokenLoading
-        ? t('diagnostic.disabled.loading_token')
-        : undefined;
+    const isDisabled = !userId;
+    const disabledReason = !userId ? t('diagnostic.disabled.no_user') : undefined;
 
     return (
       <div className="diagnostic-panel">
@@ -96,10 +92,15 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   }
 
   // =========================================================================
-  // Success State - Show download link
+  // Success State - Show download link or local data info
   // =========================================================================
 
   if (state === 'success' && result) {
+    const isLocalOnly = !result.s3Url;
+    const successMessage = isLocalOnly
+      ? 'Local diagnostic data collected (guest user)'
+      : t('diagnostic.state.success');
+
     return (
       <div className="diagnostic-panel">
         <div className="diagnostic-panel__section diagnostic-panel__section--success">
@@ -107,7 +108,7 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
 
           <div className="diagnostic-panel__success">
             <div className="diagnostic-panel__success-icon">✅</div>
-            <p className="diagnostic-panel__success-message">{t('diagnostic.state.success')}</p>
+            <p className="diagnostic-panel__success-message">{successMessage}</p>
 
             <div className="diagnostic-panel__details">
               <p className="diagnostic-panel__detail">
@@ -116,21 +117,25 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
               <p className="diagnostic-panel__detail">
                 <strong>{t('diagnostic.detail.file_size')}:</strong> {formatBytes(result.fileSize)}
               </p>
-              <p className="diagnostic-panel__detail">
-                <strong>{t('diagnostic.detail.expiry')}:</strong> {t('diagnostic.detail.expiry_value')}
-              </p>
+              {!isLocalOnly && (
+                <p className="diagnostic-panel__detail">
+                  <strong>{t('diagnostic.detail.expiry')}:</strong> {t('diagnostic.detail.expiry_value')}
+                </p>
+              )}
             </div>
 
             <div className="diagnostic-panel__actions">
-              <a
-                href={result.s3Url}
-                className="diagnostic-panel__download-button"
-                download={`diagnostic-${result.reportId}.json`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                📥 {t('diagnostic.button.download')}
-              </a>
+              {!isLocalOnly && (
+                <a
+                  href={result.s3Url}
+                  className="diagnostic-panel__download-button"
+                  download={`diagnostic-${result.reportId}.json`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  📥 {t('diagnostic.button.download')}
+                </a>
+              )}
 
               <button
                 className="diagnostic-panel__button diagnostic-panel__button--secondary"

@@ -709,10 +709,8 @@ export class YorutsukeStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda/diagnostic"),
       layers: [sharedLayer],
       environment: {
-        DYNAMODB_TABLE: transactionsTable.tableName,
-        S3_IMAGES_BUCKET: imageBucket.bucketName,
-        S3_DIAGNOSTICS_BUCKET: diagnosticsBucket.bucketName,
-        CLOUDWATCH_LOG_GROUP: `/aws/lambda/yorutsuke-instant-processor-us-${env}`,
+        TRANSACTIONS_TABLE: transactionsTable.tableName,
+        DIAGNOSTICS_BUCKET: diagnosticsBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(60),
       memorySize: 512,

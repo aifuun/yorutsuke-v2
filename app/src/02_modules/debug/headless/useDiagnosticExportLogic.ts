@@ -26,10 +26,9 @@
  * }
  */
 
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useCallback, useReducer } from 'react';
 import type { UserId } from '../../../00_kernel/types';
-import { logger, EVENTS } from '../../../00_kernel/telemetry';
-import { getAccessToken } from '../../auth/adapters/tokenStorage';
+import { logger } from '../../../00_kernel/telemetry';
 import { diagnosticService } from '../services/DiagnosticService';
 import type { DiagnosticExportResult } from '../types/diagnostic';
 
@@ -88,31 +87,6 @@ function reducer(state: State, action: Action): State {
  */
 export function useDiagnosticExportLogic(userId: UserId | null) {
   const [state, dispatch] = useReducer(reducer, { status: 'idle' });
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenLoading, setTokenLoading] = useState(true);
-
-  // =========================================================================
-  // Load auth token on mount
-  // =========================================================================
-
-  useEffect(() => {
-    async function loadToken() {
-      try {
-        const accessToken = await getAccessToken();
-        setToken(accessToken);
-        logger.debug('DIAGNOSTIC_TOKEN_LOADED', { hasToken: !!accessToken });
-      } catch (e) {
-        logger.error(EVENTS.APP_ERROR, {
-          context: 'loadDiagnosticToken',
-          error: String(e),
-        });
-      } finally {
-        setTokenLoading(false);
-      }
-    }
-
-    loadToken();
-  }, []);
 
   // =========================================================================
   // Main export action
@@ -126,12 +100,6 @@ export function useDiagnosticExportLogic(userId: UserId | null) {
       return;
     }
 
-    if (!token) {
-      logger.warn('DIAGNOSTIC_NO_TOKEN', {});
-      dispatch({ type: 'ERROR', error: 'Authentication token not available' });
-      return;
-    }
-
     // Start workflow
     dispatch({ type: 'START_COLLECTION' });
     const traceId = diagnosticService.getContext()?.traceId;
@@ -139,11 +107,13 @@ export function useDiagnosticExportLogic(userId: UserId | null) {
     try {
       logger.info('DIAGNOSTIC_EXPORT_START', {
         userId,
+        isGuest: userId.startsWith('device-'),
         traceId,
       });
 
       // Execute diagnostic workflow via service
-      const result = await diagnosticService.execute(userId, token);
+      // No token required - Lambda will control access based on userId
+      const result = await diagnosticService.execute(userId);
 
       // Handle result
       if (result.success) {
@@ -175,7 +145,7 @@ export function useDiagnosticExportLogic(userId: UserId | null) {
       });
       dispatch({ type: 'ERROR', error: errorMessage });
     }
-  }, [userId, token]);
+  }, [userId]);
 
   // =========================================================================
   // Reset state
@@ -198,7 +168,6 @@ export function useDiagnosticExportLogic(userId: UserId | null) {
 
     // Loading states
     isLoading: state.status === 'collecting' || state.status === 'uploading',
-    tokenLoading,
 
     // Actions
     exportDiagnosticData,

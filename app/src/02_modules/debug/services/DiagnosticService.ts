@@ -6,7 +6,7 @@
  * **Architecture**:
  * - Primitive IO adapters (diagnosticIpc): get_system_info, read_debug_logs, get_directory_size
  * - Database adapters: transactionDb.list(), imageDb.list()
- * - Cloud upload adapter: uploadDiagnosticReportIpc (calls Lambda)
+ * - Cloud API adapters (diagnosticApi): uploadDiagnosticReport (calls Lambda)
  *
  * This service layer AGGREGATES data from multiple adapters into a complete
  * diagnostic dataset. Business logic lives here, not in Rust or adapters.
@@ -23,7 +23,7 @@
  */
 
 import { nanoid } from 'nanoid';
-import { uploadDiagnosticReportIpc } from '../adapters/diagnosticIpc';
+import { uploadDiagnosticReport } from '../adapters/diagnosticApi';
 import type { UserId } from '../../../00_kernel/types';
 import type {
   LocalDiagnosticData,
@@ -86,11 +86,12 @@ export class DiagnosticService {
   /**
    * Execute complete diagnostic workflow
    *
-   * @param userId - User identifier
-   * @param token - Authentication token
+   * @param userId - User identifier (determines access level)
+   *        - Format "device-*" = guest user (local data only)
+   *        - Format "user-*" = authenticated user (local + cloud data)
    * @returns Diagnostic export result (success or error)
    */
-  async execute(userId: UserId, token: string): Promise<DiagnosticExportResult> {
+  async execute(userId: UserId): Promise<DiagnosticExportResult> {
     const traceId = `trace-${nanoid()}`;
     const startTime = Date.now();
 
@@ -101,16 +102,16 @@ export class DiagnosticService {
     };
 
     try {
-      // Step 1: Collect local data
+      // Step 1: Collect local data (always works)
       this.context.currentPhase = 'local_collection';
       const localData = await this.collectLocalData(userId);
 
-      // Step 2: Upload to Lambda (which handles cloud data collection)
+      // Step 2: Send to Lambda for processing
+      // Lambda will determine what data to collect based on userId
       this.context.state = 'uploading';
       this.context.currentPhase = 'cloud_upload';
-      const result = await this.uploadDiagnosticReport(userId, token, localData, traceId);
+      const result = await this.uploadDiagnosticReport(userId, localData, traceId);
 
-      // Step 3: Return result
       this.context.state = 'success';
       return result;
     } catch (error) {
@@ -190,25 +191,25 @@ export class DiagnosticService {
   }
 
   /**
-   * Upload diagnostic report to cloud via Lambda
+   * Send diagnostic data to Lambda for processing
    *
    * Calls adapter which invokes Tauri IPC command which:
-   * 1. Sends local data + auth token to Lambda
-   * 2. Lambda collects cloud data (DynamoDB, S3, CloudWatch)
+   * 1. Sends userId + local data to Lambda
+   * 2. Lambda determines access level based on userId prefix:
+   *    - "device-*" (guest): returns local data only
+   *    - "user-*" (authenticated): collects cloud data too
    * 3. Lambda generates report
-   * 4. Lambda uploads to S3
-   * 5. Returns S3 URL + metadata
+   * 4. Lambda uploads to S3 (if authenticated)
+   * 5. Returns S3 URL or local data reference
    *
-   * @param userId - User identifier
-   * @param token - Auth token
+   * @param userId - User identifier (no token needed, IAM controls access)
    * @param localData - Local diagnostic data
    * @param traceId - Trace ID for log correlation
-   * @returns Export result with S3 URL
+   * @returns Export result with S3 URL or local data info
    * @throws DiagnosticError on failure
    */
   private async uploadDiagnosticReport(
     userId: UserId,
-    token: string,
     localData: LocalDiagnosticData,
     traceId: string
   ): Promise<DiagnosticExportResult> {
@@ -216,7 +217,7 @@ export class DiagnosticService {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         const result = await this.invokeWithTimeout(
-          uploadDiagnosticReportIpc(String(userId), token, localData, traceId, attempt),
+          uploadDiagnosticReport(String(userId), localData, traceId, attempt),
           REQUEST_TIMEOUT_MS
         );
 
@@ -228,7 +229,7 @@ export class DiagnosticService {
         if (!isRetryable || isLastAttempt) {
           throw new DiagnosticError(
             'CLOUD_UPLOAD_FAILED',
-            `Failed to upload diagnostic report (attempt ${attempt}/${MAX_RETRIES}): ${this.getErrorMessage(error)}`,
+            `Failed to send diagnostic report (attempt ${attempt}/${MAX_RETRIES}): ${this.getErrorMessage(error)}`,
             isRetryable && !isLastAttempt
           );
         }
@@ -243,7 +244,7 @@ export class DiagnosticService {
     // Should not reach here, but just in case
     throw new DiagnosticError(
       'CLOUD_UPLOAD_FAILED',
-      `Failed to upload diagnostic report after ${MAX_RETRIES} attempts`,
+      `Failed to send diagnostic report after ${MAX_RETRIES} attempts`,
       false
     );
   }
