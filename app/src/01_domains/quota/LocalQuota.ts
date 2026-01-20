@@ -241,10 +241,21 @@ export class LocalQuota {
   }
 
   /**
-   * Clear all quota data
+   * Clear all quota data (including permit)
+   * Used for debugging and testing permit refresh
    */
   public clear(): void {
     localStorage.removeItem(STORAGE_KEY);
+  }
+
+  /**
+   * Check if current permit is a mock permit (for testing)
+   * Mock permits have signature starting with "mock-signature"
+   */
+  public isMockPermit(): boolean {
+    const permit = this.getPermit();
+    if (!permit) return false;
+    return permit.signature.startsWith('mock-signature');
   }
 
   // ============================================================

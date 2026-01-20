@@ -210,6 +210,30 @@ export function DebugView() {
     }
   };
 
+  const handleClearPermitCache = async () => {
+    setActionStatus('running');
+    setActionResult('Clearing permit cache...');
+
+    try {
+      const { localQuota } = await import('../../../01_domains/quota');
+      const isMock = localQuota.isMockPermit();
+
+      localQuota.clear();
+
+      setActionResult(
+        isMock
+          ? `✅ Cleared mock permit (was polluted). Refresh page to fetch fresh permit.`
+          : `✅ Cleared permit cache. Refresh page to fetch fresh permit.`
+      );
+
+      logger.info('debug_permit_cache_cleared', { wasMock: isMock });
+    } catch (e) {
+      setActionResult(`Error: ${String(e)}`);
+    } finally {
+      setActionStatus('idle');
+    }
+  };
+
   const handleClearSettings = async () => {
     const confirmed = await ask(t('debug.clearSettingsConfirm'), {
       title: 'Clear Settings',
@@ -450,6 +474,23 @@ export function DebugView() {
                   disabled={actionStatus === 'running' || !effectiveUserId}
                 >
                   Refresh
+                </button>
+              </div>
+            </div>
+
+            <div className="setting-row setting-row--danger">
+              <div className="setting-row__info">
+                <p className="setting-row__label">Clear Permit Cache</p>
+                <p className="setting-row__hint">Clear cached permit from localStorage (fixes mock pollution)</p>
+              </div>
+              <div className="setting-row__control">
+                <button
+                  type="button"
+                  className="btn btn--warning btn--sm"
+                  onClick={handleClearPermitCache}
+                  disabled={actionStatus === 'running'}
+                >
+                  Clear Cache
                 </button>
               </div>
             </div>
