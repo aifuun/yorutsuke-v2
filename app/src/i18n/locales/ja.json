@@ -467,7 +467,8 @@
       "report_id": "レポートID",
       "file_size": "ファイルサイズ",
       "expiry": "有効期限",
-      "expiry_value": "7日間"
+      "expiry_value": "7日間",
+      "download_link": "ダウンロードリンク"
     }
   }
 }

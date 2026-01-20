@@ -160,6 +160,20 @@
   font-size: 0.9em;
 }
 
+.diagnostic-panel__download-link {
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  text-decoration: underline;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.diagnostic-panel__download-link:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-primary-dark, #2563eb);
+}
+
 /* ============================================================================
    Error Message
    ============================================================================ */

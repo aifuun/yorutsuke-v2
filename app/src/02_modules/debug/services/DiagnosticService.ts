@@ -234,10 +234,13 @@ export class DiagnosticService {
     // Update state
     this.context.state = nextState;
 
-    // Update store
+    // Update store with new object references
     diagnosticStore.setState({
       state: nextState,
-      context: this.context,
+      context: {
+        ...this.context,
+        phases: { ...this.context.phases },
+      },
     });
   }
 
@@ -289,10 +292,14 @@ export class DiagnosticService {
     ).length;
     this.context.overallProgress = (completedPhases / 5) * 100;
 
-    // Update store
+    // Create new object references to trigger Zustand subscribers
+    // (Zustand uses shallow equality by default)
     diagnosticStore.setState({
       state: this.context.state,
-      context: this.context,
+      context: {
+        ...this.context,
+        phases: { ...this.context.phases },
+      },
     });
   }
 
@@ -326,21 +333,9 @@ export class DiagnosticService {
       // FSM: idle → collecting
       this.transitionState('collecting', 'User initiates diagnostic export');
 
-      // Update store with initial state
-      diagnosticStore.setState({
-        state: 'collecting',
-        context: this.context,
-        error: null,
-        result: null,
-      });
-
       // Step 1: Collect local data (always works)
       this.updatePhase('step1_local_collection', 'in_progress', {
         description: 'Gathering system info, logs, transactions, and images...',
-      });
-      diagnosticStore.setState({
-        state: 'collecting',
-        context: this.context,
       });
 
       const step1StartTime = Date.now();
@@ -350,11 +345,7 @@ export class DiagnosticService {
       // Update with completion info
       this.updatePhase('step1_local_collection', 'completed', {
         duration: step1Duration,
-        description: `Collected ${localData.logs.length} logs, ${localData.transactions?.length || 0} transactions, ${localData.images?.length || 0} images`,
-      });
-      diagnosticStore.setState({
-        state: 'collecting',
-        context: this.context,
+        description: `Collected ${localData.debugLogs.length} logs, ${localData.localStorage.transactions.length} transactions, ${localData.localStorage.images.length} images`,
       });
 
       logger.debug('DIAGNOSTIC_PHASE_DELAY_START', {
@@ -389,11 +380,6 @@ export class DiagnosticService {
         description: 'Generating S3 presigned download link...',
       });
 
-      diagnosticStore.setState({
-        state: 'uploading',
-        context: this.context,
-      });
-
       const step2StartTime = Date.now();
       const result = await this.uploadDiagnosticReport(userId, localData, traceId);
       const step2Duration = Date.now() - step2StartTime;
@@ -412,10 +398,6 @@ export class DiagnosticService {
       });
 
       // Wait 5 seconds
-      diagnosticStore.setState({
-        state: 'uploading',
-        context: this.context,
-      });
       await sleep(STEP_DELAY_MS);
 
       this.updatePhase('step4_merge', 'completed', {
@@ -423,10 +405,6 @@ export class DiagnosticService {
       });
 
       // Wait 5 seconds
-      diagnosticStore.setState({
-        state: 'uploading',
-        context: this.context,
-      });
       await sleep(STEP_DELAY_MS);
 
       this.updatePhase('step5_generate_link', 'completed', {
@@ -447,7 +425,10 @@ export class DiagnosticService {
       diagnosticStore.setState({
         state: 'success',
         result,
-        context: this.context,
+        context: {
+          ...this.context,
+          phases: { ...this.context.phases },
+        },
       });
 
       return result;
@@ -479,7 +460,12 @@ export class DiagnosticService {
         state: 'error',
         error: errorResult.error.message,
         result: errorResult,
-        context: this.context,
+        context: this.context
+          ? {
+              ...this.context,
+              phases: { ...this.context.phases },
+            }
+          : null,
       });
 
       return errorResult;

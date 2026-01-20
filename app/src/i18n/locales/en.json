@@ -465,7 +465,8 @@
       "report_id": "Report ID",
       "file_size": "File Size",
       "expiry": "Expires",
-      "expiry_value": "7 days"
+      "expiry_value": "7 days",
+      "download_link": "Download Link"
     }
   }
 }

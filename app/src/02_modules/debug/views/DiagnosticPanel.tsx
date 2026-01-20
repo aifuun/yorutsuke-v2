@@ -239,6 +239,19 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
                 <span className="diagnostic-panel__info-value">{t('diagnostic.detail.expiry_value')}</span>
               </div>
             )}
+            {hasUrl && (
+              <div className="diagnostic-panel__info-row">
+                <span className="diagnostic-panel__info-label">📥 {t('diagnostic.detail.download_link')}:</span>
+                <span
+                  className="diagnostic-panel__info-value diagnostic-panel__download-link"
+                  title={result.s3Url}
+                  onClick={() => navigator.clipboard.writeText(result.s3Url)}
+                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {result.s3Url.substring(0, 50)}...
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="diagnostic-panel__actions">
