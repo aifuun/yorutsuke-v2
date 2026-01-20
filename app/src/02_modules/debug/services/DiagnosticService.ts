@@ -452,9 +452,9 @@ export class DiagnosticService {
     return logs
       .filter((log: any) => {
         const level = log?.level || '';
-        // Include ERROR, WARN, INFO; exclude DEBUG and others
+        // Include ERROR, WARN only; exclude INFO, DEBUG and others
         return ONLY_ERROR_WARN_LOGS
-          ? ['error', 'warn', 'info'].includes(level.toLowerCase())
+          ? ['error', 'warn'].includes(level.toLowerCase())
           : true;
       })
       .slice(-MAX_DEBUG_LOGS); // Keep only last N logs
@@ -558,7 +558,7 @@ export class DiagnosticService {
         imageCount: `${data.localStorage.images.length}/${images?.length || 0}`,
         logCount: `${data.debugLogs.length}/${debugLogs?.length || 0}`,
         optimization: {
-          logsFiltered: ONLY_ERROR_WARN_LOGS ? 'error/warn/info only' : 'all levels',
+          logsFiltered: ONLY_ERROR_WARN_LOGS ? 'error/warn only' : 'all levels',
           maxLogsKept: MAX_DEBUG_LOGS,
           maxTransactionsKept: MAX_TRANSACTIONS,
         },
