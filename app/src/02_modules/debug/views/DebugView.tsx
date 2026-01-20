@@ -24,6 +24,7 @@ import { autoSyncService } from '../../sync/services/autoSyncService';
 import type { UserId } from '../../../00_kernel/types';
 import { deleteUserData } from '../adapters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DiagnosticPanel } from './DiagnosticPanel';
 import type { Transaction } from '../../../01_domains/transaction';
 import './debug.css';
 
@@ -739,6 +740,11 @@ export function DebugView() {
                 ))
               )}
             </div>
+          </div>
+
+          {/* Section 4: Diagnostic Export */}
+          <div className="card card--settings">
+            <DiagnosticPanel userId={effectiveUserId as UserId | null} />
           </div>
         </div>
       </div>

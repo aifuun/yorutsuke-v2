@@ -709,10 +709,12 @@ export class YorutsukeStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda/diagnostic"),
       layers: [sharedLayer],
       environment: {
-        DYNAMODB_TABLE: transactionsTable.tableName,
-        S3_IMAGES_BUCKET: imageBucket.bucketName,
-        S3_DIAGNOSTICS_BUCKET: diagnosticsBucket.bucketName,
-        CLOUDWATCH_LOG_GROUP: `/aws/lambda/yorutsuke-instant-processor-us-${env}`,
+        TRANSACTIONS_TABLE: transactionsTable.tableName,
+        DIAGNOSTICS_BUCKET: diagnosticsBucket.bucketName,
+        // Cloud data collection limits (configurable)
+        MAX_CLOUD_TRANSACTIONS: process.env.DIAGNOSTIC_MAX_CLOUD_TRANSACTIONS || "10",
+        MAX_CLOUD_LOGS: process.env.DIAGNOSTIC_MAX_CLOUD_LOGS || "20",
+        CLOUD_LOGS_LOOKBACK_HOURS: process.env.DIAGNOSTIC_CLOUD_LOGS_LOOKBACK_HOURS || "24",
       },
       timeout: cdk.Duration.seconds(60),
       memorySize: 512,
@@ -753,15 +755,18 @@ export class YorutsukeStack extends cdk.Stack {
       })
     );
 
-    // Grant CloudWatch Logs read permissions for user-specific log streams
+    // Grant CloudWatch Logs read permissions for diagnostic log collection
     // Pillar N: Observability - Access to structured logs
     diagnosticLambda.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: [
-          "logs:GetLogEvents",  // Retrieve recent log entries
+          "logs:FilterLogEvents",  // Search and filter log events
+          "logs:GetLogEvents",     // Retrieve recent log entries
+          "logs:DescribeLogStreams", // Describe log streams
         ],
         resources: [
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-diagnostic-us-${env}:*`,
           `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-instant-processor-us-${env}:*`,
         ],
       })

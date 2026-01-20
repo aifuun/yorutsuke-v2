@@ -434,5 +434,41 @@
       "dayAgo": "{{count}}日前",
       "daysAgo": "{{count}}日前"
     }
+  },
+  "diagnostic": {
+    "title": "診断データエクスポート",
+    "description": "デバッグ用のシステム情報、ログ、取引データを収集",
+    "button": {
+      "export": "診断データを収集",
+      "download": "レポートをダウンロード",
+      "copy_link": "リンクをコピー",
+      "retry": "再試行",
+      "cancel": "キャンセル",
+      "new_export": "再度収集"
+    },
+    "disabled": {
+      "no_user": "ユーザーID が利用できません"
+    },
+    "phase": {
+      "collecting": "システムデータを収集中...",
+      "uploading": "処理中・アップロード中...",
+      "step1": "ローカル診断データを収集",
+      "step2": "ローカルデータをアップロード",
+      "step3": "クラウドデータを収集",
+      "step4": "データをマージ",
+      "step5": "ダウンロードリンクを生成"
+    },
+    "state": {
+      "loading": "読み込み中",
+      "success": "診断データを正常に収集しました",
+      "error": "診断データの収集に失敗しました"
+    },
+    "detail": {
+      "report_id": "レポートID",
+      "file_size": "ファイルサイズ",
+      "expiry": "有効期限",
+      "expiry_value": "7日間",
+      "download_link": "ダウンロードリンク"
+    }
   }
 }
