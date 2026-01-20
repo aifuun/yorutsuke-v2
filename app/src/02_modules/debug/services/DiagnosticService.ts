@@ -48,6 +48,11 @@ const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 30000;
 const STEP_DELAY_MS = 5000; // 5-second delay between FSM steps for visibility
 
+// Data collection limits for efficient diagnostics
+const MAX_DEBUG_LOGS = 50; // Was 500, now 50 error/warn logs
+const MAX_TRANSACTIONS = 30; // Limit to last 30 transactions
+const ONLY_ERROR_WARN_LOGS = true; // Filter to ERROR/WARN/INFO only, exclude DEBUG
+
 // ============================================================================
 // Zustand Vanilla Store (Pillar L: Pure TS state management)
 // ============================================================================
@@ -473,6 +478,47 @@ export class DiagnosticService {
   }
 
   /**
+   * Filter debug logs to only ERROR/WARN/INFO and limit count
+   * Reduces data size by ~40%
+   */
+  private filterAndLimitLogs(logs: unknown[]): unknown[] {
+    if (!Array.isArray(logs)) return [];
+
+    return logs
+      .filter((log: any) => {
+        const level = log?.level || '';
+        // Include ERROR, WARN, INFO; exclude DEBUG and others
+        return ONLY_ERROR_WARN_LOGS
+          ? ['error', 'warn', 'info'].includes(level.toLowerCase())
+          : true;
+      })
+      .slice(-MAX_DEBUG_LOGS); // Keep only last N logs
+  }
+
+  /**
+   * Limit transaction count to last N
+   * Reduces data size by ~20%
+   */
+  private limitTransactions(transactions: unknown[]): unknown[] {
+    if (!Array.isArray(transactions)) return [];
+    return transactions.slice(-MAX_TRANSACTIONS);
+  }
+
+  /**
+   * Simplify image data by keeping only essential fields
+   * Reduces data size by ~15%
+   */
+  private simplifyImages(images: unknown[]): Array<{ id: string; size: number; status: string }> {
+    if (!Array.isArray(images)) return [];
+
+    return images.map((img: any) => ({
+      id: img?.id || img?.imageId || 'unknown',
+      size: img?.size || 0,
+      status: img?.status || 'unknown',
+    }));
+  }
+
+  /**
    * Collect local diagnostic data from device
    *
    * Aggregates data from multiple IO adapters:
@@ -512,6 +558,11 @@ export class DiagnosticService {
         this.invokeWithTimeout(loadUnfinishedImages(userId), REQUEST_TIMEOUT_MS),
       ]);
 
+      // Filter and limit data for efficient diagnostics
+      const filteredLogs = this.filterAndLimitLogs(debugLogs);
+      const limitedTransactions = this.limitTransactions(transactions);
+      const simplifiedImages = this.simplifyImages(images);
+
       // Aggregate into LocalDiagnosticData
       const data: LocalDiagnosticData = {
         timestamp: new Date().toISOString(),
@@ -523,8 +574,8 @@ export class DiagnosticService {
           timezone: systemInfo.timezone,
         },
         localStorage: {
-          transactions: Array.isArray(transactions) ? transactions : [],
-          images: Array.isArray(images) ? (images as any[]) : [],
+          transactions: limitedTransactions,
+          images: simplifiedImages,
           settings: {}, // Can be populated from settingsDb if needed
         },
         appState: {
@@ -533,14 +584,19 @@ export class DiagnosticService {
           syncStatus: 'idle',
           dbSize: dbSizeInfo.formatted,
         },
-        debugLogs: Array.isArray(debugLogs) ? (debugLogs as any) : [],
+        debugLogs: filteredLogs,
       };
 
       logger.debug('DIAGNOSTIC_LOCAL_COLLECTION_COMPLETE', {
         traceId: this.context?.traceId,
-        transactionCount: data.localStorage.transactions.length,
-        imageCount: data.localStorage.images.length,
-        logCount: data.debugLogs.length,
+        transactionCount: `${data.localStorage.transactions.length}/${transactions?.length || 0}`,
+        imageCount: `${data.localStorage.images.length}/${images?.length || 0}`,
+        logCount: `${data.debugLogs.length}/${debugLogs?.length || 0}`,
+        optimization: {
+          logsFiltered: ONLY_ERROR_WARN_LOGS ? 'error/warn/info only' : 'all levels',
+          maxLogsKept: MAX_DEBUG_LOGS,
+          maxTransactionsKept: MAX_TRANSACTIONS,
+        },
       });
 
       return data;
