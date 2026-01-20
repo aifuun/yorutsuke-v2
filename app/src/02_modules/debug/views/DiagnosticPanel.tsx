@@ -23,7 +23,7 @@ interface DiagnosticPanelProps {
 
 export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   const { t } = useTranslation();
-  const { state, result, error, isLoading, tokenLoading, exportDiagnosticData, reset } =
+  const { state, result, error, tokenLoading, exportDiagnosticData, reset } =
     useDiagnosticExportLogic(userId);
 
   const handleExport = useCallback(() => {

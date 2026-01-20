@@ -137,7 +137,7 @@ export function useDiagnosticExportLogic(userId: UserId | null) {
     const traceId = diagnosticService.getContext()?.traceId;
 
     try {
-      logger.info(EVENTS.DIAGNOSTIC_EXPORT_START, {
+      logger.info('DIAGNOSTIC_EXPORT_START', {
         userId,
         traceId,
       });

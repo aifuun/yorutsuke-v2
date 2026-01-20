@@ -164,8 +164,6 @@ export class DiagnosticService {
     localData: LocalDiagnosticData,
     traceId: string
   ): Promise<DiagnosticExportResult> {
-    let lastError: Error | null = null;
-
     // Retry logic for transient failures
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -183,8 +181,6 @@ export class DiagnosticService {
 
         return result;
       } catch (error) {
-        lastError = error as Error;
-
         const isRetryable = this.isRetryableError(error);
         const isLastAttempt = attempt === MAX_RETRIES;
 
@@ -215,10 +211,10 @@ export class DiagnosticService {
    * Handle errors and convert to DiagnosticExportError
    *
    * @param error - Caught error
-   * @param traceId - Trace ID for logging
+   * @param _traceId - Trace ID for logging (used for observability)
    * @returns Formatted error result
    */
-  private handleError(error: unknown, traceId: string): DiagnosticExportError {
+  private handleError(error: unknown, _traceId: string): DiagnosticExportError {
     if (error instanceof DiagnosticError) {
       return {
         success: false,
