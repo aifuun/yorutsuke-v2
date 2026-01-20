@@ -91,14 +91,23 @@ async function collectCloudData(userId, traceId) {
 
       const scanResult = await dynamoClient.send(new ScanCommand(params));
 
-      // Convert DynamoDB items to readable format
+      // Convert DynamoDB items to readable format (extract key fields for diagnostics)
       if (scanResult.Items && scanResult.Items.length > 0) {
         transactions.push(...scanResult.Items.slice(0, 10).map(item => ({
           id: item.id?.S || "unknown",
+          imageId: item.imageId?.S || "",
+          type: item.type?.S || "",
+          category: item.category?.S || "",
           amount: item.amount?.N || "0",
+          currency: item.currency?.S || "JPY",
           description: item.description?.S || "",
+          merchant: item.merchant?.S || "",
+          date: item.date?.S || "",
           status: item.status?.S || "unknown",
+          primaryModelId: item.primaryModelId?.S || "",
+          primaryConfidence: item.primaryConfidence?.N || "",
           createdAt: item.createdAt?.S || "",
+          updatedAt: item.updatedAt?.S || "",
         })));
       }
 
