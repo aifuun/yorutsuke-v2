@@ -35,9 +35,10 @@
 │  │  user_id        │         │  user_id            │                       │
 │  │  status (FSM)   │         │  image_id (FK)      │                       │
 │  │  s3_key         │         │  type               │                       │
-│  │  local_path     │         │  category           │                       │
-│  └─────────────────┘         │  amount             │                       │
-│                              │  confirmed_at       │                       │
+│  │  trace_id       │         │  category           │                       │
+│  │  local_path     │         │  amount             │                       │
+│  └─────────────────┘         │  status             │                       │
+│                              │  trace_id           │                       │
 │  ┌─────────────────┐         └─────────────────────┘                       │
 │  │    settings     │                                                        │
 │  │                 │         ┌─────────────────────┐                       │
@@ -59,8 +60,10 @@
 │  │  uploads/       │  s3_key │                     │                       │
 │  │  {user}/{date}/ │         │  userId (PK)        │                       │
 │  │  {uuid}.jpg     │         │  transactionId (SK) │                       │
-│  │                 │         │  s3_key             │                       │
-│  │  30-day TTL     │         │  ai_result          │                       │
+│  │  metadata:      │         │  s3_key             │                       │
+│  │  trace-id       │         │  status, amount     │                       │
+│  │                 │         │  traceId            │                       │
+│  │  30-day TTL     │         │  primaryModelId     │                       │
 │  └─────────────────┘         └─────────────────────┘                       │
 │                                                                             │
 │  ┌─────────────────┐         ┌─────────────────────┐                       │
@@ -147,7 +150,7 @@ pending ──────► compressed ──────► uploading ──�
 
 ### transactions
 
-Transaction records (cached from cloud). Schema version: v8.
+Transaction records (cached from cloud). Schema version: v11.
 
 ```sql
 CREATE TABLE transactions (
