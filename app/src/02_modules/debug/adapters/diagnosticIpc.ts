@@ -1,12 +1,17 @@
 /**
- * Diagnostic IPC Adapter
+ * Diagnostic IPC Adapter (Primitive IO Operations)
  *
  * Pillar I: Firewall - isolates Tauri IPC from business logic
  * Pillar B: Airlock - validates all IPC responses at boundary
  *
- * Bridges DiagnosticService calls to Rust/Tauri handlers:
- * - collect_diagnostic_data: Collects local device data
- * - upload_diagnostic_report: Calls Lambda with local data
+ * Bridges DiagnosticService to primitive Rust IO handlers:
+ * - get_system_info: Retrieves system information
+ * - read_debug_logs: Reads latest 500 log entries
+ * - get_directory_size: Calculates directory size
+ * - upload_diagnostic_report: Calls Lambda (cloud data collection)
+ *
+ * Note: Business logic aggregation happens in DiagnosticService (service layer),
+ * not here. This adapter only handles primitive IO operations.
  *
  * Runtime mock mode support:
  * - When `isMockingOnline()`: Returns mock data (no real IPC calls)
@@ -24,36 +29,36 @@ import type { LocalDiagnosticData, DiagnosticExportSuccess } from '../types/diag
 // ============================================================================
 
 /**
- * Raw response from Rust command: collect_diagnostic_data
+ * Raw response from Rust command: get_system_info
+ * Primitive IO operation - just system information
  */
-interface RawLocalDiagnosticData {
-  timestamp: string;
-  appVersion: string;
-  platform: 'darwin' | 'linux' | 'win32';
-  systemInfo: {
-    osVersion: string;
-    locale: string;
-    timezone: string;
-  };
-  localStorage: {
-    transactions: unknown[];
-    images: unknown[];
-    settings: Record<string, unknown>;
-  };
-  appState: {
-    lastSyncTime: string | null;
-    queuedImages: number;
-    syncStatus: 'idle' | 'syncing' | 'error';
-    dbSize: string;
-  };
-  debugLogs: unknown[];
+interface RawSystemInfo {
+  osVersion: string;
+  locale: string;
+  timezone: string;
+}
+
+/**
+ * Raw response from Rust command: read_debug_logs
+ * Primitive IO operation - returns array of JSON log entries
+ */
+type RawDebugLogs = unknown[];
+
+/**
+ * Raw response from Rust command: get_directory_size
+ * Primitive IO operation - returns both bytes and formatted size
+ */
+interface RawDirectorySize {
+  bytes: number;
+  formatted: string;
 }
 
 /**
  * Raw response from Rust command: upload_diagnostic_report
+ * Same shape as DiagnosticExportSuccess (from Lambda)
  */
 interface RawDiagnosticExportSuccess {
-  success: true;
+  success: boolean;
   reportId: string;
   s3Url: string;
   timestamp: string;
@@ -151,29 +156,52 @@ export function generateMockDiagnosticExportSuccess(
 // ============================================================================
 
 /**
- * Validate LocalDiagnosticData response from Rust
+ * Validate SystemInfo response from Rust
  * Pillar B: Validate at boundary
  */
-function validateLocalDiagnosticData(raw: unknown): LocalDiagnosticData {
-  const data = raw as RawLocalDiagnosticData;
+function validateSystemInfo(raw: unknown): RawSystemInfo {
+  const data = raw as RawSystemInfo;
 
-  if (typeof data.timestamp !== 'string') {
-    throw new Error('Invalid diagnostic data: missing timestamp');
+  if (typeof data.osVersion !== 'string') {
+    throw new Error('Invalid system info: missing osVersion');
   }
-  if (typeof data.appVersion !== 'string') {
-    throw new Error('Invalid diagnostic data: missing appVersion');
+  if (typeof data.locale !== 'string') {
+    throw new Error('Invalid system info: missing locale');
   }
-  if (!['darwin', 'linux', 'win32'].includes(data.platform)) {
-    throw new Error('Invalid diagnostic data: invalid platform');
-  }
-  if (!data.systemInfo || typeof data.systemInfo.osVersion !== 'string') {
-    throw new Error('Invalid diagnostic data: invalid systemInfo');
-  }
-  if (!Array.isArray(data.debugLogs)) {
-    throw new Error('Invalid diagnostic data: debugLogs must be array');
+  if (typeof data.timezone !== 'string') {
+    throw new Error('Invalid system info: missing timezone');
   }
 
-  return data as LocalDiagnosticData;
+  return data;
+}
+
+/**
+ * Validate DebugLogs response from Rust
+ * Pillar B: Validate at boundary
+ */
+function validateDebugLogs(raw: unknown): RawDebugLogs {
+  if (!Array.isArray(raw)) {
+    throw new Error('Invalid debug logs: must be array');
+  }
+
+  return raw as RawDebugLogs;
+}
+
+/**
+ * Validate DirectorySize response from Rust
+ * Pillar B: Validate at boundary
+ */
+function validateDirectorySize(raw: unknown): RawDirectorySize {
+  const data = raw as RawDirectorySize;
+
+  if (typeof data.bytes !== 'number') {
+    throw new Error('Invalid directory size: missing bytes');
+  }
+  if (typeof data.formatted !== 'string') {
+    throw new Error('Invalid directory size: missing formatted');
+  }
+
+  return data;
 }
 
 /**
@@ -203,45 +231,102 @@ function validateDiagnosticExportSuccess(raw: unknown): DiagnosticExportSuccess 
 }
 
 // ============================================================================
-// IPC Commands (with runtime mock support)
+// IPC Commands (Primitive IO Operations - with runtime mock support)
 // ============================================================================
 
 /**
- * Collect local diagnostic data from device
+ * Get system information from device
+ *
+ * Primitive IO operation - retrieves OS version, locale, timezone
  *
  * Behavior:
  * - Online mock mode: Returns mock data with simulated delay
  * - Offline mock mode: Throws network error
- * - Production: Invokes real Tauri command: collect_diagnostic_data
+ * - Production: Invokes Tauri command: get_system_info
  *
- * Real Tauri command is responsible for:
- * - Reading SQLite database (transactions, images, settings)
- * - Collecting debug logs (last 500 entries)
- * - Getting system information
- * - Determining current app state
- *
- * @param traceId - Trace ID for log correlation
- * @returns Local diagnostic data (validated)
- * @throws Error on IPC failure, validation error, or simulated network failure
+ * @returns System information (validated)
+ * @throws Error on IPC failure or validation error
  */
-export async function collectLocalDiagnosticData(traceId: string): Promise<LocalDiagnosticData> {
-  // Handle offline mock mode (simulate network failure)
+export async function getSystemInfo(): Promise<RawSystemInfo> {
   if (isMockingOffline()) {
-    logger.debug('DIAGNOSTIC_OFFLINE_MOCK', { traceId });
     await mockDelay();
     throw new Error('Network error (offline mock mode)');
   }
 
-  // Handle online mock mode (return realistic mock data)
   if (isMockingOnline()) {
-    logger.debug('DIAGNOSTIC_ONLINE_MOCK', { traceId });
     await mockDelay();
-    return generateMockLocalDiagnosticData();
+    return {
+      osVersion: 'macOS',
+      locale: 'en-US',
+      timezone: 'UTC+9',
+    };
   }
 
-  // Production: Call real Tauri IPC command
-  const raw = await invoke<RawLocalDiagnosticData>('collect_diagnostic_data', { traceId });
-  return validateLocalDiagnosticData(raw);
+  const raw = await invoke<RawSystemInfo>('get_system_info');
+  return validateSystemInfo(raw);
+}
+
+/**
+ * Read debug logs from device
+ *
+ * Primitive IO operation - reads latest 500 log entries from ~/.yorutsuke/logs/YYYY-MM-DD.jsonl
+ *
+ * Behavior:
+ * - Online mock mode: Returns mock logs with simulated delay
+ * - Offline mock mode: Throws network error
+ * - Production: Invokes Tauri command: read_debug_logs
+ *
+ * @returns Array of JSON log entries (validated)
+ * @throws Error on IPC failure or validation error
+ */
+export async function getDebugLogs(): Promise<RawDebugLogs> {
+  if (isMockingOffline()) {
+    await mockDelay();
+    throw new Error('Network error (offline mock mode)');
+  }
+
+  if (isMockingOnline()) {
+    await mockDelay();
+    return [
+      { timestamp: new Date().toISOString(), level: 'info', message: 'App started' },
+      { timestamp: new Date().toISOString(), level: 'info', message: 'Database initialized' },
+    ];
+  }
+
+  const raw = await invoke<RawDebugLogs>('read_debug_logs');
+  return validateDebugLogs(raw);
+}
+
+/**
+ * Get database directory size
+ *
+ * Primitive IO operation - recursively calculates size of data directory
+ *
+ * Behavior:
+ * - Online mock mode: Returns mock size with simulated delay
+ * - Offline mock mode: Throws network error
+ * - Production: Invokes Tauri command: get_directory_size
+ *
+ * @param path - Directory path to measure
+ * @returns Directory size in bytes and formatted string
+ * @throws Error on IPC failure or validation error
+ */
+export async function getDirectorySize(path: string): Promise<RawDirectorySize> {
+  if (isMockingOffline()) {
+    await mockDelay();
+    throw new Error('Network error (offline mock mode)');
+  }
+
+  if (isMockingOnline()) {
+    await mockDelay();
+    return {
+      bytes: 5242880,
+      formatted: '5.0 MB',
+    };
+  }
+
+  const raw = await invoke<RawDirectorySize>('get_directory_size', { path });
+  return validateDirectorySize(raw);
 }
 
 /**

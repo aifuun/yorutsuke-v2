@@ -197,15 +197,49 @@ npm run test -- DiagnosticService.test.ts
 
 ---
 
-## 下一步: Phase B (Tauri IPC)
+## 架构: 服务层优先 (Pillar L: Headless)
 
-当所有测试通过后，实现:
+### 分层设计
 
-1. `app/src-tauri/src/commands/diagnostic.rs`
-   - `collect_diagnostic_data()` - 收集本地数据
-   - `upload_diagnostic_report()` - 调用 Lambda
+```
+UI 层 (React)
+   ↓
+Service 层 (TypeScript) ← 业务逻辑聚合在此
+   ↓
+Adapter 层 (IPC + 数据库)
+   ├─ diagnosticIpc: 原始 IO 操作 (Rust/Tauri)
+   │  ├─ getSystemInfo()
+   │  ├─ getDebugLogs()
+   │  └─ getDirectorySize()
+   └─ 数据库适配器
+      ├─ fetchTransactions()
+      └─ loadUnfinishedImages()
+   ↓
+Rust 层 (Tauri 命令) ← 仅原始 IO，无业务逻辑
+```
 
-2. 更新 `app/src-tauri/src/lib.rs`
-   - 注册 IPC 命令
+### 为什么这样设计?
 
-3. 测试真实的 Tauri 调用（使用 cdk watch）
+- ✅ **Pillar L (Headless)**: 业务逻辑与 UI 分离，可独立测试
+- ✅ **Pillar I (Firewall)**: Rust 层隔离，只处理 IO
+- ✅ **Pillar B (Airlock)**: 所有响应在 TypeScript 层验证
+- ✅ **可测试**: Service 层可完全通过单元测试验证，无需 Tauri
+
+## 当前状态
+
+✅ Phase A 已完成:
+- TypeScript 诊断服务实现
+- 15 个单元测试（所有通过）
+- Runtime mock 支持（online/offline/production）
+- UI 集成完成
+
+✅ Phase B 已完成 (Tauri IPC 原始操作):
+- `get_system_info()` - Rust 原始 IO
+- `read_debug_logs()` - Rust 原始 IO
+- `get_directory_size()` - Rust 原始 IO
+- 所有测试通过 (8/8)
+
+⏳ Phase C (Lambda 云端集成):
+- Lambda 函数实现（查询 DynamoDB、S3、CloudWatch）
+- 生成合并报告
+- 上传到 S3 返回 presigned URL
