@@ -74,14 +74,6 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
     }
   }, [result]);
 
-  const handleCopyLink = useCallback(() => {
-    if (result && isDiagnosticExportSuccess(result) && result.s3Url) {
-      navigator.clipboard.writeText(result.s3Url).then(() => {
-        console.log('Link copied to clipboard');
-      });
-    }
-  }, [result]);
-
   const handleRetry = useCallback(async () => {
     diagnosticService.reset();
     if (userId) {
@@ -239,39 +231,18 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
                 <span className="diagnostic-panel__info-value">{t('diagnostic.detail.expiry_value')}</span>
               </div>
             )}
-            {hasUrl && (
-              <div className="diagnostic-panel__info-row">
-                <span className="diagnostic-panel__info-label">📥 {t('diagnostic.detail.download_link')}:</span>
-                <span
-                  className="diagnostic-panel__info-value diagnostic-panel__download-link"
-                  title={result.s3Url}
-                  onClick={() => navigator.clipboard.writeText(result.s3Url)}
-                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  {result.s3Url.substring(0, 50)}...
-                </span>
-              </div>
-            )}
           </div>
 
           <div className="diagnostic-panel__actions">
             {hasUrl && (
-              <>
-                <button
-                  className="diagnostic-panel__button diagnostic-panel__button--primary"
-                  onClick={handleDownload}
-                  type="button"
-                >
-                  📥 {t('diagnostic.button.download')}
-                </button>
-                <button
-                  className="diagnostic-panel__button diagnostic-panel__button--secondary"
-                  onClick={handleCopyLink}
-                  type="button"
-                >
-                  🔗 {t('diagnostic.button.copy_link')}
-                </button>
-              </>
+              <button
+                className="diagnostic-panel__button diagnostic-panel__button--primary"
+                onClick={handleDownload}
+                title={result.s3Url}
+                type="button"
+              >
+                📥 {t('diagnostic.button.download')}
+              </button>
             )}
             <button
               className="diagnostic-panel__button diagnostic-panel__button--secondary"
