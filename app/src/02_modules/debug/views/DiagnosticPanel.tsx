@@ -136,6 +136,15 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
 
     const elapsedTime = ((Date.now() - context.startTime) / 1000).toFixed(1);
 
+    // Get phase information
+    const phases = Object.entries(context.phases || {}).map(([phase, info]: [string, any]) => ({
+      phase,
+      label: stepLabels[phase] || phase,
+      status: info?.status,
+      description: info?.description,
+      duration: info?.duration,
+    }));
+
     return (
       <div className="diagnostic-panel">
         <div className="diagnostic-panel__card">
@@ -159,6 +168,33 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
                 <span className="diagnostic-panel__progress-time">{elapsedTime}s</span>
               </div>
               <p className="diagnostic-panel__current-step">{currentPhaseLabel}</p>
+            </div>
+
+            {/* Display all phases with status and details */}
+            <div className="diagnostic-panel__phases-list">
+              {phases.map((phase) => (
+                <div
+                  key={phase.phase}
+                  className={`diagnostic-panel__phase-item diagnostic-panel__phase-item--${phase.status}`}
+                >
+                  <div className="diagnostic-panel__phase-status">
+                    {phase.status === 'completed' && '✅'}
+                    {phase.status === 'in_progress' && '⏳'}
+                    {phase.status === 'pending' && '⏸️'}
+                  </div>
+                  <div className="diagnostic-panel__phase-details">
+                    <div className="diagnostic-panel__phase-label">{phase.label}</div>
+                    {phase.description && (
+                      <div className="diagnostic-panel__phase-description">{phase.description}</div>
+                    )}
+                    {phase.duration && (
+                      <div className="diagnostic-panel__phase-duration">
+                        {(phase.duration / 1000).toFixed(1)}s
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

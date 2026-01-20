@@ -46,6 +46,7 @@ import { VALID_STATE_TRANSITIONS } from '../types/diagnostic';
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 30000;
+const STEP_DELAY_MS = 5000; // 5-second delay between FSM steps for visibility
 
 // ============================================================================
 // Zustand Vanilla Store (Pillar L: Pure TS state management)
@@ -135,6 +136,18 @@ Diagnostic Export FSM State Diagram:
           └→ collecting (retry)
     `;
   }
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Sleep for specified milliseconds
+ * @param ms Milliseconds to sleep
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================================================
@@ -316,31 +329,92 @@ export class DiagnosticService {
       });
 
       // Step 1: Collect local data (always works)
-      this.updatePhase('step1_local_collection', 'in_progress');
+      this.updatePhase('step1_local_collection', 'in_progress', {
+        description: 'Gathering system info, logs, transactions, and images...',
+      });
+      diagnosticStore.setState({
+        state: 'collecting',
+        context: this.context,
+      });
+
       const step1StartTime = Date.now();
       const localData = await this.collectLocalData(userId);
       const step1Duration = Date.now() - step1StartTime;
-      this.updatePhase('step1_local_collection', 'completed', { duration: step1Duration });
+
+      // Update with completion info
+      this.updatePhase('step1_local_collection', 'completed', {
+        duration: step1Duration,
+        description: `Collected ${localData.logs.length} logs, ${localData.transactions?.length || 0} transactions, ${localData.images?.length || 0} images`,
+      });
+      diagnosticStore.setState({
+        state: 'collecting',
+        context: this.context,
+      });
+
+      // Wait 5 seconds before next step
+      await sleep(STEP_DELAY_MS);
 
       // FSM: collecting → uploading
       this.transitionState('uploading', 'Local data collection complete');
       this.context.currentPhase = 'step2_upload_local';
-      this.updatePhase('step2_upload_local', 'in_progress');
-      const step2StartTime = Date.now();
+      this.updatePhase('step2_upload_local', 'in_progress', {
+        description: 'Uploading local data to Lambda...',
+      });
 
       // Step 3-5 are handled by Lambda, mark them based on Lambda response
-      this.updatePhase('step3_cloud_collection', 'in_progress');
-      this.updatePhase('step4_merge', 'in_progress');
-      this.updatePhase('step5_generate_link', 'in_progress');
+      this.updatePhase('step3_cloud_collection', 'in_progress', {
+        description: 'Collecting cloud data (AWS metadata, logs)...',
+      });
+      this.updatePhase('step4_merge', 'in_progress', {
+        description: 'Merging local and cloud data...',
+      });
+      this.updatePhase('step5_generate_link', 'in_progress', {
+        description: 'Generating S3 presigned download link...',
+      });
 
+      diagnosticStore.setState({
+        state: 'uploading',
+        context: this.context,
+      });
+
+      const step2StartTime = Date.now();
       const result = await this.uploadDiagnosticReport(userId, localData, traceId);
       const step2Duration = Date.now() - step2StartTime;
-      this.updatePhase('step2_upload_local', 'completed', { duration: step2Duration });
+
+      this.updatePhase('step2_upload_local', 'completed', {
+        duration: step2Duration,
+        description: `Uploaded ${(result as any).fileSize} bytes successfully`,
+      });
+
+      // Wait 5 seconds before next step
+      await sleep(STEP_DELAY_MS);
 
       // Mark remaining steps as completed (lambda handled them)
-      this.updatePhase('step3_cloud_collection', 'completed');
-      this.updatePhase('step4_merge', 'completed');
-      this.updatePhase('step5_generate_link', 'completed');
+      this.updatePhase('step3_cloud_collection', 'completed', {
+        description: 'Cloud data collection completed by Lambda',
+      });
+
+      // Wait 5 seconds
+      diagnosticStore.setState({
+        state: 'uploading',
+        context: this.context,
+      });
+      await sleep(STEP_DELAY_MS);
+
+      this.updatePhase('step4_merge', 'completed', {
+        description: 'Merging completed successfully',
+      });
+
+      // Wait 5 seconds
+      diagnosticStore.setState({
+        state: 'uploading',
+        context: this.context,
+      });
+      await sleep(STEP_DELAY_MS);
+
+      this.updatePhase('step5_generate_link', 'completed', {
+        description: `Report ready for download (ID: ${(result as any).reportId})`,
+      });
 
       // FSM: uploading → success
       this.transitionState('success', 'Cloud collection and report generation complete');
