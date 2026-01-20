@@ -25,7 +25,7 @@
 import { nanoid } from 'nanoid';
 import { createStore } from 'zustand/vanilla';
 import { logger } from '../../../00_kernel/telemetry';
-import { uploadDiagnosticReport } from '../adapters/diagnosticApi';
+import { uploadDiagnosticReport } from '../adapters';
 import type { UserId } from '../../../00_kernel/types';
 import type {
   LocalDiagnosticData,
