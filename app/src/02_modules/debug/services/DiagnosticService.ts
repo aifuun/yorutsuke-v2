@@ -357,8 +357,19 @@ export class DiagnosticService {
         context: this.context,
       });
 
+      logger.debug('DIAGNOSTIC_PHASE_DELAY_START', {
+        traceId: this.context.traceId,
+        phase: 'step1_local_collection',
+        delayMs: STEP_DELAY_MS,
+      });
+
       // Wait 5 seconds before next step
       await sleep(STEP_DELAY_MS);
+
+      logger.debug('DIAGNOSTIC_PHASE_DELAY_END', {
+        traceId: this.context.traceId,
+        phase: 'step1_local_collection',
+      });
 
       // FSM: collecting → uploading
       this.transitionState('uploading', 'Local data collection complete');
