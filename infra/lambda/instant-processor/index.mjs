@@ -4,13 +4,12 @@ import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedroc
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { logger, EVENTS, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { OcrResultSchema, TransactionSchema, SystemConfigSchema } from "/opt/nodejs/shared/schemas.mjs";
-import { MultiModelAnalyzer, convertModelResultToOcrResult } from "/opt/nodejs/shared/model-analyzer.mjs";
+import { analyzeAzureDI, convertModelResultToOcrResult } from "/opt/nodejs/shared/model-analyzer.mjs";
 import { getAzureCredentials } from "/opt/nodejs/shared/azure-credentials.mjs";
 
 const s3 = new S3Client({});
 const ddb = new DynamoDBClient({});
 const bedrock = new BedrockRuntimeClient({});
-const analyzer = new MultiModelAnalyzer();
 
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const TRANSACTIONS_TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
@@ -241,9 +240,7 @@ export async function handler(event) {
                 logger.info("USING_AZURE_DI_AS_PRIMARY", { imageId });
 
                 try {
-                    const azureResult = await analyzer.analyzeAzureDI(
-                        key,
-                        bucket,
+                    const azureResult = await analyzeAzureDI(
                         imageBase64,
                         ctx.traceId,
                         azureCredentials
