@@ -2,13 +2,16 @@
  * Diagnostic Export Lambda Handler
  *
  * Pillar: Processes diagnostic data collection based on userId prefix
- * - "device-*" (guest): Returns local data only
- * - "user-*" (authenticated): Collects local + cloud data
+ * - "device-*" (guest): Collects local + cloud data, uploads to S3, returns presigned URL
+ * - "user-*" (authenticated): Collects local + cloud data, uploads to S3, returns presigned URL
  *
- * No token required - access control via userId prefix + IAM
+ * All users get S3 presigned URLs (7-day expiry)
+ * Access control via userId prefix + IAM policies
+ * No token required
  */
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logger } from "/opt/nodejs/shared/logger.mjs";
 import { nanoid } from "nanoid";
 
@@ -132,7 +135,13 @@ async function generateAndUploadReport(userId, localData, cloudData, traceId) {
     );
 
     // Generate S3 presigned URL (7-day expiry) for all users
-    const s3Url = `https://${DIAGNOSTICS_BUCKET}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/${s3Key}`;
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: DIAGNOSTICS_BUCKET,
+      Key: s3Key,
+    });
+    const s3Url = await getSignedUrl(s3Client, getObjectCommand, {
+      expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+    });
 
     logger.info("DIAGNOSTIC_UPLOAD_SUCCESS", {
       traceId,
