@@ -1,20 +1,29 @@
 /**
  * Diagnostic Export Panel
  *
- * Pillar L: Pure view component - renders state from headless hook
+ * Pillar L: Pure view component - subscribes to vanilla store from service
  * No business logic, only JSX rendering
+ *
+ * Architecture:
+ * - Subscribes to diagnosticStore (Pure TS state)
+ * - Calls diagnosticService.execute() directly
+ * - Displays 5-step progress (step1-5)
+ * - No headless hook layer (follows project standards)
  *
  * Features:
  * - Displays diagnostic export button
- * - Shows loading state during collection
- * - Shows success with S3 download link
+ * - Shows 5-step progress during collection
+ * - Shows success with S3 download link + copy-link option
  * - Shows error with retry option
  */
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { useStore } from 'zustand';
 import { useTranslation } from '../../../i18n';
-import { useDiagnosticExportLogic } from '../headless/useDiagnosticExportLogic';
+import { diagnosticStore, diagnosticService } from '../services/DiagnosticService';
+import { isDiagnosticExportSuccess } from '../types/diagnostic';
 import type { UserId } from '../../../00_kernel/types';
+import type { DiagnosticPhase } from '../types/diagnostic';
 import './diagnostic-panel.css';
 
 interface DiagnosticPanelProps {
@@ -23,21 +32,64 @@ interface DiagnosticPanelProps {
 
 export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   const { t } = useTranslation();
-  const { state, result, error, exportDiagnosticData, reset } =
-    useDiagnosticExportLogic(userId);
 
-  const handleExport = useCallback(() => {
-    exportDiagnosticData();
-  }, [exportDiagnosticData]);
+  // Subscribe directly to vanilla store (Pillar L: Service layer owns state)
+  const state = useStore(diagnosticStore, (s) => s.state);
+  const result = useStore(diagnosticStore, (s) => s.result);
+  const error = useStore(diagnosticStore, (s) => s.error);
+  const context = useStore(diagnosticStore, (s) => s.context);
 
-  const handleRetry = useCallback(() => {
-    reset();
-    exportDiagnosticData();
-  }, [exportDiagnosticData, reset]);
+  // =========================================================================
+  // Note: Auto-reset removed. User explicitly clicks "再次收集" or downloads
+  // =========================================================================
+
+  // =========================================================================
+  // All event handlers (Hooks Rules: must be at top level, not in conditionals)
+  // =========================================================================
+
+  const handleExport = useCallback(async () => {
+    if (!userId) {
+      console.warn('User ID not available');
+      return;
+    }
+
+    // Call service directly (no headless layer)
+    await diagnosticService.execute(userId);
+  }, [userId]);
+
+  const handleRetry = useCallback(async () => {
+    // reset() already handles FSM transition and store update
+    diagnosticService.reset();
+    if (userId) {
+      await diagnosticService.execute(userId);
+    }
+  }, [userId]);
 
   const handleReset = useCallback(() => {
-    reset();
-  }, [reset]);
+    // reset() already handles FSM transition and store update
+    console.log('[DiagnosticPanel] handleReset called, current state:', state);
+    diagnosticService.reset();
+    console.log('[DiagnosticPanel] reset() completed');
+  }, []);
+
+  const handleCopyLink = useCallback(() => {
+    if (result && isDiagnosticExportSuccess(result) && result.s3Url) {
+      navigator.clipboard.writeText(result.s3Url).then(() => {
+        console.log('Link copied to clipboard');
+      });
+    }
+  }, [result]);
+
+  const handleDownload = useCallback(() => {
+    if (result && isDiagnosticExportSuccess(result) && result.s3Url) {
+      console.log('[DiagnosticPanel] Opening download link:', result.s3Url);
+      window.open(result.s3Url, '_blank');
+
+      // Reset state after download initiated
+      console.log('[DiagnosticPanel] Resetting after download');
+      diagnosticService.reset();
+    }
+  }, [result]);
 
   // =========================================================================
   // Idle State - Show button
@@ -71,20 +123,86 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   }
 
   // =========================================================================
-  // Loading States - Show spinner
+  // Loading States - Show 5-step progress with logo flow
   // =========================================================================
 
   if (state === 'collecting' || state === 'uploading') {
-    const phase = state === 'collecting' ? t('diagnostic.phase.collecting') : t('diagnostic.phase.uploading');
+    const phases: DiagnosticPhase[] = [
+      'step1_local_collection',
+      'step2_upload_local',
+      'step3_cloud_collection',
+      'step4_merge',
+      'step5_generate_link',
+    ];
+
+    const phaseLogos: Record<DiagnosticPhase, string> = {
+      step1_local_collection: '📦',
+      step2_upload_local: '⬆️',
+      step3_cloud_collection: '☁️',
+      step4_merge: '🔗',
+      step5_generate_link: '📥',
+    };
+
+    const phaseLabels: Record<DiagnosticPhase, string> = {
+      step1_local_collection: t('diagnostic.phase.step1'),
+      step2_upload_local: t('diagnostic.phase.step2'),
+      step3_cloud_collection: t('diagnostic.phase.step3'),
+      step4_merge: t('diagnostic.phase.step4'),
+      step5_generate_link: t('diagnostic.phase.step5'),
+    };
 
     return (
       <div className="diagnostic-panel">
         <div className="diagnostic-panel__section">
           <h3 className="diagnostic-panel__title">📊 {t('diagnostic.title')}</h3>
 
-          <div className="diagnostic-panel__loading">
-            <div className="diagnostic-panel__spinner" aria-label={t('diagnostic.state.loading')} />
-            <p className="diagnostic-panel__status">{phase}...</p>
+          <div className="diagnostic-panel__progress">
+            {/* Logo Flow */}
+            <div className="diagnostic-panel__logo-flow">
+              {phases.map((phase, index) => {
+                const phaseInfo = context?.phases[phase];
+                const status = phaseInfo?.status || 'pending';
+                const isCompleted = status === 'completed';
+
+                return (
+                  <div
+                    key={phase}
+                    className={`diagnostic-panel__logo-step diagnostic-panel__logo-step--${status}`}
+                    title={phaseLabels[phase]}
+                  >
+                    <div className="diagnostic-panel__logo-circle">
+                      <span className="diagnostic-panel__logo">{phaseLogos[phase]}</span>
+                    </div>
+                    {index < phases.length - 1 && (
+                      <div
+                        className={`diagnostic-panel__logo-connector ${isCompleted ? 'completed' : ''}`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Progress Details */}
+            <div className="diagnostic-panel__progress-details">
+              {context && (
+                <>
+                  <div className="diagnostic-panel__progress-bar">
+                    <div
+                      className="diagnostic-panel__progress-bar-fill"
+                      style={{ width: `${context.overallProgress}%` }}
+                    />
+                  </div>
+
+                  <div className="diagnostic-panel__progress-text">
+                    <span className="diagnostic-panel__progress-percent">{context.overallProgress.toFixed(0)}%</span>
+                    <span className="diagnostic-panel__progress-time">
+                      {((Date.now() - context.startTime) / 1000).toFixed(1)}s
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -95,16 +213,52 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   // Success State - Show download link or local data info
   // =========================================================================
 
-  if (state === 'success' && result) {
+  if (state === 'success' && result && isDiagnosticExportSuccess(result)) {
     const isLocalOnly = !result.s3Url;
     const successMessage = isLocalOnly
       ? 'Local diagnostic data collected (guest user)'
       : t('diagnostic.state.success');
 
+    // Show completed flow
+    const phases: DiagnosticPhase[] = [
+      'step1_local_collection',
+      'step2_upload_local',
+      'step3_cloud_collection',
+      'step4_merge',
+      'step5_generate_link',
+    ];
+
+    const phaseLogos: Record<DiagnosticPhase, string> = {
+      step1_local_collection: '📦',
+      step2_upload_local: '⬆️',
+      step3_cloud_collection: '☁️',
+      step4_merge: '🔗',
+      step5_generate_link: '📥',
+    };
+
     return (
       <div className="diagnostic-panel">
         <div className="diagnostic-panel__section diagnostic-panel__section--success">
           <h3 className="diagnostic-panel__title">📊 {t('diagnostic.title')}</h3>
+
+          {/* Show completed flow */}
+          <div className="diagnostic-panel__progress">
+            <div className="diagnostic-panel__logo-flow">
+              {phases.map((phase, index) => (
+                <div
+                  key={phase}
+                  className="diagnostic-panel__logo-step diagnostic-panel__logo-step--completed"
+                >
+                  <div className="diagnostic-panel__logo-circle">
+                    <span className="diagnostic-panel__logo">{phaseLogos[phase]}</span>
+                  </div>
+                  {index < phases.length - 1 && (
+                    <div className="diagnostic-panel__logo-connector completed" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="diagnostic-panel__success">
             <div className="diagnostic-panel__success-icon">✅</div>
@@ -126,15 +280,23 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
 
             <div className="diagnostic-panel__actions">
               {!isLocalOnly && (
-                <a
-                  href={result.s3Url}
-                  className="diagnostic-panel__download-button"
-                  download={`diagnostic-${result.reportId}.json`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  📥 {t('diagnostic.button.download')}
-                </a>
+                <>
+                  <button
+                    className="diagnostic-panel__button diagnostic-panel__button--primary"
+                    onClick={handleDownload}
+                    type="button"
+                  >
+                    📥 {t('diagnostic.button.download')}
+                  </button>
+
+                  <button
+                    className="diagnostic-panel__button diagnostic-panel__button--secondary"
+                    onClick={handleCopyLink}
+                    type="button"
+                  >
+                    🔗 {t('diagnostic.button.copy_link')}
+                  </button>
+                </>
               )}
 
               <button

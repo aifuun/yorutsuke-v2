@@ -439,6 +439,7 @@
     "button": {
       "export": "Collect Diagnostic Data",
       "download": "Download Report",
+      "copy_link": "Copy Link",
       "retry": "Retry",
       "cancel": "Cancel",
       "new_export": "Collect Again"
@@ -448,7 +449,12 @@
     },
     "phase": {
       "collecting": "Collecting system data...",
-      "uploading": "Processing and uploading..."
+      "uploading": "Processing and uploading...",
+      "step1": "Collect Local Diagnostic Data",
+      "step2": "Upload Local Data",
+      "step3": "Collect Cloud Data",
+      "step4": "Merge Data",
+      "step5": "Generate Download Link"
     },
     "state": {
       "loading": "Loading",

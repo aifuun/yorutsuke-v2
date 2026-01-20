@@ -113,7 +113,195 @@
 }
 
 /* ===================================================================
- * Loading State - Spinner
+ * Progress State - Logo Flow
+ * =================================================================== */
+
+.diagnostic-panel__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4);
+  background: rgba(59, 130, 246, 0.02);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+/* Logo Flow Container */
+.diagnostic-panel__logo-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-height: 80px;
+}
+
+/* Each Step in Flow */
+.diagnostic-panel__logo-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 60px;
+  max-width: 80px;
+}
+
+/* Logo Circle */
+.diagnostic-panel__logo-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary, #f3f4f6);
+  border: 2px solid var(--border);
+  transition: all var(--duration-normal, 300ms) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.diagnostic-panel__logo {
+  font-size: 28px;
+  line-height: 1;
+  filter: grayscale(100%);
+  transition: filter var(--duration-normal, 300ms) var(--ease-out);
+}
+
+/* Status: Pending (Gray) */
+.diagnostic-panel__logo-step--pending .diagnostic-panel__logo-circle {
+  background: var(--bg-secondary, #f3f4f6);
+  border-color: var(--border-light, #e5e7eb);
+}
+
+.diagnostic-panel__logo-step--pending .diagnostic-panel__logo {
+  filter: grayscale(100%) opacity(0.5);
+}
+
+/* Status: In Progress (Current - Animated) */
+.diagnostic-panel__logo-step--in_progress .diagnostic-panel__logo-circle {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.diagnostic-panel__logo-step--in_progress .diagnostic-panel__logo {
+  filter: grayscale(0%) brightness(1.1);
+  color: white;
+  animation: bounce 1.5s ease-in-out infinite;
+}
+
+/* Status: Completed (Colored) */
+.diagnostic-panel__logo-step--completed .diagnostic-panel__logo-circle {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.diagnostic-panel__logo-step--completed .diagnostic-panel__logo {
+  filter: grayscale(0%) brightness(1.2);
+  color: white;
+}
+
+/* Status: Failed (Red) */
+.diagnostic-panel__logo-step--failed .diagnostic-panel__logo-circle {
+  background: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.diagnostic-panel__logo-step--failed .diagnostic-panel__logo {
+  filter: grayscale(0%) brightness(1.1);
+  color: white;
+}
+
+/* Connector Line */
+.diagnostic-panel__logo-connector {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  margin: 0 calc(var(--space-2) * -1);
+  transition: background-color var(--duration-normal, 300ms) var(--ease-out);
+  min-width: 20px;
+}
+
+.diagnostic-panel__logo-connector.completed {
+  background: var(--color-success);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diagnostic-panel__logo-circle,
+  .diagnostic-panel__logo {
+    animation: none;
+  }
+
+  .diagnostic-panel__logo-step--in_progress .diagnostic-panel__logo-circle {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+}
+
+/* Progress Details */
+.diagnostic-panel__progress-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.diagnostic-panel__progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-secondary, #e5e7eb);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diagnostic-panel__progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-success) 100%
+  );
+  transition: width var(--duration-normal, 300ms) var(--ease-out);
+  border-radius: 4px;
+}
+
+.diagnostic-panel__progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-sm);
+}
+
+.diagnostic-panel__progress-percent {
+  font-weight: 600;
+  color: var(--text-default);
+}
+
+.diagnostic-panel__progress-time {
+  color: var(--text-muted);
+  font-size: var(--text-xs, 12px);
+}
+
+/* ===================================================================
+ * Loading State - Spinner (Legacy)
  * =================================================================== */
 
 .diagnostic-panel__loading {

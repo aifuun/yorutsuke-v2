@@ -179,19 +179,20 @@ async function generateAndUploadReport(userId, localData, cloudData, traceId) {
 // ============================================================================
 
 export async function handler(event, context) {
-  const traceId = event.traceId || event.headers?.["x-trace-id"] || `trace-${Date.now()}`;
-
   try {
     // Parse request body
     let requestBody;
     try {
       requestBody = typeof event.body === "string" ? JSON.parse(event.body) : event.body;
     } catch (e) {
-      logger.error("DIAGNOSTIC_INVALID_REQUEST", { traceId, error: e.message });
-      return createErrorResponse(400, "Invalid request body", traceId);
+      const fallbackTraceId = event.traceId || event.headers?.["x-trace-id"] || `trace-${Date.now()}`;
+      logger.error("DIAGNOSTIC_INVALID_REQUEST", { traceId: fallbackTraceId, error: e.message });
+      return createErrorResponse(400, "Invalid request body", fallbackTraceId);
     }
 
-    const { userId, localData, attempt = 1 } = requestBody;
+    // Extract traceId from request body (sent by client) or fall back to headers/generate
+    const { userId, localData, traceId: clientTraceId, attempt = 1 } = requestBody;
+    const traceId = clientTraceId || event.headers?.["x-trace-id"] || `trace-${Date.now()}`;
 
     // Validate inputs
     if (!userId || typeof userId !== "string" || userId.trim() === "") {

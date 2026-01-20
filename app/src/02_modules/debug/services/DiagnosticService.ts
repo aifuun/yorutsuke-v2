@@ -23,6 +23,8 @@
  */
 
 import { nanoid } from 'nanoid';
+import { createStore } from 'zustand/vanilla';
+import { logger } from '../../../00_kernel/telemetry';
 import { uploadDiagnosticReport } from '../adapters/diagnosticApi';
 import type { UserId } from '../../../00_kernel/types';
 import type {
@@ -30,7 +32,12 @@ import type {
   DiagnosticExportResult,
   DiagnosticExportError,
   DiagnosticContext,
+  DiagnosticState,
+  DiagnosticPhase,
+  PhaseStatus,
+  FSMValidationResult,
 } from '../types/diagnostic';
+import { VALID_STATE_TRANSITIONS } from '../types/diagnostic';
 
 // ============================================================================
 // Constants
@@ -39,6 +46,96 @@ import type {
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 30000;
+
+// ============================================================================
+// Zustand Vanilla Store (Pillar L: Pure TS state management)
+// ============================================================================
+
+interface DiagnosticStoreState {
+  state: DiagnosticState;
+  result: DiagnosticExportResult | null;
+  error: string | null;
+  context: DiagnosticContext | null;
+}
+
+export const diagnosticStore = createStore<DiagnosticStoreState>(() => ({
+  state: 'idle',
+  result: null,
+  error: null,
+  context: null,
+}));
+
+// ============================================================================
+// FSM (Finite State Machine) Manager
+// ============================================================================
+
+class DiagnosticFSM {
+  /**
+   * Validate if a state transition is allowed
+   *
+   * @param fromState - Current state
+   * @param toState - Desired state
+   * @returns Validation result
+   */
+  validateTransition(fromState: DiagnosticState, toState: DiagnosticState): FSMValidationResult {
+    // Self-transitions are allowed only for resetting
+    if (fromState === toState) {
+      return {
+        isValid: false,
+        error: `Cannot transition to same state: ${fromState}`,
+      };
+    }
+
+    // Find valid transition
+    const transition = VALID_STATE_TRANSITIONS.find(t => t.from === fromState && t.to === toState);
+
+    if (!transition) {
+      return {
+        isValid: false,
+        error: `Invalid transition: ${fromState} → ${toState}. Check FSM diagram.`,
+      };
+    }
+
+    return {
+      isValid: true,
+      transition,
+    };
+  }
+
+  /**
+   * Get allowed next states from current state
+   *
+   * @param currentState - Current state
+   * @returns Array of allowed next states
+   */
+  getNextStates(currentState: DiagnosticState): DiagnosticState[] {
+    return VALID_STATE_TRANSITIONS
+      .filter(t => t.from === currentState)
+      .map(t => t.to);
+  }
+
+  /**
+   * Get FSM state diagram as ASCII art
+   *
+   * @returns ASCII diagram
+   */
+  getStateDiagram(): string {
+    return `
+Diagnostic Export FSM State Diagram:
+
+  idle
+    ├→ collecting
+    │   ├→ uploading
+    │   │   ├→ success (reset)→ idle
+    │   │   └→ error (recovery)→ idle
+    │   │         └→ collecting (retry)
+    │   └→ error (recovery)→ idle
+    │         └→ collecting (retry)
+    └→ error (recovery)→ idle
+          └→ collecting (retry)
+    `;
+  }
+}
 
 // ============================================================================
 // Error Types
@@ -82,6 +179,103 @@ class DiagnosticError extends Error {
  */
 export class DiagnosticService {
   private context: DiagnosticContext | null = null;
+  private fsm: DiagnosticFSM = new DiagnosticFSM();
+
+  /**
+   * Transition to a new state with FSM validation
+   *
+   * Throws DiagnosticError if transition is invalid
+   *
+   * @param nextState - Target state
+   * @param reason - Optional reason for transition (for logging)
+   * @throws DiagnosticError if transition is invalid
+   */
+  private transitionState(nextState: DiagnosticState, reason?: string): void {
+    if (!this.context) {
+      throw new DiagnosticError(
+        'FSM_ERROR',
+        'Cannot transition: context is null',
+        false
+      );
+    }
+
+    const currentState = this.context.state;
+    const validation = this.fsm.validateTransition(currentState, nextState);
+
+    if (!validation.isValid) {
+      throw new DiagnosticError(
+        'FSM_INVALID_TRANSITION',
+        validation.error || `Invalid state transition: ${currentState} → ${nextState}`,
+        false
+      );
+    }
+
+    // Log state transition (Pillar N: Observability)
+    logger.debug('DIAGNOSTIC_STATE_TRANSITION', {
+      from: currentState,
+      to: nextState,
+      reason: reason || validation.transition?.reason,
+      traceId: this.context.traceId,
+    });
+
+    // Update state
+    this.context.state = nextState;
+
+    // Update store
+    diagnosticStore.setState({
+      state: nextState,
+      context: this.context,
+    });
+  }
+
+  /**
+   * Initialize 5-step phase tracking structure
+   *
+   * @returns Initialized phases record
+   */
+  private initializePhases() {
+    const phases: Record<DiagnosticPhase, any> = {
+      step1_local_collection: { phase: 'step1_local_collection', status: 'pending' },
+      step2_upload_local: { phase: 'step2_upload_local', status: 'pending' },
+      step3_cloud_collection: { phase: 'step3_cloud_collection', status: 'pending' },
+      step4_merge: { phase: 'step4_merge', status: 'pending' },
+      step5_generate_link: { phase: 'step5_generate_link', status: 'pending' },
+    };
+    return phases;
+  }
+
+  /**
+   * Update a phase and recalculate overall progress
+   *
+   * @param phase - Phase to update
+   * @param status - New status
+   * @param options - Additional options (progress, duration, error, details)
+   */
+  private updatePhase(
+    phase: DiagnosticPhase,
+    status: PhaseStatus,
+    options?: { progress?: number; duration?: number; error?: string; details?: Record<string, unknown> }
+  ) {
+    if (!this.context) return;
+
+    this.context.phases[phase] = {
+      phase,
+      status,
+      ...options,
+    };
+
+    // Calculate overall progress (each phase is 20%)
+    const completedPhases = Object.values(this.context.phases).filter(
+      (p) => p.status === 'completed'
+    ).length;
+    this.context.overallProgress = (completedPhases / 5) * 100;
+
+    // Update store
+    diagnosticStore.setState({
+      state: this.context.state,
+      context: this.context,
+    });
+  }
 
   /**
    * Execute complete diagnostic workflow
@@ -95,28 +289,109 @@ export class DiagnosticService {
     const traceId = `trace-${nanoid()}`;
     const startTime = Date.now();
 
+    logger.info('DIAGNOSTIC_EXPORT_START', {
+      traceId,
+      userId: String(userId),
+    });
+
     this.context = {
-      state: 'collecting',
+      state: 'idle',
       traceId,
       startTime,
+      currentPhase: 'step1_local_collection',
+      phases: this.initializePhases(),
+      overallProgress: 0,
     };
 
     try {
+      // FSM: idle → collecting
+      this.transitionState('collecting', 'User initiates diagnostic export');
+
+      // Update store with initial state
+      diagnosticStore.setState({
+        state: 'collecting',
+        context: this.context,
+        error: null,
+        result: null,
+      });
+
       // Step 1: Collect local data (always works)
-      this.context.currentPhase = 'local_collection';
+      this.updatePhase('step1_local_collection', 'in_progress');
+      const step1StartTime = Date.now();
       const localData = await this.collectLocalData(userId);
+      const step1Duration = Date.now() - step1StartTime;
+      this.updatePhase('step1_local_collection', 'completed', { duration: step1Duration });
 
-      // Step 2: Send to Lambda for processing
-      // Lambda will determine what data to collect based on userId
-      this.context.state = 'uploading';
-      this.context.currentPhase = 'cloud_upload';
+      // FSM: collecting → uploading
+      this.transitionState('uploading', 'Local data collection complete');
+      this.context.currentPhase = 'step2_upload_local';
+      this.updatePhase('step2_upload_local', 'in_progress');
+      const step2StartTime = Date.now();
+
+      // Step 3-5 are handled by Lambda, mark them based on Lambda response
+      this.updatePhase('step3_cloud_collection', 'in_progress');
+      this.updatePhase('step4_merge', 'in_progress');
+      this.updatePhase('step5_generate_link', 'in_progress');
+
       const result = await this.uploadDiagnosticReport(userId, localData, traceId);
+      const step2Duration = Date.now() - step2StartTime;
+      this.updatePhase('step2_upload_local', 'completed', { duration: step2Duration });
 
-      this.context.state = 'success';
+      // Mark remaining steps as completed (lambda handled them)
+      this.updatePhase('step3_cloud_collection', 'completed');
+      this.updatePhase('step4_merge', 'completed');
+      this.updatePhase('step5_generate_link', 'completed');
+
+      // FSM: uploading → success
+      this.transitionState('success', 'Cloud collection and report generation complete');
+
+      const duration = Date.now() - startTime;
+      logger.info('DIAGNOSTIC_EXPORT_SUCCESS', {
+        traceId: this.context.traceId,
+        reportId: (result as any).reportId,
+        fileSize: (result as any).fileSize,
+        duration,
+      });
+
+      diagnosticStore.setState({
+        state: 'success',
+        result,
+        context: this.context,
+      });
+
       return result;
     } catch (error) {
-      this.context.state = 'error';
-      return this.handleError(error, traceId);
+      // FSM: any state → error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      logger.error('DIAGNOSTIC_EXPORT_ERROR', {
+        traceId: this.context?.traceId,
+        error: errorMessage,
+      });
+
+      try {
+        this.transitionState('error', `Operation failed: ${errorMessage}`);
+      } catch (fsmError) {
+        // If FSM validation fails, just log it and update directly
+        logger.error('DIAGNOSTIC_FSM_ERROR_HANDLING', {
+          fsmError: fsmError instanceof Error ? fsmError.message : String(fsmError),
+        });
+        if (this.context) {
+          this.context.state = 'error';
+          this.context.lastError = errorMessage;
+        }
+      }
+
+      const errorResult = this.handleError(error, this.context?.traceId || traceId);
+
+      diagnosticStore.setState({
+        state: 'error',
+        error: errorResult.error.message,
+        result: errorResult,
+        context: this.context,
+      });
+
+      return errorResult;
     }
   }
 
@@ -139,6 +414,10 @@ export class DiagnosticService {
    */
   private async collectLocalData(userId: UserId): Promise<LocalDiagnosticData> {
     try {
+      logger.debug('DIAGNOSTIC_LOCAL_COLLECTION_START', {
+        traceId: this.context?.traceId,
+      });
+
       // Import adapters here to avoid circular dependencies
       const { getSystemInfo, getDebugLogs, getDirectorySize } = await import('../adapters/diagnosticIpc');
       const { fetchTransactions } = await import('../../transaction/adapters');
@@ -179,6 +458,13 @@ export class DiagnosticService {
         },
         debugLogs: Array.isArray(debugLogs) ? (debugLogs as any) : [],
       };
+
+      logger.debug('DIAGNOSTIC_LOCAL_COLLECTION_COMPLETE', {
+        traceId: this.context?.traceId,
+        transactionCount: data.localStorage.transactions.length,
+        imageCount: data.localStorage.images.length,
+        logCount: data.debugLogs.length,
+      });
 
       return data;
     } catch (error) {
@@ -363,10 +649,69 @@ export class DiagnosticService {
   }
 
   /**
-   * Reset service state
+   * Reset service state back to idle
+   *
+   * FSM: success/error → idle
    */
   reset(): void {
+    logger.debug('DIAGNOSTIC_RESET_START', {
+      currentState: this.context?.state,
+    });
+
+    if (this.context) {
+      const currentState = this.context.state;
+
+      // FSM: any state (except idle) → idle
+      if (currentState !== 'idle') {
+        try {
+          logger.debug('DIAGNOSTIC_RESET_FSM_TRANSITION', {
+            from: currentState,
+            to: 'idle',
+          });
+          this.transitionState('idle', 'User resets state');
+          logger.debug('DIAGNOSTIC_RESET_FSM_SUCCESS', {});
+        } catch (error) {
+          // If transition fails, force reset anyway for recovery
+          logger.error('DIAGNOSTIC_RESET_FSM_FAILED', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+          if (this.context) {
+            this.context.state = 'idle';
+          }
+        }
+      }
+    }
+
     this.context = null;
+
+    diagnosticStore.setState({
+      state: 'idle',
+      result: null,
+      error: null,
+      context: null,
+    });
+    logger.debug('DIAGNOSTIC_RESET_COMPLETE', {});
+  }
+
+  /**
+   * Get FSM state diagram (for debugging)
+   *
+   * @returns ASCII state diagram
+   */
+  getStateDiagram(): string {
+    return this.fsm.getStateDiagram();
+  }
+
+  /**
+   * Get allowed next states from current state
+   *
+   * @returns Array of allowed next states
+   */
+  getAllowedNextStates(): DiagnosticState[] {
+    if (!this.context) {
+      return [];
+    }
+    return this.fsm.getNextStates(this.context.state);
   }
 
   /**
@@ -413,3 +758,11 @@ export class DiagnosticService {
  * @see ADR-001: Service Pattern
  */
 export const diagnosticService = new DiagnosticService();
+
+/**
+ * Global diagnostic store
+ *
+ * @note React components subscribe via: useStore(diagnosticStore, selector)
+ * @see ADR-001: Service Pattern - Pure TS state, React observes only
+ */
+// diagnosticStore is already exported above

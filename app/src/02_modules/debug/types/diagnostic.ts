@@ -195,13 +195,81 @@ export interface DiagnosticExportError {
 export type DiagnosticExportResult = DiagnosticExportSuccess | DiagnosticExportError;
 
 // ============================================================================
-// SERVICE STATE
+// SERVICE STATE - 5 STEP PHASES
 // ============================================================================
 
 /**
- * Diagnostic service internal state
+ * 5-step diagnostic workflow phases
+ */
+export type DiagnosticPhase =
+  | 'step1_local_collection'
+  | 'step2_upload_local'
+  | 'step3_cloud_collection'
+  | 'step4_merge'
+  | 'step5_generate_link';
+
+/**
+ * Status of each phase
+ */
+export type PhaseStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
+/**
+ * Progress information for a single phase
+ */
+export interface PhaseProgress {
+  phase: DiagnosticPhase;
+  status: PhaseStatus;
+  progress?: number;              // 0-100 percentage
+  duration?: number;              // milliseconds
+  error?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Diagnostic service internal state (FSM)
+ *
+ * State transitions:
+ * ┌──────────────────────────────────────────────────────────┐
+ * │ idle ──→ collecting ──→ uploading ──→ success           │
+ * │     ↓          ↓             ↓                           │
+ * │     └──→ error ←──────────────┘                          │
+ * │          ↓ reset                                         │
+ * │          └──→ idle                                       │
+ * └──────────────────────────────────────────────────────────┘
  */
 export type DiagnosticState = 'idle' | 'collecting' | 'uploading' | 'success' | 'error';
+
+/**
+ * Valid state transition in FSM
+ */
+export interface StateTransition {
+  from: DiagnosticState;
+  to: DiagnosticState;
+  reason?: string;
+}
+
+/**
+ * FSM Configuration: All valid transitions
+ */
+export const VALID_STATE_TRANSITIONS: StateTransition[] = [
+  // From IDLE
+  { from: 'idle', to: 'collecting', reason: 'User initiates diagnostic export' },
+
+  // From COLLECTING
+  { from: 'collecting', to: 'uploading', reason: 'Local data collection complete' },
+  { from: 'collecting', to: 'error', reason: 'Local collection failed' },
+
+  // From UPLOADING
+  { from: 'uploading', to: 'success', reason: 'Cloud collection and report generation complete' },
+  { from: 'uploading', to: 'error', reason: 'Upload or cloud collection failed' },
+
+  // From SUCCESS (reset only)
+  { from: 'success', to: 'idle', reason: 'User initiates new collection' },
+
+  // From ERROR (recovery)
+  { from: 'error', to: 'idle', reason: 'User resets after error' },
+  { from: 'error', to: 'collecting', reason: 'User retries collection' },
+];
 
 /**
  * Diagnostic operation context
@@ -210,7 +278,19 @@ export interface DiagnosticContext {
   state: DiagnosticState;
   traceId: string;
   startTime: number;              // milliseconds
-  currentPhase?: string;
+  currentPhase?: DiagnosticPhase;
+  phases: Record<DiagnosticPhase, PhaseProgress>;  // All 5 phases
+  overallProgress: number;        // 0-100 percentage
+  lastError?: string;             // Last error message (for FSM tracking)
+}
+
+/**
+ * FSM validation result
+ */
+export interface FSMValidationResult {
+  isValid: boolean;
+  error?: string;
+  transition?: StateTransition;
 }
 
 // ============================================================================
