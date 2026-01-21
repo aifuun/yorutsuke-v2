@@ -14,6 +14,7 @@ import { glob } from 'glob';
 import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -175,11 +176,25 @@ async function buildLambdaFunctions() {
 function copyLayerPackageJson() {
   const layerPackageJson = join(lambdaRoot, 'shared-layer/nodejs/package.json');
   const distPackageJson = join(distRoot, 'shared-layer/nodejs/package.json');
+  const distNodejsDir = dirname(distPackageJson);
 
   if (existsSync(layerPackageJson)) {
-    mkdirSync(dirname(distPackageJson), { recursive: true });
+    mkdirSync(distNodejsDir, { recursive: true });
     cpSync(layerPackageJson, distPackageJson);
     log(`  ✓ Copied package.json to Layer dist`, colors.green);
+
+    // Install dependencies in Layer dist
+    log(`  📦 Installing Layer dependencies...`, colors.blue);
+    try {
+      execSync('npm install --omit=dev', {
+        cwd: distNodejsDir,
+        stdio: 'pipe',
+      });
+      log(`  ✓ Installed Layer dependencies`, colors.green);
+    } catch (error) {
+      log(`  ❌ Failed to install Layer dependencies`, colors.red);
+      throw error;
+    }
   } else {
     log(`  ⚠️  No package.json found in shared-layer, skipping...`, colors.yellow);
   }
