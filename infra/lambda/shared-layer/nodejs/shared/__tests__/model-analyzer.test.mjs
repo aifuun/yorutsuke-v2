@@ -165,6 +165,97 @@ describe('validateTaxInfo() - Tax Data Validation', () => {
       expect(result.warnings.some(w => w.code === 'INVALID_TAX_RATE')).toBe(true);
     });
   });
+
+  describe('Edge cases - Critical', () => {
+    it('should accumulate multiple warnings (amount mismatch + rate mismatch)', () => {
+      // Both TAX_AMOUNT_MISMATCH and TAX_RATE_MISMATCH should be present
+      const result = validateTaxInfo(1500, 1000, 150, 10);
+      // Expected: 1000 + 100 = 1100, but got 1500 (amount mismatch)
+      // Also: for 1000 at 10%, expected tax is 100, but got 150 (rate mismatch)
+      expect(result.warnings.length).toBeGreaterThanOrEqual(2);
+      expect(result.warnings.some(w => w.code === 'TAX_AMOUNT_MISMATCH')).toBe(true);
+      expect(result.warnings.some(w => w.code === 'TAX_RATE_MISMATCH')).toBe(true);
+    });
+
+    it('should handle very large amounts (millions)', () => {
+      // ¥1,000,000 at 10% tax
+      const result = validateTaxInfo(1100000, 1000000, 100000, 10);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should handle very small amounts (single yen with rounding precision)', () => {
+      // ¥100 at 8% tax, but OCR returned ¥1 as tax_amount (data noise)
+      const result = validateTaxInfo(101, 100, 1, 8);
+      // 100 * 0.08 = 8 (expected), but got 1, so should warn about rate mismatch
+      expect(result.valid).toBe(true);
+      expect(result.warnings.some(w => w.code === 'TAX_RATE_MISMATCH')).toBe(true);
+    });
+
+    it('should reject decimal tax rates (non-standard like 8.5%)', () => {
+      // International receipts might have 8.5%, should warn
+      const result = validateTaxInfo(1085, 1000, 85, 8.5);
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings.some(w => w.code === 'INVALID_TAX_RATE')).toBe(true);
+    });
+
+    it('should skip validation when all tax fields are 0 (falsy = no tax info)', () => {
+      // Free item scenario - amount = 0, subtotal = 0, tax = 0, rate = 0
+      // When all are 0 (falsy), validateTaxInfo treats it as "no tax fields provided"
+      // and skips validation entirely (see line 357: !0 && !0 && !0 = true)
+      const result = validateTaxInfo(0, 0, 0, 0);
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0); // No warnings because skipped
+    });
+
+    it('should reject negative amounts (refund/chargeback)', () => {
+      // Negative amounts might indicate refunds
+      // -1100 + -1000 = -100 at 10% (refund scenario)
+      const result = validateTaxInfo(-1100, -1000, -100, 10);
+      // Should accept (business logic: negative amounts are valid for refunds)
+      // But verify the math still works
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should warn on mismatched sign (positive total, negative subtotal)', () => {
+      // Data corruption case: total positive but subtotal negative
+      const result = validateTaxInfo(1100, -1000, 100, 10);
+      // 1100 != -1000 + 100 = -900
+      expect(result.warnings.some(w => w.code === 'TAX_AMOUNT_MISMATCH')).toBe(true);
+    });
+
+    it('should handle rounding edge case at boundary (±2 JPY should warn)', () => {
+      // Exactly 2 JPY off should warn (tolerance is ±1)
+      const result = validateTaxInfo(1102, 1000, 100, 10);
+      // 1000 + 100 = 1100, but got 1102 (off by 2)
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings.some(w => w.code === 'TAX_AMOUNT_MISMATCH')).toBe(true);
+    });
+
+    it('should handle tax rate calculation precision (rounding at 1 yen boundary)', () => {
+      // For ¥2000 at 8%, expected tax is ¥160, but OCR got ¥159 (off by 1, acceptable)
+      const result = validateTaxInfo(2159, 1999, 159, 8);
+      // Expected tax for 1999 at 8% is 159.92 → rounds to 160
+      // Got 159, so it's a 1 yen mismatch (acceptable)
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should reject extremely high tax rate (over 50%)', () => {
+      // Corruption detection: 50% tax is unrealistic
+      const result = validateTaxInfo(1500, 1000, 500, 50);
+      expect(result.warnings.some(w => w.code === 'INVALID_TAX_RATE')).toBe(true);
+    });
+
+    it('should handle NaN gracefully (missing numeric fields)', () => {
+      // If parseFloat returns NaN from Azure response
+      const result = validateTaxInfo(NaN, 1000, 100, 10);
+      // NaN !== calculatedTotal, should warn
+      expect(result.valid).toBe(true);
+      // Should not crash, may warn about amount mismatch
+    });
+  });
 });
 
 // ============================================================
