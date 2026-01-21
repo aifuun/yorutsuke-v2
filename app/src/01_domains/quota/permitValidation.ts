@@ -10,7 +10,6 @@
  * @see docs/operations/QUOTA.md
  */
 
-import { isMockMode } from '../../00_kernel/config/mock';
 import type { UploadPermit } from './LocalQuota';
 
 export interface ValidationResult {
@@ -62,11 +61,16 @@ export function validatePermitFormat(permit: UploadPermit): ValidationResult {
   }
 
   // 3. Reject mock permit if not in mock mode
-  if (isMockPermit(permit) && !isMockMode()) {
-    return {
-      valid: false,
-      reason: 'Mock permit only valid in mock mode',
-    };
+  // Note: Using dynamic import to avoid circular dependency with mock.ts
+  if (isMockPermit(permit)) {
+    // Lazy load isMockMode to avoid module cycle
+    const { isMockMode: isMockModeFn } = require('../../00_kernel/config/mock');
+    if (!isMockModeFn()) {
+      return {
+        valid: false,
+        reason: 'Mock permit only valid in mock mode',
+      };
+    }
   }
 
   // 4. Check expiry
