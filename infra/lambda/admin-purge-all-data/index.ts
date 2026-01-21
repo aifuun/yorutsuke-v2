@@ -8,6 +8,7 @@ import { DynamoDBDocumentClient, ScanCommand, BatchWriteCommand } from '@aws-sdk
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { CloudWatchLogsClient, CreateLogStreamCommand, PutLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
+import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from './types/aws-events.js';
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -30,7 +31,7 @@ const headers = {
  * Write to CloudWatch Logs for audit trail
  * Admin actions must be logged for compliance
  */
-async function auditLog(adminUserId, action, details) {
+async function auditLog(adminUserId: string, action: string, details: Record<string, unknown>): Promise<void> {
   try {
     const logStreamName = `admin-${new Date().toISOString().split('T')[0]}`;
 
@@ -60,8 +61,9 @@ async function auditLog(adminUserId, action, details) {
         },
       ],
     }));
-  } catch (error) {
-    logger.warn(EVENTS.AUDIT_LOG_WRITE_FAILED, { action, error: error.message });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.warn(EVENTS.AUDIT_LOG_WRITE_FAILED, { action, error: errorMessage });
     // Don't fail the operation if logging fails
   }
 }
@@ -70,7 +72,7 @@ async function auditLog(adminUserId, action, details) {
  * Delete ALL transactions from DynamoDB (no userId filter)
  * DANGEROUS: This will delete data for all users
  */
-async function purgeAllTransactions() {
+async function purgeAllTransactions(): Promise<number> {
   logger.info(EVENTS.PURGE_ALL_TRANSACTIONS_STARTED, {});
 
   // Step 1: Scan ALL transactions (no partition key filter)
@@ -79,16 +81,16 @@ async function purgeAllTransactions() {
     ProjectionExpression: 'userId, transactionId', // Only fetch keys
   };
 
-  let allItems = [];
-  let lastEvaluatedKey = null;
+  let allItems: Array<{ userId: string; transactionId: string }> = [];
+  let lastEvaluatedKey: Record<string, unknown> | undefined = undefined;
 
   do {
-    if (lastEvaluatedKey) {
-      scanParams.ExclusiveStartKey = lastEvaluatedKey;
-    }
+    const scanWithKey = lastEvaluatedKey
+      ? { ...scanParams, ExclusiveStartKey: lastEvaluatedKey }
+      : scanParams;
 
-    const result = await docClient.send(new ScanCommand(scanParams));
-    allItems = allItems.concat(result.Items || []);
+    const result = await docClient.send(new ScanCommand(scanWithKey));
+    allItems = allItems.concat((result.Items || []) as Array<{ userId: string; transactionId: string }>);
     lastEvaluatedKey = result.LastEvaluatedKey;
     logger.debug(EVENTS.PURGE_ALL_TRANSACTIONS_SCAN_BATCH, { totalFound: allItems.length });
   } while (lastEvaluatedKey);
@@ -117,7 +119,7 @@ async function purgeAllTransactions() {
     await docClient.send(
       new BatchWriteCommand({
         RequestItems: {
-          [TRANSACTIONS_TABLE]: deleteRequests,
+          [TRANSACTIONS_TABLE!]: deleteRequests,
         },
       })
     );
@@ -133,12 +135,12 @@ async function purgeAllTransactions() {
  * Delete ALL images from S3 (no prefix filter)
  * DANGEROUS: This will delete all images for all users
  */
-async function purgeAllImages() {
+async function purgeAllImages(): Promise<number> {
   logger.info(EVENTS.PURGE_ALL_IMAGES_STARTED, {});
 
   // Step 1: List ALL objects (no prefix filter)
-  let allObjects = [];
-  let continuationToken = null;
+  let allObjects: Array<{ Key?: string }> = [];
+  let continuationToken: string | undefined = undefined;
 
   do {
     const listParams = {
@@ -171,7 +173,7 @@ async function purgeAllImages() {
     const deleteParams = {
       Bucket: IMAGES_BUCKET,
       Delete: {
-        Objects: batch.map((obj) => ({ Key: obj.Key })),
+        Objects: batch.map((obj) => ({ Key: obj.Key! })),
         Quiet: true,
       },
     };
@@ -185,6 +187,19 @@ async function purgeAllImages() {
 }
 
 /**
+ * Response body interface
+ */
+interface PurgeAllDataResponse {
+  action: string;
+  adminUserId: string;
+  deleted: {
+    transactions: number;
+    images: number;
+  };
+  timestamp: string;
+}
+
+/**
  * Lambda handler
  * POST /admin/purge-all-data
  * Headers: { x-admin-user-id: "admin-user-id" }
@@ -192,7 +207,7 @@ async function purgeAllImages() {
  * WARNING: This endpoint deletes ALL system data
  * Use with extreme caution
  */
-export async function handler(event) {
+export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   initContext(event);
   logger.debug(EVENTS.ADMIN_PURGE_ALL_DATA_REQUEST, { method: event.requestContext?.http?.method });
 
@@ -228,7 +243,7 @@ export async function handler(event) {
     const transactionCount = await purgeAllTransactions();
     const imageCount = await purgeAllImages();
 
-    const result = {
+    const result: PurgeAllDataResponse = {
       action: 'admin_purge_all_data',
       adminUserId,
       deleted: {
@@ -248,14 +263,16 @@ export async function handler(event) {
       headers,
       body: JSON.stringify(result),
     };
-  } catch (error) {
-    logger.error(EVENTS.ADMIN_PURGE_ALL_DATA_ERROR, error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error(EVENTS.ADMIN_PURGE_ALL_DATA_ERROR, { error: errorMessage });
 
     // Log the error for audit trail
     const adminUserId = event.headers?.['x-admin-user-id'] || 'unknown';
     await auditLog(adminUserId, 'purge_all_data_failed', {
-      error: error.message,
-      stack: error.stack,
+      error: errorMessage,
+      stack: errorStack,
     });
 
     return {
@@ -263,7 +280,7 @@ export async function handler(event) {
       headers,
       body: JSON.stringify({
         error: 'Internal server error',
-        message: error.message,
+        message: errorMessage,
       }),
     };
   }
