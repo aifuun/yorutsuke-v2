@@ -8,7 +8,7 @@
  * - Creates tauri.conf.temp.json with desired port
  * - Tauri dev uses temp config, never modifies committed tauri.conf.json
  * - Temp file is git-ignored (added to .gitignore)
- * - On exit, cleans up temp file
+ * - On exit, cleans up temp file and all child processes
  * - All other config changes are visible to git (not hidden)
  */
 
@@ -16,6 +16,7 @@ import { spawn } from 'child_process';
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { kill } from 'process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,17 +44,24 @@ const tauriProcess = spawn('tauri', ['dev', '--config', 'src-tauri/tauri.conf.te
   env: { ...process.env, VITE_PORT: port }
 });
 
-// Clean up temp config on exit
+// Clean up temp config and kill process tree on exit
 const cleanup = () => {
   try {
+    // Kill the entire process group (tauri + vite + all children)
+    if (tauriProcess && tauriProcess.pid) {
+      kill(-tauriProcess.pid, 'SIGTERM');
+    }
+
+    // Clean up temp config file
     if (existsSync(tempConfigPath)) {
       unlinkSync(tempConfigPath);
-      console.log('\n\x1b[36m[Tauri Dev]\x1b[0m Cleaned up temporary config');
+      console.log('\x1b[36m[Tauri Dev]\x1b[0m Cleaned up temporary config');
     }
   } catch (error) {
-    console.error('\x1b[31m[Tauri Dev] Error cleaning up:\x1b[0m', error.message);
+    // Silently ignore errors
   }
-  process.exit();
+
+  process.exit(0);
 };
 
 process.on('SIGINT', cleanup);
