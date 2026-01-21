@@ -130,6 +130,10 @@ npm run test:infra            # Infra tests only
 npm run test:app:watch        # App tests in watch mode
 npm run test:infra:watch      # Infra tests in watch mode
 
+# Environment Sync (from root directory)
+npm run env:sync              # Sync .env files to .env.local
+npm run env:sync:cdk          # Sync AWS CDK outputs to env files
+
 # Layer-only deploy (≤10s after modifying shared-layer/)
 cd infra/lambda/shared-layer && zip -r /tmp/layer.zip nodejs/
 aws lambda publish-layer-version --layer-name yorutsuke-shared-dev --zip-file fileb:///tmp/layer.zip --profile dev

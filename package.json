@@ -10,7 +10,9 @@
     "test:app": "./scripts/run-all-tests.sh app",
     "test:infra": "./scripts/run-all-tests.sh infra",
     "test:app:watch": "./scripts/run-all-tests.sh app --watch",
-    "test:infra:watch": "./scripts/run-all-tests.sh infra --watch"
+    "test:infra:watch": "./scripts/run-all-tests.sh infra --watch",
+    "env:sync": "bash scripts/sync-env.sh",
+    "env:sync:cdk": "bash scripts/sync-cdk-outputs.sh dev dev"
   },
   "keywords": [
     "accounting",

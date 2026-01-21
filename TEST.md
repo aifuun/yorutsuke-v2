@@ -25,6 +25,12 @@ npm run test:app:watch
 
 # Infra tests in watch mode
 npm run test:infra:watch
+
+# Sync environment files
+npm run env:sync
+
+# Sync AWS CDK outputs to env files
+npm run env:sync:cdk
 ```
 
 ## 📊 Current Test Status
