@@ -29,7 +29,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // ========================================
     const sharedLayer = new lambda.LayerVersion(this, "AdminSharedLayer", {
       layerVersionName: `yorutsuke-admin-shared-us-${env}`,
-      code: lambda.Code.fromAsset("lambda/shared-layer"),
+      code: lambda.Code.fromAsset(".lambda-dist/shared-layer"),
       compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
       description: "Shared utilities for Yorutsuke Admin Lambdas",
     });
@@ -141,7 +141,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       functionName: `yorutsuke-admin-stats-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/stats"),
+      code: lambda.Code.fromAsset(".lambda-dist/admin/stats"),
       layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
@@ -186,7 +186,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       functionName: `yorutsuke-admin-control-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/control"),
+      code: lambda.Code.fromAsset(".lambda-dist/admin/control"),
       layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
@@ -203,7 +203,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       functionName: `yorutsuke-admin-costs-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/costs"),
+      code: lambda.Code.fromAsset(".lambda-dist/admin/costs"),
       layers: [sharedLayer],
       environment: {
         // No specific env vars needed
@@ -226,7 +226,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       functionName: `yorutsuke-admin-model-config-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/model-config"),
+      code: lambda.Code.fromAsset(".lambda-dist/admin/model-config"),
       layers: [sharedLayer],
       environment: {
         CONTROL_TABLE_NAME: controlTable.tableName,
@@ -251,7 +251,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
       functionName: `yorutsuke-admin-azure-credentials-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin/azure-credentials"),
+      code: lambda.Code.fromAsset(".lambda-dist/admin/azure-credentials"),
       layers: [sharedLayer],
       environment: {
         AZURE_CREDENTIALS_SECRET_ARN: azureSecret.secretArn,

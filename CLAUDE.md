@@ -135,15 +135,24 @@ npm run -w infra diff         # Preview CDK changes
 npm run -w infra synth        # Synthesize CDK template
 ```
 
-**Layer-only deploy** (≤10s after modifying shared-layer/):
+**Lambda development** (TypeScript workflow):
 ```bash
-cd infra && zip -r /tmp/layer.zip lambda/shared-layer/nodejs/
+# Build Lambda TypeScript files (after code changes)
+cd infra && npm run build:lambdas          # Compiles .ts → .mjs in .lambda-dist/
+
+# Layer-only deploy (after modifying shared-layer/)
+cd infra && npm run build:lambdas && \
+zip -r /tmp/layer.zip .lambda-dist/shared-layer/nodejs/ && \
 aws lambda publish-layer-version --layer-name yorutsuke-shared-dev --zip-file fileb:///tmp/layer.zip --profile dev
 ```
 
 ## Infrastructure
 
-**Two AWS CDK Stacks**: Main App (S3 → Lambda instant-processor → Bedrock OCR → DynamoDB), Admin Panel (Cognito + API Gateway + CloudFront). Shared Lambda layer contains model-analyzer, logger, schemas. Deploy with: `npm run deploy` (from root).
+**Two AWS CDK Stacks**: Main App (S3 → Lambda instant-processor → Bedrock OCR → DynamoDB), Admin Panel (Cognito + API Gateway + CloudFront).
+
+**Lambda Functions**: All 16 Lambda functions migrated to TypeScript (ES2022, strict mode, compiled with esbuild). Shared Lambda layer contains model-analyzer, logger, schemas.
+
+**Build & Deploy**: `npm run deploy` (from root) - automatically builds TypeScript (CDK + Lambdas) before deploying.
 
 ## Test Assets
 

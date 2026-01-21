@@ -1,9 +1,9 @@
 # ADR-014: Lambda 部署与同步策略（三层架构）
 
-**状态**: 已接受（2026-01-14 修订）
+**状态**: 已接受（2026-01-21 修订 - TypeScript 支持）
 **日期**: 2026-01
-**相关组件**: AWS Lambda, Lambda Layers, AWS CDK, Azure DI SDK, cdk watch
-**相关决策**: [ADR-016](./016-lambda-local-first-testing.md) (三层 Lambda 测试), [ADR-018](./018-cdk-watch-cloud-driven-testing.md) (cdk watch 云端驱动)
+**相关组件**: AWS Lambda, Lambda Layers, AWS CDK, TypeScript, esbuild, Azure DI SDK, cdk watch
+**相关决策**: [ADR-016](./016-lambda-local-first-testing.md) (三层 Lambda 测试), [ADR-018](./018-cdk-watch-cloud-driven-testing.md) (cdk watch 云端驱动), Issue #160 (TypeScript 迁移)
 
 ---
 
@@ -37,15 +37,16 @@
 
 采用分层部署策略，根据文件变动类型选择**最快的同步路径**，平衡"云端真实环境"和"秒级同步"。
 
-### **Tier 1: 极速路径 (Manual Layer Sync) — < 10 秒**
+### **Tier 1: 极速路径 (Manual Layer Sync) — < 15 秒**
 
-**适用场景**：仅修改 `infra/lambda/shared-layer/nodejs/shared/*.mjs`
-**操作**：手动打包 Zip 并通过 AWS CLI 直接发布新版本，随后更新 Lambda 函数配置
+**适用场景**：仅修改 `infra/lambda/shared-layer/nodejs/shared/*.ts` (TypeScript 源文件)
+**操作**：编译 TypeScript → 打包 Zip → 通过 AWS CLI 直接发布新版本 → 更新 Lambda 函数配置
 **优势**：
-- ✅ 跳过 CloudFormation，同步时间 < 10 秒
+- ✅ 跳过 CloudFormation，同步时间 < 15 秒
 - ✅ 确定性：总是创建新版本（无缓存干扰）
 - ✅ 可见性：明确的版本号显示在命令输出中
 - ✅ 可靠性：无 CDK 缓存问题
+- ✅ 类型安全：TypeScript 编译时检查
 
 **何时使用**：
 - 紧急 bug 修复（需立即部署）
@@ -55,8 +56,13 @@
 **执行步骤**：
 
 ```bash
-# Step 1: 打包 Layer（必须保证 nodejs/ 是根目录）
-cd infra/lambda/shared-layer
+# Step 0: 编译 TypeScript (esbuild, ~8ms)
+cd infra
+npm run build:lambdas
+# 输出到 .lambda-dist/shared-layer/
+
+# Step 1: 打包编译后的 Layer（必须保证 nodejs/ 是根目录）
+cd .lambda-dist/shared-layer
 zip -r /tmp/layer.zip nodejs/
 
 # Step 2: 发布新版本到 AWS
@@ -95,16 +101,17 @@ aws lambda get-function-configuration \
 
 ### **Tier 2: 实时路径 (CDK Watch / Hotswap) — 1-3 秒**
 
-**适用场景**：修改 Lambda 处理程序 (`index.mjs`)、环境变量或非破坏性基建变更
-**操作**：运行 `npx cdk watch --profile dev` 开启监听模式
+**适用场景**：修改 Lambda 处理程序 (`index.ts`)、环境变量或非破坏性基建变更
+**操作**：运行 `npx cdk watch --profile dev` 开启监听模式（自动编译 TypeScript）
 **优势**：
-- ✅ 代码保存即同步（自动检测变更）
+- ✅ 代码保存即同步（自动检测变更 + 自动编译）
 - ✅ 自动 Hotswap（AWS CDK 的热交换能力）
 - ✅ 无需手动命令，开发体验最佳
 - ✅ 真实 AWS 环境测试
+- ✅ TypeScript 编译自动化
 
 **何时使用**：
-- Lambda 函数业务逻辑改动（`instant-processor/index.mjs` 等）
+- Lambda 函数业务逻辑改动（`instant-processor/index.ts` 等）
 - Lambda 环境变量配置改动
 - Lambda 角色权限改动（非破坏性）
 - 本地开发迭代周期
@@ -190,13 +197,20 @@ aws lambda get-function-configuration \
 
 ## 实现规则 (Implementation Rules)
 
-### Rule 1: Tier 1 的正确打包结构
+### Rule 1: Tier 1 的正确打包结构（TypeScript 编译后）
 
 打包时必须确保 `nodejs/` **是压缩包的根目录**，否则 Lambda 无法识别路径。
 
+**重要**：现在所有 Lambda 都是 TypeScript，必须先编译后再打包。
+
 ```bash
-# ✅ 正确：进入 shared-layer 目录，以 nodejs/ 为根
-cd infra/lambda/shared-layer
+# Step 0: 编译 TypeScript（必须先执行）
+cd infra
+npm run build:lambdas
+# 输出到 .lambda-dist/shared-layer/nodejs/shared/*.mjs
+
+# ✅ 正确：进入编译输出目录，以 nodejs/ 为根
+cd .lambda-dist/shared-layer
 zip -r /tmp/layer.zip nodejs/
 
 # 验证压缩包结构
@@ -204,14 +218,20 @@ unzip -l /tmp/layer.zip | head -10
 # 应该看到：
 # nodejs/
 # nodejs/shared/
-# nodejs/shared/model-analyzer.mjs
-# nodejs/shared/schemas.mjs
+# nodejs/shared/model-analyzer.mjs    ← 编译后的 .mjs
+# nodejs/shared/schemas.mjs           ← 编译后的 .mjs
+# nodejs/shared/logger.mjs            ← 编译后的 .mjs
 # ...
 
-# ❌ 错误：从 infra 目录打包会产生错误的路径
+# ❌ 错误1：从源代码目录打包（TypeScript 不能直接运行）
+cd infra/lambda/shared-layer
+zip -r /tmp/layer.zip nodejs/
+# 这会打包 .ts 文件，Lambda 无法执行
+
+# ❌ 错误2：从 infra 目录打包会产生错误的路径
 cd infra
-zip -r /tmp/layer.zip lambda/shared-layer/nodejs
-# 这会产生: lambda/shared-layer/nodejs/shared/xxx.mjs (错误)
+zip -r /tmp/layer.zip .lambda-dist/shared-layer/nodejs
+# 这会产生: .lambda-dist/shared-layer/nodejs/shared/xxx.mjs (错误)
 ```
 
 ### Rule 2: 多函数同步校验
@@ -278,23 +298,24 @@ git commit -m "fix: update Azure DI API path in model-analyzer.mjs (Layer v16)
 
 ---
 
-## 决策选择流程图 (Decision Tree)
+## 决策选择流程图 (Decision Tree - TypeScript 版本)
 
 ```
 修改了源代码文件
     ↓
 什么类型的改动?
     │
-    ├─ infra/lambda/shared-layer/nodejs/shared/*.mjs?
-    │  └─ YES → Tier 1 (Manual Layer Sync) — < 10秒
-    │     • 打包 zip
+    ├─ infra/lambda/shared-layer/nodejs/shared/*.ts?
+    │  └─ YES → Tier 1 (Manual Layer Sync) — < 15秒
+    │     • npm run build:lambdas (编译 TypeScript)
+    │     • 打包 .lambda-dist/shared-layer/nodejs/
     │     • 发布 Layer
     │     • 更新 Lambda 函数 ARN
     │     • 验证所有函数都指向新版本
     │
-    ├─ infra/lambda/[instant|batch]-processor/index.mjs?
+    ├─ infra/lambda/*/index.ts (Lambda 函数代码)?
     │  └─ YES → Tier 2 (cdk watch) — 1-3秒
-    │     • cdk watch 自动同步
+    │     • cdk watch 自动检测 + 编译 + 部署
     │     • 开发时最快
     │
     ├─ infra/lib/*.ts (CDK 代码)?
@@ -309,6 +330,12 @@ git commit -m "fix: update Azure DI API path in model-analyzer.mjs (Layer v16)
     └─ 准备合并 PR / 部署到生产?
        └─ 运行 Tier 3 进行最终验证
 ```
+
+**TypeScript 注意事项**：
+- 所有 Lambda 源文件现在是 `.ts` 格式
+- 编译后生成 `.mjs` 文件（ES Modules）
+- **必须先编译** (`npm run build:lambdas`) **再打包**
+- `cdk watch` 会自动编译 TypeScript
 
 ---
 
@@ -450,6 +477,84 @@ CDK Hotswap：无需等待 CloudFormation
     ↓
 1-3 秒内完成 ✅
 ```
+
+---
+
+## TypeScript Lambda 快速部署 (Issue #160 更新)
+
+### TypeScript 编译性能
+
+**esbuild 编译速度**: ~8-11ms for all 16 Lambda functions
+
+```bash
+npm run build:lambdas
+# ✨ Build completed successfully!
+# ⚡ Done in 8ms
+```
+
+这使得 Tier 1 的时间开销仅增加了 ~5 秒。
+
+### Tier 1 快速命令（一键部署 Layer）
+
+```bash
+# 完整命令（从源代码到 AWS，< 15 秒）
+cd infra && \
+npm run build:lambdas && \
+cd .lambda-dist/shared-layer && \
+zip -r /tmp/layer.zip nodejs/ && \
+LAYER_V=$(aws lambda publish-layer-version \
+  --layer-name yorutsuke-shared-dev \
+  --zip-file fileb:///tmp/layer.zip \
+  --compatible-runtimes nodejs20.x \
+  --profile dev | jq -r '.Version') && \
+echo "✅ Published Layer Version: $LAYER_V" && \
+aws lambda update-function-configuration \
+  --function-name yorutsuke-instant-processor-us-dev \
+  --layers arn:aws:lambda:us-east-1:696249060859:layer:yorutsuke-shared-dev:$LAYER_V \
+  --profile dev > /dev/null && \
+echo "✅ Updated instant-processor to Layer v$LAYER_V" && \
+aws lambda get-function-configuration \
+  --function-name yorutsuke-instant-processor-us-dev \
+  --profile dev | jq '.Layers[0].Arn'
+```
+
+**时间分解**:
+- TypeScript 编译: ~8ms
+- Zip 打包: ~1s
+- 发布 Layer: ~3s
+- 更新 Lambda: ~2s
+- 总计: **< 10 秒**
+
+### Tier 2: 单个 Lambda 函数快速更新
+
+如果只修改单个 Lambda 函数（不涉及 shared-layer），可以直接更新函数代码：
+
+```bash
+# 1. 编译 TypeScript
+cd infra
+npm run build:lambdas
+
+# 2. 打包单个函数
+cd .lambda-dist/instant-processor
+zip -r /tmp/instant-processor.zip .
+
+# 3. 直接更新 Lambda 代码（跳过 CDK）
+aws lambda update-function-code \
+  --function-name yorutsuke-instant-processor-us-dev \
+  --zip-file fileb:///tmp/instant-processor.zip \
+  --profile dev
+
+# 时间: ~10-15 秒
+```
+
+**注意**: 这种方法只更新代码，不更新配置（环境变量、权限等）。
+
+### TypeScript 的额外好处
+
+1. **编译时检查**: TypeScript 会在部署前捕获类型错误
+2. **EVENTS 常量强制**: 所有 logger 调用必须使用 EVENTS 常量
+3. **更好的 IDE 支持**: 自动补全、跳转定义
+4. **更安全的重构**: 重命名时自动更新所有引用
 
 ---
 

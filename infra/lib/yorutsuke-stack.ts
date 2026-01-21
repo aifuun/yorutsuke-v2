@@ -141,7 +141,7 @@ export class YorutsukeStack extends cdk.Stack {
     // Lambda Layer for shared code
     const sharedLayer = new lambda.LayerVersion(this, "SharedLayer", {
       layerVersionName: `yorutsuke-shared-${env}`,
-      code: lambda.Code.fromAsset("lambda/shared-layer"),
+      code: lambda.Code.fromAsset(".lambda-dist/shared-layer"),
       compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
       description: "Shared utilities for Yorutsuke Lambdas",
     });
@@ -170,7 +170,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-presign-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/presign"),
+      code: lambda.Code.fromAsset(".lambda-dist/presign"),
       layers: [sharedLayer],
       environment: {
         BUCKET_NAME: imageBucket.bucketName,
@@ -200,7 +200,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-quota-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/quota"),
+      code: lambda.Code.fromAsset(".lambda-dist/quota"),
       layers: [sharedLayer],
       environment: {
         QUOTAS_TABLE_NAME: quotasTable.tableName,
@@ -226,7 +226,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-issue-permit-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/issue-permit"),
+      code: lambda.Code.fromAsset(".lambda-dist/issue-permit"),
       environment: {
         PERMIT_SECRET_KEY_ARN: permitSecret.secretArn,
       },
@@ -262,7 +262,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-config-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/config"),
+      code: lambda.Code.fromAsset(".lambda-dist/config"),
       layers: [sharedLayer],
       environment: {
         QUOTA_LIMIT: "50",
@@ -292,7 +292,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-transactions-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/transactions"),
+      code: lambda.Code.fromAsset(".lambda-dist/transactions"),
       layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
@@ -324,7 +324,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-report-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/report"),
+      code: lambda.Code.fromAsset(".lambda-dist/report"),
       layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
@@ -365,7 +365,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-instant-processor-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/instant-processor"),
+      code: lambda.Code.fromAsset(".lambda-dist/instant-processor"),
       layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE_NAME: transactionsTable.tableName,
@@ -508,7 +508,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-admin-delete-data-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/admin-delete-data"),
+      code: lambda.Code.fromAsset(".lambda-dist/admin-delete-data"),
       environment: {
         TRANSACTIONS_TABLE: transactionsTable.tableName,
         IMAGES_BUCKET: imageBucket.bucketName,
@@ -581,7 +581,7 @@ export class YorutsukeStack extends cdk.Stack {
       functionName: `yorutsuke-diagnostic-us-${env}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
-      code: lambda.Code.fromAsset("lambda/diagnostic"),
+      code: lambda.Code.fromAsset(".lambda-dist/diagnostic"),
       layers: [sharedLayer],
       environment: {
         TRANSACTIONS_TABLE: transactionsTable.tableName,

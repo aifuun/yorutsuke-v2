@@ -5,6 +5,7 @@ node_modules/
 dist/
 *.js
 *.d.ts
+.lambda-dist/
 
 # CDK
 cdk.out/

@@ -1,0 +1,173 @@
+import { z } from 'zod';
+
+/**
+ * AI OCR Result Schema (Pillar B: Airlock)
+ * @ai-intent: Lenient on AI output - allow empty/invalid values, will be caught by TransactionSchema
+ */
+export const OcrResultSchema = z.object({
+  amount: z.number().catch(0), // Default to 0 if invalid
+  type: z.enum(['income', 'expense']).catch('expense'), // Default to expense
+  date: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
+  merchant: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
+  category: z.enum(['food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other']).catch('other'),
+  description: z.string().optional().default(''),
+  // Tax fields (Issue #155) - extracted from receipts, optional for backward compatibility
+  subtotal: z.number().optional(), // Pre-tax amount (¥)
+  taxAmount: z.number().optional(), // Tax amount (¥)
+  taxRate: z.number().optional(), // Tax rate (8 or 10 for Japan)
+});
+
+/**
+ * Inferred TypeScript type from OcrResultSchema
+ */
+export type OcrResult = z.infer<typeof OcrResultSchema>;
+
+/**
+ * Model Analysis Result Schema
+ * Unified format for Azure DI analysis results
+ */
+export const ModelResultSchema = z.object({
+  vendor: z.string().optional(),
+  lineItems: z.array(z.object({
+    description: z.string(),
+    quantity: z.number().optional(),
+    unitPrice: z.number().optional(),
+    totalPrice: z.number().optional(),
+  })).optional(),
+  subtotal: z.number().optional(),
+  taxAmount: z.number().optional(),
+  taxRate: z.number().optional(), // 8% or 10% for Japan
+  totalAmount: z.number().optional(),
+  confidence: z.number().optional(), // 0-100 confidence score
+  rawResponse: z.record(z.any()).optional(), // @ai-intent: Store raw API response for debugging
+});
+
+/**
+ * Inferred TypeScript type from ModelResultSchema
+ */
+export type ModelResult = z.infer<typeof ModelResultSchema>;
+
+// ModelComparisonSchema removed - single model only (no multi-model comparison)
+
+/**
+ * DynamoDB Transaction Schema
+ */
+export const TransactionSchema = z.object({
+  userId: z.string(),
+  transactionId: z.string(),
+  imageId: z.string().optional(),
+  s3Key: z.string().optional(), // S3 object key for associated image
+  amount: z.number(),
+  type: z.enum(['income', 'expense']),
+  date: z.string(),
+  merchant: z.string(),
+  merchantSource: z.enum(['list_match', 'ocr_fallback', 'unknown', 'user_edited']).optional(), // @ai-intent: Track merchant matching source for analytics
+  category: z.string(),
+  description: z.string(),
+  status: z.enum(['unconfirmed', 'confirmed', 'deleted']),
+  aiProcessed: z.boolean().default(true),
+  version: z.number().default(1),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  confirmedAt: z.string().nullable().default(null),
+  validationErrors: z.array(z.any()).optional(), // @ai-intent: Store Zod validation errors for debugging
+
+  // Primary model metadata (Pillar R: Track which model processed this transaction)
+  primaryModelId: z.string().optional(), // e.g., 'us.amazon.nova-lite-v1:0', 'azure_di'
+  primaryConfidence: z.number().optional(), // 0-100 confidence score from primary model
+
+  // Distributed tracing (Pillar N: Context Propagation)
+  traceId: z.string().optional(), // Frontend-generated trace-{uuid} for end-to-end tracking
+
+  // Tax fields (Issue #155) - For Japanese tax reporting (consumption tax filing)
+  subtotal: z.number().optional(), // Pre-tax amount (¥) - required for general taxpayer (一般納税人)
+  taxAmount: z.number().optional(), // Tax amount (¥) - for consumption tax calculation
+  taxRate: z.number().optional(), // Tax rate (8 or 10 for Japan) - for tax verification
+
+  // Guest user TTL
+  isGuest: z.boolean().optional(),
+  ttl: z.number().optional(),
+});
+
+/**
+ * Inferred TypeScript type from TransactionSchema
+ */
+export type Transaction = z.infer<typeof TransactionSchema>;
+
+/**
+ * Transaction type enum (extracted from schema)
+ */
+export type TransactionType = 'income' | 'expense';
+
+/**
+ * Transaction status enum (extracted from schema)
+ */
+export type TransactionStatus = 'unconfirmed' | 'confirmed' | 'deleted';
+
+/**
+ * Category enum (extracted from OcrResultSchema)
+ */
+export type Category = 'food' | 'transport' | 'shopping' | 'entertainment' | 'utilities' | 'health' | 'other';
+
+/**
+ * Merchant source enum (extracted from TransactionSchema)
+ */
+export type MerchantSource = 'list_match' | 'ocr_fallback' | 'unknown' | 'user_edited';
+
+/**
+ * Azure Document Intelligence Credentials Schema
+ * @ai-intent: Separate schema for credentials validation, loaded from Secrets Manager at runtime
+ */
+export const AzureCredentialsSchema = z.object({
+  endpoint: z.string().url().regex(/\.cognitiveservices\.azure\.com/, 'Must be valid Azure Cognitive Services endpoint'),
+  apiKey: z.string().min(32, 'API key must be at least 32 characters'),
+});
+
+/**
+ * Inferred TypeScript type from AzureCredentialsSchema
+ */
+export type AzureCredentials = z.infer<typeof AzureCredentialsSchema>;
+
+/**
+ * System Configuration Schema (for model selection and processing settings)
+ * @ai-intent: Dynamic model selection without redeployment
+ * Single model processing only (instant mode)
+ */
+export const SystemConfigSchema = z.object({
+  processingMode: z.enum(['instant']),  // Batch/Hybrid removed
+  imageThreshold: z.number().min(100).max(500).optional(),  // Optional (not used in instant mode)
+  timeoutMinutes: z.number().min(30).max(480).optional(),  // Optional (not used in instant mode)
+
+  // Primary model selection
+  primaryModelId: z.string().default('us.amazon.nova-lite-v1:0'),
+
+  // Azure DI configuration (optional, only if azure_di is selected as primaryModelId)
+  azureConfig: z.object({
+    enabled: z.boolean(),
+    secretArn: z.string(),
+  }).nullable().optional(),
+
+  // Backward compatibility (deprecated - will be removed in 1 sprint)
+  modelId: z.string().optional(),
+
+  updatedAt: z.string(),
+  updatedBy: z.string(),
+});
+
+/**
+ * Inferred TypeScript type from SystemConfigSchema
+ */
+export type SystemConfig = z.infer<typeof SystemConfigSchema>;
+
+/**
+ * Processing mode enum
+ */
+export type ProcessingMode = 'instant';
+
+// Backward compatibility alias (deprecated)
+export const BatchConfigSchema = SystemConfigSchema;
+
+/**
+ * Backward compatibility type alias (deprecated)
+ */
+export type BatchConfig = SystemConfig;
