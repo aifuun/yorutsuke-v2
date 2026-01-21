@@ -5,13 +5,30 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import crypto from 'crypto';
+
+// Mock logger before importing module
+vi.mock('/opt/nodejs/shared/logger.mjs', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+  },
+  initContext: vi.fn(),
+  EVENTS: {
+    PERMIT_ISSUED: 'PERMIT_ISSUED',
+    PERMIT_ISSUE_FAILED: 'PERMIT_ISSUE_FAILED',
+    PERMIT_SECRET_FETCH_FAILED: 'PERMIT_SECRET_FETCH_FAILED',
+  },
+}));
+
 import {
   signPermit,
   verifyPermitSignature,
   verifyPermitSignatureMultiKey,
   getUserTier,
   isPermitExpired,
-} from './index.mjs';
+} from '../index.js';
 
 // Tier configurations (for testing)
 const TIER_CONFIGS = {

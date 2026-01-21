@@ -11,9 +11,34 @@ import {
   GetSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
+import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from './types/aws-events.js';
 
-// Tier configurations
-const TIER_CONFIGS = {
+/**
+ * Tier configuration interface
+ */
+interface TierConfig {
+  totalLimit: number;
+  dailyRate: number;
+  validDays: number;
+}
+
+/**
+ * Permit interface
+ */
+export interface Permit {
+  userId: string;
+  totalLimit: number;
+  dailyRate: number;
+  expiresAt: string;
+  issuedAt: string;
+  signature: string;
+  tier: string;
+}
+
+/**
+ * Tier configurations
+ */
+const TIER_CONFIGS: Record<string, TierConfig> = {
   guest: { totalLimit: 500, dailyRate: 30, validDays: 30 },
   free: { totalLimit: 1000, dailyRate: 50, validDays: 30 },
   basic: { totalLimit: 3000, dailyRate: 100, validDays: 30 },
@@ -21,7 +46,7 @@ const TIER_CONFIGS = {
 };
 
 // Cache for secret key (Lambda container reuse)
-let cachedSecretKey = null;
+let cachedSecretKey: string | null = null;
 
 const secretsClient = new SecretsManagerClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -30,7 +55,7 @@ const secretsClient = new SecretsManagerClient({
 /**
  * Retrieve PERMIT_SECRET_KEY from AWS Secrets Manager
  */
-async function getSecretKey() {
+async function getSecretKey(): Promise<string> {
   if (cachedSecretKey) return cachedSecretKey;
 
   const secretArn = process.env.PERMIT_SECRET_KEY_ARN;
@@ -42,10 +67,11 @@ async function getSecretKey() {
     const response = await secretsClient.send(
       new GetSecretValueCommand({ SecretId: secretArn })
     );
-    cachedSecretKey = response.SecretString;
+    cachedSecretKey = response.SecretString || '';
     return cachedSecretKey;
-  } catch (error) {
-    logger.error(EVENTS.PERMIT_SECRET_FETCH_FAILED, error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(EVENTS.PERMIT_SECRET_FETCH_FAILED, { error: errorMessage });
     throw new Error('Failed to retrieve permit secret key');
   }
 }
@@ -59,7 +85,7 @@ async function getSecretKey() {
  *
  * TODO: Query DynamoDB users table for authenticated users' subscription tier
  */
-export function getUserTier(userId) {
+export function getUserTier(userId: string): string {
   if (userId.startsWith('device-')) {
     return 'guest';
   }
@@ -79,7 +105,14 @@ export function getUserTier(userId) {
  *
  * Message format: userId:totalLimit:dailyRate:expiresAt:issuedAt
  */
-export function signPermit(userId, totalLimit, dailyRate, expiresAt, issuedAt, secretKey) {
+export function signPermit(
+  userId: string | null | undefined,
+  totalLimit: number,
+  dailyRate: number,
+  expiresAt: string,
+  issuedAt: string,
+  secretKey: string
+): string {
   // Parameter validation (fixes T8.1, T8.2)
   if (userId === null || userId === undefined) {
     throw new Error('userId is required');
@@ -92,13 +125,13 @@ export function signPermit(userId, totalLimit, dailyRate, expiresAt, issuedAt, s
 /**
  * Verify permit signature using a single secret key
  *
- * @param {object} permit - Permit object with signature
- * @param {string} secretKey - Secret key for verification
- * @returns {boolean} True if signature is valid
+ * @param permit - Permit object with signature
+ * @param secretKey - Secret key for verification
+ * @returns True if signature is valid
  */
-export function verifyPermitSignature(permit, secretKey) {
+export function verifyPermitSignature(permit: Partial<Permit>, secretKey: string): boolean {
   // Field validation (fixes T11.5)
-  const requiredFields = ['userId', 'totalLimit', 'dailyRate', 'expiresAt', 'issuedAt', 'signature'];
+  const requiredFields: Array<keyof Permit> = ['userId', 'totalLimit', 'dailyRate', 'expiresAt', 'issuedAt', 'signature'];
   for (const field of requiredFields) {
     if (!(field in permit)) {
       throw new Error(`Missing required field: ${field}`);
@@ -113,11 +146,11 @@ export function verifyPermitSignature(permit, secretKey) {
 /**
  * Verify permit signature with multiple keys (for key rotation)
  *
- * @param {object} permit - Permit object with signature
- * @param {string[]} secretKeys - Array of secret keys to try
- * @returns {boolean} True if any key validates the signature
+ * @param permit - Permit object with signature
+ * @param secretKeys - Array of secret keys to try
+ * @returns True if any key validates the signature
  */
-export function verifyPermitSignatureMultiKey(permit, secretKeys) {
+export function verifyPermitSignatureMultiKey(permit: Partial<Permit>, secretKeys: string[]): boolean {
   for (const secretKey of secretKeys) {
     if (verifyPermitSignature(permit, secretKey)) {
       return true;
@@ -129,21 +162,21 @@ export function verifyPermitSignatureMultiKey(permit, secretKeys) {
 /**
  * Check if a permit has expired
  *
- * @param {string} expiresAt - ISO 8601 expiration timestamp
- * @returns {boolean} True if expired
+ * @param expiresAt - ISO 8601 expiration timestamp
+ * @returns True if expired
  */
-export function isPermitExpired(expiresAt) {
+export function isPermitExpired(expiresAt: string): boolean {
   return new Date(expiresAt).getTime() < Date.now();
 }
 
 /**
  * Generate an upload permit for a user
  *
- * @param {string} userId - User identifier (device-* or user-*)
- * @param {number} [validDays] - Permit validity period (default: tier config)
- * @returns {Promise<object>} Generated permit
+ * @param userId - User identifier (device-* or user-*)
+ * @param validDays - Permit validity period (default: tier config)
+ * @returns Generated permit
  */
-export async function issuePermit(userId, validDays = null) {
+export async function issuePermit(userId: string, validDays: number | null = null): Promise<Permit> {
   // 1. Determine tier
   const tier = getUserTier(userId);
   const config = TIER_CONFIGS[tier];
@@ -174,7 +207,7 @@ export async function issuePermit(userId, validDays = null) {
   );
 
   // 5. Construct permit
-  const permit = {
+  const permit: Permit = {
     userId,
     totalLimit: config.totalLimit,
     dailyRate: config.dailyRate,
@@ -189,8 +222,10 @@ export async function issuePermit(userId, validDays = null) {
 
 /**
  * Lambda handler
+ * POST /issue-permit - Issue a new permit for a user
+ * Body: { userId: string, validDays?: number }
  */
-export async function handler(event) {
+export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   initContext(event);
 
   const headers = {
@@ -207,7 +242,7 @@ export async function handler(event) {
 
   try {
     // Parse request body
-    const body = JSON.parse(event.body || '{}');
+    const body = JSON.parse(event.body || '{}') as { userId?: string; validDays?: number };
     const { userId, validDays } = body;
 
     // Validate userId
@@ -249,7 +284,7 @@ export async function handler(event) {
     }
 
     // Issue permit
-    const permit = await issuePermit(userId, validDays);
+    const permit = await issuePermit(userId, validDays ?? null);
 
     // Log permit issuance (for monitoring)
     logger.info(EVENTS.PERMIT_ISSUED, {
@@ -265,8 +300,9 @@ export async function handler(event) {
       headers,
       body: JSON.stringify({ permit }),
     };
-  } catch (error) {
-    logger.error(EVENTS.PERMIT_ISSUE_FAILED, error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(EVENTS.PERMIT_ISSUE_FAILED, { error: errorMessage });
 
     return {
       statusCode: 500,
