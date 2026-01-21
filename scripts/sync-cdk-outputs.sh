@@ -39,6 +39,7 @@ MAIN_CONFIG_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="Con
 MAIN_PRESIGN_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="PresignLambdaUrl") | .OutputValue')
 MAIN_QUOTA_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="QuotaLambdaUrl") | .OutputValue')
 MAIN_TRANSACTIONS_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="TransactionsLambdaUrl") | .OutputValue')
+MAIN_REPORT_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="ReportLambdaUrl") | .OutputValue')
 MAIN_ISSUE_PERMIT_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="IssuePermitLambdaUrl") | .OutputValue')
 MAIN_ADMIN_DELETE_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="AdminDeleteDataUrl") | .OutputValue')
 MAIN_DIAGNOSTIC_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="DiagnosticLambdaUrl") | .OutputValue')
@@ -52,6 +53,7 @@ echo "   ConfigLambdaUrl: $MAIN_CONFIG_LAMBDA"
 echo "   PresignLambdaUrl: $MAIN_PRESIGN_LAMBDA"
 echo "   QuotaLambdaUrl: $MAIN_QUOTA_LAMBDA"
 echo "   TransactionsLambdaUrl: $MAIN_TRANSACTIONS_LAMBDA"
+echo "   ReportLambdaUrl: $MAIN_REPORT_LAMBDA"
 echo "   IssuePermitLambdaUrl: $MAIN_ISSUE_PERMIT_LAMBDA"
 echo "   AdminDeleteDataUrl: $MAIN_ADMIN_DELETE_LAMBDA"
 echo "   DiagnosticLambdaUrl: $MAIN_DIAGNOSTIC_LAMBDA"
@@ -104,6 +106,8 @@ VITE_LAMBDA_ISSUE_PERMIT_URL=$MAIN_ISSUE_PERMIT_LAMBDA
 
 # Lambda URLs - Transactions & Cleanup
 VITE_LAMBDA_SYNC_URL=$MAIN_TRANSACTIONS_LAMBDA
+VITE_LAMBDA_TRANSACTIONS_URL=$MAIN_TRANSACTIONS_LAMBDA
+VITE_LAMBDA_REPORT_URL=$MAIN_REPORT_LAMBDA
 VITE_LAMBDA_ADMIN_DELETE_URL=$MAIN_ADMIN_DELETE_LAMBDA
 
 # Lambda URLs - Diagnostics
