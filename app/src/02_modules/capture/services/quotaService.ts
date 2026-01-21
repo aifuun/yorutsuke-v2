@@ -110,7 +110,9 @@ class QuotaService {
         totalLimit: permit.totalLimit,
       });
       // 2. Update local storage (localStorage + SQLite)
-      localQuota.setPermit(permit);
+      // Note: Server validates HMAC in presign Lambda (defense in depth)
+      // Client does format-only validation here
+      await localQuota.setPermit(permit);
 
       logger.debug('QUOTA_SYNC_TO_STORE_STEP3', { userId: this.userId });
       // 3. Then update UI store

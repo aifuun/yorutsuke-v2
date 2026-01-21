@@ -9,7 +9,7 @@
  */
 
 import { logger } from '../../00_kernel/telemetry/logger';
-import { validatePermitFormat } from './permitValidation';
+import { validatePermitFormat, verifyPermitSignature } from './permitValidation';
 import * as permitDb from './permitDb';
 
 // ============================================================
@@ -96,18 +96,25 @@ export class LocalQuota {
    * This keeps the API synchronous while ensuring persistence.
    * Uses fire-and-forget pattern for SQLite write (non-blocking).
    *
-   * Validates permit structure before accepting (Pillar B: Airlock).
-   * Server validates HMAC signature in presign Lambda (defense in depth).
+   * Two-layer validation:
+   * 1. Format validation (always): Required fields, expiry, tier, limits
+   * 2. HMAC verification (optional): If secretKey provided (testing/special scenarios)
    *
-   * @throws Error if permit format is invalid
+   * Production: Server validates HMAC signature in presign Lambda (defense in depth).
+   * Testing: Can provide secretKey for client-side HMAC verification.
+   *
+   * @param permit - Permit to store
+   * @param secretKeyForHmacVerification - Optional HMAC secret key (for testing only)
+   * @throws Error if permit format is invalid or HMAC verification fails
    */
-  public setPermit(permit: UploadPermit): void {
+  public async setPermit(permit: UploadPermit, secretKeyForHmacVerification?: string): Promise<void> {
     logger.debug('LOCAL_QUOTA_SET_PERMIT_START', {
       userId: permit.userId,
       tier: permit.tier,
+      hasHmacSecret: !!secretKeyForHmacVerification,
     });
 
-    // Validate permit format before storing
+    // Layer 1: Format validation (always performed)
     const validation = validatePermitFormat(permit);
     if (!validation.valid) {
       logger.warn('PERMIT_VALIDATION_FAILED', {
@@ -125,6 +132,27 @@ export class LocalQuota {
       dailyRate: permit.dailyRate,
       expiresAt: permit.expiresAt,
     });
+
+    // Layer 2: HMAC signature verification (optional, if secretKey provided)
+    if (secretKeyForHmacVerification) {
+      logger.debug('PERMIT_HMAC_VERIFICATION_START', { userId: permit.userId });
+
+      const isSignatureValid = await verifyPermitSignature(permit, secretKeyForHmacVerification);
+      if (!isSignatureValid) {
+        logger.error('PERMIT_HMAC_VERIFICATION_FAILED', {
+          userId: permit.userId,
+          reason: 'Signature verification failed',
+        });
+        throw new Error('Invalid permit: HMAC-SHA256 signature verification failed');
+      }
+
+      logger.debug('PERMIT_HMAC_VERIFICATION_PASSED', { userId: permit.userId });
+    } else {
+      logger.debug('PERMIT_HMAC_VERIFICATION_SKIPPED', {
+        userId: permit.userId,
+        reason: 'No secretKey provided',
+      });
+    }
 
     const data: LocalQuotaData = {
       permit,

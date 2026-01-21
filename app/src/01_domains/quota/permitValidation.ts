@@ -1,10 +1,19 @@
 /**
- * Permit Format Validation (Issue #154)
+ * Permit Validation (Issue #154)
  *
- * Validates permit structure before accepting it for storage.
- * Uses format-only validation (not HMAC) because client cannot safely
- * store the HMAC secret key. Server validates actual HMAC signatures
- * in presign Lambda (defense in depth).
+ * Two-layer validation:
+ * 1. Format validation: Structure checks (required fields, types, ranges)
+ *    - Always performed client-side
+ *    - Fast, no secret key needed
+ *
+ * 2. HMAC-SHA256 signature verification: Cryptographic integrity check
+ *    - Client-side (if secret key provided, e.g., in tests)
+ *    - Server-side in presign Lambda (always performed, defense in depth)
+ *
+ * Security Model:
+ * - Production: secretKey never leaves Secrets Manager
+ * - Testing: secretKey can be provided to verify signature logic
+ * - Client cannot safely store or use secretKey in production
  *
  * @see ADR-017: Permit-Based Quota System
  * @see docs/operations/QUOTA.md
@@ -94,4 +103,112 @@ export function validatePermitFormat(permit: UploadPermit): ValidationResult {
  */
 export function isMockPermit(permit: UploadPermit): boolean {
   return permit.signature.startsWith('mock-signature-');
+}
+
+/**
+ * Verify HMAC-SHA256 signature of permit
+ *
+ * Used in testing and optional client-side verification.
+ * In production, server-side verification in presign Lambda is authoritative.
+ *
+ * Signature covers: userId:totalLimit:dailyRate:expiresAt:issuedAt
+ *
+ * Environment detection:
+ * - Browser (SubtleCrypto): Production and in-browser testing
+ * - Node.js (crypto module): Testing environment (Vitest)
+ *
+ * @param permit - Permit with signature to verify
+ * @param secretKey - HMAC secret key (must match server key)
+ * @returns true if signature is valid, false otherwise
+ *
+ * @example
+ * const isValid = await verifyPermitSignature(permit, secretKey);
+ * if (!isValid) {
+ *   throw new Error('Permit signature verification failed');
+ * }
+ */
+export async function verifyPermitSignature(
+  permit: UploadPermit,
+  secretKey: string
+): Promise<boolean> {
+  try {
+    // Mock permits always verify (they don't have real signatures)
+    if (isMockPermit(permit)) {
+      return true;
+    }
+
+    // Construct message exactly as server does (order matters!)
+    const message = `${permit.userId}:${permit.totalLimit}:${permit.dailyRate}:${permit.expiresAt}:${permit.issuedAt}`;
+
+    // Detect environment and use appropriate HMAC implementation
+    let computedSignature: string;
+
+    // Browser environment with SubtleCrypto
+    if (typeof window !== 'undefined' && window.crypto?.subtle) {
+      computedSignature = await verifyWithSubtleCrypto(message, secretKey);
+    }
+    // Node.js environment (testing)
+    else if (typeof require !== 'undefined') {
+      computedSignature = verifyWithNodeCrypto(message, secretKey);
+    }
+    // Fallback: can't verify in this environment
+    else {
+      console.warn('HMAC verification not available in this environment');
+      return false;
+    }
+
+    // Compare signatures (constant-time comparison to prevent timing attacks)
+    return constantTimeCompare(permit.signature, computedSignature);
+  } catch (error) {
+    console.error('Permit signature verification failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Verify HMAC using browser SubtleCrypto API
+ * @internal
+ */
+async function verifyWithSubtleCrypto(message: string, secretKey: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secretKey);
+  const messageData = encoder.encode(message);
+
+  const key = await window.crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signatureBuffer = await window.crypto.subtle.sign('HMAC', key, messageData);
+  const signatureArray = Array.from(new Uint8Array(signatureBuffer));
+  return signatureArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Verify HMAC using Node.js crypto module
+ * @internal
+ */
+function verifyWithNodeCrypto(message: string, secretKey: string): string {
+  // Dynamic import for Node.js crypto (works in both browser and Node)
+  // This is safe because we only call this in Node.js environment
+  const crypto = require('crypto') as typeof import('crypto');
+  return crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+}
+
+/**
+ * Constant-time string comparison to prevent timing attacks
+ * @internal
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+
+  return result === 0;
 }

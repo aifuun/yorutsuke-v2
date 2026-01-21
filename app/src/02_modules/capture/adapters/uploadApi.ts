@@ -89,8 +89,8 @@ export async function ensurePermitValid(
     if (!permitRefreshInProgress) {
       // First request: initiate refresh
       permitRefreshInProgress = fetchPermit(userId)
-        .then((permit: UploadPermit) => {
-          localQuota.setPermit(permit);
+        .then(async (permit: UploadPermit) => {
+          await localQuota.setPermit(permit);
           logger.info(EVENTS.PERMIT_REFRESHED_AT_PRESIGN, {
             userId,
             traceId,

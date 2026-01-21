@@ -4,8 +4,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { validatePermitFormat, isMockPermit } from './permitValidation';
+import { validatePermitFormat, isMockPermit, verifyPermitSignature } from './permitValidation';
 import type { UploadPermit } from './LocalQuota';
+import crypto from 'crypto';
 
 // Stub isMockMode for testing
 vi.stubGlobal('isMockMode', vi.fn(() => false));
@@ -25,6 +26,15 @@ function createValidPermit(overrides?: Partial<UploadPermit>): UploadPermit {
     tier: 'guest',
     ...overrides,
   };
+}
+
+/**
+ * Generate valid HMAC-SHA256 signature for a permit (for testing)
+ * Matches server-side implementation in presign/index.mjs:185-187
+ */
+function generateValidSignature(permit: Partial<UploadPermit>, secretKey: string): string {
+  const message = `${permit.userId}:${permit.totalLimit}:${permit.dailyRate}:${permit.expiresAt}:${permit.issuedAt}`;
+  return crypto.createHmac('sha256', secretKey).update(message).digest('hex');
 }
 
 // ============================================================
@@ -260,5 +270,205 @@ describe('validatePermitFormat() - Edge Cases', () => {
   it('E2.3: should handle null values', () => {
     const permit = createValidPermit({ tier: null as any });
     expect(validatePermitFormat(permit).valid).toBe(false);
+  });
+});
+
+// ============================================================
+// Test Suite 9: HMAC-SHA256 Signature Verification
+// ============================================================
+
+describe('verifyPermitSignature() - HMAC-SHA256 Verification', () => {
+  const TEST_SECRET_KEY = 'my-secret-key-for-hmac-sha256';
+
+  it('H1.1: should verify correct signature', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    // Generate valid signature with test secret key
+    const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+    const permitWithValidSig = { ...permit, signature: validSignature };
+
+    const isValid = await verifyPermitSignature(permitWithValidSig, TEST_SECRET_KEY);
+    expect(isValid).toBe(true);
+  });
+
+  it('H1.2: should reject incorrect signature', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+      signature: 'wrong' + 'a'.repeat(60), // Invalid signature
+    });
+
+    const isValid = await verifyPermitSignature(permit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.3: should reject signature signed with different secret key', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    // Sign with one key
+    const signatureWithKey1 = generateValidSignature(permit, 'secret-key-1');
+    const permitWithSig1 = { ...permit, signature: signatureWithKey1 };
+
+    // Try to verify with different key (should fail)
+    const isValid = await verifyPermitSignature(permitWithSig1, 'secret-key-2');
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.4: should reject when userId is modified', async () => {
+    const permit = createValidPermit({
+      userId: 'user-original',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    // Sign original permit
+    const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+
+    // Modify userId and try with same signature (signature should now be invalid)
+    const tamperedPermit = { ...permit, userId: 'user-modified', signature: validSignature };
+
+    const isValid = await verifyPermitSignature(tamperedPermit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.5: should reject when totalLimit is modified', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+
+    // Modify totalLimit with same signature
+    const tamperedPermit = { ...permit, totalLimit: 2000, signature: validSignature };
+
+    const isValid = await verifyPermitSignature(tamperedPermit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.6: should reject when dailyRate is modified', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+
+    // Modify dailyRate with same signature
+    const tamperedPermit = { ...permit, dailyRate: 100, signature: validSignature };
+
+    const isValid = await verifyPermitSignature(tamperedPermit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.7: should reject when expiresAt is modified', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+
+    // Modify expiresAt with same signature
+    const tamperedPermit = {
+      ...permit,
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+      signature: validSignature,
+    };
+
+    const isValid = await verifyPermitSignature(tamperedPermit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.8: should reject when issuedAt is modified', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+
+    // Modify issuedAt with same signature
+    const tamperedPermit = {
+      ...permit,
+      issuedAt: new Date(Date.now() - 1000).toISOString(),
+      signature: validSignature,
+    };
+
+    const isValid = await verifyPermitSignature(tamperedPermit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.9: should accept mock permit signature (always valid)', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      signature: 'mock-signature-device-123',
+    });
+
+    // Mock permits always verify regardless of secret key
+    const isValid = await verifyPermitSignature(permit, 'any-secret-key');
+    expect(isValid).toBe(true);
+  });
+
+  it('H1.10: should handle various permitted values', async () => {
+    const testCases = [
+      { userId: 'device-xyz789', totalLimit: 100, dailyRate: 10 },
+      { userId: 'user-pro', totalLimit: 10000, dailyRate: 0 }, // Pro tier unlimited daily
+      { userId: 'user-free', totalLimit: 1000, dailyRate: 50 },
+    ];
+
+    for (const testCase of testCases) {
+      const permit = createValidPermit(testCase);
+      const validSignature = generateValidSignature(permit, TEST_SECRET_KEY);
+      const permitWithSig = { ...permit, signature: validSignature };
+
+      const isValid = await verifyPermitSignature(permitWithSig, TEST_SECRET_KEY);
+      expect(isValid).toBe(true);
+    }
+  });
+
+  it('H1.11: should reject signature with wrong length', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+      signature: 'abc'.repeat(20), // Wrong length (60 chars vs 64)
+    });
+
+    const isValid = await verifyPermitSignature(permit, TEST_SECRET_KEY);
+    expect(isValid).toBe(false);
+  });
+
+  it('H1.12: should reject permit signed with different key', async () => {
+    const permit = createValidPermit({
+      userId: 'user-abc123',
+      totalLimit: 1000,
+      dailyRate: 50,
+    });
+
+    // Generate signature with key-1
+    const signatureWithKey1 = generateValidSignature(permit, 'secret-key-1');
+    const permitWithSig = { ...permit, signature: signatureWithKey1 };
+
+    // Verify with different key-2 (should fail)
+    const isInvalid = await verifyPermitSignature(permitWithSig, 'secret-key-2');
+    expect(isInvalid).toBe(false);
+
+    // Verify with original key-1 (should pass)
+    const isValid = await verifyPermitSignature(permitWithSig, 'secret-key-1');
+    expect(isValid).toBe(true);
   });
 });
