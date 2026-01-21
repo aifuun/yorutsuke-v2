@@ -3,7 +3,14 @@
  *
  * Manages upload permits and usage tracking in localStorage.
  * Implements singleton pattern for global quota state.
+ *
+ * Issue #154: Added format validation on setPermit() to reject invalid permits
+ * at client boundary (Pillar B: Airlock pattern).
  */
+
+import { logger } from '../../00_kernel/telemetry/logger';
+import { validatePermitFormat, verifyPermitSignature } from './permitValidation';
+import * as permitDb from './permitDb';
 
 // ============================================================
 // Type Definitions
@@ -81,15 +88,109 @@ export class LocalQuota {
 
   /**
    * Set a new permit (resets usage counters)
+   *
+   * Issue #154: Dual storage for backward compatibility
+   * - Synchronous: Save to localStorage (fast cache)
+   * - Asynchronous: Save to SQLite (persistent storage)
+   *
+   * This keeps the API synchronous while ensuring persistence.
+   * Uses fire-and-forget pattern for SQLite write (non-blocking).
+   *
+   * Two-layer validation:
+   * 1. Format validation (always): Required fields, expiry, tier, limits
+   * 2. HMAC verification (optional): If secretKey provided (testing/special scenarios)
+   *
+   * Production: Server validates HMAC signature in presign Lambda (defense in depth).
+   * Testing: Can provide secretKey for client-side HMAC verification.
+   *
+   * @param permit - Permit to store
+   * @param secretKeyForHmacVerification - Optional HMAC secret key (for testing only)
+   * @throws Error if permit format is invalid or HMAC verification fails
    */
-  public setPermit(permit: UploadPermit): void {
+  public async setPermit(permit: UploadPermit, secretKeyForHmacVerification?: string): Promise<void> {
+    logger.debug('LOCAL_QUOTA_SET_PERMIT_START', {
+      userId: permit.userId,
+      tier: permit.tier,
+      hasHmacSecret: !!secretKeyForHmacVerification,
+    });
+
+    // Layer 1: Format validation (always performed)
+    const validation = validatePermitFormat(permit);
+    if (!validation.valid) {
+      logger.warn('PERMIT_VALIDATION_FAILED', {
+        reason: validation.reason,
+        tier: permit.tier,
+        userId: permit.userId,
+      });
+      throw new Error(`Invalid permit: ${validation.reason}`);
+    }
+
+    logger.debug('PERMIT_FORMAT_VALID', {
+      userId: permit.userId,
+      tier: permit.tier,
+      totalLimit: permit.totalLimit,
+      dailyRate: permit.dailyRate,
+      expiresAt: permit.expiresAt,
+    });
+
+    // Layer 2: HMAC signature verification (optional, if secretKey provided)
+    if (secretKeyForHmacVerification) {
+      logger.debug('PERMIT_HMAC_VERIFICATION_START', { userId: permit.userId });
+
+      const isSignatureValid = await verifyPermitSignature(permit, secretKeyForHmacVerification);
+      if (!isSignatureValid) {
+        logger.error('PERMIT_HMAC_VERIFICATION_FAILED', {
+          userId: permit.userId,
+          reason: 'Signature verification failed',
+        });
+        throw new Error('Invalid permit: HMAC-SHA256 signature verification failed');
+      }
+
+      logger.debug('PERMIT_HMAC_VERIFICATION_PASSED', { userId: permit.userId });
+    } else {
+      logger.debug('PERMIT_HMAC_VERIFICATION_SKIPPED', {
+        userId: permit.userId,
+        reason: 'No secretKey provided',
+      });
+    }
+
     const data: LocalQuotaData = {
       permit,
       totalUsed: 0,
       dailyUsage: {},
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // 1. Save to localStorage immediately (fast, synchronous)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      logger.debug('PERMIT_LOCALSTORAGE_SAVED', { userId: permit.userId });
+    } catch (error) {
+      logger.error('PERMIT_LOCALSTORAGE_SAVE_FAILED', {
+        userId: permit.userId,
+        error: String(error),
+      });
+      throw error;
+    }
+
+    // 2. Save to SQLite asynchronously (fire-and-forget, non-blocking)
+    permitDb.savePermit(permit).then(
+      () => {
+        logger.debug('PERMIT_SQLITE_SAVED', { userId: permit.userId });
+      },
+      error => {
+        logger.warn('PERMIT_SQLITE_SAVE_FAILED', {
+          userId: permit.userId,
+          error: String(error),
+        });
+      }
+    );
+
+    logger.info('LOCAL_QUOTA_PERMIT_SET', {
+      userId: permit.userId,
+      tier: permit.tier,
+      totalLimit: permit.totalLimit,
+      dailyRate: permit.dailyRate,
+    });
   }
 
   /**
@@ -128,6 +229,7 @@ export class LocalQuota {
 
     // No permit
     if (!permit) {
+      logger.debug('CHECK_UPLOAD_NO_PERMIT', {});
       return {
         allowed: false,
         reason: 'no_permit',
@@ -138,6 +240,7 @@ export class LocalQuota {
 
     const data = this.getData();
     if (!data) {
+      logger.debug('CHECK_UPLOAD_NO_DATA', { userId: permit.userId });
       return {
         allowed: false,
         reason: 'no_permit',
@@ -148,6 +251,11 @@ export class LocalQuota {
 
     // Priority 1: Check expiration
     if (this.isExpired()) {
+      logger.warn('CHECK_UPLOAD_PERMIT_EXPIRED', {
+        userId: permit.userId,
+        expiresAt: permit.expiresAt,
+        now: new Date().toISOString(),
+      });
       return {
         allowed: false,
         reason: 'permit_expired',
@@ -158,6 +266,12 @@ export class LocalQuota {
 
     // Priority 2: Check total limit
     if (data.totalUsed >= permit.totalLimit) {
+      logger.warn('CHECK_UPLOAD_TOTAL_LIMIT_REACHED', {
+        userId: permit.userId,
+        tier: permit.tier,
+        used: data.totalUsed,
+        limit: permit.totalLimit,
+      });
       return {
         allowed: false,
         reason: 'total_limit_reached',
@@ -171,6 +285,13 @@ export class LocalQuota {
     const usedToday = data.dailyUsage[today] || 0;
 
     if (permit.dailyRate > 0 && usedToday >= permit.dailyRate) {
+      logger.warn('CHECK_UPLOAD_DAILY_LIMIT_REACHED', {
+        userId: permit.userId,
+        tier: permit.tier,
+        usedToday,
+        dailyRate: permit.dailyRate,
+        date: today,
+      });
       return {
         allowed: false,
         reason: 'daily_limit_reached',
@@ -180,11 +301,20 @@ export class LocalQuota {
     }
 
     // All checks passed
-    return {
+    const result = {
       allowed: true,
       remainingTotal: permit.totalLimit - data.totalUsed,
       remainingDaily: this.calculateRemainingDaily(permit, data),
     };
+
+    logger.debug('CHECK_UPLOAD_ALLOWED', {
+      userId: permit.userId,
+      tier: permit.tier,
+      remainingTotal: result.remainingTotal,
+      remainingDaily: result.remainingDaily === Infinity ? '∞' : result.remainingDaily,
+    });
+
+    return result;
   }
 
   /**
@@ -194,25 +324,55 @@ export class LocalQuota {
   public incrementUsage(): void {
     const data = this.getData();
     if (!data) {
+      logger.error('INCREMENT_USAGE_NO_DATA', {});
       throw new Error('No permit data found');
     }
 
     const today = getTodayDate();
+    const permit = data.permit;
 
     // Increment counters
+    const oldTotal = data.totalUsed;
+    const oldDaily = data.dailyUsage[today] || 0;
+
     data.totalUsed += 1;
     data.dailyUsage[today] = (data.dailyUsage[today] || 0) + 1;
 
     // Auto-cleanup: Remove records older than 7 days
     const cutoffDate = new Date(Date.now() - MAX_DAILY_HISTORY_DAYS * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE');
+    const deletedDates: string[] = [];
     Object.keys(data.dailyUsage).forEach((date) => {
       if (date < cutoffDate) {
+        deletedDates.push(date);
         delete data.dailyUsage[date];
       }
     });
 
+    logger.debug('INCREMENT_USAGE_COUNTERS', {
+      userId: permit.userId,
+      tier: permit.tier,
+      totalBefore: oldTotal,
+      totalAfter: data.totalUsed,
+      dailyBefore: oldDaily,
+      dailyAfter: data.dailyUsage[today],
+      date: today,
+      oldRecordsDeleted: deletedDates.length,
+    });
+
     // Save
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      logger.debug('INCREMENT_USAGE_SAVED', {
+        userId: permit.userId,
+        totalUsed: data.totalUsed,
+      });
+    } catch (error) {
+      logger.error('INCREMENT_USAGE_SAVE_FAILED', {
+        userId: permit.userId,
+        error: String(error),
+      });
+      throw error;
+    }
   }
 
   /**
@@ -243,9 +403,56 @@ export class LocalQuota {
   /**
    * Clear all quota data (including permit)
    * Used for debugging and testing permit refresh
+   *
+   * Issue #154: Also deletes from SQLite (if permit exists)
+   * Extracts userId from cached permit to delete from database.
+   *
+   * Used by:
+   * - Mock mode switch (clear stale permits)
+   * - Debug panel (reset quota)
+   * - User logout (cleanup)
    */
   public clear(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    logger.info('LOCAL_QUOTA_CLEAR_START', {});
+
+    // Extract userId from current permit to delete from SQLite
+    try {
+      const permit = this.getPermit();
+      if (permit && permit.userId) {
+        logger.debug('LOCAL_QUOTA_DELETING_SQLITE', {
+          userId: permit.userId,
+          tier: permit.tier,
+        });
+
+        // Fire-and-forget deletion (non-blocking)
+        permitDb.deletePermit(permit.userId as never).then(
+          () => {
+            logger.debug('LOCAL_QUOTA_SQLITE_DELETED', { userId: permit.userId });
+          },
+          error => {
+            logger.warn('PERMIT_SQLITE_DELETE_FAILED', {
+              userId: permit.userId,
+              error: String(error),
+            });
+          }
+        );
+      } else {
+        logger.debug('LOCAL_QUOTA_NO_PERMIT_TO_DELETE', {});
+      }
+    } catch (error) {
+      logger.warn('PERMIT_CLEAR_EXTRACTION_FAILED', { error: String(error) });
+    }
+
+    // Clear localStorage
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      logger.info('LOCAL_QUOTA_CLEARED', {
+        storageCleaned: true,
+      });
+    } catch (error) {
+      logger.error('LOCAL_QUOTA_CLEAR_FAILED', { error: String(error) });
+      throw error;
+    }
   }
 
   /**

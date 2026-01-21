@@ -101,3 +101,23 @@ export function toImageId(row: ImageRow): ImageIdType {
 export function toTransactionId(row: TransactionCacheRow): TransactionIdType {
   return TransactionId(row.id);
 }
+
+/**
+ * Permit row from SQLite (Issue #154: Permit v2)
+ * Stores HMAC-signed upload permits for client-side quota validation
+ *
+ * One-to-one relationship: user_id is PRIMARY KEY
+ * Auto-expires when expires_at <= now (cleanup via background task)
+ *
+ * @see ADR-017: Permit-Based Quota System
+ */
+export interface PermitRow {
+  user_id: string;       // UserId (PRIMARY KEY)
+  total_limit: number;   // Monthly quota limit
+  daily_rate: number;    // Daily rate limit (0 = unlimited for Pro tier)
+  expires_at: string;    // ISO 8601 UTC timestamp
+  issued_at: string;     // ISO 8601 UTC timestamp
+  signature: string;     // HMAC-SHA256 (64 hex chars)
+  tier: string;          // 'guest' | 'free' | 'basic' | 'pro'
+  created_at: string;    // Auto-generated timestamp
+}

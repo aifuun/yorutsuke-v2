@@ -429,19 +429,19 @@ async function migration_v10(db: Database): Promise<void> {
 }
 
 /**
- * Migration v11: Add Permits Table
- * (This migration was already run on existing databases)
- * Idempotent: safe to run multiple times, no-op if table exists
+ * Migration v11: Add Permits Table (Issue #154)
+ * Purpose: SQLite persistence for upload permits (replacing localStorage)
+ * - Implements ADR-017 Permit-based Quota System
+ * - Idempotent: safe to run multiple times, no-op if table exists
  */
 async function migration_v11(db: Database): Promise<void> {
   logger.info(EVENTS.DB_MIGRATION_APPLIED, {
     version: 11,
-    name: 'permits_table_already_migrated',
+    name: 'add_permits_table',
     phase: 'start'
   });
 
-  // Permits table is already created if this migration ran before
-  // This is idempotent and safe
+  // Create permits table for client-side quota permits (IF NOT EXISTS for new databases)
   try {
     await db.execute(`
       CREATE TABLE IF NOT EXISTS permits (

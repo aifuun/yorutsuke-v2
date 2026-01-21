@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId, TraceId } from '../../../00_kernel/types';
 import type { UploadPermit } from '../../../01_domains/quota';
+import { localQuota } from '../../../01_domains/quota';
+import { fetchPermit } from './permitApi';
 import { isMockingOnline, isMockingOffline, isSlowUpload, mockDelay } from '../../../00_kernel/config/mock';
 import { mockPresignUrl, mockNetworkError } from '../../../00_kernel/mocks';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
@@ -13,6 +15,10 @@ const PRESIGN_URL = import.meta.env.VITE_LAMBDA_PRESIGN_URL;
 // Timeouts
 const PRESIGN_TIMEOUT_MS = 10_000;  // 10 seconds
 const UPLOAD_TIMEOUT_MS = 60_000;   // 60 seconds (for large images)
+
+// Permit refresh control (Mutex pattern to prevent concurrent duplicate refreshes)
+let permitRefreshInProgress: Promise<UploadPermit> | null = null;
+const MAX_REFRESH_RETRIES = 1;
 
 // Zod schema for presign response validation
 const PresignResponseSchema = z.object({
@@ -39,6 +45,89 @@ function withTimeout<T>(
   ]);
 }
 
+/**
+ * Auto-refresh permit if expired (JIT pattern with Mutex protection)
+ *
+ * Flow:
+ * 1. Check if permit is expired
+ * 2. If expired, refresh with Mutex (prevent concurrent duplicate refreshes)
+ * 3. Return refreshed permit or cached permit if already valid
+ *
+ * @throws Error if refresh fails after max retries
+ *
+ * Exported for testing
+ */
+export async function ensurePermitValid(
+  userId: UserId,
+  traceId: TraceId
+): Promise<UploadPermit | null> {
+  let retryCount = 0;
+
+  while (retryCount <= MAX_REFRESH_RETRIES) {
+    // Check if permit is still valid
+    if (!localQuota.isExpired()) {
+      return localQuota.getPermit();
+    }
+
+    // Max retries exceeded
+    if (retryCount >= MAX_REFRESH_RETRIES) {
+      logger.error(EVENTS.PERMIT_REFRESH_EXHAUSTED, {
+        userId,
+        traceId,
+        retryCount,
+      });
+      throw new Error('Permit expired and refresh failed after retries');
+    }
+
+    logger.info(EVENTS.PERMIT_EXPIRED_AT_PRESIGN, {
+      userId,
+      traceId,
+      retryCount,
+    });
+
+    // Refresh permit with Mutex protection
+    if (!permitRefreshInProgress) {
+      // First request: initiate refresh
+      permitRefreshInProgress = fetchPermit(userId)
+        .then(async (permit: UploadPermit) => {
+          await localQuota.setPermit(permit);
+          logger.info(EVENTS.PERMIT_REFRESHED_AT_PRESIGN, {
+            userId,
+            traceId,
+            expiresAt: permit.expiresAt,
+          });
+          return permit;
+        })
+        .catch((error: unknown) => {
+          logger.error(EVENTS.PERMIT_REFRESH_FAILED_AT_PRESIGN, {
+            userId,
+            traceId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        })
+        .finally(() => {
+          // Clear mutex for next refresh
+          permitRefreshInProgress = null;
+        });
+    }
+
+    // Wait for refresh (all concurrent requests wait here)
+    try {
+      await permitRefreshInProgress;
+      // Refresh succeeded, increment retry and recheck permit
+      retryCount++;
+      // Loop continues, will recheck permit validity
+    } catch (error) {
+      // Refresh failed, propagate error immediately (don't retry)
+      throw error;
+    }
+  }
+
+  // This should not be reached, but return null for safety
+  return null;
+}
+
 export async function getPresignedUrl(
   userId: UserId,
   fileName: string,
@@ -59,6 +148,9 @@ export async function getPresignedUrl(
     return { ...mockPresignUrl(userId, fileName), traceId };
   }
 
+  // Auto-refresh permit if expired (JIT pattern)
+  const validPermit = await ensurePermitValid(userId, traceId);
+
   // Prepare request body (include permit if provided for Permit v2 validation)
   const requestBody: Record<string, unknown> = {
     userId,
@@ -67,8 +159,10 @@ export async function getPresignedUrl(
     traceId,
   };
 
-  if (permit) {
-    requestBody.permit = permit;
+  // Use refreshed permit (if refreshed) or provided permit
+  const permitToUse = validPermit || permit;
+  if (permitToUse) {
+    requestBody.permit = permitToUse;
   }
 
   const fetchPromise = fetch(PRESIGN_URL, {
