@@ -108,7 +108,7 @@ async function buildSharedLayer() {
     target: 'node20',
     format: 'esm',
     outdir: sharedLayerDist,
-    outExtension: { '.js': '.mjs' },
+    // Note: Remove outExtension to keep .js (matches import statements in source)
     logLevel: 'info',
   });
 
@@ -158,7 +158,7 @@ async function buildLambdaFunctions() {
         target: 'node20',
         format: 'esm',
         outdir: funcDist,
-        outExtension: { '.js': '.mjs' },
+        // Note: Remove outExtension to keep .js (matches import statements in source)
         // Note: 'external' option is not needed when bundle=false
         logLevel: 'warning',
       });
