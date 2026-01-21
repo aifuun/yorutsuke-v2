@@ -158,7 +158,7 @@ async function buildLambdaFunctions() {
         format: 'esm',
         outdir: funcDist,
         outExtension: { '.js': '.mjs' },
-        external: ['/opt/nodejs/*'], // Don't bundle layer code
+        // Note: 'external' option is not needed when bundle=false
         logLevel: 'warning',
       });
       log(`  ✓ Built ${funcName} (TypeScript)`, colors.green);

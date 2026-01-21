@@ -21,6 +21,9 @@
     "test:ui": "vitest --ui"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.972.0",
+    "@aws-sdk/client-s3": "^3.972.0",
+    "@aws-sdk/lib-dynamodb": "^3.972.0",
     "@types/node": "^22.0.0",
     "aws-cdk": "^2.170.0",
     "aws-sdk-client-mock": "^4.1.0",
@@ -32,7 +35,6 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.971.0",
     "@aws-sdk/util-dynamodb": "^3.971.0",
     "aws-cdk-lib": "^2.170.0",
     "constructs": "^10.4.0"
