@@ -131,16 +131,46 @@ function isValidMockMode(value: string): value is MockMode {
 
 /**
  * Set mock mode at runtime and persist to database
+ *
+ * Clears cached permit when switching between mock/real modes (Issue #154)
+ * because mock permits (test data) should not persist when switching to real mode
  */
 export function setMockMode(mode: MockMode): void {
+  const previousMode = _mockMode;
   _mockMode = mode;
+
+  // Clear cached permit when switching modes (Issue #154: Permit v2 bug fix)
+  // This prevents mock permits from being used in real mode and vice versa
+  if ((previousMode === 'off' && mode !== 'off') ||
+      (previousMode !== 'off' && mode === 'off')) {
+    clearPermitOnModeSwitch();
+  }
+
   _listeners.forEach(listener => listener());
-  logger.info(EVENTS.MOCK_MODE_CHANGED, { mode });
+  logger.info(EVENTS.MOCK_MODE_CHANGED, { mode, previousMode });
 
   // Persist to database (fire and forget)
   setSetting(MOCK_MODE_KEY, mode).catch(error => {
     logger.warn('mock_mode_save_failed', { error: String(error) });
   });
+}
+
+/**
+ * Clear permit when switching between mock/real modes
+ * Uses dynamic import to avoid circular dependency with LocalQuota
+ */
+async function clearPermitOnModeSwitch(): Promise<void> {
+  try {
+    // Dynamic import to avoid circular dependency
+    const { LocalQuota } = await import('../../01_domains/quota/LocalQuota');
+    const quota = LocalQuota.getInstance();
+    // Note: await will be added in Priority 1b after LocalQuota refactor
+    // For now, call synchronously if clear() is sync
+    quota.clear();
+    logger.info('permit_cleared_on_mock_switch', { previousMode: _mockMode });
+  } catch (error) {
+    logger.warn('permit_clear_failed', { error: String(error), mode: _mockMode });
+  }
 }
 
 /**

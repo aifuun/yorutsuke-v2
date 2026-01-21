@@ -10,6 +10,7 @@ import { fetch } from '@tauri-apps/plugin-http';
 import type { UserId } from '../../../00_kernel/types';
 import { isMockingOnline, isMockingOffline, mockDelay } from '../../../00_kernel/config/mock';
 import { mockNetworkError } from '../../../00_kernel/mocks';
+import { logger } from '../../../00_kernel/telemetry/logger';
 
 const PERMIT_URL = import.meta.env.VITE_LAMBDA_ISSUE_PERMIT_URL;
 const PERMIT_TIMEOUT_MS = 5_000; // 5 seconds
@@ -114,22 +115,45 @@ export async function fetchPermit(
   userId: UserId,
   validDays?: number
 ): Promise<UploadPermit> {
+  logger.debug('PERMIT_FETCH_START', {
+    userId,
+    validDays,
+    mockMode: isMockingOnline() ? 'online' : isMockingOffline() ? 'offline' : 'production',
+    permitUrlConfigured: !!PERMIT_URL,
+  });
+
   // Mocking offline - simulate network failure
   if (isMockingOffline()) {
+    logger.info('PERMIT_FETCH_MOCK_OFFLINE', { userId });
     await mockDelay(100);
     throw mockNetworkError('fetch permit');
   }
 
   // Mocking online - return mock permit
   if (isMockingOnline()) {
+    logger.info('PERMIT_FETCH_MOCK_ONLINE', { userId, validDays });
     await mockDelay();
-    return generateMockPermit(userId, validDays);
+    const mockPermit = generateMockPermit(userId, validDays);
+    logger.debug('PERMIT_FETCH_MOCK_GENERATED', {
+      userId,
+      tier: mockPermit.tier,
+      totalLimit: mockPermit.totalLimit,
+      dailyRate: mockPermit.dailyRate,
+    });
+    return mockPermit;
   }
 
   // Production mode - call Lambda
   if (!PERMIT_URL) {
+    logger.error('PERMIT_FETCH_NO_URL', { userId, env: 'VITE_LAMBDA_ISSUE_PERMIT_URL' });
     throw new Error('VITE_LAMBDA_ISSUE_PERMIT_URL not configured');
   }
+
+  logger.info('PERMIT_FETCH_PRODUCTION', {
+    userId,
+    url: PERMIT_URL.substring(0, 50) + '...',
+    timeoutMs: PERMIT_TIMEOUT_MS,
+  });
 
   const body: { userId: string; validDays?: number } = { userId };
   if (validDays !== undefined) {
@@ -142,24 +166,69 @@ export async function fetchPermit(
     body: JSON.stringify(body),
   });
 
-  const response = await withTimeout(
-    fetchPromise,
-    PERMIT_TIMEOUT_MS,
-    'Permit request timeout (5s)'
-  );
+  let response;
+  try {
+    response = await withTimeout(
+      fetchPromise,
+      PERMIT_TIMEOUT_MS,
+      'Permit request timeout (5s)'
+    );
+    logger.debug('PERMIT_FETCH_RESPONSE_OK', {
+      userId,
+      status: response.status,
+    });
+  } catch (error) {
+    logger.error('PERMIT_FETCH_TIMEOUT_OR_ERROR', {
+      userId,
+      error: String(error),
+    });
+    throw error;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
+    logger.error('PERMIT_FETCH_HTTP_ERROR', {
+      userId,
+      status: response.status,
+      errorText: errorText.substring(0, 200),
+    });
     throw new Error(`Permit fetch failed (${response.status}): ${errorText}`);
   }
 
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+    logger.debug('PERMIT_FETCH_JSON_PARSED', {
+      userId,
+      hasPermit: !!data.permit,
+    });
+  } catch (error) {
+    logger.error('PERMIT_FETCH_JSON_PARSE_ERROR', {
+      userId,
+      error: String(error),
+    });
+    throw error;
+  }
 
   // Pillar B: Validate response with Zod schema
   const parsed = PermitResponseSchema.safeParse(data);
   if (!parsed.success) {
+    logger.error('PERMIT_FETCH_VALIDATION_FAILED', {
+      userId,
+      error: parsed.error.message,
+      receivedData: JSON.stringify(data).substring(0, 200),
+    });
     throw new Error(`Invalid permit response: ${parsed.error.message}`);
   }
 
-  return parsed.data.permit;
+  const permit = parsed.data.permit;
+  logger.info('PERMIT_FETCH_SUCCESS', {
+    userId,
+    tier: permit.tier,
+    totalLimit: permit.totalLimit,
+    dailyRate: permit.dailyRate,
+    expiresAt: permit.expiresAt,
+  });
+
+  return permit;
 }

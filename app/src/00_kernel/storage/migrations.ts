@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 10;
+const CURRENT_VERSION = 11;
 
 /**
  * Run all migrations on database
@@ -70,6 +70,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 10) {
     await migration_v10(db);
     await setVersion(db, 10);
+  }
+
+  if (version < 11) {
+    await migration_v11(db);
+    await setVersion(db, 11);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -416,6 +421,40 @@ async function migration_v10(db: Database): Promise<void> {
   await safeCreateIndex(db, 'idx_transactions_trace_id', 'transactions', 'trace_id');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 10, phase: 'complete' });
+}
+
+/**
+ * Migration v11: Add Permits Table (Issue #154)
+ * Purpose: SQLite persistence for upload permits (replacing localStorage)
+ * - Implements ADR-017 Permit-based Quota System
+ * - One-to-one permit per user (user_id is primary key)
+ * - Expires automatically after 30 days
+ */
+async function migration_v11(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, {
+    version: 11,
+    name: 'add_permits_table',
+    phase: 'start'
+  });
+
+  // Create permits table for client-side quota permits
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS permits (
+      user_id TEXT PRIMARY KEY,
+      total_limit INTEGER NOT NULL,
+      daily_rate INTEGER NOT NULL,
+      expires_at TEXT NOT NULL,
+      issued_at TEXT NOT NULL,
+      signature TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Create index for expiry-based cleanup queries
+  await safeCreateIndex(db, 'idx_permits_expires_at', 'permits', 'expires_at');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 11, phase: 'complete' });
 }
 
 // ============================================================================
