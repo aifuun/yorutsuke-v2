@@ -102,12 +102,29 @@ export class LocalQuota {
    * @throws Error if permit format is invalid
    */
   public setPermit(permit: UploadPermit): void {
+    logger.debug('LOCAL_QUOTA_SET_PERMIT_START', {
+      userId: permit.userId,
+      tier: permit.tier,
+    });
+
     // Validate permit format before storing
     const validation = validatePermitFormat(permit);
     if (!validation.valid) {
-      logger.warn('permit_validation_failed', { reason: validation.reason, tier: permit.tier });
+      logger.warn('PERMIT_VALIDATION_FAILED', {
+        reason: validation.reason,
+        tier: permit.tier,
+        userId: permit.userId,
+      });
       throw new Error(`Invalid permit: ${validation.reason}`);
     }
+
+    logger.debug('PERMIT_FORMAT_VALID', {
+      userId: permit.userId,
+      tier: permit.tier,
+      totalLimit: permit.totalLimit,
+      dailyRate: permit.dailyRate,
+      expiresAt: permit.expiresAt,
+    });
 
     const data: LocalQuotaData = {
       permit,
@@ -116,14 +133,35 @@ export class LocalQuota {
     };
 
     // 1. Save to localStorage immediately (fast, synchronous)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-    // 2. Save to SQLite asynchronously (fire-and-forget, non-blocking)
-    permitDb.savePermit(permit).catch(error => {
-      logger.warn('permit_sqlite_save_failed', {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      logger.debug('PERMIT_LOCALSTORAGE_SAVED', { userId: permit.userId });
+    } catch (error) {
+      logger.error('PERMIT_LOCALSTORAGE_SAVE_FAILED', {
         userId: permit.userId,
         error: String(error),
       });
+      throw error;
+    }
+
+    // 2. Save to SQLite asynchronously (fire-and-forget, non-blocking)
+    permitDb.savePermit(permit).then(
+      () => {
+        logger.debug('PERMIT_SQLITE_SAVED', { userId: permit.userId });
+      },
+      error => {
+        logger.warn('PERMIT_SQLITE_SAVE_FAILED', {
+          userId: permit.userId,
+          error: String(error),
+        });
+      }
+    );
+
+    logger.info('LOCAL_QUOTA_PERMIT_SET', {
+      userId: permit.userId,
+      tier: permit.tier,
+      totalLimit: permit.totalLimit,
+      dailyRate: permit.dailyRate,
     });
   }
 
@@ -163,6 +201,7 @@ export class LocalQuota {
 
     // No permit
     if (!permit) {
+      logger.debug('CHECK_UPLOAD_NO_PERMIT', {});
       return {
         allowed: false,
         reason: 'no_permit',
@@ -173,6 +212,7 @@ export class LocalQuota {
 
     const data = this.getData();
     if (!data) {
+      logger.debug('CHECK_UPLOAD_NO_DATA', { userId: permit.userId });
       return {
         allowed: false,
         reason: 'no_permit',
@@ -183,6 +223,11 @@ export class LocalQuota {
 
     // Priority 1: Check expiration
     if (this.isExpired()) {
+      logger.warn('CHECK_UPLOAD_PERMIT_EXPIRED', {
+        userId: permit.userId,
+        expiresAt: permit.expiresAt,
+        now: new Date().toISOString(),
+      });
       return {
         allowed: false,
         reason: 'permit_expired',
@@ -193,6 +238,12 @@ export class LocalQuota {
 
     // Priority 2: Check total limit
     if (data.totalUsed >= permit.totalLimit) {
+      logger.warn('CHECK_UPLOAD_TOTAL_LIMIT_REACHED', {
+        userId: permit.userId,
+        tier: permit.tier,
+        used: data.totalUsed,
+        limit: permit.totalLimit,
+      });
       return {
         allowed: false,
         reason: 'total_limit_reached',
@@ -206,6 +257,13 @@ export class LocalQuota {
     const usedToday = data.dailyUsage[today] || 0;
 
     if (permit.dailyRate > 0 && usedToday >= permit.dailyRate) {
+      logger.warn('CHECK_UPLOAD_DAILY_LIMIT_REACHED', {
+        userId: permit.userId,
+        tier: permit.tier,
+        usedToday,
+        dailyRate: permit.dailyRate,
+        date: today,
+      });
       return {
         allowed: false,
         reason: 'daily_limit_reached',
@@ -215,11 +273,20 @@ export class LocalQuota {
     }
 
     // All checks passed
-    return {
+    const result = {
       allowed: true,
       remainingTotal: permit.totalLimit - data.totalUsed,
       remainingDaily: this.calculateRemainingDaily(permit, data),
     };
+
+    logger.debug('CHECK_UPLOAD_ALLOWED', {
+      userId: permit.userId,
+      tier: permit.tier,
+      remainingTotal: result.remainingTotal,
+      remainingDaily: result.remainingDaily === Infinity ? '∞' : result.remainingDaily,
+    });
+
+    return result;
   }
 
   /**
@@ -229,25 +296,55 @@ export class LocalQuota {
   public incrementUsage(): void {
     const data = this.getData();
     if (!data) {
+      logger.error('INCREMENT_USAGE_NO_DATA', {});
       throw new Error('No permit data found');
     }
 
     const today = getTodayDate();
+    const permit = data.permit;
 
     // Increment counters
+    const oldTotal = data.totalUsed;
+    const oldDaily = data.dailyUsage[today] || 0;
+
     data.totalUsed += 1;
     data.dailyUsage[today] = (data.dailyUsage[today] || 0) + 1;
 
     // Auto-cleanup: Remove records older than 7 days
     const cutoffDate = new Date(Date.now() - MAX_DAILY_HISTORY_DAYS * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE');
+    const deletedDates: string[] = [];
     Object.keys(data.dailyUsage).forEach((date) => {
       if (date < cutoffDate) {
+        deletedDates.push(date);
         delete data.dailyUsage[date];
       }
     });
 
+    logger.debug('INCREMENT_USAGE_COUNTERS', {
+      userId: permit.userId,
+      tier: permit.tier,
+      totalBefore: oldTotal,
+      totalAfter: data.totalUsed,
+      dailyBefore: oldDaily,
+      dailyAfter: data.dailyUsage[today],
+      date: today,
+      oldRecordsDeleted: deletedDates.length,
+    });
+
     // Save
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      logger.debug('INCREMENT_USAGE_SAVED', {
+        userId: permit.userId,
+        totalUsed: data.totalUsed,
+      });
+    } catch (error) {
+      logger.error('INCREMENT_USAGE_SAVE_FAILED', {
+        userId: permit.userId,
+        error: String(error),
+      });
+      throw error;
+    }
   }
 
   /**
@@ -288,24 +385,46 @@ export class LocalQuota {
    * - User logout (cleanup)
    */
   public clear(): void {
+    logger.info('LOCAL_QUOTA_CLEAR_START', {});
+
     // Extract userId from current permit to delete from SQLite
     try {
       const permit = this.getPermit();
       if (permit && permit.userId) {
-        // Fire-and-forget deletion (non-blocking)
-        permitDb.deletePermit(permit.userId as never).catch(error => {
-          logger.warn('permit_sqlite_delete_failed', {
-            userId: permit.userId,
-            error: String(error),
-          });
+        logger.debug('LOCAL_QUOTA_DELETING_SQLITE', {
+          userId: permit.userId,
+          tier: permit.tier,
         });
+
+        // Fire-and-forget deletion (non-blocking)
+        permitDb.deletePermit(permit.userId as never).then(
+          () => {
+            logger.debug('LOCAL_QUOTA_SQLITE_DELETED', { userId: permit.userId });
+          },
+          error => {
+            logger.warn('PERMIT_SQLITE_DELETE_FAILED', {
+              userId: permit.userId,
+              error: String(error),
+            });
+          }
+        );
+      } else {
+        logger.debug('LOCAL_QUOTA_NO_PERMIT_TO_DELETE', {});
       }
     } catch (error) {
-      logger.warn('permit_clear_extraction_failed', { error: String(error) });
+      logger.warn('PERMIT_CLEAR_EXTRACTION_FAILED', { error: String(error) });
     }
 
     // Clear localStorage
-    localStorage.removeItem(STORAGE_KEY);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      logger.info('LOCAL_QUOTA_CLEARED', {
+        storageCleaned: true,
+      });
+    } catch (error) {
+      logger.error('LOCAL_QUOTA_CLEAR_FAILED', { error: String(error) });
+      throw error;
+    }
   }
 
   /**

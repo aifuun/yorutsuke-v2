@@ -56,12 +56,20 @@ class QuotaService {
    * Set current user and fetch permit if needed
    */
   async setUser(userId: UserId | null): Promise<void> {
+    logger.debug('QUOTA_SET_USER_START', { userId });
     this.userId = userId;
 
     if (userId) {
       // Check if we need to fetch a new permit
       const permit = localQuota.getPermit();
       const isExpired = localQuota.isExpired();
+
+      logger.debug('QUOTA_PERMIT_STATUS', {
+        userId,
+        hasPermit: !!permit,
+        isExpired,
+        tier: permit?.tier,
+      });
 
       if (!permit || isExpired) {
         logger.info(EVENTS.QUOTA_REFRESHED, {
@@ -72,6 +80,7 @@ class QuotaService {
         await this.refreshPermit();
       } else {
         // Permit is valid, just sync to store
+        logger.debug('QUOTA_SYNCING_VALID_PERMIT', { userId, tier: permit.tier });
         this.syncToStore();
       }
     }
@@ -82,28 +91,46 @@ class QuotaService {
    * Pillar: IO-First Pattern - Complete IO before updating store
    */
   async refreshPermit(): Promise<void> {
-    if (!this.userId) return;
+    if (!this.userId) {
+      logger.warn('QUOTA_REFRESH_NO_USER', {});
+      return;
+    }
 
+    logger.info('QUOTA_REFRESH_START', { userId: this.userId });
     quotaStore.getState().startFetch();
 
     try {
+      logger.debug('QUOTA_FETCH_PERMIT_STEP1', { userId: this.userId });
       // 1. IO operation first
       const permit = await fetchPermit(this.userId);
 
-      // 2. Update local storage
+      logger.debug('QUOTA_SET_PERMIT_STEP2', {
+        userId: this.userId,
+        tier: permit.tier,
+        totalLimit: permit.totalLimit,
+      });
+      // 2. Update local storage (localStorage + SQLite)
       localQuota.setPermit(permit);
 
+      logger.debug('QUOTA_SYNC_TO_STORE_STEP3', { userId: this.userId });
       // 3. Then update UI store
       this.syncToStore();
 
       logger.info(EVENTS.QUOTA_REFRESHED, {
         system: 'permit_v2',
+        userId: this.userId,
         tier: permit.tier,
         totalLimit: permit.totalLimit,
         dailyRate: permit.dailyRate,
+        expiresAt: permit.expiresAt,
       });
     } catch (e) {
-      logger.error(EVENTS.APP_ERROR, { context: 'permit_refresh', error: String(e) });
+      logger.error(EVENTS.APP_ERROR, {
+        context: 'permit_refresh',
+        userId: this.userId,
+        error: String(e),
+        errorMessage: e instanceof Error ? e.message : String(e),
+      });
       quotaStore.getState().fetchError(String(e));
     }
   }
