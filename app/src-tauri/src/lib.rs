@@ -5,6 +5,8 @@ use chrono::{Local, Duration};
 use image::GenericImageView;
 use image::codecs::jpeg::JpegEncoder;
 
+mod commands;
+
 /// Get the app's data directory for storing compressed images
 /// Uses platform-standard data directory for permanent local storage
 /// - macOS: ~/Library/Application Support/yorutsuke-v2/images/
@@ -276,7 +278,10 @@ pub fn run() {
             log_write,
             log_cleanup,
             log_get_path,
-            get_machine_id
+            get_machine_id,
+            commands::diagnostic::get_system_info,
+            commands::diagnostic::read_debug_logs,
+            commands::diagnostic::get_directory_size,
         ])
         .setup(|_app| {
             // DevTools can be opened manually with Cmd+Option+I (macOS) or F12 (Windows/Linux)

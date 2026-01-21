@@ -130,6 +130,23 @@ aws lambda get-function-configuration ...  # 验证
 
 ---
 
+---
+
+## 场景 4: 修改了独立 Lambda 函数（不在 shared-layer）
+
+如果修改的是独立 Lambda 函数代码（如 `infra/lambda/diagnostic/`）：
+
+**快速部署方法** ⚡ (≈ 50 秒)：
+```bash
+# CDK 只部署主栈（不部署 Admin 栈）
+cd /Users/woo/dev/yorutsuke-v2-2/infra && \
+npx cdk deploy "Yorutsuke2Stack-dev" --profile dev --require-approval never
+```
+
+**比 `npm run deploy --all` 快 3 倍** ✅
+
+---
+
 ## 参考完整文档
 
 详见: `.claude/rules/lambda-layer-deployment.md`

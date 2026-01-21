@@ -57,6 +57,7 @@ VITE_LAMBDA_TRANSACTIONS_URL=$(get_output "TransactionsLambdaUrl")
 VITE_LAMBDA_REPORT_URL=$(get_output "ReportLambdaUrl")
 VITE_LAMBDA_QUOTA_URL=$(get_output "QuotaLambdaUrl")
 VITE_LAMBDA_ADMIN_DELETE_URL=$(get_output "AdminDeleteDataUrl")
+VITE_DIAGNOSTIC_LAMBDA_URL=$(get_output "DiagnosticLambdaUrl")
 
 # Debug Panel
 VITE_DEBUG_PANEL=true

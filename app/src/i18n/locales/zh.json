@@ -434,5 +434,41 @@
       "dayAgo": "{{count}}天前",
       "daysAgo": "{{count}}天前"
     }
+  },
+  "diagnostic": {
+    "title": "诊断数据导出",
+    "description": "收集系统信息、日志和交易数据用于调试",
+    "button": {
+      "export": "收集诊断数据",
+      "download": "下载报告",
+      "copy_link": "复制链接",
+      "retry": "重试",
+      "cancel": "取消",
+      "new_export": "重新收集"
+    },
+    "disabled": {
+      "no_user": "用户 ID 不可用"
+    },
+    "phase": {
+      "collecting": "收集系统数据中...",
+      "uploading": "处理中・上传中...",
+      "step1": "收集本地诊断数据",
+      "step2": "上传本地数据",
+      "step3": "收集云端数据",
+      "step4": "合并数据",
+      "step5": "生成下载链接"
+    },
+    "state": {
+      "loading": "加载中",
+      "success": "诊断数据收集成功",
+      "error": "诊断数据收集失败"
+    },
+    "detail": {
+      "report_id": "报告 ID",
+      "file_size": "文件大小",
+      "expiry": "过期时间",
+      "expiry_value": "7 天",
+      "download_link": "下载链接"
+    }
   }
 }

@@ -432,5 +432,41 @@
       "dayAgo": "{{count}} day ago",
       "daysAgo": "{{count}} days ago"
     }
+  },
+  "diagnostic": {
+    "title": "Diagnostic Data Export",
+    "description": "Collect system information, logs, and transaction data for debugging",
+    "button": {
+      "export": "Collect Diagnostic Data",
+      "download": "Download Report",
+      "copy_link": "Copy Link",
+      "retry": "Retry",
+      "cancel": "Cancel",
+      "new_export": "Collect Again"
+    },
+    "disabled": {
+      "no_user": "User ID not available"
+    },
+    "phase": {
+      "collecting": "Collecting system data...",
+      "uploading": "Processing and uploading...",
+      "step1": "Collect Local Diagnostic Data",
+      "step2": "Upload Local Data",
+      "step3": "Collect Cloud Data",
+      "step4": "Merge Data",
+      "step5": "Generate Download Link"
+    },
+    "state": {
+      "loading": "Loading",
+      "success": "Diagnostic data collected successfully",
+      "error": "Failed to collect diagnostic data"
+    },
+    "detail": {
+      "report_id": "Report ID",
+      "file_size": "File Size",
+      "expiry": "Expires",
+      "expiry_value": "7 days",
+      "download_link": "Download Link"
+    }
   }
 }

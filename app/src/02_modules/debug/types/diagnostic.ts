@@ -1,0 +1,316 @@
+/**
+ * Diagnostic Export Types
+ *
+ * Comprehensive type definitions for diagnostic data collection and reporting.
+ * Used by DiagnosticService to ensure type safety across local + cloud data.
+ */
+
+import type { Transaction } from '../../../01_domains/transaction';
+import type { UserId } from '../../../00_kernel/types';
+
+// ============================================================================
+// LOCAL DIAGNOSTIC DATA
+// ============================================================================
+
+/**
+ * System information collected from the device
+ */
+export interface SystemInfo {
+  osVersion: string;              // e.g., "14.2"
+  locale: string;                 // e.g., "en-US"
+  timezone: string;               // e.g., "UTC+9" or "Asia/Tokyo"
+}
+
+/**
+ * App-level state snapshot at diagnostic time
+ */
+export interface AppState {
+  lastSyncTime: string | null;    // ISO 8601 or null
+  queuedImages: number;           // How many images waiting to upload
+  syncStatus: 'idle' | 'syncing' | 'error';
+  dbSize: string;                 // e.g., "5.2 MB"
+}
+
+/**
+ * Local SQLite data export
+ */
+export interface LocalStorage {
+  transactions: Transaction[];    // Last 100 transactions
+  images: Array<{
+    id: string;
+    imageId: string;
+    size: number;
+    uploadedAt: string;           // ISO 8601
+    status: 'pending' | 'uploaded' | 'processing' | 'failed';
+  }>;
+  settings: Record<string, unknown>;  // User settings snapshot
+}
+
+/**
+ * Debug log entry format
+ */
+export interface DebugLogEntry {
+  timestamp: string;              // ISO 8601
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+  data?: Record<string, unknown>;
+}
+
+/**
+ * Complete local diagnostic data collected from the device
+ */
+export interface LocalDiagnosticData {
+  timestamp: string;              // ISO 8601, when collected
+  appVersion: string;             // e.g., "0.1.0-alpha.11"
+  platform: 'darwin' | 'linux' | 'win32';
+
+  systemInfo: SystemInfo;
+  localStorage: LocalStorage;
+  appState: AppState;
+  debugLogs: DebugLogEntry[];     // Last 500 entries
+}
+
+// ============================================================================
+// CLOUD DIAGNOSTIC DATA
+// ============================================================================
+
+/**
+ * Cloud transaction data (from DynamoDB)
+ */
+export interface CloudTransaction {
+  id: string;
+  userId: UserId;
+  amount: number;
+  currency: string;
+  status: 'unconfirmed' | 'confirmed';
+  primaryModelId: string | null;
+  primaryConfidence: number | null;
+  createdAt: string;              // ISO 8601
+}
+
+/**
+ * S3 image metadata
+ */
+export interface S3Image {
+  key: string;                    // S3 object key (full path)
+  size: number;                   // Bytes
+  lastModified: string;           // ISO 8601
+  eTag: string;
+}
+
+/**
+ * CloudWatch error log entry
+ */
+export interface LambdaError {
+  timestamp: string;              // ISO 8601
+  functionName: string;
+  errorType: string;
+  errorMessage: string;
+  traceId?: string;
+}
+
+/**
+ * Cloud-side diagnostic data
+ */
+export interface CloudDiagnosticData {
+  transactionCount: number;
+  transactions: CloudTransaction[];  // Last 50
+
+  imageCount: number;
+  images: S3Image[];               // Last 50
+
+  lambdaErrorCount: number;
+  lambdaErrors: LambdaError[];      // Last 24h
+}
+
+// ============================================================================
+// DIAGNOSTIC REPORT
+// ============================================================================
+
+/**
+ * Diagnostic summary with analysis
+ */
+export interface DiagnosticSummary {
+  markdown: string;               // Markdown-formatted summary for humans
+  metrics: {
+    localDbHealthy: boolean;
+    cloudSyncStatus: 'ok' | 'warning' | 'error';
+    lastSyncAge: string;          // e.g., "2 hours ago"
+    errorsInLast24h: number;
+  };
+}
+
+/**
+ * Complete diagnostic report
+ */
+export interface DiagnosticReport {
+  // Metadata
+  metadata: {
+    userId: UserId;
+    reportId: string;             // e.g., "diag-abc123"
+    generatedAt: string;          // ISO 8601
+    source: 'manual-button' | 'auto-queue';  // Phase 1 vs Phase 2
+    traceId: string;              // For log correlation
+  };
+
+  // Data
+  localData: LocalDiagnosticData;
+  cloudData: CloudDiagnosticData;
+
+  // Analysis
+  diagnosticSummary: DiagnosticSummary;
+}
+
+// ============================================================================
+// SERVICE RESULTS
+// ============================================================================
+
+/**
+ * Result of successful diagnostic export
+ */
+export interface DiagnosticExportSuccess {
+  success: true;
+  reportId: string;
+  s3Url: string;                  // Pre-signed URL for download (7-day expiry)
+  timestamp: string;              // ISO 8601
+  fileSize: number;               // Bytes
+}
+
+/**
+ * Result of failed diagnostic export
+ */
+export interface DiagnosticExportError {
+  success: false;
+  error: {
+    code: string;                 // e.g., 'NETWORK_TIMEOUT', 'AUTH_FAILED'
+    message: string;
+    retryable: boolean;
+  };
+  timestamp: string;              // ISO 8601
+}
+
+/**
+ * Unified result type for diagnostic export
+ */
+export type DiagnosticExportResult = DiagnosticExportSuccess | DiagnosticExportError;
+
+// ============================================================================
+// SERVICE STATE - 5 STEP PHASES
+// ============================================================================
+
+/**
+ * 5-step diagnostic workflow phases
+ */
+export type DiagnosticPhase =
+  | 'step1_local_collection'
+  | 'step2_upload_local'
+  | 'step3_cloud_collection'
+  | 'step4_merge'
+  | 'step5_generate_link';
+
+/**
+ * Status of each phase
+ */
+export type PhaseStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
+/**
+ * Progress information for a single phase
+ */
+export interface PhaseProgress {
+  phase: DiagnosticPhase;
+  status: PhaseStatus;
+  progress?: number;              // 0-100 percentage
+  duration?: number;              // milliseconds
+  error?: string;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Diagnostic service internal state (FSM)
+ *
+ * State transitions:
+ * ┌──────────────────────────────────────────────────────────┐
+ * │ idle ──→ collecting ──→ uploading ──→ success           │
+ * │     ↓          ↓             ↓                           │
+ * │     └──→ error ←──────────────┘                          │
+ * │          ↓ reset                                         │
+ * │          └──→ idle                                       │
+ * └──────────────────────────────────────────────────────────┘
+ */
+export type DiagnosticState = 'idle' | 'collecting' | 'uploading' | 'success' | 'error';
+
+/**
+ * Valid state transition in FSM
+ */
+export interface StateTransition {
+  from: DiagnosticState;
+  to: DiagnosticState;
+  reason?: string;
+}
+
+/**
+ * FSM Configuration: All valid transitions
+ */
+export const VALID_STATE_TRANSITIONS: StateTransition[] = [
+  // From IDLE
+  { from: 'idle', to: 'collecting', reason: 'User initiates diagnostic export' },
+
+  // From COLLECTING
+  { from: 'collecting', to: 'uploading', reason: 'Local data collection complete' },
+  { from: 'collecting', to: 'error', reason: 'Local collection failed' },
+
+  // From UPLOADING
+  { from: 'uploading', to: 'success', reason: 'Cloud collection and report generation complete' },
+  { from: 'uploading', to: 'error', reason: 'Upload or cloud collection failed' },
+
+  // From SUCCESS (reset only)
+  { from: 'success', to: 'idle', reason: 'User initiates new collection' },
+
+  // From ERROR (recovery)
+  { from: 'error', to: 'idle', reason: 'User resets after error' },
+  { from: 'error', to: 'collecting', reason: 'User retries collection' },
+];
+
+/**
+ * Diagnostic operation context
+ */
+export interface DiagnosticContext {
+  state: DiagnosticState;
+  traceId: string;
+  startTime: number;              // milliseconds
+  currentPhase?: DiagnosticPhase;
+  phases: Record<DiagnosticPhase, PhaseProgress>;  // All 5 phases
+  overallProgress: number;        // 0-100 percentage
+  lastError?: string;             // Last error message (for FSM tracking)
+}
+
+/**
+ * FSM validation result
+ */
+export interface FSMValidationResult {
+  isValid: boolean;
+  error?: string;
+  transition?: StateTransition;
+}
+
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+/**
+ * Check if result is success
+ */
+export function isDiagnosticExportSuccess(
+  result: DiagnosticExportResult
+): result is DiagnosticExportSuccess {
+  return result.success === true;
+}
+
+/**
+ * Check if result is error
+ */
+export function isDiagnosticExportError(
+  result: DiagnosticExportResult
+): result is DiagnosticExportError {
+  return result.success === false;
+}

@@ -1,6 +1,7 @@
 # Tauri
 src-tauri/target/
 src-tauri/Cargo.lock
+app/src-tauri/tauri.conf.temp.json
 
 # React
 node_modules/

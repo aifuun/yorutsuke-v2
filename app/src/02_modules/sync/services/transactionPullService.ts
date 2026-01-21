@@ -119,8 +119,26 @@ export async function pullTransactions(
   try {
     // Step 1: Fetch from cloud
     logger.debug('transaction_sync_phase', { phase: 'fetch_cloud', userId, traceId });
+
+    // 🔍 INVESTIGATION: Log fetch parameters
+    logger.info('transaction_sync_fetch_params', {
+      userId,
+      startDate: startDate || 'undefined (no filter)',
+      endDate: endDate || 'undefined (no filter)',
+      note: 'Fetching from cloud with these date filters',
+      traceId,
+    });
+
     const cloudTransactions = await fetchFromCloud(userId, startDate, endDate);
-    logger.info('transaction_sync_cloud_fetched', { userId, count: cloudTransactions.length, traceId });
+
+    // 🔍 INVESTIGATION: Log fetch result details
+    logger.info('transaction_sync_cloud_fetched', {
+      userId,
+      count: cloudTransactions.length,
+      firstTxDate: cloudTransactions.length > 0 ? cloudTransactions[0].date : null,
+      lastTxDate: cloudTransactions.length > 0 ? cloudTransactions[cloudTransactions.length - 1].date : null,
+      traceId,
+    });
 
     // Step 2: Fetch from local (including deleted for conflict resolution)
     logger.debug('transaction_sync_phase', { phase: 'fetch_local', userId, traceId });
@@ -136,18 +154,51 @@ export async function pullTransactions(
     // Step 3: Merge cloud transactions into local
     logger.debug('transaction_sync_phase', { phase: 'merge', cloudCount: cloudTransactions.length, traceId });
 
+    // 🔍 INVESTIGATION: Log first cloud transaction for debugging
+    if (cloudTransactions.length > 0) {
+      const firstTx = cloudTransactions[0];
+      logger.info('transaction_sync_cloud_sample', {
+        txId: firstTx.id,
+        date: firstTx.date,
+        amount: firstTx.amount,
+        status: firstTx.status,
+        merchant: firstTx.merchant,
+        isDirty: firstTx.isDirty,
+        traceId,
+      });
+    }
+
     for (const cloudTx of cloudTransactions) {
       try {
         const localTx = localMap.get(cloudTx.id);
 
         if (!localTx) {
           // New transaction from cloud - insert
+          // 🔍 INVESTIGATION: Log new transaction details
+          logger.info('transaction_sync_new_found', {
+            txId: cloudTx.id,
+            date: cloudTx.date,
+            amount: cloudTx.amount,
+            status: cloudTx.status,
+            traceId,
+          });
+
           await upsertTransaction(cloudTx);
           synced++;
           logger.debug('transaction_sync_inserted', { txId: cloudTx.id, traceId });
         } else {
           // Conflict - resolve and update
           const resolved = resolveConflict(cloudTx, localTx);
+
+          // 🔍 INVESTIGATION: Log conflict resolution
+          logger.info('transaction_sync_conflict', {
+            txId: cloudTx.id,
+            cloudUpdated: cloudTx.updatedAt,
+            localUpdated: localTx.updatedAt,
+            localDirty: localTx.isDirty,
+            winner: resolved === cloudTx ? 'cloud' : 'local',
+            traceId,
+          });
 
           // Only upsert if cloud won (resolved is cloudTx, not localTx)
           if (resolved === cloudTx) {

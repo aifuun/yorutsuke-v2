@@ -408,7 +408,7 @@ export class YorutsukeStack extends cdk.Stack {
       })
     );
 
-    // Grant Textract access for expense analysis (model comparison)
+    // Grant Textract access (currently unused, reserved for future use)
     instantProcessLambda.addToRolePolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
@@ -681,6 +681,107 @@ export class YorutsukeStack extends cdk.Stack {
       },
     });
 
+    // ========================================
+    // Diagnostic Export Lambda (Phase C)
+    // ========================================
+    // S3 bucket for diagnostic reports (7-day lifecycle)
+    const diagnosticsBucket = new s3.Bucket(this, "DiagnosticsBucket", {
+      bucketName: `yorutsuke-diagnostics-us-${env}-${this.account}`,
+      removalPolicy:
+        env === "prod"
+          ? cdk.RemovalPolicy.RETAIN
+          : cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: env !== "prod",
+      lifecycleRules: [
+        {
+          expiration: cdk.Duration.days(7),
+          prefix: "diagnostics/",
+        },
+      ],
+    });
+
+    // Diagnostic Lambda function
+    // Aggregates local diagnostic data with cloud data (DynamoDB, S3, CloudWatch)
+    const diagnosticLambda = new lambda.Function(this, "DiagnosticLambda", {
+      functionName: `yorutsuke-diagnostic-us-${env}`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "index.handler",
+      code: lambda.Code.fromAsset("lambda/diagnostic"),
+      layers: [sharedLayer],
+      environment: {
+        TRANSACTIONS_TABLE: transactionsTable.tableName,
+        DIAGNOSTICS_BUCKET: diagnosticsBucket.bucketName,
+        // Cloud data collection limits (configurable)
+        MAX_CLOUD_TRANSACTIONS: process.env.DIAGNOSTIC_MAX_CLOUD_TRANSACTIONS || "10",
+        MAX_CLOUD_LOGS: process.env.DIAGNOSTIC_MAX_CLOUD_LOGS || "20",
+        CLOUD_LOGS_LOOKBACK_HOURS: process.env.DIAGNOSTIC_CLOUD_LOGS_LOOKBACK_HOURS || "24",
+      },
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 512,
+    });
+
+    // Grant DynamoDB read permissions for transaction queries
+    // Pillar L: Use grantReadData for read-only access
+    transactionsTable.grantReadData(diagnosticLambda);
+
+    // Grant S3 permissions for images listing and diagnostics upload
+    // Pillar I: Firewall - Explicit action-based permissions
+    diagnosticLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "s3:ListBucket",      // List user images
+          "s3:GetObject",        // Get image metadata
+        ],
+        resources: [
+          imageBucket.bucketArn,
+          `${imageBucket.bucketArn}/*`,
+        ],
+      })
+    );
+
+    // Grant S3 permissions for diagnostics report upload and presigned URL generation
+    diagnosticLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "s3:PutObject",  // Upload diagnostic report
+          "s3:GetObject",  // Generate presigned URL
+        ],
+        resources: [
+          diagnosticsBucket.bucketArn,
+          `${diagnosticsBucket.bucketArn}/*`,
+        ],
+      })
+    );
+
+    // Grant CloudWatch Logs read permissions for diagnostic log collection
+    // Pillar N: Observability - Access to structured logs
+    diagnosticLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          "logs:FilterLogEvents",  // Search and filter log events
+          "logs:GetLogEvents",     // Retrieve recent log entries
+          "logs:DescribeLogStreams", // Describe log streams
+        ],
+        resources: [
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-diagnostic-us-${env}:*`,
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-instant-processor-us-${env}:*`,
+        ],
+      })
+    );
+
+    // Lambda Function URL for diagnostic export
+    const diagnosticUrl = diagnosticLambda.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+        allowedMethods: [lambda.HttpMethod.POST],
+        allowedHeaders: ["*"],
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "ImageBucketName", {
       value: imageBucket.bucketName,
@@ -736,6 +837,12 @@ export class YorutsukeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ReportLambdaUrl", {
       value: reportUrl.url,
       exportName: `${id}-ReportUrl`,
+    });
+
+    new cdk.CfnOutput(this, "DiagnosticLambdaUrl", {
+      value: diagnosticUrl.url,
+      exportName: `${id}-DiagnosticUrl`,
+      description: "Lambda URL for diagnostic export (Phase C)",
     });
 
     new cdk.CfnOutput(this, "AlertsTopicArn", {

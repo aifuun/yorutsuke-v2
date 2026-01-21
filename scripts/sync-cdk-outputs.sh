@@ -37,6 +37,7 @@ MAIN_QUOTA_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="Quot
 MAIN_TRANSACTIONS_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="TransactionsLambdaUrl") | .OutputValue')
 MAIN_ISSUE_PERMIT_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="IssuePermitLambdaUrl") | .OutputValue')
 MAIN_ADMIN_DELETE_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="AdminDeleteDataUrl") | .OutputValue')
+MAIN_DIAGNOSTIC_LAMBDA=$(echo "$MAIN_OUTPUTS" | jq -r '.[] | select(.OutputKey=="DiagnosticLambdaUrl") | .OutputValue')
 
 echo ""
 echo "✅ Extracted values:"
@@ -49,6 +50,7 @@ echo "   QuotaLambdaUrl: $MAIN_QUOTA_LAMBDA"
 echo "   TransactionsLambdaUrl: $MAIN_TRANSACTIONS_LAMBDA"
 echo "   IssuePermitLambdaUrl: $MAIN_ISSUE_PERMIT_LAMBDA"
 echo "   AdminDeleteDataUrl: $MAIN_ADMIN_DELETE_LAMBDA"
+echo "   DiagnosticLambdaUrl: $MAIN_DIAGNOSTIC_LAMBDA"
 
 # Update admin/.env
 echo ""
@@ -78,6 +80,7 @@ VITE_LAMBDA_QUOTA_URL=$MAIN_QUOTA_LAMBDA
 VITE_LAMBDA_SYNC_URL=$MAIN_TRANSACTIONS_LAMBDA
 VITE_LAMBDA_ISSUE_PERMIT_URL=$MAIN_ISSUE_PERMIT_LAMBDA
 VITE_LAMBDA_ADMIN_DELETE_URL=$MAIN_ADMIN_DELETE_LAMBDA
+VITE_DIAGNOSTIC_LAMBDA_URL=$MAIN_DIAGNOSTIC_LAMBDA
 EOF
 
 echo "✅ app/.env.local updated"

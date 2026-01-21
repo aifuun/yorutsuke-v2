@@ -13,7 +13,10 @@
     "destroy": "cdk destroy --profile dev",
     "txn:latest": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs dev 10",
     "txn:latest:prod": "AWS_PROFILE=prod node ../scripts/query-latest-transactions.mjs prod 10",
-    "txn:query": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs"
+    "txn:query": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

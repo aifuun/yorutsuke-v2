@@ -1,871 +1,335 @@
-import { TextractClient, AnalyzeExpenseCommand } from "@aws-sdk/client-textract";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import DocumentIntelligence, {
-  isUnexpected,
-  parseResultIdFromResponse,
-} from "@azure-rest/ai-document-intelligence";
-import { AzureKeyCredential } from "@azure/core-auth";
 import { logger } from "./logger.mjs";
 import { ModelResultSchema, OcrResultSchema } from "./schemas.mjs";
 
-const textractClient = new TextractClient({});
-const bedrockClient = new BedrockRuntimeClient({});
-const s3Client = new S3Client({});
+/**
+ * Azure Document Intelligence Receipt Analyzer
+ * Standalone functions for receipt analysis via Azure DI
+ *
+ * @ai-intent: Simplified from MultiModelAnalyzer class - single model only
+ */
 
 /**
- * Multi-Model Receipt Analyzer
- * Orchestrates parallel analysis via Textract, Nova Mini/Pro, and Claude Sonnet
- * Normalizes results to unified ModelResultSchema for comparison
- *
- * @ai-intent: Allow partial failures - if one model fails, others still complete
- * Performance-critical for same-transaction comparison
+ * Analyze receipt via Azure Document Intelligence
+ * @param {string} imageBase64 - Base64-encoded receipt image
+ * @param {string} traceId - Trace ID for logging
+ * @param {Object} credentials - Azure credentials {endpoint, apiKey}
+ * @returns {Promise<Object>} ModelResultSchema-compliant result
  */
-export class MultiModelAnalyzer {
-  /**
-   * Analyze receipt with configurable models
-   * @ai-intent: Support dynamic model selection without redeployment (Pillar B compliance)
-   *
-   * @param {Object} params
-   * @param {string} params.imageBase64 - Base64-encoded receipt image
-   * @param {string} params.imageFormat - Image format (jpeg, png)
-   * @param {string} params.s3Key - S3 object key for Textract access
-   * @param {string} params.bucket - S3 bucket name
-   * @param {string} params.traceId - Trace ID for logging
-   * @param {string} params.imageId - Image ID for logging
-   * @param {string[]} params.enabledModels - Models to run: ['textract', 'nova_mini', 'nova_pro', 'azure_di']
-   * @param {Object} params.azureCredentials - Azure DI credentials {endpoint, apiKey} or null
-   * @returns {Promise<Object>} Comparison result with enabled models + errors
-   */
-  async analyzeReceipt({
-    imageBase64,
-    imageFormat = 'jpeg',
-    s3Key,
-    bucket,
-    traceId,
-    imageId,
-    enabledModels = ['textract', 'nova_mini', 'nova_pro'],  // Default: backward compatibility
-    azureCredentials = null,
-  }) {
-    logger.info("MODEL_COMPARISON_STARTED", {
+export async function analyzeAzureDI(imageBase64, traceId, credentials) {
+  try {
+    const endpoint = credentials?.endpoint?.replace(/\/$/, ''); // Remove trailing slash
+    const apiKey = credentials?.apiKey;
+
+    if (!endpoint || !apiKey) {
+      throw new Error("Azure DI credentials not provided");
+    }
+
+    logger.debug("AZURE_DI_REQUEST_START", {
       traceId,
-      imageId,
-      imageFormat,
-      enabledModels,
+      endpoint,
+      method: "base64-encoded-image",
     });
 
-    // Build dynamic analysis promises based on enabledModels
-    const analysisPromises = [];
-    const modelNames = [];
+    // Step 1: Submit analysis request using Base64-encoded image (v4.0 API)
+    const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-receipt:analyze?api-version=2024-11-30`;
 
-    if (enabledModels.includes('textract')) {
-      analysisPromises.push(this.analyzeTextract(s3Key, bucket, traceId));
-      modelNames.push('textract');
-    }
-
-    if (enabledModels.includes('nova_mini')) {
-      analysisPromises.push(this.analyzeNovaMini(imageBase64, imageFormat, traceId));
-      modelNames.push('nova_mini');
-    }
-
-    if (enabledModels.includes('nova_pro')) {
-      analysisPromises.push(
-        this.analyzeNovaProBedrock(imageBase64, imageFormat, traceId)
-      );
-      modelNames.push('nova_pro');
-    }
-
-    // Add Azure if explicitly enabled AND credentials provided
-    if (enabledModels.includes('azure_di') && azureCredentials) {
-      analysisPromises.push(
-        this.analyzeAzureDI(s3Key, bucket, imageBase64, traceId, azureCredentials)
-      );
-      modelNames.push('azure_di');
-      logger.debug("AZURE_DI_ENABLED", { traceId, endpoint: azureCredentials.endpoint });
-    } else if (enabledModels.includes('azure_di')) {
-      logger.warn("AZURE_DI_REQUESTED_NO_CREDENTIALS", { traceId });
-    }
-
-    // Return early if no models enabled (edge case, but handle gracefully)
-    if (analysisPromises.length === 0) {
-      logger.warn("NO_MODELS_ENABLED", { traceId });
-      return {
-        comparisonStatus: 'failed',
-        comparisonErrors: [
-          {
-            model: 'all',
-            error: 'No models enabled for analysis',
-            timestamp: new Date().toISOString(),
-          },
-        ],
-        comparisonTimestamp: new Date().toISOString(),
-      };
-    }
-
-    const results = await Promise.allSettled(analysisPromises);
-
-    const comparison = {};
-    const errors = [];
-
-    results.forEach((result, index) => {
-      const modelName = modelNames[index];
-      if (result.status === 'fulfilled') {
-        comparison[modelName] = result.value;
-        logger.debug("MODEL_COMPLETED", { traceId, model: modelName });
-      } else {
-        errors.push({
-          model: modelName,
-          error: result.reason?.message || String(result.reason),
-          timestamp: new Date().toISOString(),
-        });
-        logger.warn("MODEL_FAILED", {
-          traceId,
-          model: modelName,
-          error: result.reason?.message,
-        });
-      }
+    const analyzeResponse = await fetch(analyzeUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Ocp-Apim-Subscription-Key": apiKey,
+      },
+      body: Buffer.from(imageBase64, "base64"),
     });
 
-    // Build comparison result with only enabled models
-    const comparisonResult = {
-      comparisonStatus:
-        errors.length === analysisPromises.length ? 'failed' : 'completed',
-      comparisonErrors: errors.length > 0 ? errors : undefined,
-      comparisonTimestamp: new Date().toISOString(),
-    };
+    if (!analyzeResponse.ok) {
+      const errorBody = await analyzeResponse.text();
+      throw new Error(`Azure API error (${analyzeResponse.status}): ${errorBody}`);
+    }
 
-    // Only include results for enabled models
-    modelNames.forEach((modelName) => {
-      comparisonResult[modelName] = comparison[modelName] || null;
-    });
+    // Get Operation-Location header for polling
+    const operationLocation = analyzeResponse.headers.get("Operation-Location");
+    if (!operationLocation) {
+      throw new Error("No Operation-Location header in response");
+    }
 
-    logger.info("MODEL_COMPARISON_COMPLETED", {
+    logger.debug("AZURE_DI_ANALYSIS_SUBMITTED", {
       traceId,
-      imageId,
-      status: comparisonResult.comparisonStatus,
-      successCount: Object.values(comparison).filter((v) => v !== null).length,
-      failureCount: errors.length,
-      enabledModels,
+      operationLocation: operationLocation.substring(0, 100),
     });
 
-    return comparisonResult;
-  }
+    // Step 2: Poll for analysis results
+    let analyzeResult = null;
+    const maxRetries = 30;
 
-  /**
-   * Analyze via AWS Textract AnalyzeExpense
-   * Requires S3 input (direct file reference)
-   * Locale: ja-JP for Japanese receipts
-   */
-  async analyzeTextract(s3Key, bucket, traceId) {
-    try {
-      const response = await textractClient.send(
-        new AnalyzeExpenseCommand({
-          Document: {
-            S3Object: {
-              Bucket: bucket,
-              Name: s3Key,
-            },
-          },
-        })
-      );
+    for (let i = 0; i < maxRetries; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
 
-      return this.normalizeTextractResult(response);
-    } catch (error) {
-      logger.error("TEXTRACT_ERROR", {
-        traceId,
-        error: error.message,
-        code: error.Code,
-      });
-      throw new Error(`Textract analysis failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Analyze via Amazon Nova Mini (via Bedrock)
-   * Fast, cost-effective, good for initial screening
-   * @ai-intent: Keep prompt minimal to match Nova Mini's token limits
-   */
-  async analyzeNovaMini(imageBase64, imageFormat, traceId) {
-    try {
-      const prompt = `あなたは日本語のレシート解析AIです。
-この画像から以下のJSON形式で抽出してください:
-{
-  "vendor": "店舗名",
-  "totalAmount": 数値,
-  "taxAmount": 数値,
-  "taxRate": 数値,
-  "subtotal": 数値,
-  "confidence": 0-100
-}`;
-
-      const payload = {
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                image: {
-                  format: imageFormat,
-                  source: { bytes: imageBase64 },
-                },
-              },
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-        inferenceConfig: {
-          maxTokens: 512,
-          temperature: 0.1,
-        },
-      };
-
-      const response = await bedrockClient.send(
-        new InvokeModelCommand({
-          modelId: "us.amazon.nova-lite-v1:0",
-          contentType: "application/json",
-          accept: "application/json",
-          body: JSON.stringify(payload),
-        })
-      );
-
-      const responseBody = JSON.parse(
-        new TextDecoder().decode(response.body)
-      );
-      const text =
-        responseBody.output?.message?.content?.[0]?.text || "{}";
-
-      return this.parseAndNormalizeJson(text);
-    } catch (error) {
-      logger.error("NOVA_MINI_ERROR", { traceId, error: error.message });
-      throw new Error(`Nova Mini analysis failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Analyze via Amazon Nova Pro (via Bedrock)
-   * More capable, detailed structure extraction
-   * Includes line items for detailed comparison
-   * @ai-intent: Detailed prompt with line items for comprehensive extraction
-   */
-  async analyzeNovaProBedrock(imageBase64, imageFormat, traceId) {
-    try {
-      const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で抽出してください（JSONのみ、マークダウンなし）：
-
-{
-  "vendor": "店舗名",
-  "subtotal": 小計,
-  "taxAmount": 消費税,
-  "taxRate": 税率,
-  "totalAmount": 合計金額,
-  "confidence": 0-100
-}`;
-
-      const payload = {
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                text: prompt,
-              },
-              {
-                image: {
-                  format: imageFormat,
-                  source: { bytes: imageBase64 },
-                },
-              },
-            ],
-          },
-        ],
-        inferenceConfig: {
-          maxTokens: 2048,
-          temperature: 0.1,
-        },
-      };
-
-      // Use Inference Profile ARN if available, otherwise fall back to model ID
-      const modelId = process.env.NOVA_PRO_INFERENCE_PROFILE || "us.amazon.nova-pro-v1:0";
-
-      const response = await bedrockClient.send(
-        new InvokeModelCommand({
-          modelId: modelId,
-          contentType: "application/json",
-          accept: "application/json",
-          body: JSON.stringify(payload),
-        })
-      );
-
-      const responseBody = JSON.parse(
-        new TextDecoder().decode(response.body)
-      );
-
-      // Debug: Log the response structure to understand format
-      logger.debug("NOVA_PRO_RESPONSE_BODY", {
-        traceId,
-        keys: Object.keys(responseBody),
-        output: responseBody.output ? Object.keys(responseBody.output) : null,
-        fullBody: JSON.stringify(responseBody).substring(0, 500)
-      });
-
-      const text =
-        responseBody.output?.message?.content?.[0]?.text || "{}";
-
-      logger.debug("NOVA_PRO_EXTRACTED_TEXT", { traceId, textLength: text.length, text: text.substring(0, 200) });
-
-      return this.parseAndNormalizeJson(text);
-    } catch (error) {
-      logger.error("NOVA_PRO_ERROR", { traceId, error: error.message });
-      throw new Error(`Nova Pro analysis failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Analyze via Google Gemma 3 12B (via Bedrock)
-   * Open-source model with good reasoning and multilingual support
-   * Avoids Anthropic geo-restrictions
-   * @ai-intent: Google Gemma as alternative to Claude for geo-restricted regions
-   */
-  async analyzeGemma3(imageBase64, imageFormat, traceId) {
-    try {
-      const prompt = `あなたは日本語のレシート解析AIです。この画像から以下のJSON形式で抽出してください（JSONのみ、マークダウンなし）：
-
-{
-  "vendor": "店舗名",
-  "subtotal": 小計,
-  "taxAmount": 消費税,
-  "taxRate": 税率,
-  "totalAmount": 合計金額,
-  "confidence": 0-100
-}`;
-
-      // Map format to MIME type for Bedrock
-      const mimeTypeMap = { jpeg: 'image/jpeg', jpg: 'image/jpeg', png: 'image/png' };
-      const mimeType = mimeTypeMap[imageFormat] || 'image/jpeg';
-
-      const payload = {
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: prompt,
-              },
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: mimeType,
-                  data: imageBase64,
-                },
-              },
-            ],
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 2048,
-      };
-
-      const response = await bedrockClient.send(
-        new InvokeModelCommand({
-          modelId: "google.gemma-3-12b-it",
-          contentType: "application/json",
-          accept: "application/json",
-          body: JSON.stringify(payload),
-        })
-      );
-
-      const responseBody = JSON.parse(
-        new TextDecoder().decode(response.body)
-      );
-
-      const text = responseBody.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-
-      logger.debug("GEMMA_3_EXTRACTED_TEXT", {
-        traceId,
-        textLength: text.length,
-        text: text.substring(0, 200),
-      });
-
-      return this.parseAndNormalizeJson(text);
-    } catch (error) {
-      logger.error("GEMMA_3_ERROR", {
-        traceId,
-        error: error.message,
-      });
-      throw new Error(`Gemma 3 analysis failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Analyze via Azure Document Intelligence REST API (Direct HTTP)
-   * Uses Base64-encoded image data instead of URLs for reliability
-   * @ai-intent: Presigned URLs cause 403/404 errors; Base64 avoids S3 access issues
-   */
-  /**
-   * Analyze via Azure Document Intelligence
-   * @param {string} s3Key - S3 object key (currently unused, kept for compatibility)
-   * @param {string} bucket - S3 bucket name (currently unused, kept for compatibility)
-   * @param {string} imageBase64 - Base64-encoded receipt image
-   * @param {string} traceId - Trace ID for logging
-   * @param {Object} credentials - Azure credentials {endpoint, apiKey}
-   */
-  async analyzeAzureDI(s3Key, bucket, imageBase64, traceId, credentials) {
-    try {
-      const endpoint = credentials?.endpoint?.replace(/\/$/, ''); // Remove trailing slash
-      const apiKey = credentials?.apiKey;
-
-      if (!endpoint || !apiKey) {
-        throw new Error("Azure DI credentials not provided");
-      }
-
-      logger.debug("AZURE_DI_REQUEST_START", {
-        traceId,
-        endpoint,
-        method: "base64-encoded-image",
-        s3Key: s3Key.substring(0, 50),
-      });
-
-      // Step 1: Submit analysis request using Base64-encoded image (v4.0 API)
-      // Reference: https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api
-      const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-receipt:analyze?api-version=2024-11-30`;
-
-      const analyzeResponse = await fetch(analyzeUrl, {
-        method: "POST",
+      const statusResponse = await fetch(operationLocation, {
+        method: "GET",
         headers: {
-          "Content-Type": "application/octet-stream",
           "Ocp-Apim-Subscription-Key": apiKey,
         },
-        // Send raw image bytes instead of JSON
-        body: Buffer.from(imageBase64, "base64"),
       });
 
-      if (!analyzeResponse.ok) {
-        const errorBody = await analyzeResponse.text();
-        throw new Error(`Azure API error (${analyzeResponse.status}): ${errorBody}`);
+      if (!statusResponse.ok) {
+        throw new Error(`Status check failed (${statusResponse.status})`);
       }
 
-      // Get Operation-Location header for polling
-      const operationLocation = analyzeResponse.headers.get("Operation-Location");
-      if (!operationLocation) {
-        throw new Error("No Operation-Location header in response");
-      }
+      const statusData = await statusResponse.json();
 
-      logger.debug("AZURE_DI_ANALYSIS_SUBMITTED", {
-        traceId,
-        operationLocation: operationLocation.substring(0, 100),
-      });
-
-      // Step 2: Poll for analysis results
-      let analyzeResult = null;
-      const maxRetries = 30;
-
-      for (let i = 0; i < maxRetries; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
-
-        const statusResponse = await fetch(operationLocation, {
-          method: "GET",
-          headers: {
-            "Ocp-Apim-Subscription-Key": apiKey,
-          },
+      if (statusData.status === "succeeded") {
+        analyzeResult = statusData.analyzeResult;
+        logger.debug("AZURE_DI_RESPONSE_RECEIVED", {
+          traceId,
+          hasDocuments: !!analyzeResult?.documents?.length,
         });
-
-        if (!statusResponse.ok) {
-          throw new Error(`Status check failed (${statusResponse.status})`);
-        }
-
-        const statusData = await statusResponse.json();
-
-        if (statusData.status === "succeeded") {
-          analyzeResult = statusData.analyzeResult;
-          logger.debug("AZURE_DI_RESPONSE_RECEIVED", {
-            traceId,
-            hasDocuments: !!analyzeResult?.documents?.length,
-          });
-          break;
-        } else if (statusData.status === "failed") {
-          throw new Error(`Analysis failed: ${statusData.error?.message || "Unknown error"}`);
-        }
-        // Continue polling if status is "notStarted" or "running"
+        break;
+      } else if (statusData.status === "failed") {
+        throw new Error(`Analysis failed: ${statusData.error?.message || "Unknown error"}`);
       }
-
-      if (!analyzeResult) {
-        throw new Error("Analysis polling timeout after 30 seconds");
-      }
-
-      return this.normalizeAzureDIResult(analyzeResult);
-    } catch (error) {
-      logger.error("AZURE_DI_ERROR", {
-        traceId,
-        error: error.message,
-      });
-      throw new Error(`Azure Document Intelligence analysis failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * Normalize Azure Document Intelligence response to ModelResultSchema
-   * Extracts fields from prebuilt-receipt model
-   * @param {Object} analyzeResult - The analyzeResult object from SDK response
-   */
-  normalizeAzureDIResult(analyzeResult) {
-    try {
-      if (!analyzeResult?.documents?.[0]) {
-        logger.warn("AZURE_DI_NO_DOCUMENTS", {
-          keys: analyzeResult ? Object.keys(analyzeResult) : "no result",
-        });
-        return ModelResultSchema.parse({});
-      }
-
-      const doc = analyzeResult.documents[0];
-      const fields = doc.fields || {};
-
-      // Extract key fields from Azure response
-      // Azure DI v4.0 uses valueString, valueNumber, valueArray, valueObject properties
-      // Support both prebuilt-receipt and prebuilt-invoice field names
-      const result = {
-        vendor: fields.MerchantName?.valueString || fields.VendorName?.valueString || "Unknown",
-        totalAmount: this.parseAzureAmount(fields.Total) || this.parseAzureAmount(fields.TotalAmount),
-        taxAmount: this.parseAzureAmount(fields.Tax) || this.parseAzureAmount(fields.TotalTax),
-        subtotal: this.parseAzureAmount(fields.Subtotal) || this.parseAzureAmount(fields.SubtotalAmount),
-        taxRate: this.parseAzureAmount(fields.TaxRate),
-        confidence: this.calculateAzureConfidence(fields),
-        lineItems: this.extractAzureLineItems(fields.Items),
-      };
-
-      logger.debug("AZURE_DI_EXTRACTED_RESULT", {
-        vendor: result.vendor,
-        totalAmount: result.totalAmount,
-        taxAmount: result.taxAmount,
-        confidence: result.confidence,
-        lineItemCount: result.lineItems?.length || 0,
-      });
-
-      return ModelResultSchema.parse(result);
-    } catch (error) {
-      logger.warn("AZURE_DI_NORMALIZATION_ERROR", {
-        error: error.message,
-      });
-      return ModelResultSchema.parse({});
-    }
-  }
-
-  /**
-   * Parse amount field from Azure response
-   * Azure DI v4.0 uses valueNumber for numeric fields, valueString for string representation
-   */
-  parseAzureAmount(field) {
-    if (!field) return undefined;
-
-    // Try valueNumber first (Azure DI v4.0 native format)
-    if (typeof field.valueNumber === "number") {
-      return field.valueNumber;
+      // Continue polling if status is "notStarted" or "running"
     }
 
-    // Fall back to valueString if it contains a number
-    const strValue = field.valueString;
-    if (typeof strValue === "string") {
-      const match = strValue.match(/[\d,]+(?:\.\d{1,2})?/);
-      if (match) {
-        return parseFloat(match[0].replace(/,/g, ""));
-      }
+    if (!analyzeResult) {
+      throw new Error("Analysis polling timeout after 30 seconds");
     }
 
-    return undefined;
-  }
-
-  /**
-   * Calculate average confidence from Azure field confidences
-   */
-  calculateAzureConfidence(fields) {
-    const confidences = Object.values(fields)
-      .map((f) => f.confidence || 0.9)
-      .filter((c) => c >= 0 && c <= 1);
-
-    if (confidences.length === 0) return 85;
-
-    const avgConfidence = confidences.reduce((a, b) => a + b, 0) / confidences.length;
-    return Math.round(avgConfidence * 100);
-  }
-
-  /**
-   * Extract line items from Azure response
-   * Azure DI v4.0 wraps Items in a field with valueArray property
-   */
-  extractAzureLineItems(itemsField) {
-    if (!itemsField) return undefined;
-
-    // Azure DI v4.0: Items is a field with valueArray property
-    const itemsArray = itemsField.valueArray;
-    if (!itemsArray || !Array.isArray(itemsArray)) return undefined;
-
-    return itemsArray
-      .slice(0, 50) // Limit to 50 items
-      .map((item) => {
-        // Each item in valueArray is wrapped in a valueObject property
-        const itemObj = item.valueObject || item;
-        return {
-          description: itemObj.Description?.valueString || "",
-          quantity: itemObj.Quantity?.valueNumber ? parseFloat(itemObj.Quantity.valueNumber) : 1,
-          unitPrice: this.parseAzureAmount(itemObj.UnitPrice),
-          totalPrice: this.parseAzureAmount(itemObj.Amount),
-        };
-      })
-      .filter((item) => item.description || item.unitPrice || item.totalPrice);
-  }
-
-  /**
-   * Normalize Textract response to ModelResultSchema
-   * Textract returns ExpenseDocument with Blocks structure
-   */
-  normalizeTextractResult(response) {
-    try {
-      if (!response.ExpenseDocuments?.[0]) {
-        logger.warn("TEXTRACT_NO_EXPENSE_DOCUMENTS", {
-          keys: Object.keys(response),
-        });
-        return ModelResultSchema.parse({});
-      }
-
-      const expenseDoc = response.ExpenseDocuments[0];
-      const summaryFields = expenseDoc.SummaryFields || [];
-
-      // Debug: Log all available field types in response
-      logger.debug("TEXTRACT_SUMMARY_FIELDS", {
-        count: summaryFields.length,
-        types: summaryFields.map(f => f.Type?.Text || "unknown").slice(0, 20),
-      });
-
-      // Extract key fields from Textract response
-      const result = {
-        vendor: this.extractTextractField(summaryFields, "VENDOR_NAME"),
-        subtotal: this.extractTextractAmount(summaryFields, "SUBTOTAL"),
-        taxAmount: this.extractTextractAmount(summaryFields, "TAX"),
-        totalAmount: this.extractTextractAmount(summaryFields, "TOTAL"),
-        confidence: 85, // Textract confidence varies, approximate
-        lineItems: this.extractTextractLineItems(
-          expenseDoc.LineItemGroups
-        ),
-      };
-
-      logger.debug("TEXTRACT_EXTRACTED_RESULT", {
-        vendor: result.vendor,
-        totalAmount: result.totalAmount,
-        taxAmount: result.taxAmount,
-        lineItemCount: result.lineItems?.length || 0,
-      });
-
-      return ModelResultSchema.parse(result);
-    } catch (error) {
-      logger.warn("TEXTRACT_NORMALIZATION_ERROR", {
-        error: error.message,
-      });
-      return ModelResultSchema.parse({});
-    }
-  }
-
-  /**
-   * Extract field value from Textract summary fields (with fallback aliases)
-   */
-  extractTextractField(summaryFields, fieldType) {
-    // Support multiple field name variants for Japanese receipts
-    const fieldAliases = {
-      "VENDOR_NAME": ["VENDOR_NAME", "MERCHANT_NAME", "STORE_NAME", "COMPANY_NAME"],
-      "SUBTOTAL": ["SUBTOTAL", "SUB_TOTAL", "AMOUNT_SUBTOTAL"],
-      "TAX": ["TAX", "TAX_AMOUNT", "SALES_TAX", "CONSUMPTION_TAX"],
-      "TOTAL": ["TOTAL", "TOTAL_AMOUNT", "AMOUNT_TOTAL", "GRAND_TOTAL"],
-    };
-
-    const aliases = fieldAliases[fieldType] || [fieldType];
-
-    for (const alias of aliases) {
-      const field = summaryFields.find((f) => f.Type?.Text === alias);
-      if (field?.ValueDetection?.Text) {
-        return field.ValueDetection.Text;
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Extract numeric amount from Textract summary fields (with fallback aliases)
-   */
-  extractTextractAmount(summaryFields, fieldType) {
-    // Support multiple field name variants
-    const fieldAliases = {
-      "SUBTOTAL": ["SUBTOTAL", "SUB_TOTAL", "AMOUNT_SUBTOTAL"],
-      "TAX": ["TAX", "TAX_AMOUNT", "SALES_TAX", "CONSUMPTION_TAX"],
-      "TOTAL": ["TOTAL", "TOTAL_AMOUNT", "AMOUNT_TOTAL", "GRAND_TOTAL"],
-    };
-
-    const aliases = fieldAliases[fieldType] || [fieldType];
-
-    for (const alias of aliases) {
-      const field = summaryFields.find((f) => f.Type?.Text === alias);
-      if (!field?.ValueDetection?.Text) continue;
-
-      const match = field.ValueDetection.Text.match(/[\d,]+(?:\.\d{1,2})?/);
-      if (match) {
-        return parseFloat(match[0].replace(/,/g, ""));
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Extract line items from Textract LineItemGroups
-   */
-  extractTextractLineItems(lineItemGroups) {
-    if (!lineItemGroups?.length) return undefined;
-
-    return lineItemGroups
-      .slice(0, 50) // Limit to 50 items
-      .map((group) => {
-        const fields = group.LineItems?.[0]?.LineItemExpenseFields || [];
-
-        return {
-          description: this.extractTextractField(fields, "ITEM_DESCRIPTION"),
-          quantity: parseFloat(
-            this.extractTextractField(fields, "ITEM_QUANTITY") || "1"
-          ),
-          unitPrice: this.extractTextractAmount(fields, "ITEM_PRICE"),
-          totalPrice: this.extractTextractAmount(fields, "ITEM_AMOUNT"),
-        };
-      })
-      .filter(
-        (item) =>
-          item.description ||
-          item.unitPrice ||
-          item.totalPrice
-      );
-  }
-
-  /**
-   * Parse JSON response and normalize to ModelResultSchema
-   * Handles markdown code blocks and malformed JSON gracefully
-   */
-  parseAndNormalizeJson(jsonText) {
-    try {
-      let cleaned = jsonText.trim();
-
-      // Debug: Log raw input
-      logger.debug("JSON_PARSE_INPUT", {
-        rawLength: jsonText.length,
-        first200: jsonText.substring(0, 200),
-      });
-
-      // Remove markdown code blocks
-      if (cleaned.startsWith("```")) {
-        cleaned = cleaned
-          .replace(/```json?\n?/g, "")
-          .replace(/```/g, "")
-          .trim();
-      }
-
-      const parsed = JSON.parse(cleaned);
-
-      // Debug: Log parsed object
-      logger.debug("JSON_PARSE_SUCCESS", {
-        keys: Object.keys(parsed),
-        isEmpty: Object.keys(parsed).length === 0,
-      });
-
-      // Validate against schema
-      return ModelResultSchema.parse(parsed);
-    } catch (error) {
-      logger.warn("JSON_PARSE_ERROR", {
-        error: error.message,
-        rawLength: jsonText.length,
-        raw: jsonText.substring(0, 300),
-      });
-
-      // Fallback: Try to extract partial data from malformed JSON (e.g., Nova Pro with truncated lineItems)
-      try {
-        const partialData = this.extractPartialJson(jsonText);
-        if (partialData && Object.keys(partialData).length > 0) {
-          logger.debug("JSON_PARTIAL_EXTRACTION_SUCCESS", {
-            keys: Object.keys(partialData),
-          });
-          return ModelResultSchema.parse(partialData);
-        }
-      } catch (partialError) {
-        logger.warn("JSON_PARTIAL_EXTRACTION_FAILED", {
-          error: partialError.message,
-        });
-      }
-
-      // Return empty but valid schema on parse failure
-      return ModelResultSchema.parse({});
-    }
-  }
-
-  /**
-   * Extract partial JSON from malformed responses (e.g., truncated Nova Pro responses with incomplete lineItems)
-   * Extracts key fields: vendor, totalAmount, subtotal, taxAmount, taxRate, confidence
-   */
-  extractPartialJson(jsonText) {
-    const result = {};
-
-    // Extract vendor (usually near start)
-    const vendorMatch = jsonText.match(/"vendor"\s*:\s*"([^"]*)/);
-    if (vendorMatch) {
-      result.vendor = vendorMatch[1];
-    }
-
-    // Extract totalAmount (try multiple patterns)
-    const totalMatch = jsonText.match(/"totalAmount"\s*:\s*(\d+)/);
-    if (totalMatch) {
-      result.totalAmount = parseInt(totalMatch[1], 10);
-    }
-
-    // Extract subtotal
-    const subtotalMatch = jsonText.match(/"subtotal"\s*:\s*(\d+)/);
-    if (subtotalMatch) {
-      result.subtotal = parseInt(subtotalMatch[1], 10);
-    }
-
-    // Extract taxAmount
-    const taxAmountMatch = jsonText.match(/"taxAmount"\s*:\s*(\d+)/);
-    if (taxAmountMatch) {
-      result.taxAmount = parseInt(taxAmountMatch[1], 10);
-    }
-
-    // Extract taxRate (handle decimals)
-    const taxRateMatch = jsonText.match(/"taxRate"\s*:\s*([\d.]+)/);
-    if (taxRateMatch) {
-      result.taxRate = parseFloat(taxRateMatch[1]);
-    }
-
-    // Extract confidence (0-100)
-    const confidenceMatch = jsonText.match(/"confidence"\s*:\s*(\d+)/);
-    if (confidenceMatch) {
-      result.confidence = parseInt(confidenceMatch[1], 10);
-    }
-
-    return result;
+    return normalizeAzureDIResult(analyzeResult);
+  } catch (error) {
+    logger.error("AZURE_DI_ERROR", {
+      traceId,
+      error: error.message,
+    });
+    throw new Error(`Azure Document Intelligence analysis failed: ${error.message}`);
   }
 }
 
 /**
- * Convert ModelResultSchema (from Azure DI/Textract) to OcrResultSchema
- * @ai-intent: Bridge model comparison results to transaction creation format
+ * Normalize Azure Document Intelligence response to ModelResultSchema
+ * Extracts fields from prebuilt-receipt model
+ * @param {Object} analyzeResult - The analyzeResult object from Azure API response
+ * @returns {Object} ModelResultSchema-compliant result
+ */
+function normalizeAzureDIResult(analyzeResult) {
+  try {
+    if (!analyzeResult?.documents?.[0]) {
+      logger.warn("AZURE_DI_NO_DOCUMENTS", {
+        keys: analyzeResult ? Object.keys(analyzeResult) : "no result",
+      });
+      return ModelResultSchema.parse({});
+    }
+
+    const doc = analyzeResult.documents[0];
+    const fields = doc.fields || {};
+
+    // 🔍 DEBUG: Log available field names to identify correct ones
+    logger.debug("AZURE_DI_AVAILABLE_FIELDS", {
+      fieldNames: Object.keys(fields),
+      hasTotal: !!fields.Total,
+      hasTotalAmount: !!fields.TotalAmount,
+      hasInvoiceTotal: !!fields.InvoiceTotal,
+      hasReceiptTotal: !!fields.ReceiptTotal,
+      hasSubtotal: !!fields.Subtotal,
+      hasSubtotalAmount: !!fields.SubtotalAmount,
+      hasSubTotal: !!fields.SubTotal,
+    });
+
+    // 🔍 DEBUG: Log the actual content of Total field to see structure
+    if (fields.Total) {
+      logger.debug("AZURE_DI_TOTAL_FIELD_CONTENT", {
+        totalField: JSON.stringify(fields.Total),
+        hasValueNumber: fields.Total.valueNumber !== undefined,
+        hasValueString: fields.Total.valueString !== undefined,
+        valueCurrency: fields.Total.valueCurrency,
+        type: fields.Total.type,
+      });
+    }
+
+    const result = {
+      vendor: fields.MerchantName?.valueString || fields.VendorName?.valueString || "Unknown",
+      // Try all known total field names (different models use different names)
+      totalAmount:
+        parseAzureAmount(fields.Total) ||
+        parseAzureAmount(fields.TotalAmount) ||
+        parseAzureAmount(fields.InvoiceTotal) ||
+        parseAzureAmount(fields.ReceiptTotal),
+      taxAmount: parseAzureAmount(fields.Tax) || parseAzureAmount(fields.TotalTax),
+      // Try all known subtotal field names (note: SubTotal has capital T)
+      subtotal:
+        parseAzureAmount(fields.Subtotal) ||
+        parseAzureAmount(fields.SubtotalAmount) ||
+        parseAzureAmount(fields.SubTotal),
+      taxRate: parseAzureAmount(fields.TaxRate),
+      // Extract transaction date (format: YYYY-MM-DD or valueDate object)
+      transactionDate: parseAzureDate(fields.TransactionDate),
+      confidence: calculateAzureConfidence(fields),
+      lineItems: extractAzureLineItems(fields.Items),
+    };
+
+    logger.debug("AZURE_DI_EXTRACTED_RESULT", {
+      vendor: result.vendor,
+      totalAmount: result.totalAmount,
+      subtotal: result.subtotal,
+      taxAmount: result.taxAmount,
+      taxRate: result.taxRate,
+      transactionDate: result.transactionDate,
+      confidence: result.confidence,
+      lineItemCount: result.lineItems?.length || 0,
+      extractionSuccess: {
+        hasTotal: result.totalAmount !== undefined,
+        hasSubtotal: result.subtotal !== undefined,
+        hasTax: result.taxAmount !== undefined,
+        hasDate: result.transactionDate !== undefined,
+      },
+    });
+
+    return ModelResultSchema.parse(result);
+  } catch (error) {
+    logger.warn("AZURE_DI_NORMALIZATION_ERROR", {
+      error: error.message,
+    });
+    return ModelResultSchema.parse({});
+  }
+}
+
+/**
+ * Parse amount field from Azure response
+ * Azure DI v4.0 uses:
+ * - valueCurrency.amount for currency fields (e.g., Total, TotalTax)
+ * - valueNumber for numeric fields
+ * - valueString for string representation
+ */
+function parseAzureAmount(field) {
+  if (!field) return undefined;
+
+  // Try valueCurrency.amount first (used for currency fields like Total)
+  if (field.valueCurrency && typeof field.valueCurrency.amount === "number") {
+    return field.valueCurrency.amount;
+  }
+
+  // Try valueNumber (used for non-currency numeric fields)
+  if (typeof field.valueNumber === "number") {
+    return field.valueNumber;
+  }
+
+  // Fall back to valueString if it contains a number
+  const strValue = field.valueString;
+  if (typeof strValue === "string") {
+    const match = strValue.match(/[\d,]+(?:\.\d{1,2})?/);
+    if (match) {
+      return parseFloat(match[0].replace(/,/g, ""));
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Parse date field from Azure response
+ * Azure DI v4.0 uses:
+ * - valueDate for date fields (returns ISO 8601 format: YYYY-MM-DD)
+ * - valueString as fallback (may need parsing)
+ */
+function parseAzureDate(field) {
+  if (!field) return undefined;
+
+  // Try valueDate first (ISO 8601 format: YYYY-MM-DD)
+  if (field.valueDate && typeof field.valueDate === "string") {
+    return field.valueDate;
+  }
+
+  // Fall back to valueString if it contains a date
+  const strValue = field.valueString;
+  if (typeof strValue === "string") {
+    // Try to parse various date formats
+    // Azure might return: "2026-01-20", "2026/01/20", "20/01/2026", etc.
+    const isoMatch = strValue.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+
+    // Try DD/MM/YYYY or MM/DD/YYYY format
+    const slashMatch = strValue.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slashMatch) {
+      const day = slashMatch[1].padStart(2, '0');
+      const month = slashMatch[2].padStart(2, '0');
+      const year = slashMatch[3];
+      // Assume DD/MM/YYYY for Japanese receipts
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Calculate average confidence from Azure field confidences
+ */
+function calculateAzureConfidence(fields) {
+  const confidences = Object.values(fields)
+    .filter((field) => field?.confidence !== undefined)
+    .map((field) => field.confidence);
+
+  if (confidences.length === 0) return undefined;
+
+  const avgConfidence = confidences.reduce((sum, c) => sum + c, 0) / confidences.length;
+  // Convert to 0-100 scale (Azure uses 0-1)
+  return Math.round(avgConfidence * 100);
+}
+
+/**
+ * Extract line items from Azure Items field
+ * @param {Object} itemsField - The Items field from Azure DI response
+ * @returns {Array} Array of line items with description, quantity, prices
+ */
+function extractAzureLineItems(itemsField) {
+  if (!itemsField?.valueArray) return [];
+
+  return itemsField.valueArray
+    .map((item) => {
+      const properties = item.valueObject || {};
+      return {
+        description: properties.Description?.valueString || "",
+        quantity: parseAzureAmount(properties.Quantity),
+        unitPrice: parseAzureAmount(properties.Price),
+        totalPrice: parseAzureAmount(properties.TotalPrice),
+      };
+    })
+    .filter((item) => item.description); // Only include items with description
+}
+
+/**
+ * Convert ModelResultSchema (from Azure DI) to OcrResultSchema
+ * @ai-intent: Bridge Azure DI results to transaction creation format
  *
- * @param {Object} modelResult - Result from MultiModelAnalyzer
+ * @param {Object} modelResult - Result from analyzeAzureDI
  * @returns {Object} OcrResultSchema-compliant object
  */
 export function convertModelResultToOcrResult(modelResult) {
   // Default values
   const today = new Date().toISOString().split('T')[0];
 
+  // Try totalAmount first, fall back to subtotal if available
+  // @ai-intent: Don't use || 0 fallback - let validation fail if no amount found
+  // This triggers unconfirmed status in instant-processor instead of silent 0
+  const amount = modelResult.totalAmount ?? modelResult.subtotal ?? undefined;
+
+  if (!amount && amount !== 0) {
+    logger.warn('AZURE_DI_NO_AMOUNT_EXTRACTED', {
+      totalAmount: modelResult.totalAmount,
+      subtotal: modelResult.subtotal,
+      vendor: modelResult.vendor,
+    });
+  }
+
+  // Use transaction date from Azure DI if available, otherwise fall back to today
+  const date = modelResult.transactionDate || today;
+
   return {
-    amount: modelResult.totalAmount || 0,
+    amount: amount,
     type: 'expense', // Default to expense (receipts are typically expenses)
-    date: today, // Azure DI doesn't return date, use today
+    date: date,
     merchant: modelResult.vendor || 'Unknown',
     category: 'other', // Default category, could be inferred from merchant/items
     description: modelResult.lineItems
