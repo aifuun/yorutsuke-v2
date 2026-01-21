@@ -9,6 +9,8 @@ dist/
 .env
 .env.local
 .env.*.local
+app/.env.local
+admin/.env
 
 # CDK
 infra/node_modules/
