@@ -1,5 +1,6 @@
 import { DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const ddb = new DynamoDBClient({});
 const TABLE_NAME = process.env.TRANSACTIONS_TABLE_NAME;
@@ -131,7 +132,7 @@ async function getReport(body) {
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Report error:", error);
+    logger.error(EVENTS.REPORT_ERROR, error);
     return response(500, { error: "REPORT_FAILED", message: "Failed to generate report" });
   }
 }
@@ -189,12 +190,14 @@ async function getReportHistory(body) {
 
     return response(200, { reports });
   } catch (error) {
-    console.error("History error:", error);
+    logger.error(EVENTS.REPORT_HISTORY_ERROR, error);
     return response(500, { error: "HISTORY_FAILED", message: "Failed to get report history" });
   }
 }
 
 export async function handler(event) {
+  initContext(event);
+
   // Handle CORS preflight
   if (event.requestContext?.http?.method === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
@@ -212,7 +215,7 @@ export async function handler(event) {
       return await getReport(body);
     }
   } catch (error) {
-    console.error("Handler error:", error);
+    logger.error(EVENTS.REPORT_HANDLER_ERROR, error);
     return response(500, { error: "INTERNAL_ERROR", message: "Internal server error" });
   }
 }

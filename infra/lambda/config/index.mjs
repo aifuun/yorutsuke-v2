@@ -1,4 +1,5 @@
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const ssm = new SSMClient({});
 
@@ -45,13 +46,15 @@ async function getMaintenanceMode() {
     };
     return value;
   } catch (error) {
-    console.warn("Failed to get maintenance mode from SSM:", error.message);
+    logger.warn(EVENTS.MAINTENANCE_MODE_FETCH_FAILED, { error: error.message });
     // Return cached value or false on error
     return maintenanceModeCache.value;
   }
 }
 
 export async function handler(event) {
+  initContext(event);
+
   try {
     // Handle CORS preflight
     if (event.requestContext?.http?.method === "OPTIONS") {
@@ -89,7 +92,7 @@ export async function handler(event) {
       body: JSON.stringify(config),
     };
   } catch (error) {
-    console.error("Config error:", error);
+    logger.error(EVENTS.CONFIG_ERROR, error);
     return {
       statusCode: 500,
       headers: {
