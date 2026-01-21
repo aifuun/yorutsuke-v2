@@ -26,7 +26,7 @@ let cachedMerchantList = null;
  */
 async function loadMerchantList() {
   if (cachedMerchantList) {
-    logger.debug('MERCHANT_LIST_CACHE_HIT', { count: cachedMerchantList.length });
+    logger.debug(EVENTS.MERCHANT_LIST_CACHE_HIT, { count: cachedMerchantList.length });
     return cachedMerchantList;
   }
 
