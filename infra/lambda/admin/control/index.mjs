@@ -3,7 +3,8 @@
  * Emergency stop toggle and status
  */
 
-import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const ddb = new DynamoDBClient({});
 const CONTROL_TABLE = process.env.CONTROL_TABLE_NAME;
@@ -56,7 +57,7 @@ async function getHistory() {
     // For now, return empty array
     return [];
   } catch (e) {
-    console.error("Error getting history:", e);
+    logger.error(EVENTS.ADMIN_CONTROL_GET_HISTORY_FAILED, e);
     return [];
   }
 }
@@ -104,7 +105,8 @@ async function setStatus(enabled, reason, adminEmail) {
 }
 
 export async function handler(event) {
-  console.log("Admin control request:", JSON.stringify(event));
+  initContext(event);
+  logger.debug(EVENTS.ADMIN_CONTROL_REQUEST, { method: event.httpMethod || event.requestContext?.http?.method });
 
   const method = event.httpMethod || event.requestContext?.http?.method;
 
@@ -147,7 +149,7 @@ export async function handler(event) {
 
       const result = await setStatus(action === "activate", reason, adminEmail);
 
-      console.log(`Emergency stop ${action}d by ${adminEmail}: ${reason}`);
+      logger.info(EVENTS.EMERGENCY_STOP_STATUS_CHANGED, { action, adminEmail, reason });
 
       return {
         statusCode: 200,
@@ -171,7 +173,7 @@ export async function handler(event) {
       body: JSON.stringify({ error: "Method not allowed" }),
     };
   } catch (error) {
-    console.error("Error in control handler:", error);
+    logger.error(EVENTS.ADMIN_CONTROL_HANDLER_ERROR, error);
     return {
       statusCode: 500,
       headers: {

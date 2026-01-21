@@ -18,7 +18,7 @@ import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { CloudWatchLogsClient, FilterLogEventsCommand } from "@aws-sdk/client-cloudwatch-logs";
-import { logger } from "/opt/nodejs/shared/logger.mjs";
+import { logger, initContext } from "/opt/nodejs/shared/logger.mjs";
 import { nanoid } from "nanoid";
 
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION || "us-east-1" });
@@ -262,6 +262,8 @@ async function generateAndUploadReport(userId, localData, cloudData, traceId) {
 // ============================================================================
 
 export async function handler(event, context) {
+  initContext(event);
+
   try {
     // Parse request body
     let requestBody;

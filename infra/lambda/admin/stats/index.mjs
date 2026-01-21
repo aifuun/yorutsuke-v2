@@ -6,6 +6,7 @@
 import { DynamoDBClient, ScanCommand, GetItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { CloudWatchClient, GetMetricDataCommand } from "@aws-sdk/client-cloudwatch";
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const ddb = new DynamoDBClient({});
 const s3 = new S3Client({});
@@ -45,7 +46,7 @@ async function getEmergencyStatus() {
     }
     return { emergencyStop: false, reason: null, updatedAt: null };
   } catch (e) {
-    console.error("Error getting emergency status:", e);
+    logger.error(EVENTS.ADMIN_STATS_EMERGENCY_ERROR, e);
     return { emergencyStop: false, reason: null, updatedAt: null };
   }
 }
@@ -72,7 +73,7 @@ async function countTodayImages() {
       total: result.KeyCount || 0,
     };
   } catch (e) {
-    console.error("Error counting images:", e);
+    logger.error(EVENTS.ADMIN_STATS_IMAGES_ERROR, e);
     return { today: 0, total: 0 };
   }
 }
@@ -94,7 +95,7 @@ async function countActiveUsers() {
     );
     return result.Count || 0;
   } catch (e) {
-    console.error("Error counting active users:", e);
+    logger.error(EVENTS.ADMIN_STATS_USERS_ERROR, e);
     return 0;
   }
 }
@@ -153,13 +154,15 @@ async function getBatchMetrics() {
       lastRun: null, // Will be filled by batch Lambda logs
     };
   } catch (e) {
-    console.error("Error getting batch metrics:", e);
+    logger.error(EVENTS.ADMIN_STATS_BATCH_ERROR, e);
     return { invocations: 0, errors: 0, lastRun: null };
   }
 }
 
 export async function handler(event) {
-  console.log("Admin stats request:", JSON.stringify(event));
+  initContext(event);
+
+  logger.info(EVENTS.ADMIN_STATS_REQUEST, {});
 
   try {
     // Fetch all stats in parallel
@@ -187,7 +190,7 @@ export async function handler(event) {
       body: JSON.stringify(stats),
     };
   } catch (error) {
-    console.error("Error fetching stats:", error);
+    logger.error(EVENTS.ADMIN_STATS_HANDLER_ERROR, error);
     return {
       statusCode: 500,
       headers: {

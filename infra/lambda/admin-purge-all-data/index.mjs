@@ -7,6 +7,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
 import { CloudWatchLogsClient, CreateLogStreamCommand, PutLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -60,7 +61,7 @@ async function auditLog(adminUserId, action, details) {
       ],
     }));
   } catch (error) {
-    console.warn('[PurgeAllData] Failed to write audit log:', error);
+    logger.warn(EVENTS.AUDIT_LOG_WRITE_FAILED, { action, error: error.message });
     // Don't fail the operation if logging fails
   }
 }
@@ -70,7 +71,7 @@ async function auditLog(adminUserId, action, details) {
  * DANGEROUS: This will delete data for all users
  */
 async function purgeAllTransactions() {
-  console.log('[PurgeAllData] Scanning all transactions...');
+  logger.info(EVENTS.PURGE_ALL_TRANSACTIONS_STARTED, {});
 
   // Step 1: Scan ALL transactions (no partition key filter)
   const scanParams = {
@@ -89,10 +90,10 @@ async function purgeAllTransactions() {
     const result = await docClient.send(new ScanCommand(scanParams));
     allItems = allItems.concat(result.Items || []);
     lastEvaluatedKey = result.LastEvaluatedKey;
-    console.log(`[PurgeAllData] Scanned batch, total items found: ${allItems.length}`);
+    logger.debug(EVENTS.PURGE_ALL_TRANSACTIONS_SCAN_BATCH, { totalFound: allItems.length });
   } while (lastEvaluatedKey);
 
-  console.log(`[PurgeAllData] Found ${allItems.length} transactions to delete`);
+  logger.info(EVENTS.PURGE_ALL_TRANSACTIONS_FOUND, { count: allItems.length });
 
   if (allItems.length === 0) {
     return 0;
@@ -122,7 +123,7 @@ async function purgeAllTransactions() {
     );
 
     deletedCount += batch.length;
-    console.log(`[PurgeAllData] Deleted batch ${Math.floor(i / batchSize) + 1}, total: ${deletedCount}`);
+    logger.info(EVENTS.PURGE_ALL_TRANSACTIONS_BATCH_COMPLETED, { batchNum: Math.floor(i / batchSize) + 1, total: deletedCount });
   }
 
   return deletedCount;
@@ -133,7 +134,7 @@ async function purgeAllTransactions() {
  * DANGEROUS: This will delete all images for all users
  */
 async function purgeAllImages() {
-  console.log('[PurgeAllData] Listing all images...');
+  logger.info(EVENTS.PURGE_ALL_IMAGES_STARTED, {});
 
   // Step 1: List ALL objects (no prefix filter)
   let allObjects = [];
@@ -152,10 +153,10 @@ async function purgeAllImages() {
     }
 
     continuationToken = result.NextContinuationToken;
-    console.log(`[PurgeAllData] Listed batch, total objects found: ${allObjects.length}`);
+    logger.debug(EVENTS.PURGE_ALL_IMAGES_LIST_BATCH, { totalFound: allObjects.length });
   } while (continuationToken);
 
-  console.log(`[PurgeAllData] Found ${allObjects.length} images to delete`);
+  logger.info(EVENTS.PURGE_ALL_IMAGES_FOUND, { count: allObjects.length });
 
   if (allObjects.length === 0) {
     return 0;
@@ -177,7 +178,7 @@ async function purgeAllImages() {
 
     await s3Client.send(new DeleteObjectsCommand(deleteParams));
     deletedCount += batch.length;
-    console.log(`[PurgeAllData] Deleted S3 batch ${Math.floor(i / batchSize) + 1}, total: ${deletedCount}`);
+    logger.info(EVENTS.PURGE_ALL_IMAGES_BATCH_COMPLETED, { batchNum: Math.floor(i / batchSize) + 1, total: deletedCount });
   }
 
   return deletedCount;
@@ -192,7 +193,8 @@ async function purgeAllImages() {
  * Use with extreme caution
  */
 export async function handler(event) {
-  console.log('[PurgeAllData] Event:', JSON.stringify(event, null, 2));
+  initContext(event);
+  logger.debug(EVENTS.ADMIN_PURGE_ALL_DATA_REQUEST, { method: event.requestContext?.http?.method });
 
   // Handle OPTIONS for CORS
   if (event.requestContext?.http?.method === 'OPTIONS') {
@@ -204,7 +206,7 @@ export async function handler(event) {
     const adminUserId = event.headers?.['x-admin-user-id'];
 
     if (!adminUserId || typeof adminUserId !== 'string') {
-      console.warn('[PurgeAllData] Unauthorized: missing admin user ID');
+      logger.warn(EVENTS.ADMIN_PURGE_UNAUTHORIZED, { reason: 'missing admin user ID' });
       return {
         statusCode: 401,
         headers,
@@ -214,7 +216,7 @@ export async function handler(event) {
       };
     }
 
-    console.log(`[PurgeAllData] Admin user ${adminUserId} initiating purge...`);
+    logger.info(EVENTS.ADMIN_PURGE_ALL_DATA_INITIATED, { adminUserId });
 
     // Step 2: Log the admin action (audit trail)
     await auditLog(adminUserId, 'purge_all_data_started', {
@@ -239,7 +241,7 @@ export async function handler(event) {
     // Step 4: Log the completion (audit trail)
     await auditLog(adminUserId, 'purge_all_data_completed', result);
 
-    console.log('[PurgeAllData] Purge completed:', result);
+    logger.info(EVENTS.ADMIN_PURGE_ALL_DATA_COMPLETED, { result });
 
     return {
       statusCode: 200,
@@ -247,7 +249,7 @@ export async function handler(event) {
       body: JSON.stringify(result),
     };
   } catch (error) {
-    console.error('[PurgeAllData] Error:', error);
+    logger.error(EVENTS.ADMIN_PURGE_ALL_DATA_ERROR, error);
 
     // Log the error for audit trail
     const adminUserId = event.headers?.['x-admin-user-id'] || 'unknown';
