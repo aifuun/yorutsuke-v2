@@ -16,6 +16,7 @@
 
 /**
  * Semantic event names
+ * ✅ TypeScript Compile-Time Enforcement: Using 'as const' ensures only these values are valid
  */
 export const EVENTS = {
   // Presign
@@ -120,17 +121,6 @@ export const EVENTS = {
   ADMIN_STATS_BATCH_ERROR: 'ADMIN_STATS_BATCH_ERROR',
   ADMIN_STATS_HANDLER_ERROR: 'ADMIN_STATS_HANDLER_ERROR',
 
-  // P2: Presign
-  PRESIGN_STARTED: 'PRESIGN_STARTED',
-  PRESIGN_COMPLETED: 'PRESIGN_COMPLETED',
-  PRESIGN_FAILED: 'PRESIGN_FAILED',
-  QUOTA_EXCEEDED: 'QUOTA_EXCEEDED',
-  EMERGENCY_STOP: 'EMERGENCY_STOP',
-
-  // P2: Quota
-  QUOTA_CHECKED: 'QUOTA_CHECKED',
-  QUOTA_CHECK_FAILED: 'QUOTA_CHECK_FAILED',
-
   // P2: Instant Processor
   IMAGE_FORMAT_DETECTED: 'IMAGE_FORMAT_DETECTED',
   AZURE_CREDENTIALS_REQUIRED_BUT_UNAVAILABLE: 'AZURE_CREDENTIALS_REQUIRED_BUT_UNAVAILABLE',
@@ -169,43 +159,44 @@ export const EVENTS = {
 
   // P2: Diagnostic
   API_REQUEST_RECEIVED: 'API_REQUEST_RECEIVED',
-};
+} as const;
+
+/**
+ * EventName type derived from EVENTS constant
+ * ✅ Compile-time validation: Only values from EVENTS are allowed
+ */
+export type EventName = typeof EVENTS[keyof typeof EVENTS];
 
 /**
  * Log levels with numeric precedence
- * @constant
  */
 export const LOG_LEVELS = {
   debug: 0,
   info: 1,
   warn: 2,
   error: 3,
-};
+} as const;
+
+export type LogLevel = keyof typeof LOG_LEVELS;
 
 /**
  * Get current log level from environment (P1: log level control)
- * @returns {string} Log level: 'debug', 'info', 'warn', or 'error'
  */
-function getLogLevel() {
+function getLogLevel(): LogLevel {
   const level = (process.env.LOG_LEVEL || 'info').toLowerCase();
-  return LOG_LEVELS[level] !== undefined ? level : 'info';
+  return LOG_LEVELS[level as LogLevel] !== undefined ? (level as LogLevel) : 'info';
 }
 
 /**
  * Check if a log should be output based on level (P1: log level control)
- * @param {string} level - Log level to check
- * @returns {boolean} True if log should be output
- * @private
  */
-function shouldLog(level) {
+function shouldLog(level: LogLevel): boolean {
   const currentLevel = getLogLevel();
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
 }
 
 /**
  * Keys that indicate sensitive data (P1: sensitive data filtering)
- * @constant
- * @private
  */
 const SENSITIVE_KEYS = [
   'password', 'passwd', 'pwd',
@@ -222,12 +213,8 @@ const SENSITIVE_KEYS = [
 
 /**
  * Filter sensitive data from log objects (P1: sensitive data filtering)
- * @param {unknown} data - Data to filter
- * @param {number} depth - Current recursion depth (max 5)
- * @returns {unknown} Filtered data
- * @private
  */
-function filterSensitiveData(data, depth = 0) {
+function filterSensitiveData(data: unknown, depth = 0): unknown {
   // Prevent infinite recursion
   if (depth > 5 || !data) return data;
 
@@ -238,7 +225,7 @@ function filterSensitiveData(data, depth = 0) {
 
   // Handle objects
   if (typeof data === 'object' && data !== null) {
-    const filtered = {};
+    const filtered: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       const keyLower = key.toLowerCase();
       // Check if key contains sensitive keywords
@@ -247,7 +234,7 @@ function filterSensitiveData(data, depth = 0) {
       );
 
       if (isSensitive) {
-        filtered[key] = '[REDACTED]';  // Hide sensitive values
+        filtered[key] = '[REDACTED]';
       } else if (typeof value === 'object' && value !== null) {
         filtered[key] = filterSensitiveData(value, depth + 1);
       } else {
@@ -260,17 +247,23 @@ function filterSensitiveData(data, depth = 0) {
   return data;
 }
 
+/**
+ * Logger context fields
+ */
+interface LoggerContext {
+  traceId: string;
+  userId?: string | null;
+  requestId?: string | null;
+}
+
 // Current request context (set per invocation)
 // ⚠️ Global state - see note above
-let currentContext = { traceId: 'no-trace' };
+let currentContext: LoggerContext = { traceId: 'no-trace' };
 
 /**
  * Set context for current Lambda invocation
- * @param {object} ctx - Context fields to merge (e.g., { traceId, userId, requestId })
- * @returns {void}
- * @throws {TypeError} If ctx is not an object
  */
-export function setContext(ctx) {
+export function setContext(ctx: Partial<LoggerContext>): void {
   if (!ctx || typeof ctx !== 'object') {
     throw new TypeError(`setContext expects an object, got ${typeof ctx}`);
   }
@@ -278,16 +271,21 @@ export function setContext(ctx) {
 }
 
 /**
+ * Lambda event with optional headers and body
+ */
+interface LambdaEvent {
+  headers?: Record<string, string> | null;
+  body?: string | Record<string, unknown> | null;
+  requestContext?: {
+    requestId?: string;
+  };
+}
+
+/**
  * Get traceId from request headers or generate new one
  * Priority: x-trace-id header > x-trace-id (lowercase) > generate new
- *
- * @param {object} event - Lambda event object
- * @returns {string} Trace ID in format: "lambda-{timestamp}-{random}" or from headers
- * @example
- * const traceId = getTraceId(event);
- * // Returns: "lambda-1768973230100-abc123" or "trace-xxx" (if from header)
  */
-export function getTraceId(event) {
+export function getTraceId(event: LambdaEvent): string {
   // Try to get from headers (propagated from frontend)
   const headers = event?.headers || {};
   const traceId = headers['x-trace-id'] || headers['X-Trace-Id'];
@@ -295,32 +293,27 @@ export function getTraceId(event) {
 
   // Generate new for this invocation
   // Format: lambda-{timestamp}-{random}
-  // Example: lambda-1768973230100-a1b2c3d4
   return `lambda-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /**
  * Initialize logger context from Lambda event
  * Call at the start of each handler
- * @param {object} event - Lambda event
- * @param {string|null} explicitTraceId - Optional explicit traceId (e.g., from S3 metadata)
- * @returns {object} Updated context
- * @throws {Error} Only if event structure is fundamentally broken
  */
-export function initContext(event, explicitTraceId = null) {
+export function initContext(event: LambdaEvent, explicitTraceId: string | null = null): LoggerContext {
   // Priority: explicit > header > generated
   const traceId = explicitTraceId || getTraceId(event);
 
   // Safely parse body (P0 fix: handle JSON parse errors)
-  let body = {};
+  let body: Record<string, unknown> = {};
   try {
     body = typeof event.body === 'string'
       ? JSON.parse(event.body || '{}')
-      : event.body || {};
+      : (event.body as Record<string, unknown>) || {};
   } catch (error) {
     // Log parse error to console, don't throw
     console.warn('Logger: Failed to parse event.body', {
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       bodyType: typeof event.body,
       bodyPreview: String(event.body).substring(0, 100),
     });
@@ -329,7 +322,7 @@ export function initContext(event, explicitTraceId = null) {
 
   setContext({
     traceId,
-    userId: body.userId || null,
+    userId: (body.userId as string) || null,
     requestId: event.requestContext?.requestId || null,
   });
 
@@ -338,15 +331,10 @@ export function initContext(event, explicitTraceId = null) {
 
 /**
  * Create structured log entry with filtering (P1: sensitive data filtering)
- * @param {string} level - Log level (debug, info, warn, error)
- * @param {string} event - Semantic event name
- * @param {object} data - Additional data
- * @returns {string} JSON-formatted log entry
- * @private
  */
-function createLogEntry(level, event, data = {}) {
+function createLogEntry(level: LogLevel, event: EventName, data: Record<string, unknown> = {}): string {
   // Filter sensitive data from user-provided data
-  const filteredData = filterSensitiveData(data);
+  const filteredData = filterSensitiveData(data) as Record<string, unknown>;
 
   return JSON.stringify({
     timestamp: new Date().toISOString(),
@@ -361,11 +349,8 @@ function createLogEntry(level, event, data = {}) {
 
 /**
  * Extract error information from Error object or use as-is
- * @param {Error|object} data - Error object or data object
- * @returns {object} Normalized data with error fields if Error
- * @private
  */
-function normalizeErrorData(data) {
+function normalizeErrorData(data?: Error | Record<string, unknown>): Record<string, unknown> {
   if (!data) return {};
 
   // If it's an Error object, extract message and stack (P0 fix)
@@ -391,34 +376,13 @@ function normalizeErrorData(data) {
  * - Automatic Error stack extraction (P0)
  * - Sensitive data filtering (P1)
  * - Log level control via LOG_LEVEL env var (P1)
- *
- * @example
- * logger.info('TRANSACTION_CREATED', { txId: 'tx-123', amount: 1000 });
- * // Outputs: {"timestamp":"...","level":"info","event":"TRANSACTION_CREATED","traceId":"trace-xxx",...}
- *
- * @example
- * try {
- *   await processImage();
- * } catch (error) {
- *   logger.error('PROCESSING_FAILED', error);  // Error stack auto-extracted
- * }
- *
- * @example
- * // Sensitive data is auto-filtered
- * logger.info('AUTH', { password: 'secret123', username: 'user' });
- * // Output: {...,"password":"[REDACTED]","username":"user"}
- *
- * @example
- * // Control log level with env var
- * process.env.LOG_LEVEL = 'warn';  // Only WARN and ERROR logs output
+ * - Compile-time type safety for event names (TypeScript)
  */
 export const logger = {
   /**
    * Log debug message (only if LOG_LEVEL=debug)
-   * @param {string} event - Semantic event name
-   * @param {object} [data] - Additional data (sensitive fields auto-filtered)
    */
-  debug: (event, data) => {
+  debug: (event: EventName, data?: Record<string, unknown>): void => {
     if (shouldLog('debug')) {
       console.debug(createLogEntry('debug', event, normalizeErrorData(data)));
     }
@@ -426,10 +390,8 @@ export const logger = {
 
   /**
    * Log info message (default minimum level)
-   * @param {string} event - Semantic event name
-   * @param {object} [data] - Additional data (sensitive fields auto-filtered)
    */
-  info: (event, data) => {
+  info: (event: EventName, data?: Record<string, unknown>): void => {
     if (shouldLog('info')) {
       console.info(createLogEntry('info', event, normalizeErrorData(data)));
     }
@@ -437,10 +399,8 @@ export const logger = {
 
   /**
    * Log warning message
-   * @param {string} event - Semantic event name
-   * @param {object} [data] - Additional data (sensitive fields auto-filtered)
    */
-  warn: (event, data) => {
+  warn: (event: EventName, data?: Record<string, unknown>): void => {
     if (shouldLog('warn')) {
       console.warn(createLogEntry('warn', event, normalizeErrorData(data)));
     }
@@ -448,10 +408,8 @@ export const logger = {
 
   /**
    * Log error with automatic stack trace extraction
-   * @param {string} event - Semantic event name
-   * @param {Error|object} [data] - Error object or data object (sensitive fields auto-filtered)
    */
-  error: (event, data) => {
+  error: (event: EventName, data?: Error | Record<string, unknown>): void => {
     if (shouldLog('error')) {
       console.error(createLogEntry('error', event, normalizeErrorData(data)));
     }
@@ -459,36 +417,30 @@ export const logger = {
 };
 
 /**
- * Create a performance timer for measuring function execution time (P1: performance monitoring)
- * @returns {object} Timer object with duration() and logDuration() methods
- *
- * @example
- * const timer = createTimer();
- * await processLargeFile();
- * timer.logDuration('FILE_PROCESSING_COMPLETED', { fileSize: 1024000 });
- * // Logs with automatic duration field
- *
- * @example
- * const timer = createTimer();
- * const halfway = timer.duration();  // Get current duration without logging
- * logger.info('MIDPOINT_REACHED', { elapsed: halfway });
+ * Performance timer for measuring function execution time (P1: performance monitoring)
  */
-export function createTimer() {
+interface Timer {
+  duration: () => number;
+  logDuration: (event: EventName, data?: Record<string, unknown>) => void;
+  log: (level: LogLevel, event: EventName, data?: Record<string, unknown>) => void;
+}
+
+/**
+ * Create a performance timer for measuring function execution time (P1: performance monitoring)
+ */
+export function createTimer(): Timer {
   const startTime = Date.now();
 
   return {
     /**
      * Get elapsed time in milliseconds
-     * @returns {number} Elapsed milliseconds
      */
-    duration: () => Date.now() - startTime,
+    duration: (): number => Date.now() - startTime,
 
     /**
      * Log event with automatic duration calculation
-     * @param {string} event - Semantic event name
-     * @param {object} [data] - Additional data
      */
-    logDuration: (event, data = {}) => {
+    logDuration: (event: EventName, data: Record<string, unknown> = {}): void => {
       logger.info(event, {
         duration: Date.now() - startTime,
         ...data,
@@ -497,11 +449,8 @@ export function createTimer() {
 
     /**
      * Log with specific level and automatic duration
-     * @param {string} level - Log level (debug, info, warn, error)
-     * @param {string} event - Semantic event name
-     * @param {object} [data] - Additional data
      */
-    log: (level, event, data = {}) => {
+    log: (level: LogLevel, event: EventName, data: Record<string, unknown> = {}): void => {
       const logFn = logger[level];
       if (logFn) {
         logFn(event, {
