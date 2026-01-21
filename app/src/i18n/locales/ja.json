@@ -103,6 +103,9 @@
     "extractedText": "抽出テキスト",
     "confidence": "AI信頼度",
     "noImage": "画像なし",
+    "subtotal": "小計（税抜き）",
+    "taxAmount": "消費税額",
+    "taxRate": "税率",
     "categories": {
       "food": "食事",
       "transport": "交通費",
