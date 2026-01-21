@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateTaxInfo, convertModelResultToOcrResult } from '../model-analyzer.mjs';
+import { validateTaxInfo, convertModelResultToOcrResult } from '../model-analyzer.js';
 
 // ============================================================
 // Test Suite 1: validateTaxInfo() - Tax Validation

@@ -1,5 +1,5 @@
-import { logger } from "./logger.mjs";
-import { ModelResultSchema, OcrResultSchema } from "./schemas.mjs";
+import { logger } from './logger.js';
+import { ModelResultSchema, OcrResultSchema, type ModelResult, type OcrResult } from './schemas.js';
 
 /**
  * Azure Document Intelligence Receipt Analyzer
@@ -9,37 +9,99 @@ import { ModelResultSchema, OcrResultSchema } from "./schemas.mjs";
  */
 
 /**
- * Analyze receipt via Azure Document Intelligence
- * @param {string} imageBase64 - Base64-encoded receipt image
- * @param {string} traceId - Trace ID for logging
- * @param {Object} credentials - Azure credentials {endpoint, apiKey}
- * @returns {Promise<Object>} ModelResultSchema-compliant result
+ * Azure Document Intelligence credentials
  */
-export async function analyzeAzureDI(imageBase64, traceId, credentials) {
+export interface AzureCredentials {
+  endpoint: string;
+  apiKey: string;
+}
+
+/**
+ * Azure DI API field structure (from prebuilt-receipt model)
+ */
+interface AzureField {
+  type?: string;
+  valueString?: string;
+  valueNumber?: number;
+  valueDate?: string;
+  valueCurrency?: {
+    amount: number;
+    currencyCode?: string;
+  };
+  valueArray?: Array<{
+    valueObject?: Record<string, AzureField>;
+  }>;
+  confidence?: number;
+}
+
+/**
+ * Azure DI analysis result structure
+ */
+interface AzureAnalyzeResult {
+  documents?: Array<{
+    fields?: Record<string, AzureField>;
+  }>;
+}
+
+/**
+ * Azure DI polling response
+ */
+interface AzureStatusResponse {
+  status: 'notStarted' | 'running' | 'succeeded' | 'failed';
+  analyzeResult?: AzureAnalyzeResult;
+  error?: {
+    message?: string;
+  };
+}
+
+/**
+ * Tax validation result
+ */
+export interface TaxValidationResult {
+  valid: boolean;
+  warnings: Array<{
+    code: 'TAX_AMOUNT_MISMATCH' | 'INVALID_TAX_RATE' | 'TAX_RATE_MISMATCH';
+    message: string;
+    severity: 'warn';
+  }>;
+}
+
+/**
+ * Analyze receipt via Azure Document Intelligence
+ * @param imageBase64 - Base64-encoded receipt image
+ * @param traceId - Trace ID for logging
+ * @param credentials - Azure credentials {endpoint, apiKey}
+ * @returns ModelResultSchema-compliant result
+ */
+export async function analyzeAzureDI(
+  imageBase64: string,
+  traceId: string,
+  credentials: AzureCredentials
+): Promise<ModelResult> {
   try {
     const endpoint = credentials?.endpoint?.replace(/\/$/, ''); // Remove trailing slash
     const apiKey = credentials?.apiKey;
 
     if (!endpoint || !apiKey) {
-      throw new Error("Azure DI credentials not provided");
+      throw new Error('Azure DI credentials not provided');
     }
 
-    logger.debug("AZURE_DI_REQUEST_START", {
+    logger.debug('AZURE_DI_REQUEST_START', {
       traceId,
       endpoint,
-      method: "base64-encoded-image",
+      method: 'base64-encoded-image',
     });
 
     // Step 1: Submit analysis request using Base64-encoded image (v4.0 API)
     const analyzeUrl = `${endpoint}/documentintelligence/documentModels/prebuilt-receipt:analyze?api-version=2024-11-30`;
 
     const analyzeResponse = await fetch(analyzeUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/octet-stream",
-        "Ocp-Apim-Subscription-Key": apiKey,
+        'Content-Type': 'application/octet-stream',
+        'Ocp-Apim-Subscription-Key': apiKey,
       },
-      body: Buffer.from(imageBase64, "base64"),
+      body: Buffer.from(imageBase64, 'base64'),
     });
 
     if (!analyzeResponse.ok) {
@@ -48,27 +110,27 @@ export async function analyzeAzureDI(imageBase64, traceId, credentials) {
     }
 
     // Get Operation-Location header for polling
-    const operationLocation = analyzeResponse.headers.get("Operation-Location");
+    const operationLocation = analyzeResponse.headers.get('Operation-Location');
     if (!operationLocation) {
-      throw new Error("No Operation-Location header in response");
+      throw new Error('No Operation-Location header in response');
     }
 
-    logger.debug("AZURE_DI_ANALYSIS_SUBMITTED", {
+    logger.debug('AZURE_DI_ANALYSIS_SUBMITTED', {
       traceId,
       operationLocation: operationLocation.substring(0, 100),
     });
 
     // Step 2: Poll for analysis results
-    let analyzeResult = null;
+    let analyzeResult: AzureAnalyzeResult | null = null;
     const maxRetries = 30;
 
     for (let i = 0; i < maxRetries; i++) {
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
 
       const statusResponse = await fetch(operationLocation, {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "Ocp-Apim-Subscription-Key": apiKey,
+          'Ocp-Apim-Subscription-Key': apiKey,
         },
       });
 
@@ -76,46 +138,47 @@ export async function analyzeAzureDI(imageBase64, traceId, credentials) {
         throw new Error(`Status check failed (${statusResponse.status})`);
       }
 
-      const statusData = await statusResponse.json();
+      const statusData = (await statusResponse.json()) as AzureStatusResponse;
 
-      if (statusData.status === "succeeded") {
-        analyzeResult = statusData.analyzeResult;
-        logger.debug("AZURE_DI_RESPONSE_RECEIVED", {
+      if (statusData.status === 'succeeded') {
+        analyzeResult = statusData.analyzeResult || null;
+        logger.debug('AZURE_DI_RESPONSE_RECEIVED', {
           traceId,
           hasDocuments: !!analyzeResult?.documents?.length,
         });
         break;
-      } else if (statusData.status === "failed") {
-        throw new Error(`Analysis failed: ${statusData.error?.message || "Unknown error"}`);
+      } else if (statusData.status === 'failed') {
+        throw new Error(`Analysis failed: ${statusData.error?.message || 'Unknown error'}`);
       }
       // Continue polling if status is "notStarted" or "running"
     }
 
     if (!analyzeResult) {
-      throw new Error("Analysis polling timeout after 30 seconds");
+      throw new Error('Analysis polling timeout after 30 seconds');
     }
 
     return normalizeAzureDIResult(analyzeResult);
-  } catch (error) {
-    logger.error("AZURE_DI_ERROR", {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('AZURE_DI_ERROR', {
       traceId,
-      error: error.message,
+      error: errorMessage,
     });
-    throw new Error(`Azure Document Intelligence analysis failed: ${error.message}`);
+    throw new Error(`Azure Document Intelligence analysis failed: ${errorMessage}`);
   }
 }
 
 /**
  * Normalize Azure Document Intelligence response to ModelResultSchema
  * Extracts fields from prebuilt-receipt model
- * @param {Object} analyzeResult - The analyzeResult object from Azure API response
- * @returns {Object} ModelResultSchema-compliant result
+ * @param analyzeResult - The analyzeResult object from Azure API response
+ * @returns ModelResultSchema-compliant result
  */
-function normalizeAzureDIResult(analyzeResult) {
+function normalizeAzureDIResult(analyzeResult: AzureAnalyzeResult): ModelResult {
   try {
     if (!analyzeResult?.documents?.[0]) {
-      logger.warn("AZURE_DI_NO_DOCUMENTS", {
-        keys: analyzeResult ? Object.keys(analyzeResult) : "no result",
+      logger.warn('AZURE_DI_NO_DOCUMENTS', {
+        keys: analyzeResult ? Object.keys(analyzeResult) : 'no result',
       });
       return ModelResultSchema.parse({});
     }
@@ -124,7 +187,7 @@ function normalizeAzureDIResult(analyzeResult) {
     const fields = doc.fields || {};
 
     // 🔍 DEBUG: Log available field names to identify correct ones
-    logger.debug("AZURE_DI_AVAILABLE_FIELDS", {
+    logger.debug('AZURE_DI_AVAILABLE_FIELDS', {
       fieldNames: Object.keys(fields),
       hasTotal: !!fields.Total,
       hasTotalAmount: !!fields.TotalAmount,
@@ -137,7 +200,7 @@ function normalizeAzureDIResult(analyzeResult) {
 
     // 🔍 DEBUG: Log the actual content of Total field to see structure
     if (fields.Total) {
-      logger.debug("AZURE_DI_TOTAL_FIELD_CONTENT", {
+      logger.debug('AZURE_DI_TOTAL_FIELD_CONTENT', {
         totalField: JSON.stringify(fields.Total),
         hasValueNumber: fields.Total.valueNumber !== undefined,
         hasValueString: fields.Total.valueString !== undefined,
@@ -147,7 +210,7 @@ function normalizeAzureDIResult(analyzeResult) {
     }
 
     const result = {
-      vendor: fields.MerchantName?.valueString || fields.VendorName?.valueString || "Unknown",
+      vendor: fields.MerchantName?.valueString || fields.VendorName?.valueString || 'Unknown',
       // Try all known total field names (different models use different names)
       totalAmount:
         parseAzureAmount(fields.Total) ||
@@ -168,7 +231,7 @@ function normalizeAzureDIResult(analyzeResult) {
     };
 
     // Issue #155: Tax field extraction logging
-    logger.debug("AZURE_DI_EXTRACTED_RESULT", {
+    logger.debug('AZURE_DI_EXTRACTED_RESULT', {
       vendor: result.vendor,
       totalAmount: result.totalAmount,
       subtotal: result.subtotal,
@@ -188,7 +251,7 @@ function normalizeAzureDIResult(analyzeResult) {
 
     // Issue #155: Detailed tax field extraction logging
     if (result.subtotal || result.taxAmount || result.taxRate) {
-      logger.debug("ISSUE_155_TAX_FIELDS_EXTRACTED", {
+      logger.debug('ISSUE_155_TAX_FIELDS_EXTRACTED', {
         vendor: result.vendor,
         taxFieldsPresent: {
           subtotal: result.subtotal !== undefined,
@@ -202,16 +265,21 @@ function normalizeAzureDIResult(analyzeResult) {
         },
         amountReconciliation: {
           total: result.totalAmount,
-          subtotal_plus_tax: result.subtotal && result.taxAmount ? result.subtotal + result.taxAmount : undefined,
-          match: result.subtotal && result.taxAmount ? Math.abs(result.totalAmount - (result.subtotal + result.taxAmount)) <= 1 : undefined,
+          subtotal_plus_tax:
+            result.subtotal && result.taxAmount ? result.subtotal + result.taxAmount : undefined,
+          match:
+            result.subtotal && result.taxAmount
+              ? Math.abs(result.totalAmount! - (result.subtotal + result.taxAmount)) <= 1
+              : undefined,
         },
       });
     }
 
     return ModelResultSchema.parse(result);
-  } catch (error) {
-    logger.warn("AZURE_DI_NORMALIZATION_ERROR", {
-      error: error.message,
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.warn('AZURE_DI_NORMALIZATION_ERROR', {
+      error: errorMessage,
     });
     return ModelResultSchema.parse({});
   }
@@ -224,25 +292,25 @@ function normalizeAzureDIResult(analyzeResult) {
  * - valueNumber for numeric fields
  * - valueString for string representation
  */
-function parseAzureAmount(field) {
+function parseAzureAmount(field: AzureField | undefined): number | undefined {
   if (!field) return undefined;
 
   // Try valueCurrency.amount first (used for currency fields like Total)
-  if (field.valueCurrency && typeof field.valueCurrency.amount === "number") {
+  if (field.valueCurrency && typeof field.valueCurrency.amount === 'number') {
     return field.valueCurrency.amount;
   }
 
   // Try valueNumber (used for non-currency numeric fields)
-  if (typeof field.valueNumber === "number") {
+  if (typeof field.valueNumber === 'number') {
     return field.valueNumber;
   }
 
   // Fall back to valueString if it contains a number
   const strValue = field.valueString;
-  if (typeof strValue === "string") {
+  if (typeof strValue === 'string') {
     const match = strValue.match(/[\d,]+(?:\.\d{1,2})?/);
     if (match) {
-      return parseFloat(match[0].replace(/,/g, ""));
+      return parseFloat(match[0].replace(/,/g, ''));
     }
   }
 
@@ -255,17 +323,17 @@ function parseAzureAmount(field) {
  * - valueDate for date fields (returns ISO 8601 format: YYYY-MM-DD)
  * - valueString as fallback (may need parsing)
  */
-function parseAzureDate(field) {
+function parseAzureDate(field: AzureField | undefined): string | undefined {
   if (!field) return undefined;
 
   // Try valueDate first (ISO 8601 format: YYYY-MM-DD)
-  if (field.valueDate && typeof field.valueDate === "string") {
+  if (field.valueDate && typeof field.valueDate === 'string') {
     return field.valueDate;
   }
 
   // Fall back to valueString if it contains a date
   const strValue = field.valueString;
-  if (typeof strValue === "string") {
+  if (typeof strValue === 'string') {
     // Try to parse various date formats
     // Azure might return: "2026-01-20", "2026/01/20", "20/01/2026", etc.
     const isoMatch = strValue.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -290,9 +358,9 @@ function parseAzureDate(field) {
 /**
  * Calculate average confidence from Azure field confidences
  */
-function calculateAzureConfidence(fields) {
+function calculateAzureConfidence(fields: Record<string, AzureField>): number | undefined {
   const confidences = Object.values(fields)
-    .filter((field) => field?.confidence !== undefined)
+    .filter((field): field is AzureField & { confidence: number } => field?.confidence !== undefined)
     .map((field) => field.confidence);
 
   if (confidences.length === 0) return undefined;
@@ -304,17 +372,24 @@ function calculateAzureConfidence(fields) {
 
 /**
  * Extract line items from Azure Items field
- * @param {Object} itemsField - The Items field from Azure DI response
- * @returns {Array} Array of line items with description, quantity, prices
+ * @param itemsField - The Items field from Azure DI response
+ * @returns Array of line items with description, quantity, prices
  */
-function extractAzureLineItems(itemsField) {
+function extractAzureLineItems(
+  itemsField: AzureField | undefined
+): Array<{
+  description: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalPrice?: number;
+}> {
   if (!itemsField?.valueArray) return [];
 
   return itemsField.valueArray
     .map((item) => {
       const properties = item.valueObject || {};
       return {
-        description: properties.Description?.valueString || "",
+        description: properties.Description?.valueString || '',
         quantity: parseAzureAmount(properties.Quantity),
         unitPrice: parseAzureAmount(properties.Price),
         totalPrice: parseAzureAmount(properties.TotalPrice),
@@ -327,10 +402,10 @@ function extractAzureLineItems(itemsField) {
  * Convert ModelResultSchema (from Azure DI) to OcrResultSchema
  * @ai-intent: Bridge Azure DI results to transaction creation format
  *
- * @param {Object} modelResult - Result from analyzeAzureDI
- * @returns {Object} OcrResultSchema-compliant object
+ * @param modelResult - Result from analyzeAzureDI
+ * @returns OcrResultSchema-compliant object
  */
-export function convertModelResultToOcrResult(modelResult) {
+export function convertModelResultToOcrResult(modelResult: ModelResult): OcrResult {
   // Default values
   const today = new Date().toISOString().split('T')[0];
 
@@ -359,14 +434,14 @@ export function convertModelResultToOcrResult(modelResult) {
   // Use transaction date from Azure DI if available, otherwise fall back to today
   const date = modelResult.transactionDate || today;
 
-  const ocrResult = {
-    amount: amount,
+  const ocrResult: OcrResult = {
+    amount: amount!,
     type: 'expense', // Default to expense (receipts are typically expenses)
     date: date,
     merchant: modelResult.vendor || 'Unknown',
     category: 'other', // Default category, could be inferred from merchant/items
     description: modelResult.lineItems
-      ? modelResult.lineItems.map(item => item.description).join(', ').substring(0, 100)
+      ? modelResult.lineItems.map((item) => item.description).join(', ').substring(0, 100)
       : 'Azure DI processed receipt',
     // Tax fields (Issue #155) - Pass through from Azure DI extraction
     subtotal: modelResult.subtotal,
@@ -389,14 +464,19 @@ export function convertModelResultToOcrResult(modelResult) {
 
 /**
  * Validate tax information for data integrity (Issue #155)
- * @param {number|undefined} amount - Total amount
- * @param {number|undefined} subtotal - Pre-tax amount
- * @param {number|undefined} taxAmount - Tax amount
- * @param {number|undefined} taxRate - Tax rate (8 or 10)
- * @returns {Object} Validation result with warnings if any
+ * @param amount - Total amount
+ * @param subtotal - Pre-tax amount
+ * @param taxAmount - Tax amount
+ * @param taxRate - Tax rate (8 or 10)
+ * @returns Validation result with warnings if any
  */
-export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
-  const warnings = [];
+export function validateTaxInfo(
+  amount: number | undefined | null,
+  subtotal: number | undefined | null,
+  taxAmount: number | undefined | null,
+  taxRate: number | undefined | null
+): TaxValidationResult {
+  const warnings: TaxValidationResult['warnings'] = [];
 
   logger.debug('VALIDATE_TAX_INFO_START', {
     amount,
@@ -431,9 +511,9 @@ export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
 
     if (difference > 1) {
       const warning = {
-        code: 'TAX_AMOUNT_MISMATCH',
+        code: 'TAX_AMOUNT_MISMATCH' as const,
         message: `Total amount (¥${amount}) does not match subtotal (¥${subtotal}) + tax (¥${taxAmount}) = ¥${calculatedTotal}`,
-        severity: 'warn'
+        severity: 'warn' as const,
       };
       warnings.push(warning);
       logger.warn('TAX_AMOUNT_MISMATCH_DETECTED', warning);
@@ -443,9 +523,9 @@ export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
   // 2. Verify tax rate is 8% or 10% (Japan consumption tax)
   if (taxRate !== undefined && taxRate !== null && ![8, 10].includes(taxRate)) {
     const warning = {
-      code: 'INVALID_TAX_RATE',
+      code: 'INVALID_TAX_RATE' as const,
       message: `Japan consumption tax should be 8% or 10%, got ${taxRate}%`,
-      severity: 'warn'
+      severity: 'warn' as const,
     };
     warnings.push(warning);
     logger.warn('INVALID_TAX_RATE_DETECTED', { taxRate });
@@ -470,9 +550,9 @@ export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
 
     if (difference > 1) {
       const warning = {
-        code: 'TAX_RATE_MISMATCH',
+        code: 'TAX_RATE_MISMATCH' as const,
         message: `Expected tax for ${taxRate}% rate: ¥${expectedTax}, got ¥${taxAmount}`,
-        severity: 'warn'
+        severity: 'warn' as const,
       };
       warnings.push(warning);
       logger.warn('TAX_RATE_MISMATCH_DETECTED', warning);
@@ -482,7 +562,7 @@ export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
   logger.debug('VALIDATE_TAX_INFO_COMPLETE', {
     valid: true,
     warningCount: warnings.length,
-    warnings: warnings.map(w => ({ code: w.code, severity: w.severity })),
+    warnings: warnings.map((w) => ({ code: w.code, severity: w.severity })),
   });
 
   return { valid: true, warnings };
