@@ -319,13 +319,13 @@ describe('migrations', () => {
     });
   });
 
-  describe('migration_v11', () => {
-    it('TC-M11.1: Adds subtotal, tax_amount, and tax_rate columns (Issue #155)', async () => {
-      // Given: Fresh DB at v10
+  describe('migration_v12', () => {
+    it('TC-M12.1: Adds subtotal, tax_amount, and tax_rate columns (Issue #155)', async () => {
+      // Given: Fresh DB at v11
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
 
-      // When: Run migration v11 (via runMigrations)
+      // When: Run migration v12 (via runMigrations)
       await runMigrations(db);
 
       // Then: Three tax columns exist
@@ -337,12 +337,12 @@ describe('migrations', () => {
       expect(columnNames).toContain('tax_rate');
     });
 
-    it('TC-M11.2: Tax columns are correct types (for Japanese tax reporting)', async () => {
-      // Given: Fresh DB at v10
+    it('TC-M12.2: Tax columns are correct types (for Japanese tax reporting)', async () => {
+      // Given: Fresh DB at v11
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
 
-      // When: Run migration v11
+      // When: Run migration v12
       await runMigrations(db);
 
       // Then: Columns have correct types
@@ -356,12 +356,12 @@ describe('migrations', () => {
       expect(taxRateCol?.type).toBe('REAL'); // Tax rate (8.0 or 10.0)
     });
 
-    it('TC-M11.3: Migration is idempotent (safe to run twice)', async () => {
-      // Given: DB already has v11 columns
+    it('TC-M12.3: Migration is idempotent (safe to run twice)', async () => {
+      // Given: DB already has v12 columns
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
 
-      // When: Run migration v11 twice
+      // When: Run migration v12 twice
       await runMigrations(db); // First run
       await runMigrations(db); // Second run
 
@@ -376,10 +376,10 @@ describe('migrations', () => {
       expect(taxRateCount).toBe(1);
     });
 
-    it('TC-M11.4: Existing transactions retain data after migration', async () => {
-      // Given: v10 DB with existing transactions
+    it('TC-M12.4: Existing transactions retain data after migration', async () => {
+      // Given: v11 DB with existing transactions
       const { db, tables, data } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
 
       // Insert existing transaction (before migration) - from KFC receipt scenario
       const existingTx = {
@@ -394,7 +394,7 @@ describe('migrations', () => {
       };
       data.get('transactions')?.push(existingTx);
 
-      // When: Run migration v11
+      // When: Run migration v12
       await runMigrations(db);
 
       // Then: Old data preserved, new columns NULL for existing records
@@ -412,10 +412,10 @@ describe('migrations', () => {
       expect(result[0].tax_rate).toBeUndefined();
     });
 
-    it('TC-M11.5: New transactions can write complete tax information', async () => {
-      // Given: v11 DB (fresh migration)
+    it('TC-M12.5: New transactions can write complete tax information', async () => {
+      // Given: v12 DB (fresh migration)
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
       await runMigrations(db);
 
       // When: Insert transaction with complete tax data (Big-A supermarket scenario)
@@ -442,10 +442,10 @@ describe('migrations', () => {
       expect(result[0].tax_rate).toBe(8.0); // 8% consumption tax
     });
 
-    it('TC-M11.6: New transactions can write partial tax information', async () => {
-      // Given: v11 DB (fresh migration)
+    it('TC-M12.6: New transactions can write partial tax information', async () => {
+      // Given: v12 DB (fresh migration)
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
       await runMigrations(db);
 
       // When: Insert transaction with only some tax fields
@@ -466,10 +466,10 @@ describe('migrations', () => {
       expect(result[0].tax_rate).toBeUndefined(); // NULL (not provided)
     });
 
-    it('TC-M11.7: Tax fields support 10% rate (latest Japan consumption tax)', async () => {
-      // Given: v11 DB (fresh migration)
+    it('TC-M12.7: Tax fields support 10% rate (latest Japan consumption tax)', async () => {
+      // Given: v12 DB (fresh migration)
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
       await runMigrations(db);
 
       // When: Insert transaction with 10% tax rate
@@ -490,10 +490,10 @@ describe('migrations', () => {
       expect(result[0].subtotal).toBe(1000);
     });
 
-    it('TC-M11.8: Tax fields are nullable (backward compatibility with non-Japanese receipts)', async () => {
-      // Given: v11 DB (fresh migration)
+    it('TC-M12.8: Tax fields are nullable (backward compatibility with non-Japanese receipts)', async () => {
+      // Given: v12 DB (fresh migration)
       const { db, tables } = createMockDatabase();
-      await setMigrationVersion(db, tables, 10);
+      await setMigrationVersion(db, tables, 11);
       await runMigrations(db);
 
       // When: Insert transaction without any tax information (international receipt)
