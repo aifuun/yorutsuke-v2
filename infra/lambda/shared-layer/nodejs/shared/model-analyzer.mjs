@@ -371,7 +371,7 @@ export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
   }
 
   // 2. Verify tax rate is 8% or 10% (Japan consumption tax)
-  if (taxRate && ![8, 10].includes(taxRate)) {
+  if (taxRate !== undefined && taxRate !== null && ![8, 10].includes(taxRate)) {
     warnings.push({
       code: 'INVALID_TAX_RATE',
       message: `Japan consumption tax should be 8% or 10%, got ${taxRate}%`,
