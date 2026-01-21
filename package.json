@@ -1,0 +1,24 @@
+{
+  "name": "yorutsuke-v2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first AI accounting assistant for second-hand business users",
+  "scripts": {
+    "test": "./scripts/run-all-tests.sh",
+    "test:watch": "./scripts/run-all-tests.sh --watch",
+    "test:coverage": "./scripts/run-all-tests.sh --coverage",
+    "test:app": "./scripts/run-all-tests.sh app",
+    "test:infra": "./scripts/run-all-tests.sh infra",
+    "test:app:watch": "./scripts/run-all-tests.sh app --watch",
+    "test:infra:watch": "./scripts/run-all-tests.sh infra --watch"
+  },
+  "keywords": [
+    "accounting",
+    "receipts",
+    "ai",
+    "tauri",
+    "aws"
+  ],
+  "author": "Yorutsuke Team",
+  "license": "MIT"
+}

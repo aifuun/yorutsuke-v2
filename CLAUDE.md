@@ -121,6 +121,15 @@ cd admin && npm run build      # Build for production
 cd infra && npm run diff       # Preview changes
 cd infra && npm run deploy     # Deploy both stacks (--profile dev)
 
+# Testing (from root directory)
+npm run test                   # Run all tests
+npm run test:watch            # Watch mode (auto re-run on file change)
+npm run test:coverage         # Generate coverage reports
+npm run test:app              # App tests only
+npm run test:infra            # Infra tests only
+npm run test:app:watch        # App tests in watch mode
+npm run test:infra:watch      # Infra tests in watch mode
+
 # Layer-only deploy (≤10s after modifying shared-layer/)
 cd infra/lambda/shared-layer && zip -r /tmp/layer.zip nodejs/
 aws lambda publish-layer-version --layer-name yorutsuke-shared-dev --zip-file fileb:///tmp/layer.zip --profile dev
@@ -252,6 +261,7 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .  # View today's logs
 - **Workflow guide**: `.claude/WORKFLOW.md`
 - **Design rules**: `.claude/rules/design-system.md` (read before UI coding)
 - **Lambda Layer deployment**: `.claude/rules/lambda-layer-deployment.md` + `.claude/rules/lambda-quick-reference.md`
+- **Testing guide**: `TEST.md` (quick reference) + `scripts/RUN_TESTS.md` (detailed) + `scripts/QUICK_TEST.md` (examples)
 
 ## Key Documentation
 
