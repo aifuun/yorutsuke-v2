@@ -1,6 +1,13 @@
 /**
  * Pillar R: Semantic Logger for Lambda Functions
  * All logs are JSON-formatted with traceId for observability
+ *
+ * ⚠️ CRITICAL ARCHITECTURE NOTE:
+ * - currentContext is GLOBAL and shared per Lambda container
+ * - SAFE: Lambda is configured with single request per container
+ * - RISK: If Lambda ever enables concurrency on same container, data will leak
+ * - MITIGATION: Always call initContext() at handler start
+ * - FUTURE: Consider thread-local storage or AsyncLocalStorage if concurrency enabled
  */
 
 /**
@@ -32,20 +39,31 @@ export const EVENTS = {
 };
 
 // Current request context (set per invocation)
+// ⚠️ Global state - see note above
 let currentContext = { traceId: 'no-trace' };
 
 /**
  * Set context for current Lambda invocation
- * @param {object} ctx - { traceId, userId, ... }
+ * @param {object} ctx - Context fields to merge (e.g., { traceId, userId, requestId })
+ * @returns {void}
+ * @throws {TypeError} If ctx is not an object
  */
 export function setContext(ctx) {
+  if (!ctx || typeof ctx !== 'object') {
+    throw new TypeError(`setContext expects an object, got ${typeof ctx}`);
+  }
   currentContext = { ...currentContext, ...ctx };
 }
 
 /**
- * Get current traceId from request headers or generate new
- * @param {object} event - Lambda event
- * @returns {string} traceId
+ * Get traceId from request headers or generate new one
+ * Priority: x-trace-id header > x-trace-id (lowercase) > generate new
+ *
+ * @param {object} event - Lambda event object
+ * @returns {string} Trace ID in format: "lambda-{timestamp}-{random}" or from headers
+ * @example
+ * const traceId = getTraceId(event);
+ * // Returns: "lambda-1768973230100-abc123" or "trace-xxx" (if from header)
  */
 export function getTraceId(event) {
   // Try to get from headers (propagated from frontend)
@@ -54,6 +72,8 @@ export function getTraceId(event) {
   if (traceId) return traceId;
 
   // Generate new for this invocation
+  // Format: lambda-{timestamp}-{random}
+  // Example: lambda-1768973230100-a1b2c3d4
   return `lambda-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -62,11 +82,28 @@ export function getTraceId(event) {
  * Call at the start of each handler
  * @param {object} event - Lambda event
  * @param {string|null} explicitTraceId - Optional explicit traceId (e.g., from S3 metadata)
+ * @returns {object} Updated context
+ * @throws {Error} Only if event structure is fundamentally broken
  */
 export function initContext(event, explicitTraceId = null) {
   // Priority: explicit > header > generated
   const traceId = explicitTraceId || getTraceId(event);
-  const body = typeof event.body === 'string' ? JSON.parse(event.body || '{}') : event.body || {};
+
+  // Safely parse body (P0 fix: handle JSON parse errors)
+  let body = {};
+  try {
+    body = typeof event.body === 'string'
+      ? JSON.parse(event.body || '{}')
+      : event.body || {};
+  } catch (error) {
+    // Log parse error to console, don't throw
+    console.warn('Logger: Failed to parse event.body', {
+      error: error.message,
+      bodyType: typeof event.body,
+      bodyPreview: String(event.body).substring(0, 100),
+    });
+    body = {};
+  }
 
   setContext({
     traceId,
@@ -78,7 +115,12 @@ export function initContext(event, explicitTraceId = null) {
 }
 
 /**
- * Create log entry
+ * Create structured log entry
+ * @param {string} level - Log level (debug, info, warn, error)
+ * @param {string} event - Semantic event name
+ * @param {object} data - Additional data
+ * @returns {string} JSON-formatted log entry
+ * @private
  */
 function createLogEntry(level, event, data = {}) {
   return JSON.stringify({
@@ -93,11 +135,67 @@ function createLogEntry(level, event, data = {}) {
 }
 
 /**
+ * Extract error information from Error object or use as-is
+ * @param {Error|object} data - Error object or data object
+ * @returns {object} Normalized data with error fields if Error
+ * @private
+ */
+function normalizeErrorData(data) {
+  if (!data) return {};
+
+  // If it's an Error object, extract message and stack (P0 fix)
+  if (data instanceof Error) {
+    return {
+      error: {
+        message: data.message,
+        stack: data.stack,
+        name: data.name,
+      },
+    };
+  }
+
+  // If it's already an object, return as-is
+  return typeof data === 'object' ? data : { data };
+}
+
+/**
  * Logger with semantic events
+ * All logs are automatically JSON-formatted with traceId, userId, requestId
+ *
+ * @example
+ * logger.info('TRANSACTION_CREATED', { txId: 'tx-123', amount: 1000 });
+ * // Outputs: {"timestamp":"...","level":"info","event":"TRANSACTION_CREATED","traceId":"trace-xxx","userId":"user-123",...}
+ *
+ * @example
+ * try {
+ *   await processImage();
+ * } catch (error) {
+ *   logger.error('PROCESSING_FAILED', error);  // Error stack auto-extracted
+ * }
  */
 export const logger = {
-  debug: (event, data) => console.debug(createLogEntry('debug', event, data)),
-  info: (event, data) => console.info(createLogEntry('info', event, data)),
-  warn: (event, data) => console.warn(createLogEntry('warn', event, data)),
-  error: (event, data) => console.error(createLogEntry('error', event, data)),
+  /**
+   * @param {string} event - Semantic event name
+   * @param {object} [data] - Additional data
+   */
+  debug: (event, data) => console.debug(createLogEntry('debug', event, normalizeErrorData(data))),
+
+  /**
+   * @param {string} event - Semantic event name
+   * @param {object} [data] - Additional data
+   */
+  info: (event, data) => console.info(createLogEntry('info', event, normalizeErrorData(data))),
+
+  /**
+   * @param {string} event - Semantic event name
+   * @param {object} [data] - Additional data
+   */
+  warn: (event, data) => console.warn(createLogEntry('warn', event, normalizeErrorData(data))),
+
+  /**
+   * Log error with automatic stack trace extraction
+   * @param {string} event - Semantic event name
+   * @param {Error|object} [data] - Error object or data object
+   */
+  error: (event, data) => console.error(createLogEntry('error', event, normalizeErrorData(data))),
 };
