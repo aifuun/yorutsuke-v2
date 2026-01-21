@@ -194,7 +194,7 @@ async function purgeAllImages() {
  */
 export async function handler(event) {
   initContext(event);
-  logger.debug('ADMIN_PURGE_ALL_DATA_REQUEST', { method: event.requestContext?.http?.method });
+  logger.debug(EVENTS.ADMIN_PURGE_ALL_DATA_REQUEST, { method: event.requestContext?.http?.method });
 
   // Handle OPTIONS for CORS
   if (event.requestContext?.http?.method === 'OPTIONS') {

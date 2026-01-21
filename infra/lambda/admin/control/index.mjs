@@ -149,7 +149,7 @@ export async function handler(event) {
 
       const result = await setStatus(action === "activate", reason, adminEmail);
 
-      logger.info('EMERGENCY_STOP_STATUS_CHANGED', { action, adminEmail, reason });
+      logger.info(EVENTS.EMERGENCY_STOP_STATUS_CHANGED, { action, adminEmail, reason });
 
       return {
         statusCode: 200,
@@ -173,7 +173,7 @@ export async function handler(event) {
       body: JSON.stringify({ error: "Method not allowed" }),
     };
   } catch (error) {
-    logger.error('ADMIN_CONTROL_HANDLER_ERROR', error);
+    logger.error(EVENTS.ADMIN_CONTROL_HANDLER_ERROR, error);
     return {
       statusCode: 500,
       headers: {
