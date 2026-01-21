@@ -4,55 +4,58 @@
  * Tauri dev wrapper with dynamic port support
  * Usage: node scripts/tauri-dev.js [port]
  *
- * Improvement: Uses git skip-worktree to prevent tauri.conf.json
- * from showing as modified in git status while maintaining the
- * ability to run Tauri on different ports.
+ * Design (Temporary Config File Pattern):
+ * - Creates tauri.conf.temp.json with desired port
+ * - Tauri dev uses temp config, never modifies committed tauri.conf.json
+ * - Temp file is git-ignored (added to .gitignore)
+ * - On exit, cleans up temp file
+ * - All other config changes are visible to git (not hidden)
  */
 
 import { spawn } from 'child_process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const port = process.env.VITE_PORT || process.argv[2] || '1420';
 const configPath = join(__dirname, '../src-tauri/tauri.conf.json');
+const tempConfigPath = join(__dirname, '../src-tauri/tauri.conf.temp.json');
 
-// Read config
+// Read original config
 const configContent = readFileSync(configPath, 'utf-8');
 const config = JSON.parse(configContent);
-const originalDevUrl = config.build.devUrl;
 
-// Update devUrl
+// Create temp config with updated port
 config.build.devUrl = `http://localhost:${port}`;
-writeFileSync(configPath, JSON.stringify(config, null, 2));
+writeFileSync(tempConfigPath, JSON.stringify(config, null, 2));
 
 console.log(`\x1b[36m[Tauri Dev]\x1b[0m Starting on port \x1b[33m${port}\x1b[0m`);
-console.log(`\x1b[90m(tauri.conf.json will be temporarily modified and restored)\x1b[0m`);
+console.log(`\x1b[90m(using temporary config: tauri.conf.temp.json)\x1b[0m`);
 
-// Run tauri dev
-const tauriProcess = spawn('tauri', ['dev'], {
+// Run tauri dev with temp config
+const tauriProcess = spawn('tauri', ['dev', '--config', 'src-tauri/tauri.conf.temp.json'], {
   stdio: 'inherit',
   shell: true,
+  cwd: join(__dirname, '..'),
   env: { ...process.env, VITE_PORT: port }
 });
 
-// Restore config on exit - with error handling
-const restore = () => {
+// Clean up temp config on exit
+const cleanup = () => {
   try {
-    const currentConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
-    currentConfig.build.devUrl = originalDevUrl;
-    writeFileSync(configPath, JSON.stringify(currentConfig, null, 2));
-    console.log('\n\x1b[36m[Tauri Dev]\x1b[0m Config restored to original state');
+    if (existsSync(tempConfigPath)) {
+      unlinkSync(tempConfigPath);
+      console.log('\n\x1b[36m[Tauri Dev]\x1b[0m Cleaned up temporary config');
+    }
   } catch (error) {
-    console.error('\x1b[31m[Tauri Dev] Error restoring config:\x1b[0m', error.message);
+    console.error('\x1b[31m[Tauri Dev] Error cleaning up:\x1b[0m', error.message);
   }
   process.exit();
 };
 
-process.on('SIGINT', restore);
-process.on('SIGTERM', restore);
-tauriProcess.on('exit', restore);
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+tauriProcess.on('exit', cleanup);
