@@ -5,6 +5,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3';
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
@@ -26,7 +27,7 @@ const headers = {
  * Security: Uses userId as partition key filter
  */
 async function deleteUserTransactions(userId) {
-  console.log('[DeleteData] Deleting transactions for userId:', userId);
+  logger.info(EVENTS.DELETE_USER_TRANSACTIONS_STARTED, { userId });
 
   // Step 1: Query all transactions for this user
   const queryParams = {
@@ -51,7 +52,7 @@ async function deleteUserTransactions(userId) {
     lastEvaluatedKey = result.LastEvaluatedKey;
   } while (lastEvaluatedKey);
 
-  console.log(`[DeleteData] Found ${allItems.length} transactions to delete`);
+  logger.info(EVENTS.DELETE_USER_TRANSACTIONS_FOUND, { count: allItems.length });
 
   if (allItems.length === 0) {
     return 0;
@@ -81,7 +82,7 @@ async function deleteUserTransactions(userId) {
     );
 
     deletedCount += batch.length;
-    console.log(`[DeleteData] Deleted batch ${i / batchSize + 1}, total: ${deletedCount}`);
+    logger.info(EVENTS.DELETE_USER_TRANSACTIONS_BATCH_COMPLETED, { batchNum: i / batchSize + 1, total: deletedCount });
   }
 
   return deletedCount;
@@ -92,7 +93,7 @@ async function deleteUserTransactions(userId) {
  * Security: Uses userId prefix to filter objects
  */
 async function deleteUserImages(userId) {
-  console.log('[DeleteData] Deleting images for userId:', userId);
+  logger.info(EVENTS.DELETE_USER_IMAGES_STARTED, { userId });
 
   // Step 1: List all objects with userId prefix
   // S3 key format: uploads/{userId}/{timestamp}/{uuid}.jpg
@@ -117,7 +118,7 @@ async function deleteUserImages(userId) {
     continuationToken = result.NextContinuationToken;
   } while (continuationToken);
 
-  console.log(`[DeleteData] Found ${allObjects.length} images to delete`);
+  logger.info(EVENTS.DELETE_USER_IMAGES_FOUND, { count: allObjects.length });
 
   if (allObjects.length === 0) {
     return 0;
@@ -139,7 +140,7 @@ async function deleteUserImages(userId) {
 
     await s3Client.send(new DeleteObjectsCommand(deleteParams));
     deletedCount += batch.length;
-    console.log(`[DeleteData] Deleted S3 batch ${i / batchSize + 1}, total: ${deletedCount}`);
+    logger.info(EVENTS.DELETE_USER_IMAGES_BATCH_COMPLETED, { batchNum: i / batchSize + 1, total: deletedCount });
   }
 
   return deletedCount;
@@ -151,7 +152,7 @@ async function deleteUserImages(userId) {
  * Body: { userId: string, types: ['transactions', 'images'] }
  */
 export async function handler(event) {
-  console.log('[DeleteData] Event:', JSON.stringify(event, null, 2));
+  initContext(event);
 
   // Handle OPTIONS for CORS
   if (event.requestContext?.http?.method === 'OPTIONS') {
@@ -197,7 +198,7 @@ export async function handler(event) {
       };
     }
 
-    console.log(`[DeleteData] Deleting data for userId: ${userId}, types: ${types.join(', ')}`);
+    logger.info(EVENTS.ADMIN_DELETE_DATA_START, { userId, types });
 
     // Delete data based on types
     const result = {
@@ -213,7 +214,7 @@ export async function handler(event) {
       result.deleted.images = await deleteUserImages(userId);
     }
 
-    console.log('[DeleteData] Result:', result);
+    logger.info(EVENTS.ADMIN_DELETE_DATA_COMPLETED, { result });
 
     return {
       statusCode: 200,
@@ -221,7 +222,7 @@ export async function handler(event) {
       body: JSON.stringify(result),
     };
   } catch (error) {
-    console.error('[DeleteData] Error:', error);
+    logger.error(EVENTS.ADMIN_DELETE_DATA_ERROR, error);
 
     return {
       statusCode: 500,
