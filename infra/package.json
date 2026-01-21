@@ -13,8 +13,9 @@
     "txn:latest": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs dev 10",
     "txn:latest:prod": "AWS_PROFILE=prod node ../scripts/query-latest-transactions.mjs prod 10",
     "txn:query": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui"
   },
   "devDependencies": {
