@@ -147,7 +147,7 @@ async function updateTransaction(userId, transactionId, body, expectedVersion) {
   const expressionAttributeNames = {};
   const expressionAttributeValues = {};
 
-  const allowedFields = ["amount", "category", "description", "merchant", "date", "confirmedAt"];
+  const allowedFields = ["amount", "category", "description", "merchant", "date", "confirmedAt", "subtotal", "taxAmount", "taxRate"];
 
   for (const field of allowedFields) {
     if (body[field] !== undefined) {

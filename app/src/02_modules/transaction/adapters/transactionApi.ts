@@ -48,6 +48,10 @@ const CloudTransactionSchema = z.object({
   primaryConfidence: z.number().min(0).max(100).optional().nullable(),
   // Distributed Tracing (Pillar N)
   traceId: z.string().optional().nullable(),
+  // Tax fields (Issue #155) - For Japanese tax reporting
+  subtotal: z.number().optional().nullable(),
+  taxAmount: z.number().optional().nullable(),
+  taxRate: z.number().optional().nullable(),
   // Deprecated fields (for backward compatibility)
   processingModel: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
@@ -102,6 +106,9 @@ function mapCloudToTransaction(cloudTx: CloudTransaction): Transaction {
     primaryModelId: cloudTx.primaryModelId ?? null,
     primaryConfidence: cloudTx.primaryConfidence ?? null,
     traceId: cloudTx.traceId ?? null, // Distributed tracing
+    subtotal: cloudTx.subtotal ?? null, // v12: Tax fields
+    taxAmount: cloudTx.taxAmount ?? null,
+    taxRate: cloudTx.taxRate ?? null,
   };
 }
 

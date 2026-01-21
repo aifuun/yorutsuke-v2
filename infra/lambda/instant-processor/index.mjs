@@ -426,6 +426,10 @@ export async function handler(event) {
                 primaryModelId,           // Track which model processed this
                 primaryConfidence,        // Confidence score (if available)
                 traceId: ctx.traceId,     // Pillar N: Distributed tracing
+                // Issue #155: Tax fields from OCR extraction
+                subtotal: parsed.subtotal ?? null,
+                taxAmount: parsed.taxAmount ?? null,
+                taxRate: parsed.taxRate ?? null,
             };
 
             if (isGuestUser(userId)) {
@@ -469,6 +473,10 @@ export async function handler(event) {
                     primaryModelId,           // Track which model processed this
                     primaryConfidence,        // Confidence score (if available)
                     validationErrors: validationResult.error.issues, // Store errors for debugging
+                    // Issue #155: Tax fields from OCR extraction (even in error case)
+                    subtotal: parsed.subtotal ?? null,
+                    taxAmount: parsed.taxAmount ?? null,
+                    taxRate: parsed.taxRate ?? null,
                     ...(isGuestUser(userId) && { ttl: getGuestTTL(), isGuest: true }),
                 };
             } else {
