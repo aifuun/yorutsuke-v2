@@ -31,6 +31,10 @@ const TransactionSchema = z.object({
   status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
   confidence: z.number().min(0).max(1).nullable(),
   rawText: z.string().nullable(),
+  // v12: Tax fields (optional for backward compatibility)
+  subtotal: z.number().nullable().optional(),
+  taxAmount: z.number().nullable().optional(),
+  taxRate: z.number().nullable().optional(),
 });
 
 const DailySummarySchema = z.object({
@@ -70,6 +74,10 @@ function transformTransaction(raw: z.infer<typeof TransactionSchema>): Transacti
     s3Key: null, // Report API doesn't include S3 keys
     primaryModelId: null, // Report API doesn't include processing model
     primaryConfidence: null, // Report API doesn't include confidence score
+    traceId: null, // Report API doesn't include trace ID
+    subtotal: raw.subtotal ?? null, // v12: Tax fields
+    taxAmount: raw.taxAmount ?? null,
+    taxRate: raw.taxRate ?? null,
   };
 }
 

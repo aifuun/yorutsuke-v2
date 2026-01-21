@@ -28,6 +28,10 @@ export function createMockTransaction(
     rawText: null,
     primaryModelId: null,  // ✅ Required field
     primaryConfidence: null,  // ✅ Required field
+    traceId: null,  // ✅ Required field
+    subtotal: null,  // v12: Tax fields
+    taxAmount: null,
+    taxRate: null,
     ...overrides,
   };
 }

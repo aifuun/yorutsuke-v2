@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 const ddb = new DynamoDBClient({});
 const s3 = new S3Client({});
@@ -127,7 +128,7 @@ async function queryTransactions(body) {
 
     return response(200, { transactions, nextCursor });
   } catch (error) {
-    console.error("Query error:", error);
+    logger.error(EVENTS.TRANSACTION_QUERY_ERROR, error);
     return response(500, { error: "QUERY_FAILED", message: "Failed to query transactions" });
   }
 }
@@ -146,7 +147,7 @@ async function updateTransaction(userId, transactionId, body, expectedVersion) {
   const expressionAttributeNames = {};
   const expressionAttributeValues = {};
 
-  const allowedFields = ["amount", "category", "description", "merchant", "date", "confirmedAt"];
+  const allowedFields = ["amount", "category", "description", "merchant", "date", "confirmedAt", "subtotal", "taxAmount", "taxRate"];
 
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
@@ -195,7 +196,7 @@ async function updateTransaction(userId, transactionId, body, expectedVersion) {
     if (error.name === "ConditionalCheckFailedException") {
       return response(409, { error: "VERSION_CONFLICT", message: "Transaction was modified by another request" });
     }
-    console.error("Update error:", error);
+    logger.error(EVENTS.TRANSACTION_UPDATE_ERROR, error);
     return response(500, { error: "UPDATE_FAILED", message: "Failed to update transaction" });
   }
 }
@@ -222,7 +223,7 @@ async function deleteTransaction(userId, transactionId) {
 
     return response(200, { success: true });
   } catch (error) {
-    console.error("Delete error:", error);
+    logger.error(EVENTS.TRANSACTION_DELETE_ERROR, error);
     return response(500, { error: "DELETE_FAILED", message: "Failed to delete transaction" });
   }
 }
@@ -279,7 +280,7 @@ async function fetchAllTransactions(userId, startDate, endDate) {
 
     return response(200, { transactions });
   } catch (error) {
-    console.error("Fetch all transactions error:", error);
+    logger.error(EVENTS.TRANSACTION_FETCH_ERROR, error);
     return response(500, { error: "FETCH_FAILED", message: "Failed to fetch transactions" });
   }
 }
@@ -290,7 +291,7 @@ async function fetchAllTransactions(userId, startDate, endDate) {
  */
 async function deleteS3Image(s3Key, transactionId) {
   if (!s3Key || !IMAGES_BUCKET) {
-    console.log(`[S3] Skip delete: no s3Key or bucket (txId: ${transactionId})`);
+    logger.info(EVENTS.S3_IMAGE_SKIP_DELETE, { s3Key, transactionId });
     return;
   }
 
@@ -301,11 +302,11 @@ async function deleteS3Image(s3Key, transactionId) {
         Key: s3Key,
       })
     );
-    console.log(`[S3] Deleted: ${s3Key} (txId: ${transactionId})`);
+    logger.info(EVENTS.S3_IMAGE_DELETED, { s3Key, transactionId });
   } catch (error) {
     // Log but don't fail - S3 cleanup is best-effort
     // Image may already be deleted or not exist
-    console.error(`[S3] Delete failed: ${s3Key} (txId: ${transactionId})`, error.message);
+    logger.error(EVENTS.S3_IMAGE_DELETE_FAILED, { s3Key, transactionId, error: error.message });
   }
 }
 
@@ -331,7 +332,7 @@ async function syncTransactionsFromLocal(body) {
     });
   }
 
-  console.log(`[SYNC] Starting sync for user ${userId}, ${transactions.length} transactions`);
+  logger.info(EVENTS.SYNC_STARTED, { userId, count: transactions.length });
 
   const synced = [];
   const failed = [];
@@ -382,21 +383,21 @@ async function syncTransactionsFromLocal(body) {
       }
 
       synced.push(tx.transactionId);
-      console.log(`[SYNC] Success: ${tx.transactionId} (status: ${tx.status || "unconfirmed"})`);
+      logger.info(EVENTS.SYNC_SUCCESS, { transactionId: tx.transactionId, status: tx.status || "unconfirmed" });
     } catch (error) {
       if (error.name === "ConditionalCheckFailedException") {
         // Cloud version is newer - skip this transaction (not a failure)
-        console.log(`[SYNC] Skipped (cloud newer): ${tx.transactionId}`);
+        logger.info(EVENTS.SYNC_SKIPPED, { transactionId: tx.transactionId });
         synced.push(tx.transactionId); // Consider it synced (cloud wins)
       } else {
         // Real error - mark as failed
-        console.error(`[SYNC] Failed: ${tx.transactionId}`, error);
+        logger.error(EVENTS.SYNC_FAILED, { transactionId: tx.transactionId, error });
         failed.push(tx.transactionId);
       }
     }
   }
 
-  console.log(`[SYNC] Complete: ${synced.length} synced, ${failed.length} failed`);
+  logger.info(EVENTS.SYNC_COMPLETED, { synced: synced.length, failed: failed.length });
 
   return response(200, {
     synced: synced.length,
@@ -405,6 +406,8 @@ async function syncTransactionsFromLocal(body) {
 }
 
 export async function handler(event) {
+  initContext(event);
+
   // Handle CORS preflight
   if (event.requestContext?.http?.method === "OPTIONS") {
     return { statusCode: 200, headers: corsHeaders, body: "" };
@@ -452,7 +455,7 @@ export async function handler(event) {
         return response(405, { error: "METHOD_NOT_ALLOWED", message: `Method ${method} not allowed` });
     }
   } catch (error) {
-    console.error("Handler error:", error);
+    logger.error(EVENTS.TRANSACTION_HANDLER_ERROR, error);
     return response(500, { error: "INTERNAL_ERROR", message: "Internal server error" });
   }
 }

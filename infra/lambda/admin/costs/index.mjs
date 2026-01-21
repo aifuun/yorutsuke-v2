@@ -4,6 +4,7 @@
  */
 
 import { CostExplorerClient, GetCostAndUsageCommand } from "@aws-sdk/client-cost-explorer";
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 // Cost Explorer must be called from us-east-1
 const ce = new CostExplorerClient({ region: "us-east-1" });
@@ -93,13 +94,15 @@ async function getCosts(period = "7d") {
       services: servicesWithPercentage,
     };
   } catch (error) {
-    console.error("Error fetching costs:", error);
+    logger.error(EVENTS.ADMIN_COSTS_FETCH_ERROR, error);
     throw error;
   }
 }
 
 export async function handler(event) {
-  console.log("Admin costs request:", JSON.stringify(event));
+  initContext(event);
+
+  logger.info(EVENTS.ADMIN_COSTS_REQUEST, { period: event.queryStringParameters?.period });
 
   try {
     // Get period from query string
@@ -127,7 +130,7 @@ export async function handler(event) {
       body: JSON.stringify(costs),
     };
   } catch (error) {
-    console.error("Error in costs handler:", error);
+    logger.error(EVENTS.ADMIN_COSTS_HANDLER_ERROR, error);
 
     // Handle specific Cost Explorer errors
     if (error.name === "AccessDeniedException") {

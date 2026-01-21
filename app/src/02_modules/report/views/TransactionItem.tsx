@@ -43,7 +43,7 @@ export function TransactionItem({
   onDelete,
 }: TransactionItemProps) {
   const { t } = useTranslation();
-  const { id, type, category, amount, merchant, confidence, status, description, date, rawText } = transaction;
+  const { id, type, category, amount, merchant, confidence, status, description, date, rawText, subtotal, taxAmount, taxRate } = transaction;
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -221,6 +221,24 @@ export function TransactionItem({
                 <div className="detail-row">
                   <span className="detail-label">{t('transaction.ocrText')}</span>
                   <span className="detail-value ocr-text">{rawText}</span>
+                </div>
+              )}
+              {subtotal !== null && (
+                <div className="detail-row">
+                  <span className="detail-label">{t('transaction.subtotal')}</span>
+                  <span className="detail-value">¥{subtotal.toLocaleString()}</span>
+                </div>
+              )}
+              {taxAmount !== null && (
+                <div className="detail-row">
+                  <span className="detail-label">{t('transaction.taxAmount')}</span>
+                  <span className="detail-value">¥{taxAmount.toLocaleString()}</span>
+                </div>
+              )}
+              {taxRate !== null && (
+                <div className="detail-row">
+                  <span className="detail-label">{t('transaction.taxRate')}</span>
+                  <span className="detail-value">{(taxRate * 100).toFixed(1)}%</span>
                 </div>
               )}
 

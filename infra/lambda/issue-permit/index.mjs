@@ -10,6 +10,7 @@ import {
   SecretsManagerClient,
   GetSecretValueCommand,
 } from '@aws-sdk/client-secrets-manager';
+import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
 
 // Tier configurations
 const TIER_CONFIGS = {
@@ -44,7 +45,7 @@ async function getSecretKey() {
     cachedSecretKey = response.SecretString;
     return cachedSecretKey;
   } catch (error) {
-    console.error('Failed to retrieve secret key:', error);
+    logger.error(EVENTS.PERMIT_SECRET_FETCH_FAILED, error);
     throw new Error('Failed to retrieve permit secret key');
   }
 }
@@ -190,6 +191,8 @@ export async function issuePermit(userId, validDays = null) {
  * Lambda handler
  */
 export async function handler(event) {
+  initContext(event);
+
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -249,17 +252,13 @@ export async function handler(event) {
     const permit = await issuePermit(userId, validDays);
 
     // Log permit issuance (for monitoring)
-    console.log(
-      JSON.stringify({
-        level: 'info',
-        msg: 'PERMIT_ISSUED',
-        userId,
-        tier: permit.tier,
-        totalLimit: permit.totalLimit,
-        dailyRate: permit.dailyRate,
-        expiresAt: permit.expiresAt,
-      })
-    );
+    logger.info(EVENTS.PERMIT_ISSUED, {
+      userId,
+      tier: permit.tier,
+      totalLimit: permit.totalLimit,
+      dailyRate: permit.dailyRate,
+      expiresAt: permit.expiresAt,
+    });
 
     return {
       statusCode: 200,
@@ -267,14 +266,7 @@ export async function handler(event) {
       body: JSON.stringify({ permit }),
     };
   } catch (error) {
-    console.error(
-      JSON.stringify({
-        level: 'error',
-        msg: 'PERMIT_ISSUE_FAILED',
-        error: error.message,
-        stack: error.stack,
-      })
-    );
+    logger.error(EVENTS.PERMIT_ISSUE_FAILED, error);
 
     return {
       statusCode: 500,

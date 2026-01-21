@@ -11,6 +11,10 @@ export const OcrResultSchema = z.object({
     merchant: z.string(), // Allow empty - will be validated/defaulted in TransactionSchema
     category: z.enum(['food', 'transport', 'shopping', 'entertainment', 'utilities', 'health', 'other']).catch('other'),
     description: z.string().optional().default(''),
+    // Tax fields (Issue #155) - extracted from receipts, optional for backward compatibility
+    subtotal: z.number().optional(), // Pre-tax amount (¥)
+    taxAmount: z.number().optional(), // Tax amount (¥)
+    taxRate: z.number().optional(), // Tax rate (8 or 10 for Japan)
 });
 
 /**
@@ -64,6 +68,11 @@ export const TransactionSchema = z.object({
 
     // Distributed tracing (Pillar N: Context Propagation)
     traceId: z.string().optional(), // Frontend-generated trace-{uuid} for end-to-end tracking
+
+    // Tax fields (Issue #155) - For Japanese tax reporting (consumption tax filing)
+    subtotal: z.number().optional(), // Pre-tax amount (¥) - required for general taxpayer (一般納税人)
+    taxAmount: z.number().optional(), // Tax amount (¥) - for consumption tax calculation
+    taxRate: z.number().optional(), // Tax rate (8 or 10 for Japan) - for tax verification
 
     // Guest user TTL
     isGuest: z.boolean().optional(),

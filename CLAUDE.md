@@ -108,27 +108,42 @@ Receipt Drop  →  Local SQLite  →  S3 Upload  →  Nova Lite OCR  →  Transa
 
 ## Commands
 
+**NPM Workspaces** - All commands run from root directory:
+
 ```bash
-# Desktop App (Tauri)
-cd app && npm run tauri dev    # Dev with hot reload
-cd app && npm run tauri build  # Build binary
+# Development
+npm run dev:app               # Start Tauri app development (with hot reload)
+npm run dev:admin             # Start Admin panel development (http://localhost:5173)
 
-# Admin Panel (Vite)
-cd admin && npm run dev        # Dev server (http://localhost:5173)
-cd admin && npm run build      # Build for production
+# Building
+npm run build                 # Build both app and admin for production
 
-# Infrastructure (AWS CDK)
-cd infra && npm run diff       # Preview changes
-cd infra && npm run deploy     # Deploy both stacks (--profile dev)
+# Deployment
+npm run deploy                # Deploy infrastructure + sync environment variables
 
-# Layer-only deploy (≤10s after modifying shared-layer/)
-cd infra/lambda/shared-layer && zip -r /tmp/layer.zip nodejs/
+# Environment Management
+npm run env:sync              # Sync CDK outputs to app/.env.local and admin/.env
+
+# Testing
+npm run test                  # Run all tests
+npm run test:watch            # Watch mode (auto re-run on file change)
+npm run test:coverage         # Generate coverage reports
+
+# Workspace-specific commands (if needed)
+npm run -w app tauri build    # Build Tauri app directly
+npm run -w infra diff         # Preview CDK changes
+npm run -w infra synth        # Synthesize CDK template
+```
+
+**Layer-only deploy** (≤10s after modifying shared-layer/):
+```bash
+cd infra && zip -r /tmp/layer.zip lambda/shared-layer/nodejs/
 aws lambda publish-layer-version --layer-name yorutsuke-shared-dev --zip-file fileb:///tmp/layer.zip --profile dev
 ```
 
 ## Infrastructure
 
-**Two AWS CDK Stacks**: Main App (S3 → Lambda instant-processor → Bedrock OCR → DynamoDB), Admin Panel (Cognito + API Gateway + CloudFront). Shared Lambda layer contains model-analyzer, logger, schemas. Deploy with: `cd infra && npm run deploy`.
+**Two AWS CDK Stacks**: Main App (S3 → Lambda instant-processor → Bedrock OCR → DynamoDB), Admin Panel (Cognito + API Gateway + CloudFront). Shared Lambda layer contains model-analyzer, logger, schemas. Deploy with: `npm run deploy` (from root).
 
 ## Test Assets
 
@@ -252,6 +267,7 @@ cat ~/.yorutsuke/logs/$(date +%Y-%m-%d).jsonl | jq .  # View today's logs
 - **Workflow guide**: `.claude/WORKFLOW.md`
 - **Design rules**: `.claude/rules/design-system.md` (read before UI coding)
 - **Lambda Layer deployment**: `.claude/rules/lambda-layer-deployment.md` + `.claude/rules/lambda-quick-reference.md`
+- **Testing guide**: `TEST.md` (quick reference) + `scripts/RUN_TESTS.md` (detailed) + `scripts/QUICK_TEST.md` (examples)
 
 ## Key Documentation
 

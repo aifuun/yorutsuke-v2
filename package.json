@@ -1,0 +1,30 @@
+{
+  "name": "yorutsuke-v2",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local-first AI accounting assistant for second-hand business users",
+  "workspaces": [
+    "app",
+    "admin",
+    "infra"
+  ],
+  "scripts": {
+    "dev:app": "npm run -w app tauri dev",
+    "dev:admin": "npm run -w admin dev",
+    "build": "npm run -w app tauri build && npm run -w admin build",
+    "deploy": "npm run -w infra deploy && npm run env:sync",
+    "env:sync": "bash scripts/sync-env.sh",
+    "test": "./scripts/run-all-tests.sh",
+    "test:watch": "./scripts/run-all-tests.sh --watch",
+    "test:coverage": "./scripts/run-all-tests.sh --coverage"
+  },
+  "keywords": [
+    "accounting",
+    "receipts",
+    "ai",
+    "tauri",
+    "aws"
+  ],
+  "author": "Yorutsuke Team",
+  "license": "MIT"
+}

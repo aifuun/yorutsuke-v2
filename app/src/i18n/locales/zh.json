@@ -103,6 +103,9 @@
     "extractedText": "提取文本",
     "confidence": "AI 置信度",
     "noImage": "无图片",
+    "subtotal": "小计（未税）",
+    "taxAmount": "税金",
+    "taxRate": "税率",
     "categories": {
       "food": "餐饮",
       "transport": "交通",

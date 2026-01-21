@@ -8,14 +8,14 @@
     "cdk": "cdk",
     "synth": "cdk synth",
     "diff": "cdk diff --profile dev",
-    "deploy": "cdk deploy --profile dev && npm run sync-outputs",
-    "sync-outputs": "bash ../scripts/sync-cdk-outputs.sh dev dev",
+    "deploy": "cdk deploy --profile dev && bash ../scripts/sync-env.sh",
     "destroy": "cdk destroy --profile dev",
     "txn:latest": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs dev 10",
     "txn:latest:prod": "AWS_PROFILE=prod node ../scripts/query-latest-transactions.mjs prod 10",
     "txn:query": "AWS_PROFILE=dev node ../scripts/query-latest-transactions.mjs",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui"
   },
   "devDependencies": {

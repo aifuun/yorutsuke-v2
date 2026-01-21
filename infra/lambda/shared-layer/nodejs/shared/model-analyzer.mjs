@@ -167,6 +167,7 @@ function normalizeAzureDIResult(analyzeResult) {
       lineItems: extractAzureLineItems(fields.Items),
     };
 
+    // Issue #155: Tax field extraction logging
     logger.debug("AZURE_DI_EXTRACTED_RESULT", {
       vendor: result.vendor,
       totalAmount: result.totalAmount,
@@ -180,9 +181,32 @@ function normalizeAzureDIResult(analyzeResult) {
         hasTotal: result.totalAmount !== undefined,
         hasSubtotal: result.subtotal !== undefined,
         hasTax: result.taxAmount !== undefined,
+        hasTaxRate: result.taxRate !== undefined,
         hasDate: result.transactionDate !== undefined,
       },
     });
+
+    // Issue #155: Detailed tax field extraction logging
+    if (result.subtotal || result.taxAmount || result.taxRate) {
+      logger.debug("ISSUE_155_TAX_FIELDS_EXTRACTED", {
+        vendor: result.vendor,
+        taxFieldsPresent: {
+          subtotal: result.subtotal !== undefined,
+          taxAmount: result.taxAmount !== undefined,
+          taxRate: result.taxRate !== undefined,
+        },
+        taxValues: {
+          subtotal: result.subtotal,
+          taxAmount: result.taxAmount,
+          taxRate: result.taxRate,
+        },
+        amountReconciliation: {
+          total: result.totalAmount,
+          subtotal_plus_tax: result.subtotal && result.taxAmount ? result.subtotal + result.taxAmount : undefined,
+          match: result.subtotal && result.taxAmount ? Math.abs(result.totalAmount - (result.subtotal + result.taxAmount)) <= 1 : undefined,
+        },
+      });
+    }
 
     return ModelResultSchema.parse(result);
   } catch (error) {
@@ -310,6 +334,15 @@ export function convertModelResultToOcrResult(modelResult) {
   // Default values
   const today = new Date().toISOString().split('T')[0];
 
+  logger.debug('CONVERT_MODEL_RESULT_START', {
+    vendor: modelResult.vendor,
+    totalAmount: modelResult.totalAmount,
+    hasTaxFields: !!(modelResult.subtotal || modelResult.taxAmount || modelResult.taxRate),
+    subtotal: modelResult.subtotal,
+    taxAmount: modelResult.taxAmount,
+    taxRate: modelResult.taxRate,
+  });
+
   // Try totalAmount first, fall back to subtotal if available
   // @ai-intent: Don't use || 0 fallback - let validation fail if no amount found
   // This triggers unconfirmed status in instant-processor instead of silent 0
@@ -326,7 +359,7 @@ export function convertModelResultToOcrResult(modelResult) {
   // Use transaction date from Azure DI if available, otherwise fall back to today
   const date = modelResult.transactionDate || today;
 
-  return {
+  const ocrResult = {
     amount: amount,
     type: 'expense', // Default to expense (receipts are typically expenses)
     date: date,
@@ -335,5 +368,122 @@ export function convertModelResultToOcrResult(modelResult) {
     description: modelResult.lineItems
       ? modelResult.lineItems.map(item => item.description).join(', ').substring(0, 100)
       : 'Azure DI processed receipt',
+    // Tax fields (Issue #155) - Pass through from Azure DI extraction
+    subtotal: modelResult.subtotal,
+    taxAmount: modelResult.taxAmount,
+    taxRate: modelResult.taxRate,
   };
+
+  logger.debug('CONVERT_MODEL_RESULT_COMPLETE', {
+    amount: ocrResult.amount,
+    merchant: ocrResult.merchant,
+    taxFieldsPassed: {
+      subtotal: ocrResult.subtotal,
+      taxAmount: ocrResult.taxAmount,
+      taxRate: ocrResult.taxRate,
+    },
+  });
+
+  return ocrResult;
+}
+
+/**
+ * Validate tax information for data integrity (Issue #155)
+ * @param {number|undefined} amount - Total amount
+ * @param {number|undefined} subtotal - Pre-tax amount
+ * @param {number|undefined} taxAmount - Tax amount
+ * @param {number|undefined} taxRate - Tax rate (8 or 10)
+ * @returns {Object} Validation result with warnings if any
+ */
+export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
+  const warnings = [];
+
+  logger.debug('VALIDATE_TAX_INFO_START', {
+    amount,
+    subtotal,
+    taxAmount,
+    taxRate,
+    hasTaxFields: !!(subtotal || taxAmount || taxRate),
+  });
+
+  // Skip validation if no tax fields provided
+  if (!subtotal && !taxAmount && !taxRate) {
+    logger.debug('VALIDATE_TAX_INFO_SKIP', {
+      reason: 'No tax fields provided',
+    });
+    return { valid: true, warnings };
+  }
+
+  // 1. Verify total = subtotal + tax (allow ±1 JPY for rounding)
+  if (subtotal && taxAmount && amount) {
+    const calculatedTotal = subtotal + taxAmount;
+    const difference = Math.abs(amount - calculatedTotal);
+
+    logger.debug('VALIDATE_TAX_AMOUNT', {
+      amount,
+      subtotal,
+      taxAmount,
+      calculatedTotal,
+      difference,
+      tolerance: 1,
+      passed: difference <= 1,
+    });
+
+    if (difference > 1) {
+      const warning = {
+        code: 'TAX_AMOUNT_MISMATCH',
+        message: `Total amount (¥${amount}) does not match subtotal (¥${subtotal}) + tax (¥${taxAmount}) = ¥${calculatedTotal}`,
+        severity: 'warn'
+      };
+      warnings.push(warning);
+      logger.warn('TAX_AMOUNT_MISMATCH_DETECTED', warning);
+    }
+  }
+
+  // 2. Verify tax rate is 8% or 10% (Japan consumption tax)
+  if (taxRate !== undefined && taxRate !== null && ![8, 10].includes(taxRate)) {
+    const warning = {
+      code: 'INVALID_TAX_RATE',
+      message: `Japan consumption tax should be 8% or 10%, got ${taxRate}%`,
+      severity: 'warn'
+    };
+    warnings.push(warning);
+    logger.warn('INVALID_TAX_RATE_DETECTED', { taxRate });
+  } else if (taxRate !== undefined && taxRate !== null) {
+    logger.debug('VALIDATE_TAX_RATE_OK', { taxRate, validRates: [8, 10] });
+  }
+
+  // 3. Verify calculated tax rate matches expected rate
+  if (subtotal && taxAmount && taxRate) {
+    const expectedTax = Math.round(subtotal * (taxRate / 100));
+    const difference = Math.abs(expectedTax - taxAmount);
+
+    logger.debug('VALIDATE_TAX_CALCULATION', {
+      subtotal,
+      taxRate,
+      expectedTax,
+      actualTaxAmount: taxAmount,
+      difference,
+      tolerance: 1,
+      passed: difference <= 1,
+    });
+
+    if (difference > 1) {
+      const warning = {
+        code: 'TAX_RATE_MISMATCH',
+        message: `Expected tax for ${taxRate}% rate: ¥${expectedTax}, got ¥${taxAmount}`,
+        severity: 'warn'
+      };
+      warnings.push(warning);
+      logger.warn('TAX_RATE_MISMATCH_DETECTED', warning);
+    }
+  }
+
+  logger.debug('VALIDATE_TAX_INFO_COMPLETE', {
+    valid: true,
+    warningCount: warnings.length,
+    warnings: warnings.map(w => ({ code: w.code, severity: w.severity })),
+  });
+
+  return { valid: true, warnings };
 }

@@ -101,6 +101,9 @@
     "extractedText": "Extracted Text",
     "confidence": "AI Confidence",
     "noImage": "No Image",
+    "subtotal": "Subtotal (Pre-tax)",
+    "taxAmount": "Tax Amount",
+    "taxRate": "Tax Rate",
     "categories": {
       "food": "Food & Dining",
       "transport": "Transportation",

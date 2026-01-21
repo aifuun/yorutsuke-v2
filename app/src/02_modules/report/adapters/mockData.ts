@@ -249,6 +249,10 @@ function createMockTransaction(options: TransactionGenOptions): Transaction {
     rawText: null,
     primaryModelId: null,
     primaryConfidence: null,
+    traceId: null,
+    subtotal: null, // v12: Tax fields - not generated for mock data
+    taxAmount: null,
+    taxRate: null,
   };
 }
 

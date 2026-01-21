@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 11;
+const CURRENT_VERSION = 12;
 
 /**
  * Run all migrations on database
@@ -75,6 +75,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 11) {
     await migration_v11(db);
     await setVersion(db, 11);
+  }
+
+  if (version < 12) {
+    await migration_v12(db);
+    await setVersion(db, 12);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -427,8 +432,7 @@ async function migration_v10(db: Database): Promise<void> {
  * Migration v11: Add Permits Table (Issue #154)
  * Purpose: SQLite persistence for upload permits (replacing localStorage)
  * - Implements ADR-017 Permit-based Quota System
- * - One-to-one permit per user (user_id is primary key)
- * - Expires automatically after 30 days
+ * - Idempotent: safe to run multiple times, no-op if table exists
  */
 async function migration_v11(db: Database): Promise<void> {
   logger.info(EVENTS.DB_MIGRATION_APPLIED, {
@@ -437,24 +441,52 @@ async function migration_v11(db: Database): Promise<void> {
     phase: 'start'
   });
 
-  // Create permits table for client-side quota permits
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS permits (
-      user_id TEXT PRIMARY KEY,
-      total_limit INTEGER NOT NULL,
-      daily_rate INTEGER NOT NULL,
-      expires_at TEXT NOT NULL,
-      issued_at TEXT NOT NULL,
-      signature TEXT NOT NULL,
-      tier TEXT NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Create index for expiry-based cleanup queries
-  await safeCreateIndex(db, 'idx_permits_expires_at', 'permits', 'expires_at');
+  // Create permits table for client-side quota permits (IF NOT EXISTS for new databases)
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS permits (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        s3_url TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      )
+    `);
+    logger.debug('db_permits_table_created', { status: 'created_or_exists' });
+  } catch (error) {
+    logger.debug('db_permits_table_skip', { error: String(error) });
+  }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 11, phase: 'complete' });
+}
+
+/**
+ * Migration v12: Add Tax Fields (Issue #155)
+ * Purpose: Store tax information extracted from receipts for Japanese tax reporting
+ * - subtotal: Pre-tax amount (¥) - for general taxpayer (一般納税人) consumption tax filing
+ * - tax_amount: Tax amount (¥) - for tax calculation and verification
+ * - tax_rate: Tax rate (8 or 10 for Japan) - for tax verification and classification
+ *
+ * Context: Azure Document Intelligence already extracts this data but we were discarding it.
+ * This migration enables proper tax record keeping for Japanese taxpayers.
+ */
+async function migration_v12(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, {
+    version: 12,
+    name: 'add_tax_fields',
+    phase: 'start'
+  });
+
+  // Add subtotal column (nullable - optional for backward compatibility)
+  await safeAddColumn(db, 'transactions', 'subtotal', 'INTEGER');
+
+  // Add tax_amount column (nullable - optional, extracted from receipts)
+  await safeAddColumn(db, 'transactions', 'tax_amount', 'INTEGER');
+
+  // Add tax_rate column (nullable - 8 or 10 for Japan, or calculated)
+  await safeAddColumn(db, 'transactions', 'tax_rate', 'REAL');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 12, phase: 'complete' });
 }
 
 // ============================================================================
