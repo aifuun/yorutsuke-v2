@@ -5,18 +5,29 @@
 
 import { DynamoDBClient, GetItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { logger, initContext, EVENTS } from '/opt/nodejs/shared/logger.mjs';
+import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from './types/aws-events.js';
 
 const ddb = new DynamoDBClient({});
 const CONTROL_TABLE = process.env.CONTROL_TABLE_NAME;
 
 /**
+ * Control status interface
+ */
+interface ControlStatus {
+  emergencyStop: boolean;
+  reason: string | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
+/**
  * Get current emergency stop status
  */
-async function getStatus() {
+async function getStatus(): Promise<ControlStatus> {
   const result = await ddb.send(
     new GetItemCommand({
       TableName: CONTROL_TABLE,
-      Key: { key: { S: "global_state" } },
+      Key: { key: { S: 'global_state' } },
     })
   );
 
@@ -40,14 +51,14 @@ async function getStatus() {
 /**
  * Get history of emergency stop activations
  */
-async function getHistory() {
+async function getHistory(): Promise<Array<unknown>> {
   try {
     const result = await ddb.send(
       new QueryCommand({
         TableName: CONTROL_TABLE,
-        KeyConditionExpression: "#k = :k",
-        ExpressionAttributeNames: { "#k": "key" },
-        ExpressionAttributeValues: { ":k": { S: "history" } },
+        KeyConditionExpression: '#k = :k',
+        ExpressionAttributeNames: { '#k': 'key' },
+        ExpressionAttributeValues: { ':k': { S: 'history' } },
         ScanIndexForward: false, // Latest first
         Limit: 10,
       })
@@ -56,8 +67,9 @@ async function getHistory() {
     // Note: This requires a different table design with SK for history
     // For now, return empty array
     return [];
-  } catch (e) {
-    logger.error(EVENTS.ADMIN_CONTROL_GET_HISTORY_FAILED, e);
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+    logger.error(EVENTS.ADMIN_CONTROL_GET_HISTORY_FAILED, { error: errorMessage });
     return [];
   }
 }
@@ -65,18 +77,18 @@ async function getHistory() {
 /**
  * Set emergency stop status
  */
-async function setStatus(enabled, reason, adminEmail) {
+async function setStatus(enabled: boolean, reason: string | undefined, adminEmail: string | undefined): Promise<ControlStatus> {
   const now = new Date().toISOString();
 
   await ddb.send(
     new PutItemCommand({
       TableName: CONTROL_TABLE,
       Item: {
-        key: { S: "global_state" },
+        key: { S: 'global_state' },
         emergency_stop: { BOOL: enabled },
-        emergency_reason: { S: reason || "" },
+        emergency_reason: { S: reason || '' },
         updated_at: { S: now },
-        updated_by: { S: adminEmail || "unknown" },
+        updated_by: { S: adminEmail || 'unknown' },
       },
     })
   );
@@ -87,10 +99,10 @@ async function setStatus(enabled, reason, adminEmail) {
       TableName: CONTROL_TABLE,
       Item: {
         key: { S: `history#${now}` },
-        action: { S: enabled ? "activate" : "deactivate" },
-        reason: { S: reason || "" },
+        action: { S: enabled ? 'activate' : 'deactivate' },
+        reason: { S: reason || '' },
         timestamp: { S: now },
-        admin: { S: adminEmail || "unknown" },
+        admin: { S: adminEmail || 'unknown' },
         ttl: { N: String(Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60) }, // 90 days
       },
     })
@@ -104,14 +116,19 @@ async function setStatus(enabled, reason, adminEmail) {
   };
 }
 
-export async function handler(event) {
+/**
+ * Lambda handler
+ * GET /admin/control - Get current status and history
+ * POST /admin/control - Toggle emergency stop (body: { action: 'activate' | 'deactivate', reason?: string })
+ */
+export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   initContext(event);
   logger.debug(EVENTS.ADMIN_CONTROL_REQUEST, { method: event.httpMethod || event.requestContext?.http?.method });
 
   const method = event.httpMethod || event.requestContext?.http?.method;
 
   try {
-    if (method === "GET") {
+    if (method === 'GET') {
       // Get current status and history
       const [status, history] = await Promise.all([
         getStatus(),
@@ -121,41 +138,41 @@ export async function handler(event) {
       return {
         statusCode: 200,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
         body: JSON.stringify({ ...status, history }),
       };
     }
 
-    if (method === "POST") {
+    if (method === 'POST') {
       // Toggle emergency stop
-      const body = JSON.parse(event.body || "{}");
+      const body = JSON.parse(event.body || '{}') as { action?: string; reason?: string };
       const { action, reason } = body;
 
-      if (action !== "activate" && action !== "deactivate") {
+      if (action !== 'activate' && action !== 'deactivate') {
         return {
           statusCode: 400,
           headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           },
           body: JSON.stringify({ error: "Invalid action. Use 'activate' or 'deactivate'" }),
         };
       }
 
       // Extract admin identity from IAM context
-      const adminEmail = event.requestContext?.identity?.userArn || "admin";
+      const adminEmail = event.requestContext?.identity?.userArn || 'admin';
 
-      const result = await setStatus(action === "activate", reason, adminEmail);
+      const result = await setStatus(action === 'activate', reason, adminEmail);
 
       logger.info(EVENTS.EMERGENCY_STOP_STATUS_CHANGED, { action, adminEmail, reason });
 
       return {
         statusCode: 200,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
         body: JSON.stringify({
           message: `Emergency stop ${action}d successfully`,
@@ -167,20 +184,21 @@ export async function handler(event) {
     return {
       statusCode: 405,
       headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify({ error: "Method not allowed" }),
+      body: JSON.stringify({ error: 'Method not allowed' }),
     };
-  } catch (error) {
-    logger.error(EVENTS.ADMIN_CONTROL_HANDLER_ERROR, error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error(EVENTS.ADMIN_CONTROL_HANDLER_ERROR, { error: errorMessage });
     return {
       statusCode: 500,
       headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify({ error: "Internal server error" }),
+      body: JSON.stringify({ error: 'Internal server error' }),
     };
   }
 }
