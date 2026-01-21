@@ -335,5 +335,61 @@ export function convertModelResultToOcrResult(modelResult) {
     description: modelResult.lineItems
       ? modelResult.lineItems.map(item => item.description).join(', ').substring(0, 100)
       : 'Azure DI processed receipt',
+    // Tax fields (Issue #155) - Pass through from Azure DI extraction
+    subtotal: modelResult.subtotal,
+    taxAmount: modelResult.taxAmount,
+    taxRate: modelResult.taxRate,
   };
+}
+
+/**
+ * Validate tax information for data integrity (Issue #155)
+ * @param {number|undefined} amount - Total amount
+ * @param {number|undefined} subtotal - Pre-tax amount
+ * @param {number|undefined} taxAmount - Tax amount
+ * @param {number|undefined} taxRate - Tax rate (8 or 10)
+ * @returns {Object} Validation result with warnings if any
+ */
+export function validateTaxInfo(amount, subtotal, taxAmount, taxRate) {
+  const warnings = [];
+
+  // Skip validation if no tax fields provided
+  if (!subtotal && !taxAmount && !taxRate) {
+    return { valid: true, warnings };
+  }
+
+  // 1. Verify total = subtotal + tax (allow ±1 JPY for rounding)
+  if (subtotal && taxAmount && amount) {
+    const calculatedTotal = subtotal + taxAmount;
+    if (Math.abs(amount - calculatedTotal) > 1) {
+      warnings.push({
+        code: 'TAX_AMOUNT_MISMATCH',
+        message: `Total amount (¥${amount}) does not match subtotal (¥${subtotal}) + tax (¥${taxAmount}) = ¥${calculatedTotal}`,
+        severity: 'warn'
+      });
+    }
+  }
+
+  // 2. Verify tax rate is 8% or 10% (Japan consumption tax)
+  if (taxRate && ![8, 10].includes(taxRate)) {
+    warnings.push({
+      code: 'INVALID_TAX_RATE',
+      message: `Japan consumption tax should be 8% or 10%, got ${taxRate}%`,
+      severity: 'warn'
+    });
+  }
+
+  // 3. Verify calculated tax rate matches expected rate
+  if (subtotal && taxAmount && taxRate) {
+    const expectedTax = Math.round(subtotal * (taxRate / 100));
+    if (Math.abs(expectedTax - taxAmount) > 1) {
+      warnings.push({
+        code: 'TAX_RATE_MISMATCH',
+        message: `Expected tax for ${taxRate}% rate: ¥${expectedTax}, got ¥${taxAmount}`,
+        severity: 'warn'
+      });
+    }
+  }
+
+  return { valid: true, warnings };
 }

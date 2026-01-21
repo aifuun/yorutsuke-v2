@@ -40,6 +40,11 @@ export interface Transaction {
 
   // Distributed tracing (Pillar N)
   traceId: string | null;             // Frontend-generated trace-{uuid} for end-to-end tracking
+
+  // Tax fields (Issue #155) - For Japanese tax reporting (consumption tax filing)
+  subtotal: number | null;            // Pre-tax amount (¥) - for general taxpayer (一般納税人)
+  taxAmount: number | null;           // Tax amount (¥) - for tax calculation and verification
+  taxRate: number | null;             // Tax rate (8 or 10 for Japan) - for tax verification
 }
 
 // Daily summary for morning report

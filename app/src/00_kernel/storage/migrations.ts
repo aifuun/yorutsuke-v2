@@ -5,7 +5,7 @@ import type Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 
 // Current schema version - increment when adding migrations
-const CURRENT_VERSION = 10;
+const CURRENT_VERSION = 11;
 
 /**
  * Run all migrations on database
@@ -70,6 +70,11 @@ export async function runMigrations(db: Database): Promise<void> {
   if (version < 10) {
     await migration_v10(db);
     await setVersion(db, 10);
+  }
+
+  if (version < 11) {
+    await migration_v11(db);
+    await setVersion(db, 11);
   }
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { phase: 'complete', version: CURRENT_VERSION });
@@ -416,6 +421,35 @@ async function migration_v10(db: Database): Promise<void> {
   await safeCreateIndex(db, 'idx_transactions_trace_id', 'transactions', 'trace_id');
 
   logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 10, phase: 'complete' });
+}
+
+/**
+ * Migration v11: Add Tax Fields (Issue #155)
+ * Purpose: Store tax information extracted from receipts for Japanese tax reporting
+ * - subtotal: Pre-tax amount (¥) - for general taxpayer (一般納税人) consumption tax filing
+ * - tax_amount: Tax amount (¥) - for tax calculation and verification
+ * - tax_rate: Tax rate (8 or 10 for Japan) - for tax verification and classification
+ *
+ * Context: Azure Document Intelligence already extracts this data but we were discarding it.
+ * This migration enables proper tax record keeping for Japanese taxpayers.
+ */
+async function migration_v11(db: Database): Promise<void> {
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, {
+    version: 11,
+    name: 'add_tax_fields',
+    phase: 'start'
+  });
+
+  // Add subtotal column (nullable - optional for backward compatibility)
+  await safeAddColumn(db, 'transactions', 'subtotal', 'INTEGER');
+
+  // Add tax_amount column (nullable - optional, extracted from receipts)
+  await safeAddColumn(db, 'transactions', 'tax_amount', 'INTEGER');
+
+  // Add tax_rate column (nullable - 8 or 10 for Japan, or calculated)
+  await safeAddColumn(db, 'transactions', 'tax_rate', 'REAL');
+
+  logger.info(EVENTS.DB_MIGRATION_APPLIED, { version: 11, phase: 'complete' });
 }
 
 // ============================================================================
