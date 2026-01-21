@@ -3,7 +3,14 @@
  *
  * Manages upload permits and usage tracking in localStorage.
  * Implements singleton pattern for global quota state.
+ *
+ * Issue #154: Added format validation on setPermit() to reject invalid permits
+ * at client boundary (Pillar B: Airlock pattern).
  */
+
+import { logger } from '../../00_kernel/telemetry/logger';
+import { validatePermitFormat } from './permitValidation';
+import * as permitDb from './permitDb';
 
 // ============================================================
 // Type Definitions
@@ -81,15 +88,43 @@ export class LocalQuota {
 
   /**
    * Set a new permit (resets usage counters)
+   *
+   * Issue #154: Dual storage for backward compatibility
+   * - Synchronous: Save to localStorage (fast cache)
+   * - Asynchronous: Save to SQLite (persistent storage)
+   *
+   * This keeps the API synchronous while ensuring persistence.
+   * Uses fire-and-forget pattern for SQLite write (non-blocking).
+   *
+   * Validates permit structure before accepting (Pillar B: Airlock).
+   * Server validates HMAC signature in presign Lambda (defense in depth).
+   *
+   * @throws Error if permit format is invalid
    */
   public setPermit(permit: UploadPermit): void {
+    // Validate permit format before storing
+    const validation = validatePermitFormat(permit);
+    if (!validation.valid) {
+      logger.warn('permit_validation_failed', { reason: validation.reason, tier: permit.tier });
+      throw new Error(`Invalid permit: ${validation.reason}`);
+    }
+
     const data: LocalQuotaData = {
       permit,
       totalUsed: 0,
       dailyUsage: {},
     };
 
+    // 1. Save to localStorage immediately (fast, synchronous)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // 2. Save to SQLite asynchronously (fire-and-forget, non-blocking)
+    permitDb.savePermit(permit).catch(error => {
+      logger.warn('permit_sqlite_save_failed', {
+        userId: permit.userId,
+        error: String(error),
+      });
+    });
   }
 
   /**
@@ -242,8 +277,33 @@ export class LocalQuota {
 
   /**
    * Clear all quota data
+   *
+   * Issue #154: Also deletes from SQLite (if permit exists)
+   * Extracts userId from cached permit to delete from database.
+   *
+   * Used by:
+   * - Mock mode switch (clear stale permits)
+   * - Debug panel (reset quota)
+   * - User logout (cleanup)
    */
   public clear(): void {
+    // Extract userId from current permit to delete from SQLite
+    try {
+      const permit = this.getPermit();
+      if (permit && permit.userId) {
+        // Fire-and-forget deletion (non-blocking)
+        permitDb.deletePermit(permit.userId as never).catch(error => {
+          logger.warn('permit_sqlite_delete_failed', {
+            userId: permit.userId,
+            error: String(error),
+          });
+        });
+      }
+    } catch (error) {
+      logger.warn('permit_clear_extraction_failed', { error: String(error) });
+    }
+
+    // Clear localStorage
     localStorage.removeItem(STORAGE_KEY);
   }
 

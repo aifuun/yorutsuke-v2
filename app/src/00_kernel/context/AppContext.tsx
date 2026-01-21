@@ -3,6 +3,7 @@ import type { UserId as UserIdType } from '../types';
 import { getDeviceId } from '../identity';
 import { initDb } from '../storage/db';
 import { loadMockMode } from '../config/mock';
+import { migratePermitToSQLite } from '../../01_domains/quota/permitMigration';
 import { logger, EVENTS } from '../telemetry';
 
 interface AppContextValue {
@@ -30,7 +31,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // After loadMockMode(), initDb() will select the correct db path
         await initDb();
 
-        // Step 3: Get device ID - used directly as guest userId
+        // Step 3: Migrate permits from localStorage to SQLite (Issue #154)
+        // One-time migration on app startup, idempotent, non-blocking
+        await migratePermitToSQLite().catch(error => {
+          logger.warn('permit_migration_error_on_init', { error: String(error) });
+          // Don't block app initialization if migration fails
+        });
+
+        // Step 4: Get device ID - used directly as guest userId
         // Format: device-{machineId} (stable across app reinstalls)
         const deviceId = await getDeviceId();
         setUserId(deviceId);
