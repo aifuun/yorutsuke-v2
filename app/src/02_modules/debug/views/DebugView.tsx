@@ -9,15 +9,13 @@ import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction';
-import { resetTodayQuota, getImageStats } from '../../capture';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
 import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless';
 import { emit } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { setMockMode, subscribeMockMode, getMockSnapshot, isSlowUpload, setSlowUpload, type MockMode } from '../../../00_kernel/config/mock';
+import { setMockMode, subscribeMockMode, getMockSnapshot, type MockMode } from '../../../00_kernel/config/mock';
 import { captureService } from '../../capture/services/captureService';
-import { quotaService } from '../../capture/services/quotaService';
 import { captureStore } from '../../capture/stores/captureStore';
 import { uploadStore } from '../../capture/stores/uploadStore';
 import { autoSyncService } from '../../sync/services/autoSyncService';
@@ -25,6 +23,7 @@ import type { UserId } from '../../../00_kernel/types';
 import { deleteUserData } from '../adapters';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DiagnosticPanel } from './DiagnosticPanel';
+import { PermitPanel } from './PermitPanel';
 import type { Transaction } from '../../../01_domains/transaction';
 import './debug.css';
 
@@ -60,7 +59,6 @@ export function DebugView() {
   const [seedScenario, setSeedScenario] = useState<SeedScenario>('default');
   const [actionStatus, setActionStatus] = useState<'idle' | 'running'>('idle');
   const [actionResult, setActionResult] = useState<string | null>(null);
-  const [slowUpload, setSlowUploadState] = useState(isSlowUpload);
 
   // Clear all data (local + cloud) state
   const [showClearAllDialog, setShowClearAllDialog] = useState(false);
@@ -76,11 +74,6 @@ export function DebugView() {
       setVerboseLogging(settingsState.settings.debugEnabled);
     }
   }, [settingsState]);
-
-  // Sync slow upload state after DB load (race condition fix)
-  useEffect(() => {
-    setSlowUploadState(isSlowUpload());
-  }, []);
 
   // Handle loading state
   if (settingsState.status === 'loading' || settingsState.status === 'idle' || userIdLoading) {
@@ -131,109 +124,6 @@ export function DebugView() {
     setActionStatus('idle');
   };
 
-  const handleResetQuota = async () => {
-    if (!effectiveUserId) {
-      setActionResult('No user ID');
-      return;
-    }
-
-    setActionStatus('running');
-    setActionResult(null);
-
-    try {
-      const count = await resetTodayQuota(effectiveUserId as UserId);
-      setActionResult(count > 0 ? `Reset ${count} uploads` : 'No uploads today');
-      // Emit event so quotaService can refresh
-      emit('quota:reset', { count });
-    } catch (e) {
-      setActionResult(`Error: ${String(e)}`);
-    } finally {
-      setActionStatus('idle');
-    }
-  };
-
-  const handleDiagnoseQuota = async () => {
-    if (!effectiveUserId) {
-      setActionResult('No user ID');
-      return;
-    }
-
-    setActionStatus('running');
-    setActionResult('Diagnosing...');
-
-    try {
-      const stats = await getImageStats(effectiveUserId as UserId);
-      const statusList = Object.entries(stats.byStatus)
-        .map(([status, count]) => `${status}:${count}`)
-        .join(', ');
-
-      const recentInfo = stats.recentUploads
-        .map((img, idx) => `\n  ${idx + 1}. ${img.id.slice(0, 8)} | ${img.status} | uploaded_at: ${img.uploaded_at || 'NULL'}`)
-        .join('');
-
-      const mockMode = getMockSnapshot();
-      const mockStatus = mockMode === 'off' ? 'Real API' : mockMode === 'online' ? 'Mock Online' : 'Mock Offline';
-
-      setActionResult(
-        `📊 Database Stats:\n` +
-        `Total images: ${stats.total}\n` +
-        `By status: ${statusList || '(empty)'}\n` +
-        `Uploaded (all time): ${stats.uploadedAll}\n` +
-        `Uploaded (last 24h): ${stats.uploadedLast24h}\n` +
-        `\n🔍 Recent 10 images:${recentInfo || '\n  (none)'}\n` +
-        `\n💡 Current quota display: ${quota.totalUsed}/${quota.totalLimit}\n` +
-        `🔌 Mock mode: ${mockStatus}`
-      );
-    } catch (e) {
-      setActionResult(`Error: ${String(e)}`);
-    } finally {
-      setActionStatus('idle');
-    }
-  };
-
-  const handleRefreshQuota = async () => {
-    if (!effectiveUserId) {
-      setActionResult('No user ID');
-      return;
-    }
-
-    setActionStatus('running');
-    setActionResult('Refreshing permit...');
-
-    try {
-      // Note: quotaService.refreshPermit() is private, use setUser to trigger refresh
-      await quotaService.setUser(effectiveUserId);
-      setActionResult(`✅ Permit refreshed: ${quota.totalUsed}/${quota.totalLimit}`);
-    } catch (e) {
-      setActionResult(`Error: ${String(e)}`);
-    } finally {
-      setActionStatus('idle');
-    }
-  };
-
-  const handleClearPermitCache = async () => {
-    setActionStatus('running');
-    setActionResult('Clearing permit cache...');
-
-    try {
-      const { localQuota } = await import('../../../01_domains/quota');
-      const isMock = localQuota.isMockPermit();
-
-      localQuota.clear();
-
-      setActionResult(
-        isMock
-          ? `✅ Cleared mock permit (was polluted). Refresh page to fetch fresh permit.`
-          : `✅ Cleared permit cache. Refresh page to fetch fresh permit.`
-      );
-
-      logger.info('debug_permit_cache_cleared', { wasMock: isMock });
-    } catch (e) {
-      setActionResult(`Error: ${String(e)}`);
-    } finally {
-      setActionStatus('idle');
-    }
-  };
 
   const handleClearSettings = async () => {
     const confirmed = await ask(t('debug.clearSettingsConfirm'), {
@@ -260,12 +150,6 @@ export function DebugView() {
       setActionResult('Error: ' + String(e));
       setActionStatus('idle');
     }
-  };
-
-  const handleSlowUploadToggle = () => {
-    const newValue = !slowUpload;
-    setSlowUploadState(newValue);
-    setSlowUpload(newValue);
   };
 
   const handleOpenClearAllDialog = () => {
@@ -426,92 +310,6 @@ export function DebugView() {
               </div>
             </div>
 
-            {/* Slow Upload Toggle (for SC-503 testing) */}
-            <div className="setting-row">
-              <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.slowUpload')}</p>
-                <p className="setting-row__hint">{t('debug.slowUploadHint')}</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className={`toggle-switch toggle-switch--sm ${slowUpload ? 'toggle-switch--active' : ''}`}
-                  onClick={handleSlowUploadToggle}
-                  role="switch"
-                  aria-checked={slowUpload}
-                  disabled={mockMode === 'off'}
-                />
-              </div>
-            </div>
-
-            {/* Danger Actions */}
-            <div className="setting-row">
-              <div className="setting-row__info">
-                <p className="setting-row__label">Diagnose Quota</p>
-                <p className="setting-row__hint">Show database stats and quota details</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--sm"
-                  onClick={handleDiagnoseQuota}
-                  disabled={actionStatus === 'running' || !effectiveUserId}
-                >
-                  Diagnose
-                </button>
-              </div>
-            </div>
-
-            <div className="setting-row">
-              <div className="setting-row__info">
-                <p className="setting-row__label">Refresh Quota</p>
-                <p className="setting-row__hint">Force refresh quota from API/database</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--secondary btn--sm"
-                  onClick={handleRefreshQuota}
-                  disabled={actionStatus === 'running' || !effectiveUserId}
-                >
-                  Refresh
-                </button>
-              </div>
-            </div>
-
-            <div className="setting-row setting-row--danger">
-              <div className="setting-row__info">
-                <p className="setting-row__label">Clear Permit Cache</p>
-                <p className="setting-row__hint">Clear cached permit from localStorage (fixes mock pollution)</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--warning btn--sm"
-                  onClick={handleClearPermitCache}
-                  disabled={actionStatus === 'running'}
-                >
-                  Clear Cache
-                </button>
-              </div>
-            </div>
-
-            <div className="setting-row setting-row--danger">
-              <div className="setting-row__info">
-                <p className="setting-row__label">{t('debug.resetQuota')}</p>
-                <p className="setting-row__hint">{t('debug.resetQuotaHint')}</p>
-              </div>
-              <div className="setting-row__control">
-                <button
-                  type="button"
-                  className="btn btn--warning btn--sm"
-                  onClick={handleResetQuota}
-                  disabled={actionStatus === 'running' || !effectiveUserId}
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
 
             <div className="setting-row setting-row--danger">
               <div className="setting-row__info">
@@ -546,12 +344,18 @@ export function DebugView() {
               </div>
             </div>
 
-            {/* Action Result */}
+            {/* Action Result - For Seed Data, Clear Settings, etc. */}
             {actionResult && (
               <div className="debug-action-result">
                 {actionResult}
               </div>
             )}
+          </div>
+
+          {/* Section 1.5: Permit & Quota Panel */}
+          <div className="card card--settings">
+            <h2 className="section-header">Permit & Quota</h2>
+            <PermitPanel userId={effectiveUserId as UserId | null} />
           </div>
 
           {/* Section 2: System & Config */}

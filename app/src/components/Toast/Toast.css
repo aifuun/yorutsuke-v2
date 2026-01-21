@@ -1,7 +1,7 @@
 /* Toast Container */
 .toast-container {
   position: fixed;
-  bottom: 24px;
+  top: 24px;
   right: 24px;
   z-index: 9999;
   display: flex;
@@ -20,7 +20,7 @@
     left: 50%;
     right: auto;
     transform: translateX(-50%);
-    bottom: 16px;
+    top: 16px;
   }
 }
 
@@ -140,11 +140,11 @@
 /* Animation */
 @keyframes toast-slide-in {
   from {
-    transform: translateX(100%);
+    transform: translateY(-100%);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
