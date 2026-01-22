@@ -23,7 +23,7 @@ export function ReportView({ userId, date }: ReportViewProps) {
   const targetDate = date || new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
 
   // Local filter state
-  const [filters, setFiltersLocal] = useState({ dateStart: null, dateEnd: null, category: 'all', type: 'all' });
+  const [filters, setFiltersLocal] = useState({ dateStart: undefined, dateEnd: undefined, category: 'all' as const, type: 'all' as const });
 
   // Initialize service with user
   useEffect(() => {
@@ -38,7 +38,7 @@ export function ReportView({ userId, date }: ReportViewProps) {
 
   // Action handlers
   const setFilters = (newFilters: any) => setFiltersLocal(newFilters);
-  const clearFilters = () => setFiltersLocal({ dateStart: null, dateEnd: null, category: 'all', type: 'all' });
+  const clearFilters = () => setFiltersLocal({ dateStart: undefined, dateEnd: undefined, category: 'all' as const, type: 'all' as const });
 
   // Local action methods
   const save = async (tx: Transaction) => {
