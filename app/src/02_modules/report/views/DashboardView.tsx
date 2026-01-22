@@ -86,10 +86,9 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const yesterday = getYesterdayDate();
   const dayOfWeek = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
 
-  // Initialize service with user
+  // Set current user (service already initialized in App.tsx)
   useEffect(() => {
     if (userId) {
-      transactionService.init();
       transactionService.setUser(userId);
     }
   }, [userId]);

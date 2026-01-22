@@ -30,7 +30,7 @@ class TransactionService {
   private initialized = false;
   private userId: UserId | null = null;
   private cleanupTransactionListener: (() => void) | null = null;
-  private isLoading = false;  // Guard against concurrent loads
+  private currentLoadSignature: string | null = null;  // Track current load request signature
 
   store = transactionStore;
 
@@ -95,6 +95,9 @@ class TransactionService {
   /**
    * Load transactions for current user
    * IO-First Pattern: Complete fetch first, then update store
+   *
+   * Prevents duplicate loads for the same filter options (Issue #89)
+   * but allows different filter options to be loaded (supports filtering)
    */
   async loadTransactions(options: FetchTransactionsOptions = {}): Promise<void> {
     if (!this.userId) {
@@ -102,16 +105,21 @@ class TransactionService {
       return;
     }
 
-    // Guard against concurrent loads (Issue #89: prevent race conditions from rapid filter changes)
-    if (this.isLoading) {
+    // Create a signature of current load request to detect duplicates
+    const loadSignature = JSON.stringify({ userId: this.userId, options });
+
+    // Skip if already loading the same request
+    if (this.currentLoadSignature === loadSignature) {
       logger.warn('TRANSACTION_LOAD_SKIPPED', {
         userId: this.userId,
-        reason: 'already_loading',
+        reason: 'same_request_already_loading',
+        signature: loadSignature,
       });
       return;
     }
 
-    this.isLoading = true;
+    // Update signature to mark this request as current
+    this.currentLoadSignature = loadSignature;
 
     logger.info('TRANSACTION_LOAD_START', {
       userId: this.userId,
@@ -180,8 +188,8 @@ class TransactionService {
       this.store.getState().setStatus('error');
       this.store.getState().setError(errorMessage);
     } finally {
-      // Always clear loading flag (both success and error cases)
-      this.isLoading = false;
+      // Clear signature to allow new requests (both success and error cases)
+      this.currentLoadSignature = null;
     }
   }
 
