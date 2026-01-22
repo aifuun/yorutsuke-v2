@@ -11,8 +11,8 @@
 
 | Document | Description | When to Read |
 |----------|-------------|--------------|
-| [LAYERS.md](./LAYERS.md) | Four-layer architecture definition | Understanding system structure |
-| [PATTERNS.md](./PATTERNS.md) | Core patterns: Service, State, Events | Writing new code |
+| [LAYERS.md](./LAYERS.md) | Four-layer architecture + Hook Bridge (Layer 1.5) | Understanding system structure |
+| [PATTERNS.md](./PATTERNS.md) | Core patterns: Service, State, Events, Hook Bridge | Writing new code |
 | [FLOWS.md](./FLOWS.md) | Data flow diagrams | Debugging, feature planning |
 | [RECEIPT_PROCESSING.md](./RECEIPT_PROCESSING.md) | Complete pipeline: upload → parsing | Receipt processing details |
 | [SCHEMA.md](./SCHEMA.md) | Data model (entities, tables) | Database work |
@@ -38,18 +38,21 @@ React 展示 (Display)
 
 | Layer | Position | Responsibility |
 |-------|----------|----------------|
-| React | View | UI rendering, subscribe to state |
-| Service | Orchestrator | Business logic, global listeners |
-| Adapter | Bridge | IPC/API abstraction |
-| Tauri/AWS | Executor | Native ops, cloud authority |
+| React (1) | View | UI rendering, local UI state |
+| Hook Bridge (1.5) | React ↔ Service | Subscribe to stores, coordinate Services, format for UI |
+| Service (2) | Orchestrator | Business logic, global listeners, own Vanilla Zustand stores |
+| Adapter (3) | IO Bridge | IPC/API abstraction |
+| Tauri/AWS (4) | Executor | Native ops, cloud authority |
 
 ### Module Tiers
 
 | Module | Tier | Pattern |
 |--------|------|---------|
-| capture | T2 | View → Service → Adapter |
-| report | T1 | View → Service → Adapter |
-| transaction | T2 | View → Service → Adapter |
+| capture | T2 | View → Hook → Service → Adapter |
+| report | T1 | View → Hook → Service → Adapter |
+| transaction | T2 | View → Hook → Service → Adapter |
+| debug | T1 | View → Hook → Service → Adapter |
+| settings | T1 | View → Hook → Service → Adapter |
 | batch | T3 | Saga (in Service) |
 
 ## Navigation

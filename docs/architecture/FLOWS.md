@@ -12,10 +12,17 @@
 │  │                                                                        │  │
 │  │  ┌─────────────────┐                                                   │  │
 │  │  │  React (View)   │  UI Components only                               │  │
-│  │  │  - Render UI    │  Subscribe to Zustand Store (state)               │  │
-│  │  │  - User gestures│  Subscribe to EventBus (notifications)            │  │
+│  │  │  - Render UI    │  Local UI state only                              │  │
+│  │  │  - User gestures│  Uses hooks to access Service data                │  │
 │  │  └────────┬────────┘                                                   │  │
-│  │           │ call                                                       │  │
+│  │           │ uses                                                       │  │
+│  │           ▼                                                            │  │
+│  │  ┌─────────────────┐                                                   │  │
+│  │  │  Hook Bridge    │  React ↔ Service connector (Layer 1.5)           │  │
+│  │  │  - useXxxState()│  Subscribe to Vanilla Zustand (useStore)          │  │
+│  │  │  - xxxActions   │  Coordinate multiple Services                     │  │
+│  │  └────────┬────────┘                                                   │  │
+│  │           │ calls                                                      │  │
 │  │           ▼                                                            │  │
 │  │  ┌─────────────────┐                                                   │  │
 │  │  │  Services       │  Business orchestration                           │  │
