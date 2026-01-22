@@ -134,23 +134,23 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   }, []); // Run only on mount
 
   // Initialize service with user on mount or user change
-  // Does NOT pass filter options - filters are applied via separate effect
+  // Passes current filter options to ensure consistent initial load
   useEffect(() => {
     if (userId) {
-      logger.debug('TransactionView: Setting user', { userId });
-      setUser(userId);  // Load all transactions initially
+      logger.debug('TransactionView: Setting user with filters', { userId, options: buildFetchOptions() });
+      setUser(userId, buildFetchOptions());
     }
-  }, [userId, setUser]);
+  }, [userId, setUser, buildFetchOptions]);
 
-  // Handle filter/sort changes: reload with current filters
-  // Runs when any filter state changes, applies new filters
-  // Uses useCallback to rebuild options based on current state
+  // Handle filter/sort changes: reload with new filters
+  // Separated from user initialization to track filter changes independently
+  // Uses closure to capture latest buildFetchOptions without adding it to deps
   useEffect(() => {
     if (!userId) return;
 
-    // Only reload if filters have actually changed from initial state
-    // buildFetchOptions changes when filters change, triggering this effect
-    logger.debug('TransactionView: Applying filters', { filters: buildFetchOptions() });
+    // Only reload when filters change (not on initial mount)
+    // This effect triggers specifically when buildFetchOptions is recreated
+    logger.debug('TransactionView: Filter changed, reloading', { filters: buildFetchOptions() });
     loadTransactions(buildFetchOptions());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedMonth, statusFilter, typeFilter, categoryFilter, sortBy, sortOrder, currentPage]);

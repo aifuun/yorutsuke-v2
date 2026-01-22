@@ -12,9 +12,7 @@ import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
 import { transactionSyncService } from './02_modules/transaction/services';
-import { networkMonitor, transactionPushService, fullSync, autoSyncService, manualSyncService } from './02_modules/sync';
-import { authStateService } from './02_modules/auth';
-import { settingsStateService } from './02_modules/settings';
+import { networkMonitor, transactionPushService, fullSync, autoSyncService } from './02_modules/sync';
 
 // @security: Check once at module load - cannot change at runtime
 const IS_DEVELOPMENT = !import.meta.env.PROD;
@@ -24,20 +22,9 @@ function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
-  // Initialize async services in React context (where we can await)
-  // Note: Sync services initialized in main.tsx before React renders
-  // Issue #141, #89: Service Pattern Migration - Initialize async singleton services
-  useEffect(() => {
-    const initAsync = async () => {
-      // Synchronous initialization
-      manualSyncService.init();
-
-      // Asynchronous initialization (must be awaited in React context)
-      await authStateService.init();
-      await settingsStateService.init();
-    };
-    initAsync();
-  }, []);
+  // All services are initialized in bootstrap.ts before React renders
+  // See: app/src/00_kernel/bootstrap.ts
+  // This ensures no "flashing" of uninitialized state on first render
 
   // Set user ID in sync services when it changes
   useEffect(() => {
@@ -46,7 +33,7 @@ function AppContent() {
   }, [userId]);
 
   // Subscribe to network status changes for queue processing (Issue #86 Phase 2)
-  // Note: networkMonitor.initialize() is called once in main.tsx (ADR-001: Service Pattern)
+  // Note: networkMonitor.initialize() is called in bootstrap.ts (ADR-001: Service Pattern)
   useEffect(() => {
     if (!userId) return;
 
