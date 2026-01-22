@@ -1,5 +1,5 @@
 // Pillar L: Views are pure JSX, logic in services
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { useTransactionStatus, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
 import { useTranslation } from '../../../i18n';
@@ -133,13 +133,22 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   }, []); // Run only on mount
 
+  // Track first render to skip initial effect execution
+  const isFirstRenderRef = useRef(true);
+
   // Handle filter/sort changes: reload with new filters
   // Service initialization (setUser) is handled in App.tsx when userId changes
-  // This effect only handles filter changes after initial load
+  // This effect only handles filter changes AFTER initial load (not on mount)
   useEffect(() => {
     if (!userId) return;
 
-    // Reload transactions when any filter or sort option changes
+    // Skip the very first effect execution (on mount)
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+
+    // Only reload when filters actually change (not on first render)
     logger.debug('TransactionView: Filters changed, reloading', { filters: buildFetchOptions() });
     loadTransactions(buildFetchOptions());
     // eslint-disable-next-line react-hooks/exhaustive-deps
