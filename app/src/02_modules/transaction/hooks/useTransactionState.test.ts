@@ -36,6 +36,10 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   rawText: null,
   primaryModelId: null,
   primaryConfidence: null,
+  traceId: null,
+  subtotal: null,
+  taxAmount: null,
+  taxRate: null,
   ...overrides,
 });
 

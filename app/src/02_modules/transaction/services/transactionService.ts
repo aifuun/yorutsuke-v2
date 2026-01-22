@@ -48,7 +48,7 @@ class TransactionService {
     // Reload transactions after operations complete
     this.cleanupTransactionListener = on('transaction:confirmed', () => {
       if (this.userId) {
-        logger.debug(EVENTS.STATE_CHANGED, { trigger: 'transaction_confirmed' });
+        logger.debug(EVENTS.STATE_TRANSITION, { entity: 'TransactionService', entityId: 'global', from: 'loaded', to: 'reloading', trigger: 'transaction_confirmed' });
         this.loadTransactions();
       }
     });
@@ -98,11 +98,14 @@ class TransactionService {
       // 3. Update store (triggers UI update via React subscribers)
       this.store.getState().setTransactions(transactions);
       this.store.getState().setTotalCount(totalCount);
-      this.store.getState().setStatus('success');
+      this.store.getState().setStatus('idle');
       this.store.getState().setError(null);
 
-      logger.info(EVENTS.STATE_CHANGED, {
-        action: 'transactions_loaded',
+      logger.info(EVENTS.STATE_TRANSITION, {
+        entity: 'TransactionService',
+        entityId: `user-${this.userId}`,
+        from: 'loading',
+        to: 'idle',
         count: transactions.length,
         total: totalCount,
       });
@@ -132,10 +135,10 @@ class TransactionService {
 
       // 2. Update store
       this.store.getState().addTransaction(transaction);
-      this.store.getState().setStatus('success');
+      this.store.getState().setStatus('idle');
       this.store.getState().setError(null);
 
-      logger.info(EVENTS.STATE_CHANGED, { action: 'transaction_saved', id: transaction.id });
+      logger.info(EVENTS.STATE_TRANSITION, { entity: 'TransactionService', entityId: transaction.id, from: 'saving', to: 'idle', action: 'transaction_saved' });
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       logger.error(EVENTS.APP_ERROR, { context: 'transaction_save', error: errorMessage });
@@ -173,7 +176,7 @@ class TransactionService {
       // 5. Emit event for AutoSyncService (debounced sync)
       emitSyncEvent(id, 'deleted');
 
-      logger.info(EVENTS.STATE_CHANGED, { action: 'transaction_deleted', id });
+      logger.info(EVENTS.TRANSACTION_DELETED, { id });
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       logger.error(EVENTS.APP_ERROR, { context: 'transaction_remove', id, error: errorMessage });
@@ -201,7 +204,7 @@ class TransactionService {
       // 3. Emit event for AutoSyncService
       emitSyncEvent(id, 'confirmed');
 
-      logger.info(EVENTS.STATE_CHANGED, { action: 'transaction_confirmed', id });
+      logger.info(EVENTS.TRANSACTION_CONFIRMED, { id });
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       logger.error(EVENTS.APP_ERROR, { context: 'transaction_confirm', id, error: errorMessage });
@@ -229,7 +232,7 @@ class TransactionService {
       // 3. Emit event for AutoSyncService
       emitSyncEvent(id, 'updated');
 
-      logger.info(EVENTS.STATE_CHANGED, { action: 'transaction_updated', id });
+      logger.info(EVENTS.STATE_TRANSITION, { entity: 'TransactionService', entityId: id, from: 'modifying', to: 'idle', action: 'transaction_updated' });
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       logger.error(EVENTS.APP_ERROR, { context: 'transaction_update', id, error: errorMessage });

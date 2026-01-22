@@ -40,7 +40,9 @@ vi.mock('../../../00_kernel/telemetry/logger', () => ({
   },
   EVENTS: {
     SERVICE_INITIALIZED: 'SERVICE_INITIALIZED',
-    STATE_CHANGED: 'STATE_CHANGED',
+    STATE_TRANSITION: 'STATE_TRANSITION',
+    TRANSACTION_CONFIRMED: 'TRANSACTION_CONFIRMED',
+    TRANSACTION_DELETED: 'TRANSACTION_DELETED',
     APP_ERROR: 'APP_ERROR',
   },
 }));
@@ -65,6 +67,10 @@ const createTransaction = (overrides: Partial<Transaction> = {}): Transaction =>
   rawText: null,
   primaryModelId: null,
   primaryConfidence: null,
+  traceId: null,
+  subtotal: null,
+  taxAmount: null,
+  taxRate: null,
   ...overrides,
 });
 
@@ -126,7 +132,8 @@ describe('transactionService', () => {
     it('TC-SVC-2.2: Should clear store when user is set to null', async () => {
       await transactionService.setUser(testUserId);
       const store = transactionService.store.getState();
-      expect(store.getStatus()).not.toBe('idle');
+      // After setUser completes with mocked adapters, status should be idle
+      expect(store.getStatus()).toBe('idle');
 
       await transactionService.setUser(null);
 
@@ -143,7 +150,7 @@ describe('transactionService', () => {
       await transactionService.setUser(testUserId);
 
       const store = transactionService.store.getState();
-      expect(store.getStatus()).toBe('success');
+      expect(store.getStatus()).toBe('idle');
       expect(store.getTransactions()).toHaveLength(1);
     });
   });
@@ -184,7 +191,7 @@ describe('transactionService', () => {
       await transactionService.loadTransactions();
 
       const store = transactionService.store.getState();
-      expect(store.getStatus()).toBe('success');
+      expect(store.getStatus()).toBe('idle');
       expect(store.getTransactions()).toHaveLength(1);
       expect(store.getError()).toBeNull();
     });
@@ -272,7 +279,7 @@ describe('transactionService', () => {
       await transactionService.saveTransaction(tx);
 
       const store = transactionService.store.getState();
-      expect(store.getStatus()).toBe('success');
+      expect(store.getStatus()).toBe('idle');
       expect(store.getError()).toBeNull();
     });
 
@@ -512,7 +519,7 @@ describe('transactionService', () => {
 
       // Should complete without errors
       const store = transactionService.store.getState();
-      expect(store.getStatus()).toBe('success');
+      expect(store.getStatus()).toBe('idle');
     });
 
     it('TC-SVC-9.2: Should handle concurrent save operations', async () => {
@@ -537,7 +544,7 @@ describe('transactionService', () => {
       await Promise.all([loadPromise, savePromise]);
 
       const store = transactionService.store.getState();
-      expect(store.getStatus()).toBe('success');
+      expect(store.getStatus()).toBe('idle');
     });
   });
 });

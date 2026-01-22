@@ -1,9 +1,10 @@
 // Pillar L: View - Dashboard with premium UI design
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
 import { createDailySummaryWithBreakdown, createWeeklySummary } from '../../../01_domains/transaction';
-import { useTransactionLogic } from '../../transaction';
+import { useTransactionStatus, useTransactions } from '../../transaction/hooks/useTransactionState';
+import { transactionService } from '../../transaction/services/transactionService';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
@@ -85,7 +86,16 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const yesterday = getYesterdayDate();
   const dayOfWeek = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
 
-  const { state, transactions } = useTransactionLogic(userId);
+  // Initialize service with user
+  useEffect(() => {
+    if (userId) {
+      transactionService.init();
+      transactionService.setUser(userId);
+    }
+  }, [userId]);
+
+  const status = useTransactionStatus();
+  const transactions = useTransactions();
   const { quota } = useQuota();
 
   // Phase 2: Use real data with breakdown (local-first reactive)
@@ -163,7 +173,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     );
   }
 
-  if (state.status === 'loading' || state.status === 'idle') {
+  if (status === 'loading' || status === 'idle') {
     return (
       <div className="dashboard">
         <DashboardHeaderComponent
@@ -179,7 +189,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     );
   }
 
-  if (state.status === 'error') {
+  if (status === 'error') {
     return (
       <div className="dashboard">
         <DashboardHeaderComponent
