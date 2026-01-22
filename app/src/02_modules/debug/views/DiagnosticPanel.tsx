@@ -12,10 +12,15 @@
  */
 
 import { useCallback } from 'react';
-import { useStore } from 'zustand';
 import { useTranslation } from '../../../i18n';
 import { logger } from '../../../00_kernel/telemetry';
-import { diagnosticStore, diagnosticService } from '../services/DiagnosticService';
+import {
+  useDiagnosticStatus,
+  useDiagnosticResult,
+  useDiagnosticError,
+  useDiagnosticContext,
+  diagnosticActions,
+} from '../hooks';
 import { isDiagnosticExportSuccess } from '../types/diagnostic';
 import type { UserId } from '../../../00_kernel/types';
 import './diagnostic-panel.css';
@@ -27,11 +32,11 @@ interface DiagnosticPanelProps {
 export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   const { t } = useTranslation();
 
-  // Subscribe to store
-  const state = useStore(diagnosticStore, (s) => s.state);
-  const result = useStore(diagnosticStore, (s) => s.result);
-  const error = useStore(diagnosticStore, (s) => s.error);
-  const context = useStore(diagnosticStore, (s) => s.context);
+  // Subscribe to store via hooks (Pillar L: Hook Bridge Layer)
+  const state = useDiagnosticStatus();
+  const result = useDiagnosticResult();
+  const error = useDiagnosticError();
+  const context = useDiagnosticContext();
 
   // Event handlers
   const handleCollect = useCallback(async () => {
@@ -39,7 +44,7 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
       console.warn('User ID not available');
       return;
     }
-    await diagnosticService.execute(userId);
+    await diagnosticActions.execute(userId);
   }, [userId]);
 
   const handleCopyLink = useCallback(() => {
@@ -75,14 +80,14 @@ export function DiagnosticPanel({ userId }: DiagnosticPanelProps) {
   }, [result]);
 
   const handleRetry = useCallback(async () => {
-    diagnosticService.reset();
+    diagnosticActions.reset();
     if (userId) {
-      await diagnosticService.execute(userId);
+      await diagnosticActions.execute(userId);
     }
   }, [userId]);
 
   const handleReset = useCallback(() => {
-    diagnosticService.reset();
+    diagnosticActions.reset();
   }, []);
 
   // =========================================================================
