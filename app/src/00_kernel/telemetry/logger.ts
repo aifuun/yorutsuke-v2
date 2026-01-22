@@ -1,12 +1,43 @@
-// Pillar R: Semantic Observability - structured JSON logs
-// All logs are machine-readable with semantic event names
-// Outputs to: Console (JSON) + Debug UI (human-readable) + File (JSON Lines)
+/**
+ * Pillar R: Semantic Logger for Tauri Desktop App
+ * All logs are JSON-formatted with traceId for observability
+ *
+ * ARCHITECTURE:
+ * - Context: Managed by TraceProvider (React context, not global state)
+ * - Output: Console (JSON) + Debug UI (human-readable) + File (IPC persistence)
+ * - Safe: React context ensures proper isolation per component tree
+ *
+ * DATA PROCESSING PIPELINE:
+ * 1. normalizeErrorData() - Extract Error.message/stack/name (in logger methods)
+ * 2. filterSensitiveData() - Redact sensitive fields (in createLogEntry)
+ * 3. Spread into entry → JSON.stringify() → Multi-channel output
+ *
+ * FEATURES:
+ * - P0: Error stack extraction, sensitive data filtering
+ * - P1: LOG_LEVEL control, performance timer
+ * - Tauri-specific: Debug UI integration, IPC persistence, ContextProvider
+ *
+ * OUTPUTS (3 channels):
+ * 1. Console: JSON logs for CloudWatch-style queries
+ * 2. Debug UI: Human-readable panel (dev-only, formatted)
+ * 3. File: ~/.yorutsuke/logs/YYYY-MM-DD.jsonl (via Tauri IPC)
+ */
 
 import { invoke } from '@tauri-apps/api/core';
 import type { ContextProvider } from './traceContext';
 import { debugLog } from '../../02_modules/debug/headless';
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+/**
+ * Log levels with numeric precedence (P1: LOG_LEVEL control)
+ */
+export const LOG_LEVELS = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+} as const;
+
+export type LogLevel = keyof typeof LOG_LEVELS;
 
 /**
  * Semantic log entry structure.
@@ -149,6 +180,125 @@ export const EVENTS = {
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];
 
+/**
+ * Keys that indicate sensitive data (P1: sensitive data filtering)
+ * Case-insensitive matching to catch Password, password, PASSWORD, etc.
+ */
+const SENSITIVE_KEYS = [
+  'password', 'passwd', 'pwd',
+  'token', 'jwt', 'bearer',
+  'apikey', 'api_key', 'secret', 'api_secret',
+  'credential', 'credentials',
+  'auth', 'authorization',
+  'private_key',  // Removed standalone 'key' to avoid false positives
+  'access_token', 'refresh_token',
+  'aws_secret_access_key',
+  'session', 'sessionid', 'session_id',
+  'code', 'confirmation_code', 'otp',
+];
+
+/**
+ * Filter sensitive data from log objects (P1: sensitive data filtering)
+ * This runs SECOND in the pipeline, after error normalization.
+ *
+ * Design decisions:
+ * - Max depth 5: Prevents stack overflow on deeply nested objects
+ * - Case-insensitive matching: Catches 'Password', 'password', 'PASSWORD'
+ * - Returns '[REDACTED]': Clear indicator, doesn't expose data length
+ * - Circular reference detection: Uses WeakSet to prevent infinite loops
+ * - Date objects: Preserved as ISO strings
+ *
+ * Trade-offs:
+ * - May miss deeply nested secrets (>5 levels) - acceptable for security/performance balance
+ * - Field name matching only - doesn't scan values (prevents false positives)
+ *
+ * @param data - Data to filter (primitives, objects, arrays)
+ * @param depth - Current recursion depth (internal, starts at 0)
+ * @param seen - WeakSet to track visited objects (circular reference detection)
+ * @returns Filtered data with sensitive fields replaced by '[REDACTED]'
+ */
+function filterSensitiveData(data: unknown, depth = 0, seen: WeakSet<object> = new WeakSet()): unknown {
+  // Prevent infinite recursion
+  if (depth > 5 || !data) return data;
+
+  // Handle arrays
+  if (Array.isArray(data)) {
+    // Circular reference detection
+    if (seen.has(data)) return '[Circular]';
+    seen.add(data);
+    return data.map(item => filterSensitiveData(item, depth + 1, seen));
+  }
+
+  // Handle objects
+  if (typeof data === 'object' && data !== null) {
+    // Handle Date objects specially
+    if (data instanceof Date) {
+      return data.toISOString();
+    }
+
+    // Circular reference detection
+    if (seen.has(data)) return '[Circular]';
+    seen.add(data);
+
+    const filtered: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      const keyLower = key.toLowerCase();
+      // Check if key contains sensitive keywords
+      const isSensitive = SENSITIVE_KEYS.some(sensitiveKey =>
+        keyLower.includes(sensitiveKey)
+      );
+
+      if (isSensitive && typeof value !== 'object') {
+        // Only redact primitive sensitive values
+        filtered[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        // Recursively filter objects (including sensitive key objects)
+        filtered[key] = filterSensitiveData(value, depth + 1, seen);
+      } else {
+        filtered[key] = value;
+      }
+    }
+    return filtered;
+  }
+
+  return data;
+}
+
+/**
+ * Get current log level from environment variable (P1: LOG_LEVEL control)
+ * Defaults to 'info' if not set or invalid.
+ *
+ * @returns Current log level
+ */
+function getLogLevel(): LogLevel {
+  // Check both import.meta.env and window.ENV (for runtime config)
+  const level = (
+    import.meta.env.LOG_LEVEL ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (typeof window !== 'undefined' && (window as any).ENV?.LOG_LEVEL) ||
+    'info'
+  ).toLowerCase();
+
+  return LOG_LEVELS[level as LogLevel] !== undefined ? (level as LogLevel) : 'info';
+}
+
+/**
+ * Check if a log level should be output (P1: LOG_LEVEL control)
+ * Respects LOG_LEVEL environment variable with numeric precedence.
+ *
+ * Special case: debug logs always output when import.meta.env.DEV === true
+ *
+ * @param level - Log level to check
+ * @returns True if this level should be logged
+ */
+function shouldLog(level: LogLevel): boolean {
+  // Always allow debug logs in development mode
+  if (import.meta.env.DEV && level === 'debug') return true;
+
+  const currentLevel = getLogLevel();
+  return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
+}
+
 // Global context provider (set by TraceProvider)
 let globalContextProvider: ContextProvider | null = null;
 
@@ -161,7 +311,33 @@ export function setContextProvider(provider: ContextProvider | null): void {
 }
 
 /**
+ * Extract error information from Error object or use as-is (P0: Error extraction)
+ * This runs FIRST in the pipeline, before sensitive filtering.
+ *
+ * @param data - Optional Error object or plain data object
+ * @returns Normalized data with Error.message/stack/name extracted
+ */
+function normalizeErrorData(data?: Error | Record<string, unknown>): Record<string, unknown> {
+  if (!data) return {};
+
+  // If it's an Error object, extract message, stack, and name (P0 fix)
+  if (data instanceof Error) {
+    return {
+      error: {
+        message: data.message,
+        stack: data.stack,
+        name: data.name,
+      },
+    };
+  }
+
+  // If it's already an object, return as-is
+  return typeof data === 'object' ? data : { data };
+}
+
+/**
  * Create a log entry with context.
+ * Applies sensitive data filtering to protect credentials in logs.
  */
 function createLogEntry(
   level: LogLevel,
@@ -170,13 +346,16 @@ function createLogEntry(
 ): LogEntry {
   const ctx = globalContextProvider?.getOptional();
 
+  // 2️⃣ Filter sensitive data (data is already normalized from Step 1)
+  const filteredData = filterSensitiveData(data || {}) as Record<string, unknown>;
+
   return {
     timestamp: new Date().toISOString(),
     level,
     event,
     traceId: ctx?.traceId ?? 'no-trace',
     userId: ctx?.userId ?? undefined,
-    ...data,
+    ...filteredData,  // Spread filtered data into entry
   };
 }
 
@@ -242,32 +421,42 @@ function outputToDebugUI(level: LogLevel, event: string, data?: Record<string, u
  */
 export const logger = {
   debug: (event: string, data?: Record<string, unknown>) => {
-    if (import.meta.env.DEV) {
-      const entry = createLogEntry('debug', event, data);
-      console.debug(JSON.stringify(entry));
-      outputToDebugUI('debug', event, data);
-      persistLog(entry);
-    }
+    // Check both DEV mode and LOG_LEVEL
+    if (!import.meta.env.DEV && !shouldLog('debug')) return;
+
+    const normalized = normalizeErrorData(data);  // 1️⃣ Extract Error first
+    const entry = createLogEntry('debug', event, normalized);
+    // eslint-disable-next-line no-console
+    console.debug(JSON.stringify(entry));
+    outputToDebugUI('debug', event, normalized);  // Use normalized data
+    persistLog(entry);
   },
 
   info: (event: string, data?: Record<string, unknown>) => {
-    const entry = createLogEntry('info', event, data);
+    if (!shouldLog('info')) return;  // Check log level
+    const normalized = normalizeErrorData(data);  // 1️⃣ Extract Error first
+    const entry = createLogEntry('info', event, normalized);
+    // eslint-disable-next-line no-console
     console.info(JSON.stringify(entry));
-    outputToDebugUI('info', event, data);
+    outputToDebugUI('info', event, normalized);  // Use normalized data
     persistLog(entry);
   },
 
   warn: (event: string, data?: Record<string, unknown>) => {
-    const entry = createLogEntry('warn', event, data);
+    if (!shouldLog('warn')) return;  // Check log level
+    const normalized = normalizeErrorData(data);  // 1️⃣ Extract Error first
+    const entry = createLogEntry('warn', event, normalized);
     console.warn(JSON.stringify(entry));
-    outputToDebugUI('warn', event, data);
+    outputToDebugUI('warn', event, normalized);  // Use normalized data
     persistLog(entry);
   },
 
   error: (event: string, data?: Record<string, unknown>) => {
-    const entry = createLogEntry('error', event, data);
+    if (!shouldLog('error')) return;  // Check log level
+    const normalized = normalizeErrorData(data);  // 1️⃣ Extract Error first
+    const entry = createLogEntry('error', event, normalized);
     console.error(JSON.stringify(entry));
-    outputToDebugUI('error', event, data);
+    outputToDebugUI('error', event, normalized);  // Use normalized data
     persistLog(entry);
   },
 };
@@ -326,4 +515,75 @@ export async function getLogFilePath(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Performance timer for measuring execution time (P1: performance monitoring)
+ *
+ * Usage:
+ * ```typescript
+ * const timer = createTimer();
+ * await someOperation();
+ * timer.logDuration(EVENTS.OPERATION_COMPLETED, { operationId: 'op-123' });
+ * // Logs: { event: 'OPERATION_COMPLETED', duration: 1234, operationId: 'op-123' }
+ * ```
+ */
+export interface Timer {
+  /**
+   * Get elapsed time in milliseconds since timer creation
+   */
+  duration: () => number;
+
+  /**
+   * Log event with automatic duration calculation (info level)
+   */
+  logDuration: (event: EventName, data?: Record<string, unknown>) => void;
+
+  /**
+   * Log with specific level and automatic duration
+   */
+  log: (level: LogLevel, event: EventName, data?: Record<string, unknown>) => void;
+}
+
+/**
+ * Create a performance timer (P1: performance monitoring)
+ *
+ * @returns Timer instance with independent start time
+ */
+export function createTimer(): Timer {
+  const startTime = Date.now();
+
+  return {
+    /**
+     * Get elapsed time in milliseconds
+     */
+    duration: (): number => Date.now() - startTime,
+
+    /**
+     * Log event with automatic duration calculation (info level)
+     */
+    logDuration: (event: EventName, data: Record<string, unknown> = {}): void => {
+      // If data is an Error, normalize it first (Error properties aren't enumerable)
+      const normalizedData = data instanceof Error
+        ? normalizeErrorData(data)
+        : data;
+      const dataWithDuration = Object.assign({}, normalizedData, { duration: Date.now() - startTime });
+      logger.info(event, dataWithDuration);
+    },
+
+    /**
+     * Log with specific level and automatic duration
+     */
+    log: (level: LogLevel, event: EventName, data: Record<string, unknown> = {}): void => {
+      const logFn = logger[level];
+      if (logFn) {
+        // If data is an Error, normalize it first (Error properties aren't enumerable)
+        const normalizedData = data instanceof Error
+          ? normalizeErrorData(data)
+          : data;
+        const dataWithDuration = Object.assign({}, normalizedData, { duration: Date.now() - startTime });
+        logFn(event, dataWithDuration);
+      }
+    },
+  };
 }

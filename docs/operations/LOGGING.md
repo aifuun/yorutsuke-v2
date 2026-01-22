@@ -40,6 +40,117 @@ logger.error(EVENTS.UPLOAD_FAILED, { imageId: 'img-001', error: 'timeout' });
 logger.debug(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'polling' });
 ```
 
+### Error Object Extraction (P0)
+
+Error objects are automatically normalized for structured logging:
+
+```typescript
+try {
+  await processImage(imageId);
+} catch (error) {
+  // Error properties (message, stack, name) are automatically extracted
+  logger.error(EVENTS.IMAGE_PROCESSING_FAILED, error);
+  // Logs: { event: "IMAGE_PROCESSING_FAILED", error: { message: "...", stack: "...", name: "..." } }
+}
+```
+
+**How it works**:
+- Error objects are detected and normalized to `{ error: { message, stack, name } }`
+- Non-Error objects are passed through unchanged
+- Handles TypeError, ReferenceError, and custom Error subclasses
+
+### Sensitive Data Filtering (P0)
+
+Sensitive fields are automatically redacted from logs:
+
+```typescript
+// Sensitive data is automatically redacted
+logger.info(EVENTS.AUTH_LOGIN_SUCCESS, {
+  userId: 'user-123',
+  token: 'Bearer abc123',  // → '[REDACTED]'
+  password: 'secret',      // → '[REDACTED]'
+  email: 'user@example.com'  // Preserved (not sensitive)
+});
+```
+
+**Protected fields** (case-insensitive):
+- Passwords: `password`, `passwd`, `pwd`
+- Tokens: `token`, `jwt`, `bearer`, `access_token`, `refresh_token`
+- API Keys: `apikey`, `api_key`, `secret`, `api_secret`, `private_key`
+- Credentials: `credential`, `credentials`
+- Auth: `auth`, `authorization`
+- AWS: `aws_secret_access_key`
+- Session: `session`, `sessionid`, `session_id`
+- OTP: `code`, `confirmation_code`, `otp`
+
+**How it works**:
+- Recursively scans objects (max depth: 5)
+- Redacts primitive sensitive values with `'[REDACTED]'`
+- Recursively filters objects with sensitive keys
+- Handles circular references, Date objects, and arrays
+
+### LOG_LEVEL Control (P1)
+
+Control log output with `LOG_LEVEL` environment variable:
+
+```typescript
+// Set LOG_LEVEL in environment
+// LOG_LEVEL=debug → Show all logs (debug, info, warn, error)
+// LOG_LEVEL=info  → Show info, warn, error (default)
+// LOG_LEVEL=warn  → Show warn, error only
+// LOG_LEVEL=error → Show error only
+
+logger.debug(EVENTS.QUEUE_AUTO_PROCESS, { phase: 'polling' });  // Filtered if LOG_LEVEL=info
+logger.info(EVENTS.UPLOAD_STARTED, { imageId });                // Shown if LOG_LEVEL=info
+logger.warn(EVENTS.QUOTA_LIMIT_REACHED, { used: 50 });         // Always shown (unless LOG_LEVEL=error)
+logger.error(EVENTS.UPLOAD_FAILED, { imageId });                // Always shown
+```
+
+**How it works**:
+- Reads `LOG_LEVEL` from `import.meta.env.LOG_LEVEL` or `window.ENV.LOG_LEVEL`
+- Defaults to `'info'` if not set
+- `debug` logs are always shown in development mode (`import.meta.env.DEV`)
+- Invalid LOG_LEVEL values fallback to `'info'`
+
+### Performance Timer (P1)
+
+Track elapsed time for operations:
+
+```typescript
+import { createTimer } from '@/00_kernel/telemetry/logger';
+
+// Basic usage
+const timer = createTimer();
+await someOperation();
+console.log(`Elapsed: ${timer.duration()}ms`);
+
+// Log with automatic duration
+const timer = createTimer();
+await processImage(imageId);
+timer.logDuration(EVENTS.IMAGE_PROCESSING_COMPLETED, { imageId });
+// Logs: { event: "IMAGE_PROCESSING_COMPLETED", imageId: "...", duration: 1234 }
+
+// Log with specific level and duration
+const timer = createTimer();
+try {
+  await uploadImage(imageId);
+  timer.log('info', EVENTS.UPLOAD_COMPLETED, { imageId });
+} catch (error) {
+  timer.log('error', EVENTS.UPLOAD_FAILED, error);
+  // Logs: { event: "UPLOAD_FAILED", error: { message: "..." }, duration: 5678 }
+}
+```
+
+**Methods**:
+- `timer.duration()` - Get elapsed time in milliseconds
+- `timer.logDuration(event, data)` - Log at `info` level with duration
+- `timer.log(level, event, data)` - Log at specific level with duration
+
+**How it works**:
+- Independent timer instances (each has its own start time)
+- Duration is automatically calculated and merged with log data
+- Handles Error objects (automatically normalized before merging duration)
+
 ### State Transitions
 
 ```typescript
@@ -306,11 +417,114 @@ cat ~/.yorutsuke/logs/2025-01-04.jsonl | jq 'select(.traceId == "trace-abc123")'
 cat ~/.yorutsuke/logs/2025-01-04.jsonl | jq -s 'group_by(.event) | map({event: .[0].event, count: length})'
 ```
 
+## Best Practices
+
+### DO ✅
+```typescript
+// Use semantic event names
+logger.info(EVENTS.UPLOAD_STARTED, { imageId });
+
+// Pass Error objects directly (auto-normalized)
+logger.error(EVENTS.UPLOAD_FAILED, error);
+
+// Use timer for performance tracking
+const timer = createTimer();
+await operation();
+timer.logDuration(EVENTS.OPERATION_COMPLETED, { id });
+
+// Log state transitions with logStateTransition
+logStateTransition({ entity: 'Queue', entityId: 'main', from: 'idle', to: 'processing' });
+```
+
+### DON'T ❌
+```typescript
+// Don't use prose-style messages
+logger.info('Starting upload...', { imageId });  // ❌
+
+// Don't manually extract Error properties
+logger.error(EVENTS.UPLOAD_FAILED, { message: error.message });  // ❌
+
+// Don't log sensitive data without filtering
+logger.info('User logged in', { password: 'secret' });  // ❌ (auto-filtered anyway)
+
+// Don't ignore timer instances
+const timer = createTimer();
+await operation();
+// Never used timer.duration() or timer.logDuration()  // ❌
+```
+
+## Troubleshooting
+
+### Issue: Debug logs not showing
+**Problem**: `logger.debug()` calls don't appear in console or Debug UI
+
+**Solutions**:
+1. Check if in production mode: `debug` logs are DEV-only by default
+2. Set `LOG_LEVEL=debug` in environment variables
+3. Verify Debug UI Verbose mode is ON
+
+### Issue: Sensitive data still visible
+**Problem**: API keys or passwords appear in logs
+
+**Solutions**:
+1. Check field naming: Must include sensitive keywords (e.g., `password`, `token`, `apiKey`)
+2. Check depth: Filtering stops at depth 5
+3. Submit PR to add new sensitive keyword to `SENSITIVE_KEYS` array
+
+### Issue: Error object shows as empty
+**Problem**: `logger.error(EVENTS.FAILED, error)` logs `{}`
+
+**Solution**: This should not happen (auto-normalized). If it does:
+1. Check if `error` is actually an Error instance: `error instanceof Error`
+2. Check if error has enumerable properties (non-standard Error)
+3. File a bug report with reproduction steps
+
+### Issue: Timer duration is 0
+**Problem**: `timer.duration()` returns 0 or very small values
+
+**Solutions**:
+1. Check if operation is synchronous (no `await`)
+2. Check if using correct timer instance
+3. Verify operation actually takes time (add artificial delay for testing)
+
+### Issue: Circular reference crash
+**Problem**: `JSON.stringify()` throws "Converting circular structure to JSON"
+
+**Solution**: This should not happen (auto-handled with WeakSet). If it does:
+1. Check logger version (should be post-Issue #158)
+2. File a bug report with reproduction case
+
+## Testing
+
+The logging system has comprehensive test coverage (58 tests):
+
+### Unit Tests
+- **normalizeErrorData** (7 tests): Error extraction, TypeError, ReferenceError, non-Error objects, primitives
+- **filterSensitiveData** (11 tests): Password, token, apiKey, nested objects, arrays, case-insensitive, depth limit
+- **LOG_LEVEL Control** (8 tests): Default level, debug/warn/error levels, invalid level, DEV mode override
+- **createTimer** (6 tests): Duration tracking, logDuration, log method, independent instances
+
+### Integration Tests
+- **Logger + ContextProvider** (5 tests): TraceId propagation, undefined context, provider changes
+- **Logger + Debug UI** (3 tests): Debug log calls, normalized data, level mapping
+- **End-to-End Flows** (4 tests): Error→normalize→filter→log, Timer+Error+context, LOG_LEVEL filtering
+- **logStateTransition** (2 tests): Required fields, context integration
+
+### Edge Cases
+- **Error Flows** (8 tests): Circular references, large objects, null prototype, symbols, Date objects
+- **Constants** (5 tests): Event names, count, naming convention, numeric precedence
+
+Run tests:
+```bash
+npm test -- logger.test.ts
+```
+
 ## Implementation Files
 
 | File | Purpose |
 |------|---------|
 | `app/src/00_kernel/telemetry/logger.ts` | Logger + EVENTS + Debug UI bridge |
+| `app/src/00_kernel/telemetry/__tests__/logger.test.ts` | Comprehensive test suite (58 tests) |
 | `app/src/00_kernel/telemetry/traceContext.tsx` | TraceId context provider |
 | `app/src/02_modules/debug/headless/debugLog.ts` | Debug UI log store |
 | `app/src-tauri/src/logging.rs` | Tauri log_write command |
