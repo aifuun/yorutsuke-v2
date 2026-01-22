@@ -6,7 +6,11 @@
 
 import type { UserId, TraceId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
-import { fetchTransactionsFromCloud as fetchFromCloud, fetchTransactions as fetchFromLocal, upsertTransaction } from '../../transaction/adapters';
+import {
+  fetchTransactionsFromCloud,
+  fetchLocalTransactions,
+  upsertLocalTransaction,
+} from '../adapters/transactionSyncAdapter';
 import { logger } from '../../../00_kernel/telemetry/logger';
 import { syncImagesForTransactions, type ImageSyncResult } from './imageSyncService';
 import { syncStore } from '../stores/syncStore';
@@ -129,7 +133,7 @@ export async function pullTransactions(
       traceId,
     });
 
-    const cloudTransactions = await fetchFromCloud(userId, startDate, endDate);
+    const cloudTransactions = await fetchTransactionsFromCloud(userId, startDate, endDate);
 
     // 🔍 INVESTIGATION: Log fetch result details
     logger.info('transaction_sync_cloud_fetched', {
@@ -142,7 +146,7 @@ export async function pullTransactions(
 
     // Step 2: Fetch from local (including deleted for conflict resolution)
     logger.debug('transaction_sync_phase', { phase: 'fetch_local', userId, traceId });
-    const localTransactions = await fetchFromLocal(userId, { startDate, endDate, includeDeleted: true });
+    const localTransactions = await fetchLocalTransactions(userId, { startDate, endDate, includeDeleted: true });
     logger.info('transaction_sync_local_fetched', { userId, count: localTransactions.length, traceId });
 
     // Create lookup map for local transactions (by ID)
@@ -183,7 +187,7 @@ export async function pullTransactions(
             traceId,
           });
 
-          await upsertTransaction(cloudTx);
+          await upsertLocalTransaction(cloudTx);
           synced++;
           logger.debug('transaction_sync_inserted', { txId: cloudTx.id, traceId });
         } else {
@@ -202,7 +206,7 @@ export async function pullTransactions(
 
           // Only upsert if cloud won (resolved is cloudTx, not localTx)
           if (resolved === cloudTx) {
-            await upsertTransaction(resolved);
+            await upsertLocalTransaction(resolved);
             synced++;
             conflicts++;
             logger.debug('transaction_sync_updated', { txId: resolved.id, source: 'cloud', traceId });

@@ -166,6 +166,80 @@ export function useOrderProcess() {
 
 **Mechanism**: NOT business logic - only composition and UI-specific transformation.
 
+### Real-World Example: Sync Module (Issue #167)
+
+The Sync module demonstrates all three identities working together:
+
+**Identity 1 (Connector) - Primitive Selectors**:
+```typescript
+// sync/hooks/useSyncState.ts
+export function useSyncStatus(): SyncStatus {
+  return useStore(syncStore, (s) => s.status);
+}
+
+export function usePendingCount(): number {
+  return useStore(syncStore, (s) => s.pendingCount);
+}
+
+export function useIsOnline(): boolean {
+  return useStore(syncStore, (s) => s.isOnline);
+}
+```
+
+**Identity 2 (Selector) - Derived State**:
+```typescript
+export function useIsSyncing(): boolean {
+  return useStore(syncStore, (s) => s.status === 'syncing');
+}
+
+export function useHasError(): boolean {
+  return useStore(syncStore, (s) => s.status === 'error');
+}
+```
+
+**Identity 3 (Orchestrator) - Service Coordination**:
+```typescript
+export function useSyncActions(): SyncActions {
+  const triggerFullSync = useCallback(async (userId: UserId) => {
+    await manualSyncService.sync(userId);
+  }, []);
+
+  const triggerPushSync = useCallback(async (userId: UserId) => {
+    const traceId = `push-${Date.now()}`;
+    await transactionPushService.syncDirtyTransactions(userId, traceId);
+  }, []);
+
+  return { triggerFullSync, triggerPushSync, clearQueue };
+}
+```
+
+**View Layer Usage**:
+```typescript
+// sync/views/SyncStatusIndicator.tsx
+export function SyncStatusIndicator() {
+  // Identity 1: Connect to primitives
+  const isOnline = useIsOnline();
+  const pendingCount = usePendingCount();
+
+  // Identity 2: Derived state
+  const isSyncing = useIsSyncing();
+
+  // Render based on state (no logic)
+  return (
+    <div className={isOnline ? 'online' : 'offline'}>
+      {isSyncing && <span>⟳ Syncing...</span>}
+      {!isSyncing && pendingCount > 0 && <span>{pendingCount} pending</span>}
+    </div>
+  );
+}
+```
+
+**Benefits**:
+- ✅ No object selectors (ADR-012 compliance)
+- ✅ Each hook returns a primitive value
+- ✅ View layer is pure JSX (Pillar L)
+- ✅ Service coordination in Orchestrator hooks
+
 ### Anti-Patterns
 
 **❌ Anti-Pattern 1: Business Logic in Hook**

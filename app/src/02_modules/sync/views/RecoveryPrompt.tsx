@@ -1,8 +1,9 @@
 /**
- * Recovery Prompt (Issue #86 Phase 4)
+ * Recovery Prompt (Issue #167)
  * Shows prompt when app detects pending sync data on startup
  *
- * Pillar L: Pure JSX, logic passed via props
+ * Layer 1: Views (Pure React)
+ * Pillar L: Pure JSX, logic passed via props (ADR-020)
  */
 
 import { useState } from 'react';
