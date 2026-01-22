@@ -24,13 +24,19 @@ function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
-  // Initialize services (load persisted state from localStorage)
-  // Issue #141, #89: Service Pattern Migration
-  // Note: transactionService auto-initializes on first access (singleton pattern)
+  // Initialize async services in React context (where we can await)
+  // Note: Sync services initialized in main.tsx before React renders
+  // Issue #141, #89: Service Pattern Migration - Initialize async singleton services
   useEffect(() => {
-    manualSyncService.init();
-    authStateService.init();
-    settingsStateService.init();
+    const initAsync = async () => {
+      // Synchronous initialization
+      manualSyncService.init();
+
+      // Asynchronous initialization (must be awaited in React context)
+      await authStateService.init();
+      await settingsStateService.init();
+    };
+    initAsync();
   }, []);
 
   // Set user ID in sync services when it changes
