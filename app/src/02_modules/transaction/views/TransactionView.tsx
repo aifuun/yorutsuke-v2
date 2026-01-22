@@ -1,7 +1,8 @@
 // Pillar L: Views are pure JSX, logic in services
 import { useState, useCallback, useEffect } from 'react';
 import { useStore } from 'zustand';
-import { useTransactionLogic } from '../headless';
+import { useTransactionStatus, useTransactions, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
+import { transactionService } from '../services/transactionService';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, SyncButton } from '../../../components';
 import { ask } from '@tauri-apps/plugin-dialog';
@@ -28,7 +29,14 @@ type StatusFilter = 'all' | 'pending' | 'confirmed';
 
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t } = useTranslation();
-  const { state, filteredTransactions, confirm, remove, update, load, totalCount } = useTransactionLogic(userId);
+
+  // Subscribe to transaction state using new hooks
+  const status = useTransactionStatus();
+  const transactions = useTransactions();
+  const error = useTransactionError();
+  const filteredTransactions = useFilteredTransactions();
+  const totalCount = useTransactionCount();
+  const { confirm, remove, update, loadTransactions, setUser } = useTransactionActions();
 
   // Auto-sync on mount (Issue #141: migrated from useSyncLogic)
   useSyncTrigger(userId, true);
@@ -126,12 +134,19 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   }, []); // Run only on mount
 
-  // Reload data when options change
+  // Initialize service with user when userId changes
   useEffect(() => {
     if (userId) {
-      load(buildFetchOptions());
+      setUser(userId);
     }
-  }, [userId, buildFetchOptions, load]);
+  }, [userId, setUser]);
+
+  // Reload data when filter options change
+  useEffect(() => {
+    if (userId) {
+      loadTransactions(buildFetchOptions());
+    }
+  }, [buildFetchOptions, userId, loadTransactions]);
 
   // Handle sorting change
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -192,23 +207,23 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     if (!userId) return;
     await manualSyncService.sync(userId);
     // Always reload transactions after sync attempt (even if partial failure)
-    load(buildFetchOptions());
-  }, [userId, load, buildFetchOptions]);
+    loadTransactions(buildFetchOptions());
+  }, [userId, loadTransactions, buildFetchOptions]);
 
   // Listen to auto-sync completion events and reload transactions
   useEffect(() => {
     const cleanup = on('transaction:synced', () => {
       // Auto-sync completed - reload transactions to show new data
       // Note: Using latest buildFetchOptions without adding to deps to avoid infinite loop
-      load(buildFetchOptions());
+      loadTransactions(buildFetchOptions());
     });
 
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load]); // Only depend on load, buildFetchOptions will be captured from closure
+  }, [loadTransactions]); // Only depend on loadTransactions, buildFetchOptions will be captured from closure
 
   // Handle all states (Pillar D: FSM)
-  if (state.status === 'idle') {
+  if (status === 'idle') {
     return (
       <div className="ledger">
         <ViewHeader
@@ -241,7 +256,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     );
   }
 
-  if (state.status === 'loading') {
+  if (status === 'loading') {
     return (
       <div className="ledger">
         <ViewHeader
@@ -274,7 +289,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     );
   }
 
-  if (state.status === 'error') {
+  if (status === 'error') {
     return (
       <div className="ledger">
         <ViewHeader
@@ -301,7 +316,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           }
         />
         <div className="ledger-content">
-          <div className="ledger-error">{state.error}</div>
+          <div className="ledger-error">{error}</div>
         </div>
       </div>
     );

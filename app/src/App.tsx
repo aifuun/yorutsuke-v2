@@ -11,7 +11,7 @@ import { TransactionView } from './02_modules/transaction';
 import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
-import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
+import { transactionSyncService, transactionService } from './02_modules/transaction/services';
 import { networkMonitor, transactionPushService, fullSync, autoSyncService, manualSyncService } from './02_modules/sync';
 import { authStateService } from './02_modules/auth';
 import { settingsStateService } from './02_modules/settings';
@@ -25,8 +25,9 @@ function AppContent() {
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
   // Initialize services (load persisted state from localStorage)
-  // Issue #141: Service Pattern Migration
+  // Issue #141, #89: Service Pattern Migration
   useEffect(() => {
+    transactionService.init();
     manualSyncService.init();
     authStateService.init();
     settingsStateService.init();
