@@ -28,6 +28,8 @@ This document is a pure index of architectural decisions. All implementation det
 - [017-permit-quota-system.md](../docs/architecture/ADR/017-permit-quota-system.md) - Client-side quota validation with signed permits (v2)
 - [018-cdk-watch-cloud-driven-testing.md](../docs/architecture/ADR/018-cdk-watch-cloud-driven-testing.md) - cdk watch for cloud-driven Lambda integration testing
 - [019-traceid-distributed-tracing.md](../docs/architecture/ADR/019-traceid-distributed-tracing.md) - End-to-end traceId propagation (frontend → S3 → Lambda → DynamoDB)
+- [020-unified-bootstrap-pattern.md](../docs/architecture/ADR/020-unified-bootstrap-pattern.md) - Unified bootstrap pattern for diagnostic export
+- [021-typescript-migrations-as-schema-truth.md](../docs/architecture/ADR/021-typescript-migrations-as-schema-truth.md) - TypeScript migrations as schema source of truth; Rust for bootstrap only
 
 ## References
 
@@ -37,6 +39,6 @@ This document is a pure index of architectural decisions. All implementation det
 
 ---
 
-**Last Updated**: 2026-01-20 (ADR-017, 019 added - Permit quota system, TraceId distributed tracing)
+**Last Updated**: 2026-01-23 (ADR-020, 021 added - Bootstrap pattern, TypeScript migrations)
 **Purpose**: Pure ADR index (no project tracking)
 **Update Rule**: Add ADR link when closing major architectural issues
