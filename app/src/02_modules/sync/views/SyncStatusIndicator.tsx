@@ -1,16 +1,17 @@
 /**
- * Sync Status Indicator (Issue #86 Phase 2)
+ * Sync Status Indicator (Issue #167)
  * Shows online/offline status, pending sync queue count, and last synced timestamp
  *
- * Pillar L: Pure JSX, data from syncStore
- *
- * IMPORTANT: Uses manual subscription to avoid infinite re-render loop.
- * Object selectors with useSyncStore cause new reference every render.
- * Manual subscription with useState is the safest pattern for vanilla stores.
+ * Layer 1: Views (Pure React)
+ * Uses Hook Bridge Layer (Layer 1.5) per ADR-020
  */
 
-import { useState, useEffect } from 'react';
-import { syncStore, type SyncState } from '../stores/syncStore';
+import {
+  useIsOnline,
+  usePendingCount,
+  useLastSyncedAt,
+  useIsSyncing,
+} from '../hooks';
 import './sync-status.css';
 
 interface SyncStatusIndicatorProps {
@@ -20,36 +21,12 @@ interface SyncStatusIndicatorProps {
   hideTime?: boolean;
 }
 
-/**
- * Extract only the primitive values we need from store state.
- * This function is called once per store update, not during render.
- */
-function selectSyncData(state: SyncState) {
-  return {
-    isOnline: state.isOnline,
-    pendingCount: state.pendingCount,
-    lastSyncedAt: state.lastSyncedAt,
-    status: state.status,
-  };
-}
-
 export function SyncStatusIndicator({ hideWhenIdle = false, hideTime = false }: SyncStatusIndicatorProps) {
-  // Manual subscription pattern - safest for vanilla stores
-  // useState with initializer function runs once
-  const [syncData, setSyncData] = useState(() => selectSyncData(syncStore.getState()));
-
-  // Subscribe to store changes
-  useEffect(() => {
-    // Subscribe returns unsubscribe function
-    const unsubscribe = syncStore.subscribe((state) => {
-      setSyncData(selectSyncData(state));
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const { isOnline, pendingCount, lastSyncedAt, status } = syncData;
-  const isSyncing = status === 'syncing';
+  // Hook Bridge Layer (ADR-020) - Individual primitive selectors
+  const isOnline = useIsOnline();
+  const pendingCount = usePendingCount();
+  const lastSyncedAt = useLastSyncedAt();
+  const isSyncing = useIsSyncing();
 
   // Hide if idle and hideWhenIdle is true
   if (hideWhenIdle && pendingCount === 0 && isOnline) {

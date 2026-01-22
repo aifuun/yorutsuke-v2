@@ -5,8 +5,12 @@
 
 import type { UserId, TraceId } from '../../../00_kernel/types';
 import { ImageId } from '../../../00_kernel/types';
-import { getImageById, updateImageS3Key, createImageRecord } from '../../capture';
-import { checkFileExists } from '../../transaction/adapters';
+import {
+  getImageById,
+  updateImageS3Key,
+  createImageRecord,
+} from '../adapters/imageSyncAdapter';
+import { checkFileExists } from '../adapters/transactionSyncAdapter';
 import { logger, EVENTS } from '../../../00_kernel/telemetry/logger';
 import type { Transaction } from '../../../01_domains/transaction';
 

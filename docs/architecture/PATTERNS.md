@@ -479,6 +479,73 @@ export function useUserData() {
 }
 ```
 
+### Real-World Example: Sync Module
+
+**Module**: `app/src/02_modules/sync` (Issue #167)
+
+The Sync module demonstrates complete Hook Bridge Layer implementation with all three identities:
+
+| Identity | Hooks | Purpose |
+|----------|-------|---------|
+| **Connector** | `useIsOnline()`, `usePendingCount()`, `useLastSyncedAt()` | Subscribe to syncStore primitives |
+| **Selector** | `useIsSyncing()`, `useHasError()` | Derive boolean state from status |
+| **Orchestrator** | `useSyncActions()` | Coordinate manualSyncService, transactionPushService, pullTransactions |
+
+**Example Implementation**:
+
+```typescript
+// Connector + Selector (primitives only)
+export function usePendingCount(): number {
+  return useStore(syncStore, (s) => s.pendingCount);
+}
+
+export function useIsSyncing(): boolean {
+  return useStore(syncStore, (s) => s.status === 'syncing');
+}
+
+// Orchestrator (service coordination)
+export function useSyncActions(): SyncActions {
+  const triggerFullSync = useCallback(async (userId: UserId) => {
+    await manualSyncService.sync(userId);
+  }, []);
+
+  const triggerPushSync = useCallback(async (userId: UserId) => {
+    await transactionPushService.syncDirtyTransactions(userId, traceId);
+  }, []);
+
+  return { triggerFullSync, triggerPushSync, clearQueue };
+}
+```
+
+**View Layer Usage**:
+
+```typescript
+export function SyncStatusIndicator() {
+  const pendingCount = usePendingCount();  // Identity 1: Connector
+  const isSyncing = useIsSyncing();        // Identity 2: Selector
+
+  return (
+    <div>
+      {isSyncing && <span>⟳ Syncing...</span>}
+      {!isSyncing && pendingCount > 0 && <span>{pendingCount} pending</span>}
+    </div>
+  );
+}
+```
+
+**Benefits**:
+- ✅ Complete 4.5-layer architecture (Views → Hook Bridge → Services → Adapters → Tauri/AWS)
+- ✅ No object selectors (ADR-012 compliance)
+- ✅ Pure JSX views (Pillar L)
+- ✅ Service coordination in dedicated hooks
+- ✅ Firewall boundaries between modules (Pillar I)
+
+**Files**:
+- Hooks: `app/src/02_modules/sync/hooks/useSyncState.ts`
+- Views: `app/src/02_modules/sync/views/SyncStatusIndicator.tsx`
+- Services: `app/src/02_modules/sync/services/`
+- Adapters: `app/src/02_modules/sync/adapters/`
+
 **See Also**:
 - [ADR-020: Hook Bridge Layer](./ADR/020-hook-bridge-layer.md) - Full specification
 - [LAYERS.md](./LAYERS.md) - Layer 1.5 documentation

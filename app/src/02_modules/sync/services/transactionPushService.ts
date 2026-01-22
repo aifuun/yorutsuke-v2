@@ -15,8 +15,11 @@
 import { logger } from '../../../00_kernel/telemetry/logger';
 import type { UserId, TraceId } from '../../../00_kernel/types';
 import { TransactionId } from '../../../00_kernel/types';
-import * as transactionDb from '../../transaction/adapters/transactionDb';
-import * as transactionApi from '../../transaction/adapters/transactionApi';
+import {
+  fetchDirtyTransactions,
+  clearDirtyFlags,
+  syncTransactionsToCloud,
+} from '../adapters/transactionSyncAdapter';
 import { syncStore } from '../stores/syncStore';
 import type { SyncAction } from '../stores/syncStore';
 import { networkMonitor } from '../utils/networkMonitor';
@@ -37,7 +40,7 @@ class TransactionPushService {
    * @returns Result with synced count, failed IDs, and queued count
    */
   async syncDirtyTransactions(userId: UserId, traceId: TraceId): Promise<PushSyncResult> {
-    const dirty = await transactionDb.fetchDirtyTransactions(userId);
+    const dirty = await fetchDirtyTransactions(userId);
 
     if (dirty.length === 0) {
       // No dirty transactions - clear any stale queue items
@@ -87,7 +90,7 @@ class TransactionPushService {
       syncStore.getState().setSyncStatus('syncing');
 
       // ✅ IO-First: Execute all IO operations first
-      const result = await transactionApi.syncTransactions(userId, dirty);
+      const result = await syncTransactionsToCloud(userId, dirty);
 
       // Clear dirty flags for successfully synced records
       const syncedIds = dirty
@@ -95,7 +98,7 @@ class TransactionPushService {
         .map((tx) => tx.id);
 
       if (syncedIds.length > 0) {
-        await transactionDb.clearDirtyFlags(syncedIds);
+        await clearDirtyFlags(syncedIds);
       }
 
       // Queue failed records for retry

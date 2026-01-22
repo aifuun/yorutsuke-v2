@@ -12,7 +12,7 @@
 
 import type { UserId } from '../../../00_kernel/types';
 import { logger } from '../../../00_kernel/telemetry/logger';
-import * as transactionDb from '../../transaction/adapters/transactionDb';
+import { fetchDirtyTransactions, clearDirtyFlags } from '../adapters/transactionSyncAdapter';
 import { syncStore } from '../stores/syncStore';
 
 export interface RecoveryStatus {
@@ -42,7 +42,7 @@ class RecoveryService {
 
     try {
       // Check for dirty records in database
-      const dirtyTransactions = await transactionDb.fetchDirtyTransactions(userId);
+      const dirtyTransactions = await fetchDirtyTransactions(userId);
       const dirtyCount = dirtyTransactions.length;
 
       // Check offline queue
@@ -107,11 +107,11 @@ class RecoveryService {
 
     try {
       // Clear dirty flags in database
-      const dirtyTransactions = await transactionDb.fetchDirtyTransactions(userId);
+      const dirtyTransactions = await fetchDirtyTransactions(userId);
       const dirtyIds = dirtyTransactions.map((tx) => tx.id);
 
       if (dirtyIds.length > 0) {
-        await transactionDb.clearDirtyFlags(dirtyIds);
+        await clearDirtyFlags(dirtyIds);
         logger.info('recovery_dirty_cleared', {
           module: 'sync',
           count: dirtyIds.length,

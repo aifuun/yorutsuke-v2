@@ -1,6 +1,6 @@
 /**
- * Sync Status Indicator Tests (Issue #86)
- * Tests UI component for sync status display
+ * Sync Status Indicator Tests (Issue #167)
+ * Tests UI component for sync status display using Hook Bridge Layer
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
@@ -8,45 +8,27 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { STATUS_I18N, formatPending } from '../__tests__/i18n';
 
-// Mock store state
-const mockStoreState = {
-  isOnline: true,
-  pendingCount: 0,
-  lastSyncedAt: null as string | null,
-  status: 'idle' as 'idle' | 'syncing' | 'success' | 'error',
-  // Mock actions (not used in component)
-  setSyncStatus: vi.fn(),
-  setLastSyncedAt: vi.fn(),
-  setLastError: vi.fn(),
-  addToQueue: vi.fn(),
-  removeFromQueue: vi.fn(),
-  clearQueue: vi.fn(),
-  setOnlineStatus: vi.fn(),
-  getStatus: () => mockStoreState.status,
-  getQueue: () => [],
-  getIsOnline: () => mockStoreState.isOnline,
-  lastError: null,
-  queue: [],
-};
+// Mock hook return values
+let mockIsOnline = true;
+let mockPendingCount = 0;
+let mockLastSyncedAt: string | null = null;
+let mockIsSyncing = false;
 
-// Mock syncStore (vanilla store)
-vi.mock('../stores/syncStore', () => ({
-  syncStore: {
-    getState: () => mockStoreState,
-    subscribe: () => {
-      // Return unsubscribe function
-      return () => {};
-    },
-  },
+// Mock hooks (ADR-020: Hook Bridge Layer)
+vi.mock('../hooks', () => ({
+  useIsOnline: () => mockIsOnline,
+  usePendingCount: () => mockPendingCount,
+  useLastSyncedAt: () => mockLastSyncedAt,
+  useIsSyncing: () => mockIsSyncing,
 }));
 
 describe('SyncStatusIndicator', () => {
   beforeEach(() => {
-    // Reset mock state
-    mockStoreState.isOnline = true;
-    mockStoreState.pendingCount = 0;
-    mockStoreState.lastSyncedAt = null;
-    mockStoreState.status = 'idle';
+    // Reset mock hook values
+    mockIsOnline = true;
+    mockPendingCount = 0;
+    mockLastSyncedAt = null;
+    mockIsSyncing = false;
   });
 
   afterEach(() => {
@@ -55,7 +37,7 @@ describe('SyncStatusIndicator', () => {
 
   describe('online status', () => {
     it('should show online indicator', () => {
-      mockStoreState.isOnline = true;
+      mockIsOnline = true;
 
       render(<SyncStatusIndicator />);
 
@@ -65,7 +47,7 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should show offline indicator', () => {
-      mockStoreState.isOnline = false;
+      mockIsOnline = false;
 
       render(<SyncStatusIndicator />);
 
@@ -75,7 +57,7 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should apply offline class when offline', () => {
-      mockStoreState.isOnline = false;
+      mockIsOnline = false;
 
       const { container } = render(<SyncStatusIndicator />);
 
@@ -86,7 +68,7 @@ describe('SyncStatusIndicator', () => {
 
   describe('syncing state', () => {
     it('should show syncing text when syncing', () => {
-      mockStoreState.status = 'syncing';
+      mockIsSyncing = true;
 
       render(<SyncStatusIndicator />);
 
@@ -94,8 +76,8 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should not show pending count when syncing', () => {
-      mockStoreState.status = 'syncing';
-      mockStoreState.pendingCount = 5;
+      mockIsSyncing = true;
+      mockPendingCount = 5;
 
       render(<SyncStatusIndicator />);
 
@@ -106,8 +88,8 @@ describe('SyncStatusIndicator', () => {
 
   describe('pending count', () => {
     it('should show pending count when not syncing', () => {
-      mockStoreState.status = 'idle';
-      mockStoreState.pendingCount = 3;
+      mockIsSyncing = false;
+      mockPendingCount = 3;
 
       render(<SyncStatusIndicator />);
 
@@ -115,9 +97,9 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should not show pending count when zero', () => {
-      mockStoreState.status = 'idle';
-      mockStoreState.pendingCount = 0;
-      mockStoreState.lastSyncedAt = '2026-01-15T10:00:00Z';
+      mockIsSyncing = false;
+      mockPendingCount = 0;
+      mockLastSyncedAt = '2026-01-15T10:00:00Z';
 
       render(<SyncStatusIndicator />);
 
@@ -127,9 +109,9 @@ describe('SyncStatusIndicator', () => {
 
   describe('last synced time', () => {
     it('should show "just now" for recent sync', () => {
-      mockStoreState.pendingCount = 0;
-      mockStoreState.status = 'idle';
-      mockStoreState.lastSyncedAt = new Date().toISOString();
+      mockPendingCount = 0;
+      mockIsSyncing = false;
+      mockLastSyncedAt = new Date().toISOString();
 
       render(<SyncStatusIndicator />);
 
@@ -138,9 +120,9 @@ describe('SyncStatusIndicator', () => {
 
     it('should show minutes ago', () => {
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-      mockStoreState.pendingCount = 0;
-      mockStoreState.status = 'idle';
-      mockStoreState.lastSyncedAt = twoMinutesAgo;
+      mockPendingCount = 0;
+      mockIsSyncing = false;
+      mockLastSyncedAt = twoMinutesAgo;
 
       render(<SyncStatusIndicator />);
 
@@ -149,9 +131,9 @@ describe('SyncStatusIndicator', () => {
 
     it('should show hours ago', () => {
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      mockStoreState.pendingCount = 0;
-      mockStoreState.status = 'idle';
-      mockStoreState.lastSyncedAt = twoHoursAgo;
+      mockPendingCount = 0;
+      mockIsSyncing = false;
+      mockLastSyncedAt = twoHoursAgo;
 
       render(<SyncStatusIndicator />);
 
@@ -160,9 +142,9 @@ describe('SyncStatusIndicator', () => {
 
     it('should show days ago', () => {
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-      mockStoreState.pendingCount = 0;
-      mockStoreState.status = 'idle';
-      mockStoreState.lastSyncedAt = threeDaysAgo;
+      mockPendingCount = 0;
+      mockIsSyncing = false;
+      mockLastSyncedAt = threeDaysAgo;
 
       render(<SyncStatusIndicator />);
 
@@ -170,8 +152,8 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should not show time when syncing', () => {
-      mockStoreState.status = 'syncing';
-      mockStoreState.lastSyncedAt = '2026-01-15T10:00:00Z';
+      mockIsSyncing = true;
+      mockLastSyncedAt = '2026-01-15T10:00:00Z';
 
       render(<SyncStatusIndicator />);
 
@@ -179,8 +161,8 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should not show time when pending', () => {
-      mockStoreState.pendingCount = 2;
-      mockStoreState.lastSyncedAt = '2026-01-15T10:00:00Z';
+      mockPendingCount = 2;
+      mockLastSyncedAt = '2026-01-15T10:00:00Z';
 
       render(<SyncStatusIndicator />);
 
@@ -191,9 +173,9 @@ describe('SyncStatusIndicator', () => {
 
   describe('hideWhenIdle prop', () => {
     it('should hide when idle and hideWhenIdle=true', () => {
-      mockStoreState.isOnline = true;
-      mockStoreState.pendingCount = 0;
-      mockStoreState.status = 'idle';
+      mockIsOnline = true;
+      mockPendingCount = 0;
+      mockIsSyncing = false;
 
       const { container } = render(<SyncStatusIndicator hideWhenIdle={true} />);
 
@@ -201,8 +183,8 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should show when pending and hideWhenIdle=true', () => {
-      mockStoreState.isOnline = true;
-      mockStoreState.pendingCount = 1;
+      mockIsOnline = true;
+      mockPendingCount = 1;
 
       render(<SyncStatusIndicator hideWhenIdle={true} />);
 
@@ -210,8 +192,8 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should show when offline and hideWhenIdle=true', () => {
-      mockStoreState.isOnline = false;
-      mockStoreState.pendingCount = 0;
+      mockIsOnline = false;
+      mockPendingCount = 0;
 
       render(<SyncStatusIndicator hideWhenIdle={true} />);
 
@@ -219,9 +201,9 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should always show when hideWhenIdle=false', () => {
-      mockStoreState.isOnline = true;
-      mockStoreState.pendingCount = 0;
-      mockStoreState.status = 'idle';
+      mockIsOnline = true;
+      mockPendingCount = 0;
+      mockIsSyncing = false;
 
       render(<SyncStatusIndicator hideWhenIdle={false} />);
 
@@ -231,8 +213,8 @@ describe('SyncStatusIndicator', () => {
 
   describe('priority of displayed status', () => {
     it('should prioritize syncing over pending', () => {
-      mockStoreState.status = 'syncing';
-      mockStoreState.pendingCount = 5;
+      mockIsSyncing = true;
+      mockPendingCount = 5;
 
       render(<SyncStatusIndicator />);
 
@@ -241,9 +223,9 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should prioritize pending over last synced', () => {
-      mockStoreState.status = 'idle';
-      mockStoreState.pendingCount = 3;
-      mockStoreState.lastSyncedAt = '2026-01-15T10:00:00Z';
+      mockIsSyncing = false;
+      mockPendingCount = 3;
+      mockLastSyncedAt = '2026-01-15T10:00:00Z';
 
       render(<SyncStatusIndicator />);
 
@@ -252,9 +234,9 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should show last synced when nothing else to show', () => {
-      mockStoreState.status = 'idle';
-      mockStoreState.pendingCount = 0;
-      mockStoreState.lastSyncedAt = new Date().toISOString();
+      mockIsSyncing = false;
+      mockPendingCount = 0;
+      mockLastSyncedAt = new Date().toISOString();
 
       render(<SyncStatusIndicator />);
 
@@ -271,7 +253,7 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should have online class when online', () => {
-      mockStoreState.isOnline = true;
+      mockIsOnline = true;
 
       const { container } = render(<SyncStatusIndicator />);
 
@@ -280,7 +262,7 @@ describe('SyncStatusIndicator', () => {
     });
 
     it('should have offline class when offline', () => {
-      mockStoreState.isOnline = false;
+      mockIsOnline = false;
 
       const { container } = render(<SyncStatusIndicator />);
 
