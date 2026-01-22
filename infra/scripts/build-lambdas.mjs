@@ -79,6 +79,27 @@ async function main() {
   }
 }
 
+// esbuild plugin to rewrite .js imports to .mjs
+const rewriteImportsPlugin = {
+  name: 'rewrite-imports',
+  setup(build) {
+    build.onLoad({ filter: /\.ts$/ }, async (args) => {
+      const fs = await import('fs/promises');
+      const contents = await fs.readFile(args.path, 'utf8');
+
+      // Rewrite import/export statements: .js -> .mjs
+      const rewritten = contents
+        .replace(/from\s+['"](\.[^'"]+)\.js['"]/g, "from '$1.mjs'")
+        .replace(/import\s+['"](\.[^'"]+)\.js['"]/g, "import '$1.mjs'");
+
+      return {
+        contents: rewritten,
+        loader: 'ts',
+      };
+    });
+  },
+};
+
 async function buildSharedLayer() {
   const sharedLayerSrc = join(lambdaRoot, 'shared-layer/nodejs/shared');
   const sharedLayerDist = join(distRoot, 'shared-layer/nodejs/shared');
@@ -111,6 +132,7 @@ async function buildSharedLayer() {
     outExtension: {
       '.js': '.mjs', // Output .mjs for ES modules (matches import paths in Lambda functions)
     },
+    plugins: [rewriteImportsPlugin],
     logLevel: 'info',
   });
 
@@ -163,6 +185,7 @@ async function buildLambdaFunctions() {
         outExtension: {
           '.js': '.mjs', // Output .mjs for ES modules
         },
+        plugins: [rewriteImportsPlugin],
         logLevel: 'warning',
       });
       log(`  ✓ Built ${funcName} (TypeScript)`, colors.green);
