@@ -28,7 +28,8 @@
 │  └─────────────┘  └─────────────┘                          │
 │                                                             │
 │  Writer: Service layer only                                 │
-│  Reader: React via useStore()                               │
+│  Reader: React via Hook Bridge (Layer 1.5)                  │
+│          Hook uses useStore() for primitive selectors       │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```

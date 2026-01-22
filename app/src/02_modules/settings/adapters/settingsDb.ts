@@ -4,20 +4,20 @@
 import { getSetting, setSetting } from '../../../00_kernel/storage';
 
 // Settings keys
+// Note: 'debug_enabled' moved to Debug module (Issue #166: Option B)
 export type SettingsKey =
   | 'user_name'
   | 'notification_enabled'
   | 'theme'
-  | 'language'
-  | 'debug_enabled';
+  | 'language';
 
 // Type-safe settings
+// Note: debugEnabled moved to Debug module (Issue #166: Option B)
 export interface AppSettings {
   userName: string | null;
   notificationEnabled: boolean;
   theme: 'light' | 'dark';
   language: 'ja' | 'en' | 'zh';
-  debugEnabled: boolean;
 }
 
 // Default values
@@ -26,19 +26,17 @@ const DEFAULTS: AppSettings = {
   notificationEnabled: true,
   theme: 'dark',
   language: 'en',
-  debugEnabled: false,
 };
 
 /**
  * Load all settings from SQLite
  */
 export async function loadSettings(): Promise<AppSettings> {
-  const [userName, notification, theme, language, debug] = await Promise.all([
+  const [userName, notification, theme, language] = await Promise.all([
     getSetting('user_name'),
     getSetting('notification_enabled'),
     getSetting('theme'),
     getSetting('language'),
-    getSetting('debug_enabled'),
   ]);
 
   return {
@@ -46,7 +44,6 @@ export async function loadSettings(): Promise<AppSettings> {
     notificationEnabled: notification === 'false' ? false : DEFAULTS.notificationEnabled,
     theme: (theme as AppSettings['theme']) ?? DEFAULTS.theme,
     language: (language as AppSettings['language']) ?? DEFAULTS.language,
-    debugEnabled: debug === 'true',
   };
 }
 
@@ -69,7 +66,6 @@ function keyToDbKey(key: keyof AppSettings): SettingsKey {
     notificationEnabled: 'notification_enabled',
     theme: 'theme',
     language: 'language',
-    debugEnabled: 'debug_enabled',
   };
   return map[key];
 }

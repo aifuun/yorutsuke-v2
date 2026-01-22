@@ -4,7 +4,8 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStore } from 'zustand';
 import { authStateService, useEffectiveUserId } from '../../auth';
-import { settingsStateService } from '../../settings';
+import { useDebugEnabled, debugSettingsActions, useDebugSettingsInit } from '../hooks';
+import { useSettingsTheme, useSettingsLanguage } from '../../settings/hooks';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
@@ -43,13 +44,20 @@ function useMockMode(): MockMode {
 export function DebugView() {
   const { t } = useTranslation();
 
+  // Initialize debug settings (Issue #166: Option B - isolated from Settings module)
+  useDebugSettingsInit();
+
   // Subscribe to auth state (primitive selector to avoid infinite loops)
   const user = useStore(authStateService.store, s => s.user);
 
   const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
 
-  // Subscribe to settings state
-  const settingsState = useStore(settingsStateService.store);
+  // Subscribe to debug settings (Issue #166: Option B - isolated from Settings module)
+  const debugEnabled = useDebugEnabled();
+
+  // Subscribe to Settings module data for display
+  const theme = useSettingsTheme();
+  const language = useSettingsLanguage();
 
   const { quota } = useQuota();
   const logs = useLogs();
@@ -70,13 +78,11 @@ export function DebugView() {
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
   useEffect(() => {
-    if (settingsState.status === 'success') {
-      setVerboseLogging(settingsState.settings.debugEnabled);
-    }
-  }, [settingsState]);
+    setVerboseLogging(debugEnabled);
+  }, [debugEnabled]);
 
   // Handle loading state
-  if (settingsState.status === 'loading' || settingsState.status === 'idle' || userIdLoading) {
+  if (userIdLoading) {
     return (
       <div className="debug">
         <ViewHeader title={t('debug.title')} rightContent={<VersionBadge version={APP_VERSION} />} />
@@ -86,19 +92,6 @@ export function DebugView() {
       </div>
     );
   }
-
-  if (settingsState.status === 'error') {
-    return (
-      <div className="debug">
-        <ViewHeader title={t('debug.title')} />
-        <div className="debug-content">
-          <div className="debug-error">{t('common.error')}</div>
-        </div>
-      </div>
-    );
-  }
-
-  const currentSettings = settingsState.settings;
 
   const handleSeedData = async () => {
     if (!effectiveUserId) {
@@ -377,11 +370,11 @@ export function DebugView() {
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">Theme</span>
-                <span className="debug-value">{currentSettings.theme}</span>
+                <span className="debug-value">{theme}</span>
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">Lang</span>
-                <span className="debug-value">{currentSettings.language}</span>
+                <span className="debug-value">{language}</span>
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">DB</span>
@@ -508,10 +501,10 @@ export function DebugView() {
                   <span className="debug-verbose-label">Verbose</span>
                   <button
                     type="button"
-                    className={`toggle-switch toggle-switch--sm ${currentSettings.debugEnabled ? 'toggle-switch--active' : ''}`}
-                    onClick={() => settingsStateService.update('debugEnabled', !currentSettings.debugEnabled)}
+                    className={`toggle-switch toggle-switch--sm ${debugEnabled ? 'toggle-switch--active' : ''}`}
+                    onClick={() => debugSettingsActions.updateSetting('debugEnabled', !debugEnabled)}
                     role="switch"
-                    aria-checked={currentSettings.debugEnabled}
+                    aria-checked={debugEnabled}
                   />
                 </label>
                 <button

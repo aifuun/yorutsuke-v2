@@ -23,9 +23,9 @@
  */
 
 import { nanoid } from 'nanoid';
-import { createStore } from 'zustand/vanilla';
 import { logger } from '../../../00_kernel/telemetry';
 import { uploadDiagnosticReport } from '../adapters';
+import { diagnosticStore } from '../stores';
 import type { UserId } from '../../../00_kernel/types';
 import type {
   LocalDiagnosticData,
@@ -52,24 +52,6 @@ const ONLY_ERROR_WARN_LOGS = import.meta.env.VITE_DIAGNOSTIC_LOG_FILTER === 'fal
 const MAX_RETRIES = parseInt(import.meta.env.VITE_DIAGNOSTIC_MAX_RETRIES || '3', 10);
 const RETRY_DELAY_MS = parseInt(import.meta.env.VITE_DIAGNOSTIC_RETRY_DELAY_MS || '1000', 10);
 const REQUEST_TIMEOUT_MS = parseInt(import.meta.env.VITE_DIAGNOSTIC_REQUEST_TIMEOUT_MS || '30000', 10);
-
-// ============================================================================
-// Zustand Vanilla Store (Pillar L: Pure TS state management)
-// ============================================================================
-
-interface DiagnosticStoreState {
-  state: DiagnosticState;
-  result: DiagnosticExportResult | null;
-  error: string | null;
-  context: DiagnosticContext | null;
-}
-
-export const diagnosticStore = createStore<DiagnosticStoreState>(() => ({
-  state: 'idle',
-  result: null,
-  error: null,
-  context: null,
-}));
 
 // ============================================================================
 // FSM (Finite State Machine) Manager
@@ -853,14 +835,7 @@ export class DiagnosticService {
  * Global diagnostic service instance
  *
  * @note Created once at app startup
+ * @note Store is now in ../stores/diagnosticStore (Issue #166)
  * @see ADR-001: Service Pattern
  */
 export const diagnosticService = new DiagnosticService();
-
-/**
- * Global diagnostic store
- *
- * @note React components subscribe via: useStore(diagnosticStore, selector)
- * @see ADR-001: Service Pattern - Pure TS state, React observes only
- */
-// diagnosticStore is already exported above
