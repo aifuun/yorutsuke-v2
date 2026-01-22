@@ -108,7 +108,9 @@ async function buildSharedLayer() {
     target: 'node20',
     format: 'esm',
     outdir: sharedLayerDist,
-    // Note: Remove outExtension to keep .js (matches import statements in source)
+    outExtension: {
+      '.js': '.mjs', // Output .mjs for ES modules (matches import paths in Lambda functions)
+    },
     logLevel: 'info',
   });
 
@@ -158,8 +160,9 @@ async function buildLambdaFunctions() {
         target: 'node20',
         format: 'esm',
         outdir: funcDist,
-        // Note: Remove outExtension to keep .js (matches import statements in source)
-        // Note: 'external' option is not needed when bundle=false
+        outExtension: {
+          '.js': '.mjs', // Output .mjs for ES modules
+        },
         logLevel: 'warning',
       });
       log(`  ✓ Built ${funcName} (TypeScript)`, colors.green);
