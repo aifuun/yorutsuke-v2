@@ -140,6 +140,10 @@ export async function fetchTransactions(
   }
 
   const rows = await database.select<DbTransaction[]>(query, params);
+  // Defensive null check: database.select() can return null instead of empty array
+  if (!rows) {
+    return [];
+  }
   return rows.map(mapDbToTransaction);
 }
 
@@ -195,6 +199,10 @@ export async function countTransactions(
   }
 
   const rows = await database.select<Array<{ count: number }>>(query, params);
+  // Defensive null check: database.select() can return null instead of empty array
+  if (!rows || rows.length === 0) {
+    return 0;
+  }
   return rows[0]?.count ?? 0;
 }
 
@@ -208,7 +216,8 @@ export async function getTransactionById(id: TransactionIdType): Promise<Transac
     'SELECT * FROM transactions WHERE id = ?',
     [id],
   );
-  if (rows.length === 0) return null;
+  // Defensive null check: database.select() can return null instead of empty array
+  if (!rows || rows.length === 0) return null;
   return mapDbToTransaction(rows[0]);
 }
 
@@ -420,6 +429,10 @@ export async function fetchDirtyTransactions(userId: UserIdType): Promise<Transa
   const database = await getDb();
   const query = 'SELECT * FROM transactions WHERE user_id = ? AND dirty_sync = 1';
   const rows = await database.select<DbTransaction[]>(query, [userId]);
+  // Defensive null check: database.select() can return null instead of empty array
+  if (!rows) {
+    return [];
+  }
   return rows.map(mapDbToTransaction);
 }
 

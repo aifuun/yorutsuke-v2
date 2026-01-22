@@ -8,6 +8,7 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { on } from '../../../00_kernel/eventBus';
+import { logger } from '../../../00_kernel/telemetry';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
@@ -132,12 +133,27 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   }, []); // Run only on mount
 
-  // Initialize service with user and apply filters on mount or user change
+  // Initialize service with user on mount or user change
+  // Does NOT pass filter options - filters are applied via separate effect
   useEffect(() => {
     if (userId) {
-      setUser(userId, buildFetchOptions());
+      logger.debug('TransactionView: Setting user', { userId });
+      setUser(userId);  // Load all transactions initially
     }
-  }, [userId, setUser, buildFetchOptions]);
+  }, [userId, setUser]);
+
+  // Handle filter/sort changes: reload with current filters
+  // Runs when any filter state changes, applies new filters
+  // Uses useCallback to rebuild options based on current state
+  useEffect(() => {
+    if (!userId) return;
+
+    // Only reload if filters have actually changed from initial state
+    // buildFetchOptions changes when filters change, triggering this effect
+    logger.debug('TransactionView: Applying filters', { filters: buildFetchOptions() });
+    loadTransactions(buildFetchOptions());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, selectedMonth, statusFilter, typeFilter, categoryFilter, sortBy, sortOrder, currentPage]);
 
   // Handle sorting change
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

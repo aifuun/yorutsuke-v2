@@ -69,9 +69,10 @@ export function useFilteredTransactions(): Transaction[] {
 /**
  * Hook to get access to service methods for components
  * Provides: confirm, remove, update, loadMore, etc.
+ * NOTE: Wrapped in useMemo to provide stable references
  */
 export function useTransactionActions() {
-  return {
+  return useMemo(() => ({
     confirm: (id: Transaction['id']) => transactionService.confirmTransaction(id),
     remove: (id: Transaction['id']) => transactionService.removeTransaction(id),
     update: (id: Transaction['id'], fields: Parameters<typeof transactionService.updateTransaction>[1]) =>
@@ -80,7 +81,7 @@ export function useTransactionActions() {
       transactionService.loadTransactions(options),
     setUser: (userId: Parameters<typeof transactionService.setUser>[0], options?: FetchTransactionsOptions) =>
       transactionService.setUser(userId, options),
-  };
+  }), []);
 }
 
 /**

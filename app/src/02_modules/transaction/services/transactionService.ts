@@ -30,6 +30,7 @@ class TransactionService {
   private initialized = false;
   private userId: UserId | null = null;
   private cleanupTransactionListener: (() => void) | null = null;
+  private isLoading = false;  // Guard against concurrent loads
 
   store = transactionStore;
 
@@ -38,11 +39,20 @@ class TransactionService {
    * Called once at app startup
    */
   init(): void {
+    // Log with full stack trace to identify where init is being called from
+    const stackTrace = new Error().stack?.split('\n').slice(1, 4).join(' <- ') || 'unknown';
+
     if (this.initialized) {
-      logger.warn(EVENTS.SERVICE_INITIALIZED, { service: 'TransactionService', status: 'already_initialized' });
+      logger.warn('TRANSACTION_SERVICE_INIT_REDUNDANT', {
+        service: 'TransactionService',
+        status: 'already_initialized',
+        callStack: stackTrace
+      });
       return;
     }
     this.initialized = true;
+
+    logger.info('TRANSACTION_SERVICE_INIT_START', { service: 'TransactionService', callStack: stackTrace });
 
     // Listen for transaction mutations (confirmed, updated, deleted)
     // Reload transactions after operations complete
@@ -53,22 +63,32 @@ class TransactionService {
       }
     });
 
-    logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'TransactionService' });
+    logger.info('TRANSACTION_SERVICE_INIT_COMPLETE', { service: 'TransactionService' });
   }
 
   /**
    * Set current user and load their transactions with optional filters
    */
   async setUser(userId: UserId | null, options?: FetchTransactionsOptions): Promise<void> {
-    logger.debug('TRANSACTION_SET_USER', { userId });
+    const stackTrace = new Error().stack?.split('\n').slice(1, 4).join(' <- ') || 'unknown';
+    logger.debug('TRANSACTION_SET_USER_START', {
+      userId,
+      hasOptions: !!options,
+      optionKeys: options ? Object.keys(options) : [],
+      callStack: stackTrace
+    });
     this.userId = userId;
 
     if (userId) {
+      logger.debug('TRANSACTION_SET_USER_LOADING', { userId, options });
       await this.loadTransactions(options || {});
+      logger.debug('TRANSACTION_SET_USER_LOADED', { userId });
     } else {
       // Clear store when user logs out
+      logger.debug('TRANSACTION_SET_USER_CLEARING', { userId: null });
       this.store.getState().setTransactions([]);
       this.store.getState().setStatus('idle');
+      logger.debug('TRANSACTION_SET_USER_CLEARED');
     }
   }
 
@@ -82,20 +102,59 @@ class TransactionService {
       return;
     }
 
-    logger.info('TRANSACTION_LOAD_START', { userId: this.userId });
+    // Guard against concurrent loads (Issue #89: prevent race conditions from rapid filter changes)
+    if (this.isLoading) {
+      logger.warn('TRANSACTION_LOAD_SKIPPED', {
+        userId: this.userId,
+        reason: 'already_loading',
+      });
+      return;
+    }
+
+    this.isLoading = true;
+
+    logger.info('TRANSACTION_LOAD_START', {
+      userId: this.userId,
+      options: {
+        startDate: options.startDate,
+        endDate: options.endDate,
+        statusFilter: options.statusFilter,
+        typeFilter: options.typeFilter,
+        categoryFilter: options.categoryFilter,
+        sortBy: options.sortBy,
+        sortOrder: options.sortOrder,
+        limit: options.limit,
+        offset: options.offset,
+      },
+    });
     this.store.getState().setStatus('loading');
 
     try {
       // 1. Fetch transactions from adapter
+      logger.debug('TRANSACTION_LOAD_FETCH_START', { userId: this.userId });
       const transactions = await fetchTransactions(this.userId, options);
+      logger.debug('TRANSACTION_LOAD_FETCH_SUCCESS', {
+        userId: this.userId,
+        count: transactions.length
+      });
 
       // 2. Fetch total count for pagination
+      logger.debug('TRANSACTION_LOAD_COUNT_START', { userId: this.userId });
       const totalCount = await countTransactions(this.userId, {
         startDate: options.startDate,
         endDate: options.endDate,
       });
+      logger.debug('TRANSACTION_LOAD_COUNT_SUCCESS', {
+        userId: this.userId,
+        totalCount
+      });
 
       // 3. Update store (triggers UI update via React subscribers)
+      logger.debug('TRANSACTION_LOAD_UPDATE_STORE', {
+        userId: this.userId,
+        transactionCount: transactions.length,
+        totalCount
+      });
       this.store.getState().setTransactions(transactions);
       this.store.getState().setTotalCount(totalCount);
       this.store.getState().setStatus('idle');
@@ -111,13 +170,18 @@ class TransactionService {
       });
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e);
+      const errorStack = e instanceof Error ? e.stack : undefined;
       logger.error(EVENTS.APP_ERROR, {
         context: 'transaction_load',
         userId: this.userId,
         error: errorMessage,
+        stack: errorStack,
       });
       this.store.getState().setStatus('error');
       this.store.getState().setError(errorMessage);
+    } finally {
+      // Always clear loading flag (both success and error cases)
+      this.isLoading = false;
     }
   }
 
