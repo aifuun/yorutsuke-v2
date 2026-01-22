@@ -2,12 +2,13 @@
 // Pillar L: Bridge between Service layer and React components
 // CRITICAL: Use primitive selectors only to avoid infinite loops (ADR-012)
 
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useStore } from 'zustand';
 import { transactionService } from '../services/transactionService';
 import { filterTransactions } from '../../../01_domains/transaction';
 import type { TransactionUIStatus } from '../stores/transactionStore';
 import type { Transaction, TransactionFilters } from '../../../01_domains/transaction';
+import type { FetchTransactionsOptions } from '../adapters';
 
 /**
  * Subscribe to complete transaction state
@@ -77,7 +78,8 @@ export function useTransactionActions() {
       transactionService.updateTransaction(id, fields),
     loadTransactions: (options?: Parameters<typeof transactionService.loadTransactions>[0]) =>
       transactionService.loadTransactions(options),
-    setUser: (userId: Parameters<typeof transactionService.setUser>[0]) => transactionService.setUser(userId),
+    setUser: (userId: Parameters<typeof transactionService.setUser>[0], options?: FetchTransactionsOptions) =>
+      transactionService.setUser(userId, options),
   };
 }
 

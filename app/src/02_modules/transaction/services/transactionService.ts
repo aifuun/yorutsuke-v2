@@ -57,14 +57,14 @@ class TransactionService {
   }
 
   /**
-   * Set current user and load their transactions
+   * Set current user and load their transactions with optional filters
    */
-  async setUser(userId: UserId | null): Promise<void> {
+  async setUser(userId: UserId | null, options?: FetchTransactionsOptions): Promise<void> {
     logger.debug('TRANSACTION_SET_USER', { userId });
     this.userId = userId;
 
     if (userId) {
-      await this.loadTransactions();
+      await this.loadTransactions(options || {});
     } else {
       // Clear store when user logs out
       this.store.getState().setTransactions([]);

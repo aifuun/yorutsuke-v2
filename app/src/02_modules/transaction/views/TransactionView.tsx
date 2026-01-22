@@ -1,8 +1,7 @@
 // Pillar L: Views are pure JSX, logic in services
 import { useState, useCallback, useEffect } from 'react';
 import { useStore } from 'zustand';
-import { useTransactionStatus, useTransactions, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
-import { transactionService } from '../services/transactionService';
+import { useTransactionStatus, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, SyncButton } from '../../../components';
 import { ask } from '@tauri-apps/plugin-dialog';
@@ -32,7 +31,6 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
 
   // Subscribe to transaction state using new hooks
   const status = useTransactionStatus();
-  const transactions = useTransactions();
   const error = useTransactionError();
   const filteredTransactions = useFilteredTransactions();
   const totalCount = useTransactionCount();
@@ -134,19 +132,12 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   }, []); // Run only on mount
 
-  // Initialize service with user when userId changes
+  // Initialize service with user and apply filters on mount or user change
   useEffect(() => {
     if (userId) {
-      setUser(userId);
+      setUser(userId, buildFetchOptions());
     }
-  }, [userId, setUser]);
-
-  // Reload data when filter options change
-  useEffect(() => {
-    if (userId) {
-      loadTransactions(buildFetchOptions());
-    }
-  }, [buildFetchOptions, userId, loadTransactions]);
+  }, [userId, setUser, buildFetchOptions]);
 
   // Handle sorting change
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
