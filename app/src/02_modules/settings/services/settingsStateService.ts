@@ -32,16 +32,41 @@ type SettingsState =
   | { status: 'error'; error: string };
 
 class SettingsStateService {
+  private static instance: SettingsStateService | null = null;
+
   // Zustand vanilla store
   store = createStore<SettingsState>(() => ({
     status: 'idle',
   }));
+
+  private initialized = false;
+
+  /**
+   * Private constructor - enforces singleton pattern
+   */
+  private constructor() {}
+
+  /**
+   * Get or create the singleton instance
+   * @internal - Used only for module exports, not for app code
+   */
+  static getInstance(): SettingsStateService {
+    if (!SettingsStateService.instance) {
+      SettingsStateService.instance = new SettingsStateService();
+    }
+    return SettingsStateService.instance;
+  }
 
   /**
    * Initialize service - load settings and apply them
    * Called once at app startup
    */
   async init(): Promise<void> {
+    // Prevent duplicate initialization
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
     await this.load();
   }
 
@@ -108,6 +133,20 @@ class SettingsStateService {
     const state = this.store.getState();
     return state.status === 'success' ? state.settings : null;
   }
+
+  /**
+   * Cleanup resources and reset singleton
+   * Note: Only use for testing. In production, the singleton lives for entire app lifetime.
+   */
+  destroy(): void {
+    this.initialized = false;
+    this.store.setState({ status: 'idle' });
+    SettingsStateService.instance = null;
+  }
 }
 
-export const settingsStateService = new SettingsStateService();
+/**
+ * Singleton instance - guaranteed to be created only once
+ * Call init() once at app startup to load settings
+ */
+export const settingsStateService = SettingsStateService.getInstance();

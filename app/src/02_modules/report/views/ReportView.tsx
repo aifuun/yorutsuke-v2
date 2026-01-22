@@ -1,9 +1,10 @@
 // Pillar L: View - renders data from headless hook
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { UserId, TransactionId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { createDailySummary } from '../../../01_domains/transaction';
-import { useTransactionLogic } from '../../transaction';
+import { useTransactions, useTransactionStatus } from '../../transaction/hooks/useTransactionState';
+import { transactionService } from '../../transaction/services/transactionService';
 import { useTranslation } from '../../../i18n';
 import { SummaryCards } from './SummaryCards';
 import { CategoryBreakdown } from './CategoryBreakdown';
@@ -21,17 +22,43 @@ export function ReportView({ userId, date }: ReportViewProps) {
   const { t } = useTranslation();
   const targetDate = date || new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
 
-  const {
-    state,
-    transactions,
-    filteredTransactions,
-    filters,
-    setFilters,
-    clearFilters,
-    save,
-    confirm,
-    remove,
-  } = useTransactionLogic(userId);
+  // Local filter state
+  const [filters, setFiltersLocal] = useState({ dateStart: undefined, dateEnd: undefined, category: 'all' as const, type: 'all' as const });
+
+  // Initialize service with user
+  // Note: transactionService auto-initializes on first access (singleton pattern)
+  useEffect(() => {
+    if (userId) {
+      transactionService.setUser(userId);
+    }
+  }, [userId]);
+
+  const state = useTransactionStatus();
+  const transactions = useTransactions();
+
+  // Action handlers
+  const setFilters = (newFilters: any) => setFiltersLocal(newFilters);
+  const clearFilters = () => setFiltersLocal({ dateStart: undefined, dateEnd: undefined, category: 'all' as const, type: 'all' as const });
+
+  // Local action methods
+  const save = async (tx: Transaction) => {
+    await transactionService.saveTransaction(tx);
+  };
+  const confirm = async (id: TransactionId) => {
+    await transactionService.confirmTransaction(id);
+  };
+  const remove = async (id: TransactionId) => {
+    await transactionService.removeTransaction(id);
+  };
+
+  // Filter transactions locally
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(tx => {
+      if (filters.category && filters.category !== 'all' && tx.category !== filters.category) return false;
+      if (filters.type && filters.type !== 'all' && tx.type !== filters.type) return false;
+      return true;
+    });
+  }, [transactions, filters]);
 
   // Compute summary from filtered transactions
   const summary = useMemo(
@@ -80,15 +107,15 @@ export function ReportView({ userId, date }: ReportViewProps) {
       </div>
     );
   }
-  if (state.status === 'loading') {
+  if (state === 'loading') {
     return <div className="report-loading">{t('common.loading')}</div>;
   }
-  if (state.status === 'idle') {
+  if (state === 'idle') {
     // Initial state before load starts - treat as loading
     return <div className="report-loading">{t('common.loading')}</div>;
   }
-  if (state.status === 'error') {
-    return <div className="report-error">{t('common.error')}: {state.error}</div>;
+  if (state === 'error') {
+    return <div className="report-error">{t('common.error')}</div>;
   }
 
   return (

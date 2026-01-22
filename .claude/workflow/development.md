@@ -214,24 +214,163 @@ For each step:
 
 ---
 
+### Phase 3b: Testing (REQUIRED)
+
+**Critical**: Both unit AND integration tests are required. Issue #89 demonstrated that unit tests with heavy mocking can hide architectural violations.
+
+#### Unit Test Requirement
+
+**File Pattern**: `{module}.test.ts`
+
+**Mock Strategy**: Mock ALL dependencies (adapters, services, eventBus, external APIs)
+
+**Coverage**:
+- [ ] Critical paths (main workflow)
+- [ ] Edge cases (empty inputs, null values, boundaries)
+- [ ] Race conditions (concurrent operations)
+- [ ] Error flows (network failures, validation errors)
+
+**Example**:
+```typescript
+describe('TransactionService', () => {
+  beforeEach(() => {
+    // Mock ALL dependencies
+    vi.mock('../adapters', () => ({ fetchTransactions: vi.fn() }));
+    vi.mock('../stores', () => ({ store: mockStore }));
+  });
+
+  it('should handle transactions when fetch succeeds', async () => {
+    vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([...]);
+    await service.load();
+    expect(mockStore.setState).toHaveBeenCalled();
+  });
+
+  it('should handle error state', async () => {
+    vi.spyOn(adapters, 'fetchTransactions').mockRejectedValue(new Error('Network'));
+    await service.load();
+    expect(mockStore.setState).toHaveBeenCalledWith({ status: 'error' });
+  });
+});
+```
+
+#### Integration Test Requirement (NEW)
+
+**File Pattern**: `{module}.integration.test.ts`
+
+**Mock Strategy**: Mock ONLY external services (fileService, logger, Tauri IPC). Keep store, service, adapters, and hooks REAL.
+
+**Why**: Unit tests with mocks can hide:
+- Missing exports or incorrect type signatures
+- FSM state validation errors
+- Missing required fields in domain models
+- Module-to-module coordination issues
+
+**Coverage**:
+- [ ] Service updates real store state
+- [ ] Real hooks react to store changes
+- [ ] Events emit correctly from operations
+- [ ] Module exports are complete
+- [ ] Data schemas match domain types
+
+**Example**:
+```typescript
+describe('Transaction Service Integration', () => {
+  beforeEach(() => {
+    // Mock ONLY external services
+    vi.mock('../../capture', () => ({ fileService: { deleteImageComplete: vi.fn() } }));
+    vi.mock('../../../00_kernel/eventBus', () => ({ emit: vi.fn() }));
+  });
+
+  it('should sync real store when service loads', async () => {
+    // Service, store, adapters are REAL
+    transactionService.init();
+    await transactionService.loadTransactions();
+
+    // Verify real state through store subscriber
+    const state = transactionStore.getState();
+    expect(state.status).toBe('idle');
+    expect(state.transactions).toHaveLength(2);
+  });
+
+  it('should verify hooks sync with store changes', () => {
+    const { result, rerender } = renderHook(() => useTransactionStatus());
+    expect(result.current).toBe('idle');
+
+    act(() => {
+      transactionStore.getState().setStatus('loading');
+    });
+    rerender();
+
+    expect(result.current).toBe('loading');
+  });
+});
+```
+
+**Issue #89 Results**:
+- 189 unit tests (tested in isolation)
+- 41 integration tests (tested interactions)
+- All 517 tests passing
+- Integration tests caught issues unit tests missed:
+  - FSM status validation
+  - Missing Transaction fields
+  - Missing hook exports
+
+---
+
 ### Phase 4: Post-Code Review
 
 **Trigger**: `*review` or before `*issue close`
 
-**Checklist**: @.prot/checklists/post-code.md
+**Complete Acceptance Workflow**:
+
+#### Step 1: Module Tests (Quick Check)
+```bash
+npm test -- <module-name>  # e.g., npm test -- transaction
+```
+- [ ] All unit tests pass
+- [ ] All integration tests pass (NEW - required since Issue #89)
+
+#### Step 2: Full Project Tests (REQUIRED - Acceptance Gate)
+```bash
+npm test  # Runs all src/**/*.test.ts files across entire app
+```
+- [ ] All 517+ tests pass
+- [ ] No new test failures
+- [ ] No other modules broken
+**This is critical**: Ensures your changes don't break dependencies
+
+#### Step 3: Build Verification
+```bash
+npm run build
+```
+- [ ] Compilation succeeds
+- [ ] No TypeScript errors
+- [ ] All types correct
+
+#### Step 4: Code Quality
+```bash
+npm run lint
+```
+- [ ] No linting errors
+- [ ] Code style consistent
+
+#### Step 5: Structural Review (Manual Checklist: @.prot/checklists/post-code.md)
 
 **Structural Review**:
 - [ ] No deep imports (Pillar I)
 - [ ] Headless/View separation (Pillar L)
 - [ ] State locality (Pillar J)
 
-**T3 Review**:
+**T3 Review** (if Tier == T3):
 - [ ] Idempotency barrier (Pillar Q)
 - [ ] Version checks (Pillar F)
 - [ ] Compensation complete (Pillar M)
 - [ ] Semantic logs (Pillar R)
 
-**Audits**: Run `*audit` for automated checks
+#### Step 6: Automated Checks
+```bash
+*audit  # Runs automated validation
+```
 
 **Output**:
 ```markdown
@@ -239,7 +378,15 @@ For each step:
 **Status**: PASS / NEEDS_FIX
 **Pillars Verified**: [A, D, L, ...]
 **Issues Found**: [None / List]
+**Test Results**: 517+ tests passed
 ```
+
+---
+
+**Key Insight from Issue #89**:
+- Skipping full project tests (Step 2) is risky
+- Module tests alone don't catch cross-module issues
+- Always run `npm test` before `*issue close`
 
 ---
 

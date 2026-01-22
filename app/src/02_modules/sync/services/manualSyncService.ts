@@ -12,6 +12,7 @@ import type { UserId } from '../../../00_kernel/types';
 import type { FullSyncResult } from './syncCoordinator';
 import { fullSync } from './syncCoordinator';
 import { logger } from '../../../00_kernel/telemetry/logger';
+import { syncQueue } from '../utils/syncQueue';
 
 const LAST_SYNCED_KEY = 'transaction_last_synced_at';
 const AUTO_SYNC_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -24,17 +25,43 @@ type ManualSyncStore =
   | { status: 'error'; error: string; lastSyncedAt: string | null };
 
 class ManualSyncService {
+  private static instance: ManualSyncService | null = null;
+
   // Zustand vanilla store
   store = createStore<ManualSyncStore>(() => ({
     status: 'idle',
     lastSyncedAt: null,
   }));
 
+  private initialized = false;
+
+  /**
+   * Private constructor - enforces singleton pattern
+   */
+  private constructor() {}
+
+  /**
+   * Get or create the singleton instance
+   * @internal - Used only for module exports, not for app code
+   */
+  static getInstance(): ManualSyncService {
+    if (!ManualSyncService.instance) {
+      ManualSyncService.instance = new ManualSyncService();
+    }
+    return ManualSyncService.instance;
+  }
+
   /**
    * Initialize service - load last synced timestamp
    * Called once at app startup
    */
   init(): void {
+    // Prevent duplicate initialization
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
+
     try {
       const stored = localStorage.getItem(LAST_SYNCED_KEY);
       if (stored) {
@@ -48,6 +75,7 @@ class ManualSyncService {
 
   /**
    * Full bidirectional sync (Push + Pull)
+   * Queued via SyncQueue to prevent concurrent sync operations
    * Pillar Q: Idempotent - safe to call multiple times
    *
    * @param userId - User ID to sync for
@@ -55,6 +83,20 @@ class ManualSyncService {
    * @param endDate - Optional end date filter
    */
   async sync(userId: UserId, startDate?: string, endDate?: string): Promise<void> {
+    // Queue this operation to serialize it with other syncs
+    return syncQueue.execute(() => this._performSync(userId, startDate, endDate));
+  }
+
+  /**
+   * Internal sync implementation
+   * Wrapped by sync() via SyncQueue for serialization
+   * @private
+   */
+  private async _performSync(
+    userId: UserId,
+    startDate?: string,
+    endDate?: string
+  ): Promise<void> {
     if (!userId) {
       logger.warn('sync_skipped_no_user');
       return;
@@ -161,6 +203,20 @@ class ManualSyncService {
       // Ignore cleanup errors
     }
   }
+
+  /**
+   * Cleanup resources and reset singleton
+   * Note: Only use for testing. In production, the singleton lives for entire app lifetime.
+   */
+  destroy(): void {
+    this.initialized = false;
+    this.reset();
+    ManualSyncService.instance = null;
+  }
 }
 
-export const manualSyncService = new ManualSyncService();
+/**
+ * Singleton instance - guaranteed to be created only once
+ * Call init() once at app startup to load sync timestamp
+ */
+export const manualSyncService = ManualSyncService.getInstance();

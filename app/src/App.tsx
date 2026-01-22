@@ -11,10 +11,8 @@ import { TransactionView } from './02_modules/transaction';
 import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
-import { transactionSyncService } from './02_modules/transaction/services/transactionSyncService';
-import { networkMonitor, transactionPushService, fullSync, autoSyncService, manualSyncService } from './02_modules/sync';
-import { authStateService } from './02_modules/auth';
-import { settingsStateService } from './02_modules/settings';
+import { transactionSyncService, transactionService } from './02_modules/transaction/services';
+import { networkMonitor, transactionPushService, fullSync, autoSyncService } from './02_modules/sync';
 
 // @security: Check once at module load - cannot change at runtime
 const IS_DEVELOPMENT = !import.meta.env.PROD;
@@ -24,22 +22,27 @@ function AppContent() {
   const [activeView, setActiveView] = useState<ViewType>('capture');
   const mockMode = useSyncExternalStore(subscribeMockMode, getMockSnapshot, getMockSnapshot);
 
-  // Initialize services (load persisted state from localStorage)
-  // Issue #141: Service Pattern Migration
-  useEffect(() => {
-    manualSyncService.init();
-    authStateService.init();
-    settingsStateService.init();
-  }, []);
+  // All services are initialized in bootstrap.ts before React renders
+  // See: app/src/00_kernel/bootstrap.ts
+  // This ensures no "flashing" of uninitialized state on first render
 
-  // Set user ID in sync services when it changes
+  // Set user ID in services when it changes
+  // Called whenever userId changes (initially on app load, then on login)
   useEffect(() => {
-    transactionSyncService.setUser(userId);
-    autoSyncService.setUser(userId);
+    if (userId) {
+      transactionService.setUser(userId);
+      transactionSyncService.setUser(userId);
+      autoSyncService.setUser(userId);
+    } else {
+      // Clear services when user logs out
+      transactionService.setUser(null);
+      transactionSyncService.setUser(null);
+      autoSyncService.setUser(null);
+    }
   }, [userId]);
 
   // Subscribe to network status changes for queue processing (Issue #86 Phase 2)
-  // Note: networkMonitor.initialize() is called once in main.tsx (ADR-001: Service Pattern)
+  // Note: networkMonitor.initialize() is called in bootstrap.ts (ADR-001: Service Pattern)
   useEffect(() => {
     if (!userId) return;
 

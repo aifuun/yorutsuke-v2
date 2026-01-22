@@ -22,26 +22,27 @@ import "./i18n";
 // Disable right-click context menu in production app
 document.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// Initialize services (registers Tauri listeners once, outside React lifecycle)
-// MVP0: Fixes #82 StrictMode race condition
-// ADR-001: Service Pattern - Services register global listeners once at app startup
-import { captureService } from "./02_modules/capture/services/captureService";
-import { quotaService } from "./02_modules/capture/services/quotaService";
-import { transactionSyncService } from "./02_modules/transaction/services/transactionSyncService";
-import { networkMonitor, autoSyncService } from "./02_modules/sync";
+// ==================== Bootstrap ====================
+// Initialize all services BEFORE rendering React
+// Ensures no "flashing" of uninitialized state
+// See: app/src/00_kernel/bootstrap.ts
+import { bootstrapServices } from "./00_kernel/bootstrap";
 
-captureService.init();
-quotaService.init();
-transactionSyncService.init(); // Issue #108: Auto-sync after upload
-autoSyncService.init(); // Issue #86: Auto-sync after local operations (confirm/edit/delete)
-networkMonitor.initialize(); // Issue #86: Network monitoring for offline queue
+bootstrapServices().then(() => {
+  const rootElement = document.getElementById("root");
 
-const rootElement = document.getElementById("root");
-
-if (rootElement) {
-  ReactDOM.createRoot(rootElement).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>,
-  );
-}
+  if (rootElement) {
+    ReactDOM.createRoot(rootElement).render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+    );
+  }
+}).catch((error) => {
+  console.error("Failed to bootstrap app:", error);
+  // Show error message to user
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    rootElement.innerHTML = '<div style="padding: 20px; color: red;">Failed to initialize app. Please refresh the page.</div>';
+  }
+});

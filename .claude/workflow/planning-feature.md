@@ -273,45 +273,144 @@ Create `.claude/[feature-name]-PLAN.md`:
 
 Create `.claude/[feature-name]-TEST-CASES.md`:
 
+### Testing Strategy: Unit vs Integration Tests
+
+**Issue #89 Lesson**: Unit tests with heavy mocking can hide architectural issues. **You must have both unit AND integration tests.**
+
+| Aspect | Unit Tests | Integration Tests |
+|--------|-----------|-------------------|
+| **Purpose** | Verify individual component behavior | Verify module-to-module interaction |
+| **Mock Strategy** | Mock ALL dependencies (adapters, services, eventBus) | Mock ONLY external services (fileService, logger, Tauri IPC) |
+| **What's Real** | The function/method under test | Store, service, hooks, adapters are REAL |
+| **Coverage** | Critical paths, edge cases, race conditions, error flows | Information flow between layers, state synchronization, event propagation |
+| **File Pattern** | `{module}.test.ts` | `{module}.integration.test.ts` |
+| **Example** | Mock `fetchTransactions()`, test service logic | Real `transactionService` + real `transactionStore`, mock external API only |
+| **Why Both?** | Catches function-level bugs | Catches architecture violations, missing exports, type mismatches |
+
+### Unit Test Requirements
+
+Create tests for each component/function:
+- **Main flow**: Happy path functionality
+- **Edge cases**: Empty inputs, null values, boundary conditions
+- **Race conditions**: Concurrent operations, state mutations
+- **Error flows**: Network failures, invalid data, exception handling
+- **Mock strategy**: Mock all external dependencies
+
+**Example unit test structure**:
+```typescript
+describe('TransactionService', () => {
+  // Arrange: Mock ALL dependencies
+  beforeEach(() => {
+    vi.mock('../adapters', () => ({ fetchTransactions: vi.fn() }));
+    vi.mock('../stores', () => ({ store: mockStore }));
+  });
+
+  it('should load transactions when fetchTransactions succeeds', async () => {
+    // Setup mocks
+    vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([tx1, tx2]);
+
+    // Execute
+    await service.loadTransactions();
+
+    // Verify: Test the function logic
+    expect(mockStore.setState).toHaveBeenCalledWith({
+      status: 'idle',
+      transactions: [tx1, tx2]
+    });
+  });
+});
+```
+
+### Integration Test Requirements
+
+Create tests that verify module interactions:
+- **Module-to-module flow**: Service → Store → Hooks
+- **State synchronization**: Real store updates trigger real hook changes
+- **Event propagation**: Service operations emit correct events
+- **Adapter completeness**: Ensure data schemas match domain types
+- **Mock strategy**: Only mock external services (fileService, logger, eventBus), keep everything else REAL
+
+**Example integration test structure**:
+```typescript
+describe('Transaction Service Integration', () => {
+  // Arrange: Keep service, store, adapters REAL, mock only external
+  beforeEach(() => {
+    vi.mock('../../capture', () => ({ fileService: { deleteImageComplete: vi.fn() } }));
+    vi.mock('../../../00_kernel/eventBus', () => ({ emit: vi.fn() }));
+  });
+
+  it('should sync real store when service loads transactions', async () => {
+    // Use REAL service and store
+    transactionService.init();
+
+    // Execute with REAL adapter (mocked at external boundary)
+    await transactionService.loadTransactions();
+
+    // Verify: Check real store state through subscribers
+    const state = transactionStore.getState();
+    expect(state.status).toBe('idle');
+    expect(state.transactions).toHaveLength(2);
+  });
+});
+```
+
+### Why Both Matter
+
+**Issue #89 Case Study**:
+- ✅ **189 unit tests** passed with heavy mocking
+- ❌ BUT: Missed FSM status 'success' error (mocks didn't validate FSM type)
+- ❌ BUT: Missed missing Transaction fields like traceId (mocks didn't validate schema)
+- ❌ BUT: Missed missing hook export (unit tests didn't test view layer)
+- ✅ **41 integration tests** caught all three issues
+- **Result**: Added integration tests to catch what unit tests missed
+
+### Test Case Format
+
 ```markdown
 # Feature: [Name] - Test Cases
 
-## Test Case Format
-```
-TC-N.M: [Title]
-├─ Given: [Initial state]
-├─ When: [User action or trigger]
-└─ Then: [Expected result with checkboxes]
-```
-```
+## Unit Test Cases
 
-**Brief example**:
-```markdown
-# Feature: [Name] - Test Cases
+### Step 1: [Component] Unit Tests
+- **File**: `{module}.test.ts`
+- **Mock strategy**: Mock adapters, store, eventBus
+- **Coverage**:
+  - TC-U-1.1: [Happy path]
+  - TC-U-1.2: [Edge case]
+  - TC-U-1.3: [Error handling]
+  - TC-U-1.4: [Race condition]
 
-## Step N: [Component] Tests
+### Step 2: [Component] Unit Tests
+...
 
-### TC-N.1: [Test name]
-- Given: [initial state]
-- When: [action]
-- Then:
-  - [ ] Expected result 1
-  - [ ] Expected result 2
+## Integration Test Cases
 
-### TC-N.2: [Test name]
-- Given: [initial state]
-- When: [action]
-- Then:
-  - [ ] Expected result
+### Integration: Service + Store Synchronization
+- **File**: `{module}.integration.test.ts`
+- **Mock strategy**: Only external services (fileService, logger)
+- **Coverage**:
+  - TC-INT-1.1: Service updates real store state
+  - TC-INT-1.2: Real store triggers real hook updates
+  - TC-INT-1.3: Events emitted from service operations
+  - TC-INT-2.1: Module-to-module information flow
+
+### Integration: Hooks + Store + Service
+- **File**: `{module}.integration.test.ts`
+- **Coverage**:
+  - TC-INT-3.1: All hooks export correctly
+  - TC-INT-3.2: Hooks react to store changes
+  - TC-INT-3.3: Multiple hooks work together
 
 ## Coverage Matrix
 
-| Acceptance Criterion | Test Cases | Status |
-|-------------------|-----------|--------|
-| Criterion 1 | TC-1.1, TC-2.1 | ✅ |
-| Criterion 2 | TC-1.2 | ✅ |
+| Acceptance Criterion | Unit Tests | Integration Tests | Status |
+|-------------------|-----------|-------------------|--------|
+| Criterion 1: Main flow | TC-U-1.1 | TC-INT-1.1 | ✅ |
+| Criterion 2: Edge cases | TC-U-1.2, TC-U-1.3 | — | ✅ |
+| Criterion 3: Race conditions | TC-U-1.4 | TC-INT-1.3 | ✅ |
+| Criterion 4: Module integration | — | TC-INT-3.1-3.3 | ✅ |
 
-**Coverage**: N test cases covering all criteria (100%)
+**Coverage**: Unit tests cover function logic, integration tests verify architecture
 ```
 
 **Detailed example**: See `.claude/workflow/examples/test-cases-example.md`

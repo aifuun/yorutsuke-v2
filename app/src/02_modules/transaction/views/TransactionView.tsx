@@ -1,13 +1,14 @@
 // Pillar L: Views are pure JSX, logic in services
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
-import { useTransactionLogic } from '../headless';
+import { useTransactionStatus, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, SyncButton } from '../../../components';
 import { ask } from '@tauri-apps/plugin-dialog';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
 import { on } from '../../../00_kernel/eventBus';
+import { logger } from '../../../00_kernel/telemetry';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
@@ -28,7 +29,13 @@ type StatusFilter = 'all' | 'pending' | 'confirmed';
 
 export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const { t } = useTranslation();
-  const { state, filteredTransactions, confirm, remove, update, load, totalCount } = useTransactionLogic(userId);
+
+  // Subscribe to transaction state using new hooks
+  const status = useTransactionStatus();
+  const error = useTransactionError();
+  const filteredTransactions = useFilteredTransactions();
+  const totalCount = useTransactionCount();
+  const { confirm, remove, update, loadTransactions } = useTransactionActions();
 
   // Auto-sync on mount (Issue #141: migrated from useSyncLogic)
   useSyncTrigger(userId, true);
@@ -126,12 +133,26 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   }, []); // Run only on mount
 
-  // Reload data when options change
+  // Track first render to skip initial effect execution
+  const isFirstRenderRef = useRef(true);
+
+  // Handle filter/sort changes: reload with new filters
+  // Service initialization (setUser) is handled in App.tsx when userId changes
+  // This effect only handles filter changes AFTER initial load (not on mount)
   useEffect(() => {
-    if (userId) {
-      load(buildFetchOptions());
+    if (!userId) return;
+
+    // Skip the very first effect execution (on mount)
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
     }
-  }, [userId, buildFetchOptions, load]);
+
+    // Only reload when filters actually change (not on first render)
+    logger.debug('TransactionView: Filters changed, reloading', { filters: buildFetchOptions() });
+    loadTransactions(buildFetchOptions());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear, selectedMonth, statusFilter, typeFilter, categoryFilter, sortBy, sortOrder, currentPage]);
 
   // Handle sorting change
   const handleSortByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -192,23 +213,24 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     if (!userId) return;
     await manualSyncService.sync(userId);
     // Always reload transactions after sync attempt (even if partial failure)
-    load(buildFetchOptions());
-  }, [userId, load, buildFetchOptions]);
+    loadTransactions(buildFetchOptions());
+  }, [userId, loadTransactions, buildFetchOptions]);
 
   // Listen to auto-sync completion events and reload transactions
   useEffect(() => {
     const cleanup = on('transaction:synced', () => {
       // Auto-sync completed - reload transactions to show new data
       // Note: Using latest buildFetchOptions without adding to deps to avoid infinite loop
-      load(buildFetchOptions());
+      loadTransactions(buildFetchOptions());
     });
 
     return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load]); // Only depend on load, buildFetchOptions will be captured from closure
+  }, [loadTransactions]); // Only depend on loadTransactions, buildFetchOptions will be captured from closure
 
   // Handle all states (Pillar D: FSM)
-  if (state.status === 'idle') {
+  // Check if user is not logged in first
+  if (!userId) {
     return (
       <div className="ledger">
         <ViewHeader
@@ -241,7 +263,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     );
   }
 
-  if (state.status === 'loading') {
+  if (status === 'loading') {
     return (
       <div className="ledger">
         <ViewHeader
@@ -274,7 +296,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     );
   }
 
-  if (state.status === 'error') {
+  if (status === 'error') {
     return (
       <div className="ledger">
         <ViewHeader
@@ -301,7 +323,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
           }
         />
         <div className="ledger-content">
-          <div className="ledger-error">{state.error}</div>
+          <div className="ledger-error">{error}</div>
         </div>
       </div>
     );

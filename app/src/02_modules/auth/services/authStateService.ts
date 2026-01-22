@@ -32,6 +32,8 @@ type AuthState =
   | { status: 'error'; user: User | null; error: string };
 
 class AuthStateService {
+  private static instance: AuthStateService | null = null;
+
   // Zustand vanilla store
   store = createStore<AuthState>(() => ({
     status: 'loading', // Start with loading to check stored auth
@@ -39,11 +41,35 @@ class AuthStateService {
     error: null,
   }));
 
+  private initialized = false;
+
+  /**
+   * Private constructor - enforces singleton pattern
+   * Initialization happens separately via init()
+   */
+  private constructor() {}
+
+  /**
+   * Get or create the singleton instance
+   * @internal - Used only for module exports, not for app code
+   */
+  static getInstance(): AuthStateService {
+    if (!AuthStateService.instance) {
+      AuthStateService.instance = new AuthStateService();
+    }
+    return AuthStateService.instance;
+  }
+
   /**
    * Initialize service - load stored auth session
-   * Called once at app startup
+   * Called once at app startup (by app.tsx initialization)
    */
   async init(): Promise<void> {
+    // Prevent duplicate initialization
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
     try {
       const session = await loadUserSession();
 
@@ -215,6 +241,20 @@ class AuthStateService {
       this.store.setState({ status: 'idle', user: null, error: null });
     }
   }
+
+  /**
+   * Cleanup resources and reset singleton
+   * Note: Only use for testing. In production, the singleton lives for entire app lifetime.
+   */
+  destroy(): void {
+    this.initialized = false;
+    this.store.setState({ status: 'idle', user: null, error: null });
+    AuthStateService.instance = null;
+  }
 }
 
-export const authStateService = new AuthStateService();
+/**
+ * Singleton instance - guaranteed to be created only once
+ * Call init() once at app startup to load persisted auth session
+ */
+export const authStateService = AuthStateService.getInstance();
