@@ -151,6 +151,340 @@ export function ProgressBar() {
 
 ---
 
+## Hook Bridge Patterns (Layer 1.5)
+
+**Purpose**: Hook Bridge Layer connects React to Services without violating separation of concerns. Hooks serve three distinct roles: Connector, Selector, and Orchestrator.
+
+### Pattern 1: Connector (Subscribe to Service Store)
+
+**Use when**: React component needs to display Service state.
+
+```typescript
+// ========== Service Layer (Pure TS) ==========
+import { createStore } from 'zustand/vanilla';
+
+export const debugSettingsStore = createStore<DebugSettingsStore>((set) => ({
+  status: 'idle',
+  settings: null,
+  setReady: (settings) => set({ status: 'ready', settings }),
+}));
+
+export const debugSettingsSelectors = {
+  debugEnabled: (state: DebugSettingsStore) =>
+    state.status === 'ready' ? state.settings.debugEnabled : false,
+};
+
+// ========== Hook Bridge Layer (React Connector) ==========
+import { useStore } from 'zustand';
+
+export function useDebugEnabled(): boolean {
+  return useStore(debugSettingsStore, debugSettingsSelectors.debugEnabled);
+}
+
+// ========== View Layer (React Component) ==========
+export function DebugView() {
+  const debugEnabled = useDebugEnabled(); // ✅ Uses Hook, not direct store
+
+  return <div>{debugEnabled ? 'Debug Mode ON' : 'Debug Mode OFF'}</div>;
+}
+```
+
+**Key Points**:
+- Hook subscribes to Vanilla Zustand store using `useStore()`
+- Selector returns **primitive value** (ADR-012 compliance)
+- Component gets reactive updates when store changes
+
+### Pattern 2: Selector (Extract Primitive Values)
+
+**Use when**: Need to extract specific data without causing re-renders.
+
+```typescript
+// ✅ CORRECT: Individual primitive selectors
+export function useTransactionCount(): number {
+  return useStore(transactionStore, s => s.transactions.length);
+}
+
+export function useTransactionTotal(): number {
+  return useStore(transactionStore, s => s.totalAmount);
+}
+
+// Component only re-renders when specific value changes
+export function TransactionSummary() {
+  const count = useTransactionCount(); // Only re-render if count changes
+  const total = useTransactionTotal(); // Only re-render if total changes
+
+  return <div>{count} transactions, total: ¥{total}</div>;
+}
+```
+
+**Anti-Pattern: Object Selector (Causes Infinite Loops)**
+
+```typescript
+// ❌ WRONG: Object selector creates new reference every render
+export function useTransactionData() {
+  return useStore(transactionStore, s => ({
+    count: s.transactions.length,
+    total: s.totalAmount,
+  })); // ⚠️ New object = infinite re-renders
+}
+
+// Component re-renders infinitely!
+export function TransactionSummary() {
+  const data = useTransactionData(); // ⚠️ Always new object reference
+  return <div>{data.count} transactions, total: ¥{data.total}</div>;
+}
+```
+
+**See**: [ADR-012: Zustand Selector Safety](./ADR/012-zustand-selector-safety.md)
+
+### Pattern 3: Orchestrator (Coordinate Multiple Services)
+
+**Use when**: Component needs data/actions from multiple Services, OR needs to add UI-specific logic.
+
+#### Example A: Multi-Service Coordination
+
+```typescript
+// ========== Hook Bridge Layer (Orchestrator) ==========
+export function useOrderProcess() {
+  // Connect to multiple Services
+  const user = useStore(authService.store, s => s.user);
+  const orders = useStore(orderService.store, s => s.orders);
+
+  // Composition logic: coordinate Services
+  const handlePurchase = async (productId: string) => {
+    if (!user) {
+      alert('Please login'); // ✅ UI interaction (Hook responsibility)
+      return;
+    }
+    await orderService.create(user.id, productId); // ✅ Delegate to Service
+  };
+
+  // Format logic: UI-specific transformation
+  const activeOrders = orders.filter(o => o.status === 'active');
+
+  return { activeOrders, handlePurchase };
+}
+
+// ========== View Layer ==========
+export function OrderView() {
+  const { activeOrders, handlePurchase } = useOrderProcess();
+
+  return (
+    <div>
+      {activeOrders.map(order => (
+        <OrderCard key={order.id} order={order} />
+      ))}
+      <button onClick={() => handlePurchase('prod-123')}>
+        Purchase
+      </button>
+    </div>
+  );
+}
+```
+
+**Key Points**:
+- Hook coordinates `authService` and `orderService`
+- Hook handles UI interaction (alert)
+- Hook filters data for display (activeOrders)
+- Business logic stays in Service (`orderService.create`)
+
+#### Example B: Form Validation Split
+
+**Rule**: Format validation → Hook, Business validation → Service.
+
+```typescript
+// ========== Hook Bridge Layer (Format Validation) ==========
+export function useLoginForm() {
+  const [email, setEmail] = useState('');
+
+  // ✅ UI validation: format check (no IO)
+  const emailError = !email.includes('@') ? 'Invalid email format' : null;
+
+  const handleSubmit = async () => {
+    // ✅ Delegate business validation to Service
+    await authService.login(email);
+  };
+
+  return { email, setEmail, emailError, handleSubmit };
+}
+
+// ========== Service Layer (Business Validation) ==========
+class AuthService {
+  async login(email: string) {
+    // ✅ Business validation: DB check (IO required)
+    const user = await userDb.findByEmail(email);
+    if (!user) throw new Error('User not found'); // Business rule
+
+    // ✅ Business logic: session management
+    this.store.setState({ user, isAuthenticated: true });
+  }
+}
+
+// ========== View Layer ==========
+export function LoginView() {
+  const { email, setEmail, emailError, handleSubmit } = useLoginForm();
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input value={email} onChange={e => setEmail(e.target.value)} />
+      {emailError && <span className="error">{emailError}</span>}
+      <button type="submit">Login</button>
+    </form>
+  );
+}
+```
+
+**Boundaries**:
+
+| Validation Type | Location | Reason |
+|----------------|----------|--------|
+| Format validation | Hook | Pure UI feedback, no IO |
+| Business validation | Service | Requires DB check, business rules |
+
+#### Example C: Navigation (UI Side Effect)
+
+**Rule**: Navigation is a UI concern → Handle in Hook.
+
+```typescript
+// ========== Hook Bridge Layer (Navigation) ==========
+export function useOrderComplete() {
+  const navigate = useNavigate(); // React Router hook
+
+  const handleComplete = async (orderId: OrderId) => {
+    // ✅ Service does business logic
+    await orderService.complete(orderId);
+
+    // ✅ Hook handles UI navigation
+    navigate('/success');
+  };
+
+  return { handleComplete };
+}
+
+// ========== Service Layer (Pure Business Logic) ==========
+class OrderService {
+  async complete(orderId: OrderId) {
+    // ✅ Pure business logic (no navigation, no alerts)
+    const order = await orderDb.get(orderId);
+    await paymentAdapter.finalize(order.paymentId);
+    await orderDb.update(orderId, { status: 'completed' });
+    this.store.setState({ completedOrders: [...this.store.getState().completedOrders, order] });
+  }
+}
+
+// ========== View Layer ==========
+export function OrderView() {
+  const { handleComplete } = useOrderComplete();
+
+  return <button onClick={() => handleComplete(orderId)}>Complete Order</button>;
+}
+```
+
+**Key Points**:
+- Service stays pure (no React Router, no UI dependencies)
+- Hook wraps Service action with UI-specific side effect (navigation)
+- Service is testable without React
+
+#### Example D: Animation (Pure UI Logic)
+
+**Rule**: Animation is UI-only → Handle in Hook.
+
+```typescript
+// ========== Hook Bridge Layer (Animation) ==========
+export function useMenuAnimation() {
+  const [isOpen, setIsOpen] = useState(false);
+  const controls = useAnimation(); // Framer Motion
+
+  const toggle = () => {
+    setIsOpen(!isOpen);
+    // ✅ Pure UI logic: animation control
+    controls.start({ opacity: isOpen ? 0 : 1 });
+  };
+
+  return { toggle, controls };
+}
+
+// ========== View Layer ==========
+export function Menu() {
+  const { toggle, controls } = useMenuAnimation();
+
+  return (
+    <motion.div animate={controls}>
+      <button onClick={toggle}>Toggle Menu</button>
+    </motion.div>
+  );
+}
+```
+
+**Key Points**:
+- No Service involvement (pure UI concern)
+- Hook manages animation state
+- No business logic
+
+### Logic Boundary Summary
+
+| Logic Type | Location | Examples | Reason |
+|------------|----------|----------|--------|
+| **Business Rules** | Service | Discount calculation, permissions, API data validation | Core logic, testable without React |
+| **Persistence** | Adapter | LocalStorage, Axios, Tauri IPC | IO boundary, Pillar B validation |
+| **Composition** | Hook | Call authService → pass ID to orderService | Glue between Services, React-specific |
+| **Format for UI** | Hook | Filter list, format date for display | UI-specific transformation |
+| **UI Interaction** | Hook/Component | Modal, alert, debounce, animations | Pure UI, no business impact |
+
+### Anti-Patterns
+
+**❌ Anti-Pattern 1: Business Logic in Hook**
+
+```typescript
+// ❌ WRONG: Discount calculation in Hook
+export function useOrderProcess() {
+  const calculateDiscount = (total: number, userLevel: string) => {
+    return userLevel === 'vip' ? total * 0.9 : total; // ❌ Business rule
+  };
+  // This belongs in Service!
+}
+
+// ✅ CORRECT: Business logic in Service
+class OrderService {
+  calculateDiscount(total: number, userLevel: string): number {
+    return userLevel === 'vip' ? total * 0.9 : total;
+  }
+}
+```
+
+**❌ Anti-Pattern 2: Direct IO in Hook**
+
+```typescript
+// ❌ WRONG: Direct API call in Hook
+export function useUserData() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/user').then(r => r.json()).then(setUser); // ❌ IO in Hook
+  }, []);
+
+  return user;
+}
+
+// ✅ CORRECT: IO in Service, Hook subscribes
+class UserService {
+  async load() {
+    const user = await userAdapter.fetch(); // ✅ IO in Adapter
+    this.store.setState({ user }); // ✅ Update store
+  }
+}
+
+export function useUserData() {
+  return useStore(userService.store, s => s.user); // ✅ Subscribe only
+}
+```
+
+**See Also**:
+- [ADR-020: Hook Bridge Layer](./ADR/020-hook-bridge-layer.md) - Full specification
+- [LAYERS.md](./LAYERS.md) - Layer 1.5 documentation
+
+---
+
 ## Example: Delete File Flow
 
 ```
@@ -214,10 +548,12 @@ See [INTERFACES.md](./INTERFACES.md) for full event type definitions.
 
 ## Related
 
-- [LAYERS.md](./LAYERS.md) - Where code goes
+- [LAYERS.md](./LAYERS.md) - Where code goes (Layer 1.5: Hook Bridge)
 - [FLOWS.md](./FLOWS.md) - How data moves
 - [README.md](./README.md) - Architecture index
+- [ADR-020: Hook Bridge Layer](./ADR/020-hook-bridge-layer.md) - Hook's three identities
+- [ADR-012: Zustand Selector Safety](./ADR/012-zustand-selector-safety.md) - Primitive selectors
 
 ---
 
-*Extracted from ARCHITECTURE.md per #94*
+*Last Updated: 2026-01-22 - Added Hook Bridge Patterns per ADR-020*
