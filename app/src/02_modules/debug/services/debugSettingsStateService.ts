@@ -27,22 +27,22 @@ class DebugSettingsStateService {
    */
   async load(): Promise<void> {
     try {
-      debugSettingsStore.setState(debugSettingsStore.getState().setLoading());
+      debugSettingsStore.getState().setLoading();
 
       const settings = await loadDebugSettings();
 
-      debugSettingsStore.setState(debugSettingsStore.getState().setReady(settings));
+      debugSettingsStore.getState().setReady(settings);
 
       logger.debug('DEBUG_SETTINGS_LOADED', { settings });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      debugSettingsStore.setState(debugSettingsStore.getState().setError(errorMessage));
+      debugSettingsStore.getState().setError(errorMessage);
 
       logger.error('DEBUG_SETTINGS_LOAD_ERROR', { error: errorMessage });
 
       // Fallback to defaults
       const defaults = getDefaultDebugSettings();
-      debugSettingsStore.setState(debugSettingsStore.getState().setReady(defaults));
+      debugSettingsStore.getState().setReady(defaults);
     }
   }
 
@@ -79,7 +79,7 @@ class DebugSettingsStateService {
       const defaults = getDefaultDebugSettings();
 
       // Update store
-      debugSettingsStore.setState(debugSettingsStore.getState().setReady(defaults));
+      debugSettingsStore.getState().setReady(defaults);
 
       // Persist each setting
       await saveDebugSetting('debugEnabled', defaults.debugEnabled);

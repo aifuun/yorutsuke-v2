@@ -42,10 +42,10 @@ export async function loadDebugSettings(): Promise<DebugSettings> {
  * Save a debug setting to SQLite
  */
 export async function saveDebugSetting<K extends keyof DebugSettings>(
-  key: K,
+  _key: K,
   value: DebugSettings[K]
 ): Promise<void> {
-  // Map to database key
+  // Map to database key (currently only one setting)
   const dbKey: DebugSettingsKey = 'debug_enabled';
 
   // Convert to string for storage

@@ -5,6 +5,7 @@ import { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStore } from 'zustand';
 import { authStateService, useEffectiveUserId } from '../../auth';
 import { useDebugEnabled, debugSettingsActions, useDebugSettingsInit } from '../hooks';
+import { useSettingsTheme, useSettingsLanguage } from '../../settings/hooks';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
@@ -53,6 +54,10 @@ export function DebugView() {
 
   // Subscribe to debug settings (Issue #166: Option B - isolated from Settings module)
   const debugEnabled = useDebugEnabled();
+
+  // Subscribe to Settings module data for display
+  const theme = useSettingsTheme();
+  const language = useSettingsLanguage();
 
   const { quota } = useQuota();
   const logs = useLogs();
@@ -365,11 +370,11 @@ export function DebugView() {
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">Theme</span>
-                <span className="debug-value">{currentSettings.theme}</span>
+                <span className="debug-value">{theme}</span>
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">Lang</span>
-                <span className="debug-value">{currentSettings.language}</span>
+                <span className="debug-value">{language}</span>
               </div>
               <div className="debug-grid-item">
                 <span className="debug-label">DB</span>
