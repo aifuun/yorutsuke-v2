@@ -214,6 +214,109 @@ For each step:
 
 ---
 
+### Phase 3b: Testing (REQUIRED)
+
+**Critical**: Both unit AND integration tests are required. Issue #89 demonstrated that unit tests with heavy mocking can hide architectural violations.
+
+#### Unit Test Requirement
+
+**File Pattern**: `{module}.test.ts`
+
+**Mock Strategy**: Mock ALL dependencies (adapters, services, eventBus, external APIs)
+
+**Coverage**:
+- [ ] Critical paths (main workflow)
+- [ ] Edge cases (empty inputs, null values, boundaries)
+- [ ] Race conditions (concurrent operations)
+- [ ] Error flows (network failures, validation errors)
+
+**Example**:
+```typescript
+describe('TransactionService', () => {
+  beforeEach(() => {
+    // Mock ALL dependencies
+    vi.mock('../adapters', () => ({ fetchTransactions: vi.fn() }));
+    vi.mock('../stores', () => ({ store: mockStore }));
+  });
+
+  it('should handle transactions when fetch succeeds', async () => {
+    vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([...]);
+    await service.load();
+    expect(mockStore.setState).toHaveBeenCalled();
+  });
+
+  it('should handle error state', async () => {
+    vi.spyOn(adapters, 'fetchTransactions').mockRejectedValue(new Error('Network'));
+    await service.load();
+    expect(mockStore.setState).toHaveBeenCalledWith({ status: 'error' });
+  });
+});
+```
+
+#### Integration Test Requirement (NEW)
+
+**File Pattern**: `{module}.integration.test.ts`
+
+**Mock Strategy**: Mock ONLY external services (fileService, logger, Tauri IPC). Keep store, service, adapters, and hooks REAL.
+
+**Why**: Unit tests with mocks can hide:
+- Missing exports or incorrect type signatures
+- FSM state validation errors
+- Missing required fields in domain models
+- Module-to-module coordination issues
+
+**Coverage**:
+- [ ] Service updates real store state
+- [ ] Real hooks react to store changes
+- [ ] Events emit correctly from operations
+- [ ] Module exports are complete
+- [ ] Data schemas match domain types
+
+**Example**:
+```typescript
+describe('Transaction Service Integration', () => {
+  beforeEach(() => {
+    // Mock ONLY external services
+    vi.mock('../../capture', () => ({ fileService: { deleteImageComplete: vi.fn() } }));
+    vi.mock('../../../00_kernel/eventBus', () => ({ emit: vi.fn() }));
+  });
+
+  it('should sync real store when service loads', async () => {
+    // Service, store, adapters are REAL
+    transactionService.init();
+    await transactionService.loadTransactions();
+
+    // Verify real state through store subscriber
+    const state = transactionStore.getState();
+    expect(state.status).toBe('idle');
+    expect(state.transactions).toHaveLength(2);
+  });
+
+  it('should verify hooks sync with store changes', () => {
+    const { result, rerender } = renderHook(() => useTransactionStatus());
+    expect(result.current).toBe('idle');
+
+    act(() => {
+      transactionStore.getState().setStatus('loading');
+    });
+    rerender();
+
+    expect(result.current).toBe('loading');
+  });
+});
+```
+
+**Issue #89 Results**:
+- 189 unit tests (tested in isolation)
+- 41 integration tests (tested interactions)
+- All 517 tests passing
+- Integration tests caught issues unit tests missed:
+  - FSM status validation
+  - Missing Transaction fields
+  - Missing hook exports
+
+---
+
 ### Phase 4: Post-Code Review
 
 **Trigger**: `*review` or before `*issue close`
