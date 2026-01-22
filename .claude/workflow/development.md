@@ -321,20 +321,56 @@ describe('Transaction Service Integration', () => {
 
 **Trigger**: `*review` or before `*issue close`
 
-**Checklist**: @.prot/checklists/post-code.md
+**Complete Acceptance Workflow**:
+
+#### Step 1: Module Tests (Quick Check)
+```bash
+npm test -- <module-name>  # e.g., npm test -- transaction
+```
+- [ ] All unit tests pass
+- [ ] All integration tests pass (NEW - required since Issue #89)
+
+#### Step 2: Full Project Tests (REQUIRED - Acceptance Gate)
+```bash
+npm test  # Runs all src/**/*.test.ts files across entire app
+```
+- [ ] All 517+ tests pass
+- [ ] No new test failures
+- [ ] No other modules broken
+**This is critical**: Ensures your changes don't break dependencies
+
+#### Step 3: Build Verification
+```bash
+npm run build
+```
+- [ ] Compilation succeeds
+- [ ] No TypeScript errors
+- [ ] All types correct
+
+#### Step 4: Code Quality
+```bash
+npm run lint
+```
+- [ ] No linting errors
+- [ ] Code style consistent
+
+#### Step 5: Structural Review (Manual Checklist: @.prot/checklists/post-code.md)
 
 **Structural Review**:
 - [ ] No deep imports (Pillar I)
 - [ ] Headless/View separation (Pillar L)
 - [ ] State locality (Pillar J)
 
-**T3 Review**:
+**T3 Review** (if Tier == T3):
 - [ ] Idempotency barrier (Pillar Q)
 - [ ] Version checks (Pillar F)
 - [ ] Compensation complete (Pillar M)
 - [ ] Semantic logs (Pillar R)
 
-**Audits**: Run `*audit` for automated checks
+#### Step 6: Automated Checks
+```bash
+*audit  # Runs automated validation
+```
 
 **Output**:
 ```markdown
@@ -342,7 +378,15 @@ describe('Transaction Service Integration', () => {
 **Status**: PASS / NEEDS_FIX
 **Pillars Verified**: [A, D, L, ...]
 **Issues Found**: [None / List]
+**Test Results**: 517+ tests passed
 ```
+
+---
+
+**Key Insight from Issue #89**:
+- Skipping full project tests (Step 2) is risky
+- Module tests alone don't catch cross-module issues
+- Always run `npm test` before `*issue close`
 
 ---
 
