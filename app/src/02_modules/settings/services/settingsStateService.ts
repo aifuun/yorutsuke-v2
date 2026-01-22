@@ -1,13 +1,16 @@
 /**
  * Settings State Service
- * Manages app settings state and operations
+ * Orchestrates settings operations and manages store state
  *
- * Migrated from settings/headless/useSettings.ts (Issue #141)
- * Pillar D: FSM - explicit state machine
+ * Refactored for Issue #165: 4-Layer Architecture
+ * - Store extracted to stores/settingsStore.ts
+ * - This service handles IO operations and side effects
+ *
+ * Pillar D: FSM - explicit state machine (in store)
  * Pillar J: Locality - state near usage
  */
 
-import { createStore } from 'zustand/vanilla';
+import { settingsStore } from '../stores';
 import type { AppSettings } from '../adapters';
 import { loadAppSettings, updateAppSetting } from './settingsService';
 import { changeLanguage } from '../../../i18n';
@@ -24,21 +27,8 @@ function applyTheme(theme: 'light' | 'dark'): void {
   }
 }
 
-// FSM State
-type SettingsState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'success'; settings: AppSettings }
-  | { status: 'error'; error: string };
-
 class SettingsStateService {
   private static instance: SettingsStateService | null = null;
-
-  // Zustand vanilla store
-  store = createStore<SettingsState>(() => ({
-    status: 'idle',
-  }));
-
   private initialized = false;
 
   /**
@@ -74,7 +64,7 @@ class SettingsStateService {
    * Load settings from storage
    */
   async load(): Promise<void> {
-    this.store.setState({ status: 'loading' });
+    settingsStore.getState().setLoading();
 
     try {
       const settings = await loadAppSettings();
@@ -90,10 +80,10 @@ class SettingsStateService {
       }
 
       logger.info(EVENTS.SETTINGS_LOADED, { language: settings.language, theme: settings.theme });
-      this.store.setState({ status: 'success', settings });
+      settingsStore.getState().setReady(settings);
     } catch (e) {
       logger.error(EVENTS.APP_ERROR, { context: 'settings_load', error: String(e) });
-      this.store.setState({ status: 'error', error: String(e) });
+      settingsStore.getState().setError(String(e));
     }
   }
 
@@ -102,19 +92,23 @@ class SettingsStateService {
    * Uses optimistic update pattern
    */
   async update<K extends keyof AppSettings>(key: K, value: AppSettings[K]): Promise<void> {
-    const state = this.store.getState();
+    const state = settingsStore.getState();
 
-    // Only update if in success state
-    if (state.status !== 'success') return;
+    // Only update if in ready state
+    if (state.status !== 'ready') return;
 
-    // Optimistic update
-    const updatedSettings = { ...state.settings, [key]: value };
-    this.store.setState({ status: 'success', settings: updatedSettings });
+    // Optimistic update (store handles immutability)
+    settingsStore.getState().updateSetting(key, value);
     logger.info(EVENTS.SETTINGS_UPDATED, { key, value });
 
     // Apply theme immediately when changed
     if (key === 'theme') {
       applyTheme(value as 'light' | 'dark');
+    }
+
+    // Apply language immediately when changed
+    if (key === 'language') {
+      changeLanguage(value as AppSettings['language']);
     }
 
     try {
@@ -130,8 +124,8 @@ class SettingsStateService {
    * Get current settings (if loaded)
    */
   getSettings(): AppSettings | null {
-    const state = this.store.getState();
-    return state.status === 'success' ? state.settings : null;
+    const state = settingsStore.getState();
+    return state.status === 'ready' ? state.settings : null;
   }
 
   /**
@@ -140,7 +134,7 @@ class SettingsStateService {
    */
   destroy(): void {
     this.initialized = false;
-    this.store.setState({ status: 'idle' });
+    settingsStore.getState().reset();
     SettingsStateService.instance = null;
   }
 }

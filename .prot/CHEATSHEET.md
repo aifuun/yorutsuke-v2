@@ -161,3 +161,16 @@ npm run tauri dev
 cd infra && cdk diff --profile dev
 cd infra && cdk deploy --profile dev
 ```
+
+## Architecture Smell Check
+
+> "UI 薄、Service 厚、Adapter 狠"
+
+| Layer | ✅ Best Practice | ❌ Anti-Pattern |
+|-------|------------------|-----------------|
+| **UI (React)** | Only call actions, render state | Business logic in `onClick` handlers |
+| **Service** | Complex rules, FSM, orchestration | Thin wrapper around API calls |
+| **Adapter** | Field mapping, dirty data cleanup, Zod validation | Passthrough of raw JSON |
+| **State** | Immutable updates (`{...state, key: val}`) | Direct mutation (`this.state.x = y`) |
+| **Cross-Service** | EventBus / Coordinator pattern | Circular imports between services |
+| **Selector** | Primitive values (`s => s.status`) | New objects (`s => ({a: s.a})`) |

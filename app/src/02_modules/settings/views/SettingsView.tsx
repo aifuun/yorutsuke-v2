@@ -1,9 +1,12 @@
-// Pillar L: View - renders data from headless hook
-// Migrated to use settingsStateService (Issue #141)
-import { useStore } from 'zustand';
-import { settingsStateService } from '../services/settingsStateService';
-import { useTranslation, changeLanguage } from '../../../i18n';
+// Pillar L: View - renders data from hook bridge layer
+// Refactored for Issue #165: 4-Layer Architecture
+import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
+import {
+  useSettingsStatus,
+  useSettings,
+  settingsActions,
+} from '../hooks/useSettingsState';
 import '../styles/settings.css';
 
 // App version from package.json
@@ -12,11 +15,12 @@ const APP_VERSION = '0.1.0';
 export function SettingsView() {
   const { t } = useTranslation();
 
-  // Subscribe to settings state
-  const state = useStore(settingsStateService.store);
+  // Atomic selectors from hook bridge (ADR-012)
+  const status = useSettingsStatus();
+  const settings = useSettings();
 
   // Handle all states (Pillar D: FSM)
-  if (state.status === 'loading' || state.status === 'idle') {
+  if (status === 'loading' || status === 'idle') {
     return (
       <div className="settings">
         <ViewHeader title={t('settings.title')} />
@@ -26,7 +30,7 @@ export function SettingsView() {
       </div>
     );
   }
-  if (state.status === 'error') {
+  if (status === 'error' || !settings) {
     return (
       <div className="settings">
         <ViewHeader title={t('settings.title')} />
@@ -38,11 +42,10 @@ export function SettingsView() {
   }
 
   // After FSM checks, settings is guaranteed non-null
-  const currentSettings = state.settings;
+  const currentSettings = settings;
 
   const handleLanguageChange = (lang: 'ja' | 'en' | 'zh') => {
-    changeLanguage(lang);
-    settingsStateService.update('language', lang);
+    settingsActions.updateSetting('language', lang);
   };
 
   return (

@@ -1,10 +1,23 @@
 // Public API for settings module
+// Refactored for Issue #165: 4-Layer Architecture
 
-// Services (Issue #141: Service Pattern Migration)
-export { settingsStateService } from './services/settingsStateService';
+// Stores (Vanilla Zustand)
+export { settingsStore, settingsSelectors } from './stores';
+export type { SettingsState, SettingsStore } from './stores';
 
 // Hooks (React bridges)
-export { useSettingsInit } from './hooks/useSettingsInit';
+export {
+  useSettingsInit,
+  useSettingsStatus,
+  useSettingsLanguage,
+  useSettingsTheme,
+  useSettingsError,
+  useSettings,
+  settingsActions,
+} from './hooks';
+
+// Services (IO operations)
+export { settingsStateService } from './services/settingsStateService';
 
 // Views
 export { SettingsView, UserProfileView } from './views';
