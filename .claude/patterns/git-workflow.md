@@ -40,18 +40,64 @@ bugfix/navbar-overflow     # Bug fix on development
 hotfix/critical-auth       # Production hotfix
 ```
 
-### Feature/Issue Branch Workflow
+### Feature/Issue Branch Workflow (Pull Request)
 
 ```bash
 # 1. Create from development
 git checkout development
 git pull origin development
-git checkout -b issue/123-feature-name
+git checkout -b feature/123-feature-name
+git push -u origin feature/123-feature-name
 
 # 2. Develop and commit
 git add -A
-git commit -m "feat: add feature (#123)"
+git commit -m "feat: add feature (#123)
 
+Implementation details here.
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+git push origin feature/123-feature-name
+
+# 3. Create Pull Request
+gh pr create \
+  --base development \
+  --title "feat: Feature Name (#123)" \
+  --body "Closes #123
+
+## Summary
+Feature description here
+
+## Testing
+- ✅ All tests passing
+- ✅ Lint clean
+
+## Files Changed
+- file1.ts (+X lines)
+- file2.ts (+Y lines)"
+
+# 4. After PR merged on GitHub
+git checkout development
+git pull origin development
+
+# 5. Delete feature branch (after merge)
+git branch -d feature/123-feature-name
+git push origin --delete feature/123-feature-name
+
+# 6. Clean up other merged branches
+git branch -v | grep "gone" | awk '{print $1}' | xargs git branch -d
+```
+
+**Benefits of PR Workflow**:
+- Code review before merge
+- CI/CD integration (automated tests)
+- Discussion and feedback
+- Automatic issue closure via "Closes #N"
+- Clear merge history
+
+**Alternative: Direct Merge (Legacy)**
+
+For urgent fixes or solo development, direct merge is acceptable:
+```bash
 # 3. Before merge: update from development
 git checkout development
 git pull origin development
