@@ -28,6 +28,7 @@ import type { UserId } from '../../../00_kernel/types';
 import { on } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { networkMonitor } from '../utils/networkMonitor';
+import { syncQueue } from '../utils/syncQueue';
 
 // Debounce delay after local operation
 const AUTO_SYNC_DELAY_MS = 3000; // 3 seconds
@@ -186,7 +187,26 @@ class AutoSyncService {
    * ⚠️ Protected against user switching mid-sync
    */
   private async executeSyncCycle(): Promise<void> {
+    // Queue this cycle to serialize with other sync operations (manual sync, push, pull)
+    // The SyncQueue ensures this and manual sync don't run concurrently
+    try {
+      await syncQueue.execute(() => this._performSyncCycle());
+    } catch (error) {
+      // Error already logged in _performSyncCycle, just prevent throwing from timer callback
+      logger.debug('auto_sync_cycle_queued_error', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Internal sync cycle implementation
+   * Wrapped by executeSyncCycle via SyncQueue for serialization
+   * @private
+   */
+  private async _performSyncCycle(): Promise<void> {
     // ✅ Prevent concurrent execution (Timer overflow protection)
+    // This is a secondary guard - SyncQueue is the primary serialization mechanism
     if (this.syncInProgress) {
       logger.debug('auto_sync_cycle_skipped', {
         reason: 'sync_already_in_progress',

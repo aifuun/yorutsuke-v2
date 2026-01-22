@@ -12,6 +12,7 @@ import type { UserId } from '../../../00_kernel/types';
 import type { FullSyncResult } from './syncCoordinator';
 import { fullSync } from './syncCoordinator';
 import { logger } from '../../../00_kernel/telemetry/logger';
+import { syncQueue } from '../utils/syncQueue';
 
 const LAST_SYNCED_KEY = 'transaction_last_synced_at';
 const AUTO_SYNC_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -74,6 +75,7 @@ class ManualSyncService {
 
   /**
    * Full bidirectional sync (Push + Pull)
+   * Queued via SyncQueue to prevent concurrent sync operations
    * Pillar Q: Idempotent - safe to call multiple times
    *
    * @param userId - User ID to sync for
@@ -81,6 +83,20 @@ class ManualSyncService {
    * @param endDate - Optional end date filter
    */
   async sync(userId: UserId, startDate?: string, endDate?: string): Promise<void> {
+    // Queue this operation to serialize it with other syncs
+    return syncQueue.execute(() => this._performSync(userId, startDate, endDate));
+  }
+
+  /**
+   * Internal sync implementation
+   * Wrapped by sync() via SyncQueue for serialization
+   * @private
+   */
+  private async _performSync(
+    userId: UserId,
+    startDate?: string,
+    endDate?: string
+  ): Promise<void> {
     if (!userId) {
       logger.warn('sync_skipped_no_user');
       return;
