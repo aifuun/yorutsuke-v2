@@ -35,7 +35,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   const error = useTransactionError();
   const filteredTransactions = useFilteredTransactions();
   const totalCount = useTransactionCount();
-  const { confirm, remove, update, loadTransactions, setUser } = useTransactionActions();
+  const { confirm, remove, update, loadTransactions } = useTransactionActions();
 
   // Auto-sync on mount (Issue #141: migrated from useSyncLogic)
   useSyncTrigger(userId, true);
@@ -133,24 +133,14 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     }
   }, []); // Run only on mount
 
-  // Initialize service with user on mount or user change
-  // Passes current filter options to ensure consistent initial load
-  useEffect(() => {
-    if (userId) {
-      logger.debug('TransactionView: Setting user with filters', { userId, options: buildFetchOptions() });
-      setUser(userId, buildFetchOptions());
-    }
-  }, [userId, setUser, buildFetchOptions]);
-
   // Handle filter/sort changes: reload with new filters
-  // Separated from user initialization to track filter changes independently
-  // Uses closure to capture latest buildFetchOptions without adding it to deps
+  // Service initialization (setUser) is handled in App.tsx when userId changes
+  // This effect only handles filter changes after initial load
   useEffect(() => {
     if (!userId) return;
 
-    // Only reload when filters change (not on initial mount)
-    // This effect triggers specifically when buildFetchOptions is recreated
-    logger.debug('TransactionView: Filter changed, reloading', { filters: buildFetchOptions() });
+    // Reload transactions when any filter or sort option changes
+    logger.debug('TransactionView: Filters changed, reloading', { filters: buildFetchOptions() });
     loadTransactions(buildFetchOptions());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedMonth, statusFilter, typeFilter, categoryFilter, sortBy, sortOrder, currentPage]);

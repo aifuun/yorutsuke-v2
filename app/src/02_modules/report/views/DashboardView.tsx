@@ -1,10 +1,9 @@
 // Pillar L: View - Dashboard with premium UI design
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
 import { createDailySummaryWithBreakdown, createWeeklySummary } from '../../../01_domains/transaction';
 import { useTransactionStatus, useTransactions } from '../../transaction/hooks/useTransactionState';
-import { transactionService } from '../../transaction/services/transactionService';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
@@ -86,13 +85,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const yesterday = getYesterdayDate();
   const dayOfWeek = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
 
-  // Set current user (service already initialized in App.tsx)
-  useEffect(() => {
-    if (userId) {
-      transactionService.setUser(userId);
-    }
-  }, [userId]);
-
+  // Service is already initialized in App.tsx, no need to set user again here
   const status = useTransactionStatus();
   const transactions = useTransactions();
   const { quota } = useQuota();
