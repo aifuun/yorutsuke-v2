@@ -96,6 +96,7 @@ async function createCoreTables(db: Database): Promise<void> {
       value TEXT
     )
   `);
+  logger.debug('db_table_created', { table: 'settings' });
 
   // Images table
   await db.execute(`
@@ -114,6 +115,7 @@ async function createCoreTables(db: Database): Promise<void> {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  logger.debug('db_table_created', { table: 'images' });
 
   // Transaction cache table
   await db.execute(`
@@ -134,6 +136,7 @@ async function createCoreTables(db: Database): Promise<void> {
       FOREIGN KEY (image_id) REFERENCES images(id)
     )
   `);
+  logger.debug('db_table_created', { table: 'transactions_cache' });
 
   // Transactions table (synced from cloud)
   await db.execute(`
@@ -156,6 +159,7 @@ async function createCoreTables(db: Database): Promise<void> {
       FOREIGN KEY (image_id) REFERENCES images(id)
     )
   `);
+  logger.debug('db_table_created', { table: 'transactions' });
 
   // Morning report cache table
   await db.execute(`
@@ -165,6 +169,7 @@ async function createCoreTables(db: Database): Promise<void> {
       synced_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  logger.debug('db_table_created', { table: 'morning_report_cache' });
 
   // Analytics events table
   await db.execute(`
@@ -175,6 +180,14 @@ async function createCoreTables(db: Database): Promise<void> {
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
+  logger.debug('db_table_created', { table: 'analytics' });
+
+  // Verify tables were created by querying sqlite_master
+  const tables = await db.select<Array<{ name: string }>>(
+    'SELECT name FROM sqlite_master WHERE type="table" ORDER BY name'
+  );
+  const tableNames = tables.map(t => t.name);
+  logger.info('db_tables_verified', { count: tables.length, tables: tableNames });
 
   logger.debug('db_core_tables_created');
 }

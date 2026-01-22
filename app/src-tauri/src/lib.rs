@@ -265,8 +265,26 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Define minimal Rust-side migration to initialize database file
+    // This ensures the SQLite database file is properly created and not left at 0 bytes
+    // The actual schema is managed by TypeScript migrations in migrations.ts
+    let migrations = vec![
+        // Migration v0: Create settings table (needed for version tracking)
+        tauri_plugin_sql::Migration {
+            version: 0,
+            description: "create_settings_table",
+            sql: "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)",
+            kind: tauri_plugin_sql::MigrationKind::Up,
+        },
+    ];
+
     tauri::Builder::default()
-        .plugin(tauri_plugin_sql::Builder::new().build())
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:yorutsuke.db", migrations.clone())
+                .add_migrations("sqlite:yorutsuke-mock.db", migrations)
+                .build()
+        )
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())

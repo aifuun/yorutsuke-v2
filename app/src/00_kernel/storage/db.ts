@@ -91,7 +91,28 @@ export async function initDb(): Promise<void> {
       });
 
       productionDb = await Database.load(PRODUCTION_DB);
+      logger.debug('db_connection_established', { path: PRODUCTION_DB });
+
       await runMigrations(productionDb);
+
+      // Force WAL checkpoint to ensure data is written to disk
+      // This addresses potential issue with 0-byte database files
+      try {
+        await productionDb.execute('PRAGMA wal_checkpoint(FULL)');
+        logger.debug('db_wal_checkpoint_executed');
+      } catch (walError) {
+        // WAL mode might not be enabled, that's ok
+        logger.debug('db_wal_checkpoint_skip', { error: String(walError) });
+      }
+
+      // Verify database file integrity by checking table count
+      const tables = await productionDb.select<Array<{ count: number }>>(
+        'SELECT COUNT(*) as count FROM sqlite_master WHERE type="table"'
+      );
+      logger.info('db_initialization_verified', {
+        tableCount: tables[0]?.count || 0,
+        path: PRODUCTION_DB
+      });
 
       logger.info(EVENTS.DB_INITIALIZED, {
         path: PRODUCTION_DB,
