@@ -24,17 +24,43 @@ type ManualSyncStore =
   | { status: 'error'; error: string; lastSyncedAt: string | null };
 
 class ManualSyncService {
+  private static instance: ManualSyncService | null = null;
+
   // Zustand vanilla store
   store = createStore<ManualSyncStore>(() => ({
     status: 'idle',
     lastSyncedAt: null,
   }));
 
+  private initialized = false;
+
+  /**
+   * Private constructor - enforces singleton pattern
+   */
+  private constructor() {}
+
+  /**
+   * Get or create the singleton instance
+   * @internal - Used only for module exports, not for app code
+   */
+  static getInstance(): ManualSyncService {
+    if (!ManualSyncService.instance) {
+      ManualSyncService.instance = new ManualSyncService();
+    }
+    return ManualSyncService.instance;
+  }
+
   /**
    * Initialize service - load last synced timestamp
    * Called once at app startup
    */
   init(): void {
+    // Prevent duplicate initialization
+    if (this.initialized) {
+      return;
+    }
+    this.initialized = true;
+
     try {
       const stored = localStorage.getItem(LAST_SYNCED_KEY);
       if (stored) {
@@ -161,6 +187,20 @@ class ManualSyncService {
       // Ignore cleanup errors
     }
   }
+
+  /**
+   * Cleanup resources and reset singleton
+   * Note: Only use for testing. In production, the singleton lives for entire app lifetime.
+   */
+  destroy(): void {
+    this.initialized = false;
+    this.reset();
+    ManualSyncService.instance = null;
+  }
 }
 
-export const manualSyncService = new ManualSyncService();
+/**
+ * Singleton instance - guaranteed to be created only once
+ * Call init() once at app startup to load sync timestamp
+ */
+export const manualSyncService = ManualSyncService.getInstance();

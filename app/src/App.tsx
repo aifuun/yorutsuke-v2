@@ -11,7 +11,7 @@ import { TransactionView } from './02_modules/transaction';
 import { SettingsView, UserProfileView } from './02_modules/settings';
 // @security: Debug panel only available in development builds
 import { DebugView } from './02_modules/debug';
-import { transactionSyncService, transactionService } from './02_modules/transaction/services';
+import { transactionSyncService } from './02_modules/transaction/services';
 import { networkMonitor, transactionPushService, fullSync, autoSyncService, manualSyncService } from './02_modules/sync';
 import { authStateService } from './02_modules/auth';
 import { settingsStateService } from './02_modules/settings';
@@ -26,8 +26,8 @@ function AppContent() {
 
   // Initialize services (load persisted state from localStorage)
   // Issue #141, #89: Service Pattern Migration
+  // Note: transactionService auto-initializes on first access (singleton pattern)
   useEffect(() => {
-    transactionService.init();
     manualSyncService.init();
     authStateService.init();
     settingsStateService.init();

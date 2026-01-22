@@ -275,7 +275,6 @@ describe('Integration: Hooks + Store + Service', () => {
       const statusHook = renderHook(() => useTransactionStatus());
       const transactionsHook = renderHook(() => useTransactions());
 
-      transactionService.init();
 
       // Act: Service load
       await transactionService.setUser(testUserId);

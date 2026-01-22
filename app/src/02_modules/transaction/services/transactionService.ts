@@ -27,7 +27,8 @@ import { transactionStore } from '../stores/transactionStore';
 export type { FetchTransactionsOptions, UpdateTransactionFields };
 
 class TransactionService {
-  private initialized = false;
+  private static instance: TransactionService | null = null;
+
   private userId: UserId | null = null;
   private cleanupTransactionListener: (() => void) | null = null;
   private currentLoadSignature: string | null = null;  // Track current load request signature
@@ -35,24 +36,30 @@ class TransactionService {
   store = transactionStore;
 
   /**
-   * Initialize transaction service
-   * Called once at app startup
+   * Private constructor - enforces singleton pattern
+   * Initialization happens automatically in constructor, not via init()
    */
-  init(): void {
-    // Log with full stack trace to identify where init is being called from
-    const stackTrace = new Error().stack?.split('\n').slice(1, 4).join(' <- ') || 'unknown';
+  private constructor() {
+    this._initialize();
+  }
 
-    if (this.initialized) {
-      logger.warn('TRANSACTION_SERVICE_INIT_REDUNDANT', {
-        service: 'TransactionService',
-        status: 'already_initialized',
-        callStack: stackTrace
-      });
-      return;
+  /**
+   * Get or create the singleton instance
+   * @internal - Used only for module exports, not for app code
+   */
+  static getInstance(): TransactionService {
+    if (!TransactionService.instance) {
+      TransactionService.instance = new TransactionService();
     }
-    this.initialized = true;
+    return TransactionService.instance;
+  }
 
-    logger.info('TRANSACTION_SERVICE_INIT_START', { service: 'TransactionService', callStack: stackTrace });
+  /**
+   * Private initialization (called automatically from constructor)
+   * Sets up event listeners for transaction mutations
+   */
+  private _initialize(): void {
+    logger.info('TRANSACTION_SERVICE_INITIALIZED', { service: 'TransactionService' });
 
     // Listen for transaction mutations (confirmed, updated, deleted)
     // Reload transactions after operations complete
@@ -62,8 +69,6 @@ class TransactionService {
         this.loadTransactions();
       }
     });
-
-    logger.info('TRANSACTION_SERVICE_INIT_COMPLETE', { service: 'TransactionService' });
   }
 
   /**
@@ -314,11 +319,14 @@ class TransactionService {
   }
 
   /**
-   * Cleanup resources
+   * Cleanup resources and reset singleton
+   * Note: Only use for testing. In production, the singleton lives for entire app lifetime.
+   * After calling destroy(), the next getInstance() will create a fresh instance.
    */
   destroy(): void {
     this.cleanupTransactionListener?.();
-    this.initialized = false;
+    this.userId = null;
+    TransactionService.instance = null;
   }
 }
 
@@ -331,4 +339,9 @@ function emitSyncEvent(id: TransactionId, operation: 'confirmed' | 'updated' | '
   emit(`transaction:${operation}`, { id });
 }
 
-export const transactionService = new TransactionService();
+/**
+ * Singleton instance - guaranteed to be created only once
+ * Automatically initialized when first accessed
+ * Other modules must use this instance, cannot create new instances
+ */
+export const transactionService = TransactionService.getInstance();

@@ -26,9 +26,9 @@ export function ReportView({ userId, date }: ReportViewProps) {
   const [filters, setFiltersLocal] = useState({ dateStart: undefined, dateEnd: undefined, category: 'all' as const, type: 'all' as const });
 
   // Initialize service with user
+  // Note: transactionService auto-initializes on first access (singleton pattern)
   useEffect(() => {
     if (userId) {
-      transactionService.init();
       transactionService.setUser(userId);
     }
   }, [userId]);

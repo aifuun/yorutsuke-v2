@@ -90,7 +90,6 @@ describe('Integration: TransactionService + Store', () => {
       const spy = vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([]);
       vi.spyOn(adapters, 'countTransactions').mockResolvedValue(0);
 
-      transactionService.init();
       await transactionService.setUser(testUserId);
 
       // Reset to track state changes during this test
@@ -147,7 +146,6 @@ describe('Integration: TransactionService + Store', () => {
         new Error('Network error')
       );
 
-      transactionService.init();
 
       // Act
       await transactionService.setUser(testUserId);
@@ -184,7 +182,6 @@ describe('Integration: TransactionService + Store', () => {
       });
 
       // Act
-      transactionService.init();
       await transactionService.setUser('user-123');
 
       // Assert: Should have captured state changes
@@ -224,7 +221,6 @@ describe('Integration: TransactionService + Store', () => {
       vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([tx1, tx2]);
       vi.spyOn(adapters, 'countTransactions').mockResolvedValue(2);
 
-      transactionService.init();
 
       // Act
       await transactionService.setUser(testUserId);
@@ -245,7 +241,6 @@ describe('Integration: TransactionService + Store', () => {
 
       const tx = createTransaction({ id: TransactionId('tx-new') });
 
-      transactionService.init();
       await transactionService.setUser(testUserId);
 
       // Act: Save transaction
@@ -307,7 +302,6 @@ describe('Integration: TransactionService + Store', () => {
       vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([completeTx]);
       vi.spyOn(adapters, 'countTransactions').mockResolvedValue(1);
 
-      transactionService.init();
 
       // Act
       await transactionService.setUser(testUserId);
@@ -357,7 +351,6 @@ describe('Integration: TransactionService + Store', () => {
 
       vi.spyOn(adapters, 'countTransactions').mockResolvedValue(2);
 
-      transactionService.init();
       await transactionService.setUser(testUserId);
 
       // Act: Multiple concurrent loads
@@ -380,7 +373,6 @@ describe('Integration: TransactionService + Store', () => {
       const mockFetch = vi.spyOn(adapters, 'fetchTransactions').mockResolvedValue([]);
       vi.spyOn(adapters, 'countTransactions').mockResolvedValue(0);
 
-      transactionService.init();
       await transactionService.setUser(testUserId);
 
       const tx = createTransaction({ id: TransactionId('tx-concurrent') });

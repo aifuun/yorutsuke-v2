@@ -86,35 +86,28 @@ describe('transactionService', () => {
     transactionService.destroy();
   });
 
-  describe('Service Initialization (ADR-001)', () => {
-    it('TC-SVC-1.1: Should initialize once', () => {
-      transactionService.init();
-      transactionService.init(); // Call again
-
-      // Event listener should only be set once
+  describe('Service Initialization (ADR-001 Singleton Pattern)', () => {
+    it('TC-SVC-1.1: Should initialize automatically when first accessed', () => {
+      // Service initializes on first access (in beforeEach destroy/recreate)
+      // Event listener should be registered exactly once
       expect(on).toHaveBeenCalledTimes(1);
     });
 
-    it('TC-SVC-1.2: Should not reinitialize if already initialized', () => {
-      transactionService.init();
-      const callCountBefore = (on as any).mock.calls.length;
-
-      transactionService.init();
-      const callCountAfter = (on as any).mock.calls.length;
-
-      expect(callCountAfter).toBe(callCountBefore);
+    it('TC-SVC-1.2: Should maintain singleton pattern on multiple accesses', () => {
+      // Both should return the same instance
+      const instance1 = (transactionService as any).constructor.getInstance();
+      const instance2 = (transactionService as any).constructor.getInstance();
+      expect(instance1).toBe(instance2);
     });
 
     it('TC-SVC-1.3: Should register transaction:confirmed listener', () => {
-      transactionService.init();
-
+      // Listener is registered during initialization
       expect(on).toHaveBeenCalledWith('transaction:confirmed', expect.any(Function));
     });
   });
 
   describe('setUser Method', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.fetchTransactions as any).mockResolvedValue([]);
       (adapters.countTransactions as any).mockResolvedValue(0);
     });
@@ -157,7 +150,6 @@ describe('transactionService', () => {
 
   describe('loadTransactions Method (IO-First Pattern)', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.fetchTransactions as any).mockClear();
       (adapters.countTransactions as any).mockClear();
       // Ensure userId is not set (this is the initial state)
@@ -249,7 +241,6 @@ describe('transactionService', () => {
 
   describe('saveTransaction Method (IO-First Pattern)', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.saveTransaction as any).mockResolvedValue(undefined);
     });
 
@@ -316,7 +307,6 @@ describe('transactionService', () => {
 
   describe('removeTransaction Method (IO-First + Image cleanup)', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.getTransactionById as any).mockResolvedValue(
         createTransaction({ imageId: ImageId('img-123') })
       );
@@ -389,7 +379,6 @@ describe('transactionService', () => {
 
   describe('confirmTransaction Method (IO-First + Event)', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.confirmTransaction as any).mockResolvedValue(undefined);
     });
 
@@ -433,7 +422,6 @@ describe('transactionService', () => {
 
   describe('updateTransaction Method (IO-First + Event)', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.updateTransaction as any).mockResolvedValue(undefined);
     });
 
@@ -483,7 +471,6 @@ describe('transactionService', () => {
       const mockUnsubscribe = vi.fn();
       (on as any).mockReturnValue(mockUnsubscribe);
 
-      transactionService.init();
       transactionService.destroy();
 
       // Cleanup should be called
@@ -491,11 +478,9 @@ describe('transactionService', () => {
     });
 
     it('TC-SVC-8.2: Should allow reinitialize after destroy', () => {
-      transactionService.init();
       transactionService.destroy();
 
       (on as any).mockClear();
-      transactionService.init();
 
       expect(on).toHaveBeenCalled();
     });
@@ -503,7 +488,6 @@ describe('transactionService', () => {
 
   describe('Concurrency & Race Conditions', () => {
     beforeEach(() => {
-      transactionService.init();
       (adapters.fetchTransactions as any).mockResolvedValue([]);
       (adapters.countTransactions as any).mockResolvedValue(0);
       (adapters.saveTransaction as any).mockResolvedValue(undefined);

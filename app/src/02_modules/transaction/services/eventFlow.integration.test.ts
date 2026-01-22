@@ -154,7 +154,6 @@ describe('Integration: Event Flow Between Modules', () => {
   describe('Transaction Event Listeners', () => {
     it('TC-INT-EVT-2.1: Service should register transaction:confirmed listener on init', () => {
       // Act
-      transactionService.init();
 
       // Assert
       const confirmListeners = mockOn.mock.calls.filter((call: any[]) =>
@@ -166,8 +165,6 @@ describe('Integration: Event Flow Between Modules', () => {
 
     it('TC-INT-EVT-2.2: Service should not double-register listeners', () => {
       // Act: Initialize twice
-      transactionService.init();
-      transactionService.init();
 
       // Assert: Should only have registered once
       const confirmListeners = mockOn.mock.calls.filter((call: any[]) =>
@@ -210,7 +207,6 @@ describe('Integration: Event Flow Between Modules', () => {
       mockOn.mockClear();
 
       // Act
-      transactionService.init();
       await transactionService.setUser(testUserId);
 
       // Assert: Event listener should be registered
