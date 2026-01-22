@@ -230,7 +230,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   }, [loadTransactions]); // Only depend on loadTransactions, buildFetchOptions will be captured from closure
 
   // Handle all states (Pillar D: FSM)
-  if (status === 'idle') {
+  // Check if user is not logged in first
+  if (!userId) {
     return (
       <div className="ledger">
         <ViewHeader
