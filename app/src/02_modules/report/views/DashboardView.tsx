@@ -165,7 +165,7 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     );
   }
 
-  if (status === 'loading' || status === 'idle') {
+  if (status === 'loading') {
     return (
       <div className="dashboard">
         <DashboardHeaderComponent
