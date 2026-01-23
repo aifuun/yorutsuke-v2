@@ -103,6 +103,8 @@
     "extractedText": "抽出テキスト",
     "confidence": "AI信頼度",
     "noImage": "画像なし",
+    "receipt": "レシート",
+    "viewReceipt": "レシート画像を表示",
     "subtotal": "小計（税抜き）",
     "taxAmount": "消費税額",
     "taxRate": "税率",

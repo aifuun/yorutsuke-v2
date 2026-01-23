@@ -103,6 +103,8 @@
     "extractedText": "提取文本",
     "confidence": "AI 置信度",
     "noImage": "无图片",
+    "receipt": "收据",
+    "viewReceipt": "查看收据图片",
     "subtotal": "小计（未税）",
     "taxAmount": "税金",
     "taxRate": "税率",

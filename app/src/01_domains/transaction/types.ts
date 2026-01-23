@@ -45,6 +45,9 @@ export interface Transaction {
   subtotal: number | null;            // Pre-tax amount (¥) - for general taxpayer (一般納税人)
   taxAmount: number | null;           // Tax amount (¥) - for tax calculation and verification
   taxRate: number | null;             // Tax rate (8 or 10 for Japan) - for tax verification
+
+  // Issue #157: Receipt image thumbnail for Ledger display
+  imageThumbnailPath?: string | null;  // Local path to compressed receipt image
 }
 
 // Daily summary for morning report

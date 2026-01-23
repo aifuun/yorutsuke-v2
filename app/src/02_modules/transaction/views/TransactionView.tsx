@@ -1,9 +1,11 @@
 // Pillar L: Views are pure JSX, logic in services
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { useTransactionStatus, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
 import { useTranslation } from '../../../i18n';
-import { ViewHeader, AddButton, SyncButton } from '../../../components';
+import { ViewHeader, AddButton, SyncButton, Icon } from '../../../components';
+import { FileText } from 'lucide-react';
 import { ask } from '@tauri-apps/plugin-dialog';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
@@ -582,6 +584,29 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
           isConfirmed={isConfirmed}
           transaction={transaction}
         />
+      )}
+
+      {/* Issue #157: Receipt Thumbnail */}
+      {transaction.imageThumbnailPath && (
+        <div
+          className="transaction-thumbnail"
+          onClick={handleConfirmClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleConfirmClick(); }}
+          title={t('transaction.viewReceipt')}
+        >
+          <img
+            src={convertFileSrc(transaction.imageThumbnailPath)}
+            alt={t('transaction.receipt')}
+            className="transaction-thumbnail__image"
+          />
+        </div>
+      )}
+      {!transaction.imageThumbnailPath && transaction.imageId && (
+        <div className="transaction-thumbnail transaction-thumbnail--placeholder">
+          <Icon icon={FileText} size="md" aria-label={t('transaction.receipt')} />
+        </div>
       )}
 
       {/* Date Stamp - Year-Month-Day format */}
