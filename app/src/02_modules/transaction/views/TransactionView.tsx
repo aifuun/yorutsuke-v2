@@ -216,17 +216,25 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     loadTransactions(buildFetchOptions());
   }, [userId, loadTransactions, buildFetchOptions]);
 
+  // FIX #188: Store latest buildFetchOptions in ref to avoid closure trap
+  // When filters change, buildFetchOptions is recreated, but event listeners
+  // would still use the old closure. Using ref ensures we always call the latest version.
+  const buildFetchOptionsRef = useRef(buildFetchOptions);
+
+  useEffect(() => {
+    buildFetchOptionsRef.current = buildFetchOptions;
+  }, [buildFetchOptions]);
+
   // Listen to auto-sync completion events and reload transactions
   useEffect(() => {
     const cleanup = on('transaction:synced', () => {
-      // Auto-sync completed - reload transactions to show new data
-      // Note: Using latest buildFetchOptions without adding to deps to avoid infinite loop
-      loadTransactions(buildFetchOptions());
+      // Auto-sync completed - reload transactions with LATEST filter configuration
+      // Using ref ensures filters applied at time of sync, not at time of mount
+      loadTransactions(buildFetchOptionsRef.current());
     });
 
     return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadTransactions]); // Only depend on loadTransactions, buildFetchOptions will be captured from closure
+  }, [loadTransactions]); // Only loadTransactions as dependency - ref always has latest buildFetchOptions
 
   // Handle all states (Pillar D: FSM)
   // Check if user is not logged in first
