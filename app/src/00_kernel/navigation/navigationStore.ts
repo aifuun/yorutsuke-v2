@@ -4,6 +4,7 @@ import { create } from 'zustand';
 export interface LedgerIntent {
   statusFilter?: 'all' | 'pending' | 'confirmed';
   quickFilter?: 'thisMonth' | 'lastMonth' | 'thisYear' | 'all';
+  highlightTxId?: string;  // Issue #157: ID of transaction to highlight when navigating from Capture
 }
 
 interface NavigationState {

@@ -13,6 +13,8 @@ import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
 import { Icon, ViewHeader, UploadButton } from '../../../components';
+import { navigationStore } from '../../../00_kernel/navigation';
+import type { ReceiptImage } from '../../../01_domains/receipt';
 import './capture.css';
 
 // Format file size for display
@@ -55,6 +57,50 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   failed: 'capture.status.failed',
   skipped: 'capture.status.skipped',
 };
+
+// Get processing status for uploaded images (Issue #157)
+type ProcessingStatus = {
+  icon: string;
+  text: string;
+  isClickable: boolean;
+  transactionId?: string;
+};
+
+function getProcessingStatus(image: ReceiptImage): ProcessingStatus | null {
+  // Only show processing status for uploaded images
+  if (image.status !== 'uploaded') {
+    return null;
+  }
+
+  // Already processed - show transaction info
+  if (image.transactionId) {
+    const merchant = image.transactionMerchant || 'Unknown';
+    const amount = image.transactionAmount ? `¥${image.transactionAmount.toLocaleString()}` : '';
+    return {
+      icon: '✅',
+      text: `${merchant}${amount ? ` - ${amount}` : ''}`,
+      isClickable: true,
+      transactionId: image.transactionId,
+    };
+  }
+
+  // Processing - check elapsed time since upload
+  if (image.uploadedAt) {
+    const elapsedMs = Date.now() - new Date(image.uploadedAt).getTime();
+    const elapsedSec = elapsedMs / 1000;
+
+    if (elapsedSec < 30) {
+      return { icon: '🔄', text: 'Processing...', isClickable: false };
+    } else if (elapsedSec < 60) {
+      return { icon: '⏱️', text: 'Processing (slower than usual)', isClickable: false };
+    } else {
+      return { icon: '❌', text: 'Processing timeout', isClickable: false };
+    }
+  }
+
+  // Uploaded but no timestamp - assume processing
+  return { icon: '🔄', text: 'Processing...', isClickable: false };
+}
 
 // Status Dots Component (dots only, no label)
 function StatusDots({ status }: { status: string }) {
@@ -247,10 +293,26 @@ export function CaptureView() {
                   const labelText = labelKey ? t(labelKey) : image.status;
                   const isFailed = image.status === 'failed';
                   const isSkipped = image.status === 'skipped';
+                  const processingStatus = getProcessingStatus(image);
+
+                  // Handle click for processed transactions
+                  const handleClick = () => {
+                    if (processingStatus?.isClickable && processingStatus.transactionId) {
+                      // Navigate to Ledger with highlight
+                      navigationStore.getState().setLedgerIntent({ highlightTxId: processingStatus.transactionId });
+                      // Trigger navigation (assuming onNavigate prop exists)
+                      // Note: CaptureView doesn't have onNavigate prop yet, will add in App.tsx
+                      window.location.hash = '#/ledger';
+                    }
+                  };
+
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
+                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''} ${processingStatus?.isClickable ? 'queue-item--clickable' : ''}`}
+                      onClick={processingStatus?.isClickable ? handleClick : undefined}
+                      role={processingStatus?.isClickable ? 'button' : undefined}
+                      tabIndex={processingStatus?.isClickable ? 0 : undefined}
                     >
                       {/* Column 1: Thumbnail + Filename + MD5/ID */}
                       <div className="queue-item__left">
@@ -271,13 +333,18 @@ export function CaptureView() {
                         </div>
                       </div>
 
-                      {/* Column 2: Status Label + Size/Error */}
+                      {/* Column 2: Status Label + Size/Error/Processing */}
                       <div className="queue-item__center">
                         <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
                           {labelText}
                         </span>
                         {isFailed && image.error ? (
                           <span className="queue-item__error">{image.error}</span>
+                        ) : processingStatus ? (
+                          <span className="queue-item__processing">
+                            <span className="processing-icon">{processingStatus.icon}</span>
+                            <span className="processing-text">{processingStatus.text}</span>
+                          </span>
                         ) : image.compressedSize && image.compressedSize > 0 ? (
                           <span className="queue-item__size">{formatSize(image.compressedSize)}</span>
                         ) : null}
