@@ -108,6 +108,42 @@ When you run `*issue close #XXX`, the command automatically:
 
 **No manual work needed** - but verify completion!
 
+## PR Target Branch Rule (CRITICAL)
+
+**ALWAYS create Pull Requests to merge into `development` branch, NOT `master`.**
+
+### PR Creation Checklist (MUST verify before submitting)
+- [ ] Base branch is `development` (NOT master)
+- [ ] Head branch is `feature/XXX-*` or `bugfix/XXX-*`
+- [ ] PR title matches issue title
+- [ ] PR description includes "Closes #XXX"
+
+### Correct PR Command
+```bash
+# ✅ CORRECT - Target development branch
+gh pr create --base development --head feature/XXX-description --title "..." --body "..."
+
+# ❌ WRONG - Never target master directly
+gh pr create --base master --head feature/XXX-description --title "..." --body "..."
+```
+
+### Why Target Development?
+
+| Reason | Benefit |
+|--------|---------|
+| **Controlled releases** | Master only gets stable, tested code from development |
+| **Integration testing** | Features tested together in development before release |
+| **Rollback safety** | Master always represents last known good state |
+| **Clear deployment** | development = staging, master = production |
+
+### Workflow
+```
+feature/XXX → (PR) → development → (tested) → master → production
+```
+
+**Auto-Fix**: If you accidentally created PR to master:
+1. Close the incorrect PR
+2. Recreate with `--base development`
 
 ## Two-Step Planning (新增)
 
