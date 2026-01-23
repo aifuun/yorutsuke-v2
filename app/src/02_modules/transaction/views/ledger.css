@@ -419,10 +419,32 @@
   display: flex;
   align-items: center;
   gap: 24px;
+  transition: background-color 0.3s ease;
 }
 
 .transaction-card--income {
   border-right: 4px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Issue #157: Highlighted transaction (navigated from Capture) */
+.transaction-card--highlighted {
+  animation: highlight-pulse 2s ease-in-out;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+@keyframes highlight-pulse {
+  0% {
+    background: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    background: rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+  100% {
+    background: rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
 }
 
 /* Image Thumbnail - Issue #157 */

@@ -121,6 +121,9 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     return options;
   }, [selectedYear, selectedMonth, sortBy, sortOrder, currentPage, pageSize, statusFilter, typeFilter, categoryFilter]);
 
+  // Issue #157: Highlight transaction ID (from Capture page navigation)
+  const [highlightTxId, setHighlightTxId] = useState<string | null>(null);
+
   // Check for navigation intent on mount
   useEffect(() => {
     const intent = navigationStore.getState().ledgerIntent;
@@ -128,6 +131,12 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
       // Apply intent
       if (intent.statusFilter) {
         setStatusFilter(intent.statusFilter);
+      }
+      // Issue #157: Handle highlight intent from Capture page
+      if (intent.highlightTxId) {
+        setHighlightTxId(intent.highlightTxId);
+        // Auto-clear highlight after 3 seconds
+        setTimeout(() => setHighlightTxId(null), 3000);
       }
       // Note: quickFilter removed with date picker redesign (Issue #115)
       // Clear intent after applying
@@ -473,6 +482,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                       onConfirm={() => confirm(transaction.id)}
                       onUpdate={(fields) => update(transaction.id, fields)}
                       onDelete={() => remove(transaction.id)}
+                      isHighlighted={highlightTxId === transaction.id}
                     />
                   ))}
                 </div>
@@ -512,9 +522,12 @@ interface TransactionCardProps {
   onConfirm: () => void;
   onUpdate: (fields: any) => void; // TODO: import UpdateTransactionFields type
   onDelete: () => void;
+  isHighlighted?: boolean;  // Issue #157: Highlight state
 }
 
-function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: TransactionCardProps) {
+function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlighted }: TransactionCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const { t, i18n } = useTranslation();
   const date = new Date(transaction.date);
 
@@ -531,6 +544,19 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
   // Image state for modal
   const [imageResult, setImageResult] = useState<ImageUrlResult | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Issue #157: Scroll into view when highlighted
+  useEffect(() => {
+    if (isHighlighted && cardRef.current) {
+      // Wait for page to load, then scroll with smooth animation
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 100);
+    }
+  }, [isHighlighted]);
 
   // Load image URL when component mounts
   useEffect(() => {
@@ -572,7 +598,10 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
   };
 
   return (
-    <div className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''}`}>
+    <div
+      ref={cardRef}
+      className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''} ${isHighlighted ? 'transaction-card--highlighted' : ''}`}
+    >
       {/* Confirm Modal with Image, OCR text, and Transaction details */}
       {isConfirmModalOpen && (
         <ImageLightbox
