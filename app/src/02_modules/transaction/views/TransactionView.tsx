@@ -1,6 +1,5 @@
 // Pillar L: Views are pure JSX, logic in services
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useStore } from 'zustand';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useTransactionStatus, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
 import { useTranslation } from '../../../i18n';
@@ -15,7 +14,7 @@ import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
 import { navigationStore } from '../../../00_kernel/navigation';
-import { SyncStatusIndicator, manualSyncService, useSyncTrigger } from '../../sync';
+import { SyncStatusIndicator, useSyncTrigger, useManualSyncStatus } from '../../sync';
 import { useIsOnline } from '../../../00_kernel/network';
 import './ledger.css';
 
@@ -42,8 +41,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   // Auto-sync on mount (Issue #141: migrated from useSyncLogic)
   useSyncTrigger(userId, true);
 
-  // Subscribe to manual sync state
-  const syncStatus = useStore(manualSyncService.store, s => s.status);
+  // Subscribe to manual sync state (Hook Bridge Layer - ADR-020)
+  const syncStatus = useManualSyncStatus();
 
   // Network status - offline detection
   const isOnline = useIsOnline();

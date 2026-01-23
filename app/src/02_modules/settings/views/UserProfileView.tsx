@@ -1,7 +1,6 @@
 // Pillar L: View - User profile and account management
 // Migrated to use authStateService (Issue #141)
-import { useStore } from 'zustand';
-import { authStateService } from '../../auth';
+import { useUser } from '../../auth';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { User, Crown, LogOut, UserPlus, LogIn, AlertTriangle } from 'lucide-react';
@@ -16,8 +15,8 @@ const DAYS_REMAINING = 53;
 export function UserProfileView() {
   const { t } = useTranslation();
 
-  // Subscribe to auth state (primitive selector to avoid infinite loops)
-  const user = useStore(authStateService.store, s => s.user);
+  // Subscribe to auth state (Hook Bridge Layer - ADR-020)
+  const user = useUser();
 
   const handleLogout = async () => {
     const confirmed = await ask(t('settings.logoutConfirm'), {
