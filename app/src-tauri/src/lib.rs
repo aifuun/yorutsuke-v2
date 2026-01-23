@@ -4,19 +4,25 @@ use std::path::Path;
 use chrono::{Local, Duration};
 use image::GenericImageView;
 use image::codecs::jpeg::JpegEncoder;
+use tauri::Manager;
 
 mod commands;
 
+/// Get unified app data directory using Tauri API
+/// - macOS: ~/Library/Application Support/com.yorutsuke.app/
+/// - Linux: ~/.local/share/com.yorutsuke.app/
+/// - Windows: C:\Users\<user>\AppData\Local\com.yorutsuke.app\
+fn get_app_data_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
+    app.path()
+        .app_data_dir()
+        .expect("Failed to get app data directory")
+}
+
 /// Get the app's data directory for storing compressed images
-/// Uses platform-standard data directory for permanent local storage
-/// - macOS: ~/Library/Application Support/yorutsuke-v2/images/
-/// - Linux: ~/.local/share/yorutsuke-v2/images/
-/// - Windows: C:\Users\<user>\AppData\Local\yorutsuke-v2\images\
-fn get_data_dir() -> std::path::PathBuf {
-    let base = dirs::data_local_dir()
-        .or_else(dirs::data_dir)
-        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(std::env::temp_dir));
-    let images_dir = base.join("yorutsuke-v2").join("images");
+/// Uses unified app data directory under images/ subdirectory
+fn get_data_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
+    let app_data_dir = get_app_data_dir(app);
+    let images_dir = app_data_dir.join("images");
     fs::create_dir_all(&images_dir).ok();
     images_dir
 }
@@ -38,7 +44,11 @@ pub struct CompressResult {
 /// Compress an image: resize to max 1536px, convert to grayscale, JPEG 75%
 /// Grayscale conversion reduces file size by ~60% while maintaining OCR quality
 #[tauri::command]
-fn compress_image(input_path: String, image_id: String) -> Result<CompressResult, String> {
+fn compress_image(
+    input_path: String,
+    image_id: String,
+    app: tauri::AppHandle,
+) -> Result<CompressResult, String> {
     let path = Path::new(&input_path);
     if !path.exists() {
         return Err(format!("File not found: {}", input_path));
@@ -79,7 +89,7 @@ fn compress_image(input_path: String, image_id: String) -> Result<CompressResult
     };
 
     // Output path
-    let output_path = get_data_dir().join(format!("{}.jpg", image_id));
+    let output_path = get_data_dir(&app).join(format!("{}.jpg", image_id));
 
     // Convert to grayscale then to RGB8 for JPEG encoding
     // Grayscale reduces file size significantly while maintaining OCR quality
@@ -144,12 +154,98 @@ fn delete_file(path: String) -> Result<(), String> {
 // Logging System (Pillar R: Observability)
 // ============================================================================
 
-/// Get the logs directory (~/.yorutsuke/logs/)
-fn get_logs_dir() -> std::path::PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| std::env::temp_dir());
-    let logs_dir = home.join(".yorutsuke").join("logs");
+/// Get the logs directory (unified app data directory under logs/ subdirectory)
+/// Public so diagnostic.rs can use it
+pub fn get_logs_dir(app: &tauri::AppHandle) -> std::path::PathBuf {
+    let app_data_dir = get_app_data_dir(app);
+    let logs_dir = app_data_dir.join("logs");
     fs::create_dir_all(&logs_dir).ok();
     logs_dir
+}
+
+// ============================================================================
+// Data Migration Helpers (One-time migration from legacy paths)
+// ============================================================================
+
+/// Check if migration has already been completed
+fn is_migration_complete(app_data_dir: &std::path::Path) -> bool {
+    app_data_dir.join(".migration_v1_complete").exists()
+}
+
+/// Create migration completion marker
+fn mark_migration_complete(app_data_dir: &std::path::Path) -> std::io::Result<()> {
+    let marker = app_data_dir.join(".migration_v1_complete");
+    let timestamp = chrono::Local::now().to_rfc3339();
+    std::fs::write(marker, format!("Migration completed at: {}", timestamp))?;
+    Ok(())
+}
+
+/// Migrate legacy images directory
+fn migrate_images(app_data_dir: &std::path::Path) -> Result<u64, String> {
+    // Legacy location: data_local_dir/yorutsuke-v2/images/
+    let base = dirs::data_local_dir()
+        .or_else(dirs::data_dir)
+        .ok_or("Failed to get data directory")?;
+    let legacy_images = base.join("yorutsuke-v2").join("images");
+
+    if !legacy_images.exists() {
+        return Ok(0); // Nothing to migrate
+    }
+
+    let new_images = app_data_dir.join("images");
+    fs::create_dir_all(&new_images).ok();
+
+    let mut count = 0u64;
+    if let Ok(entries) = fs::read_dir(&legacy_images) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_file() {
+                    let file_name = entry.file_name();
+                    let dest = new_images.join(&file_name);
+
+                    // Copy file (non-destructive)
+                    if fs::copy(entry.path(), dest).is_ok() {
+                        count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(count)
+}
+
+/// Migrate legacy logs directory
+fn migrate_logs(app_data_dir: &std::path::Path) -> Result<u64, String> {
+    // Legacy location: ~/.yorutsuke/logs/
+    let home = dirs::home_dir().ok_or("Failed to get home directory")?;
+    let legacy_logs = home.join(".yorutsuke").join("logs");
+
+    if !legacy_logs.exists() {
+        return Ok(0); // Nothing to migrate
+    }
+
+    let new_logs = app_data_dir.join("logs");
+    fs::create_dir_all(&new_logs).ok();
+
+    let mut count = 0u64;
+    if let Ok(entries) = fs::read_dir(&legacy_logs) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata() {
+                if metadata.is_file() {
+                    let file_name = entry.file_name();
+                    let dest = new_logs.join(&file_name);
+
+                    // Copy file (non-destructive)
+                    if fs::copy(entry.path(), dest).is_ok() {
+                        count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(count)
 }
 
 /// Log entry from frontend
@@ -167,10 +263,10 @@ pub struct LogEntry {
 }
 
 /// Write a log entry to the daily log file
-/// File format: ~/.yorutsuke/logs/YYYY-MM-DD.jsonl
+/// File format: {app_data_dir}/logs/YYYY-MM-DD.jsonl
 #[tauri::command]
-fn log_write(entry: LogEntry) -> Result<(), String> {
-    let logs_dir = get_logs_dir();
+fn log_write(entry: LogEntry, app: tauri::AppHandle) -> Result<(), String> {
+    let logs_dir = get_logs_dir(&app);
     let today = Local::now().format("%Y-%m-%d").to_string();
     let log_file = logs_dir.join(format!("{}.jsonl", today));
 
@@ -211,9 +307,9 @@ fn log_write(entry: LogEntry) -> Result<(), String> {
 
 /// Clean up log files older than retention days (default: 7)
 #[tauri::command]
-fn log_cleanup(retention_days: Option<i64>) -> Result<u32, String> {
+fn log_cleanup(retention_days: Option<i64>, app: tauri::AppHandle) -> Result<u32, String> {
     let retention = retention_days.unwrap_or(7);
-    let logs_dir = get_logs_dir();
+    let logs_dir = get_logs_dir(&app);
     let cutoff = Local::now() - Duration::days(retention);
     let cutoff_str = cutoff.format("%Y-%m-%d").to_string();
 
@@ -242,8 +338,8 @@ fn log_cleanup(retention_days: Option<i64>) -> Result<u32, String> {
 
 /// Get the path to today's log file (for debugging)
 #[tauri::command]
-fn log_get_path() -> String {
-    let logs_dir = get_logs_dir();
+fn log_get_path(app: tauri::AppHandle) -> String {
+    let logs_dir = get_logs_dir(&app);
     let today = Local::now().format("%Y-%m-%d").to_string();
     logs_dir.join(format!("{}.jsonl", today)).to_string_lossy().to_string()
 }
@@ -307,7 +403,37 @@ pub fn run() {
             commands::diagnostic::read_debug_logs,
             commands::diagnostic::get_directory_size,
         ])
-        .setup(|_app| {
+        .setup(|app| {
+            // One-time data migration from legacy paths
+            let app_data_dir = get_app_data_dir(&app.handle());
+
+            // Check if already migrated
+            if !is_migration_complete(&app_data_dir) {
+                println!("[MIGRATION] Starting data migration to unified directory");
+                println!("[MIGRATION] Target: {}", app_data_dir.display());
+
+                // Migrate images
+                match migrate_images(&app_data_dir) {
+                    Ok(count) => println!("[MIGRATION] Migrated {} image files", count),
+                    Err(e) => eprintln!("[MIGRATION] Error migrating images: {}", e),
+                }
+
+                // Migrate logs
+                match migrate_logs(&app_data_dir) {
+                    Ok(count) => println!("[MIGRATION] Migrated {} log files", count),
+                    Err(e) => eprintln!("[MIGRATION] Error migrating logs: {}", e),
+                }
+
+                // Mark migration complete
+                if let Err(e) = mark_migration_complete(&app_data_dir) {
+                    eprintln!("[MIGRATION] Failed to create marker: {}", e);
+                } else {
+                    println!("[MIGRATION] Migration complete - marker created");
+                }
+            } else {
+                println!("[MIGRATION] Already migrated - skipping");
+            }
+
             // DevTools can be opened manually with Cmd+Option+I (macOS) or F12 (Windows/Linux)
             Ok(())
         })
