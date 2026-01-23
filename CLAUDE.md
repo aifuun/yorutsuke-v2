@@ -160,6 +160,8 @@ aws lambda publish-layer-version --layer-name yorutsuke-shared-dev --zip-file fi
 
 ## Workflow
 
+**CRITICAL**: All pull requests must target `development` branch, never `master` directly.
+
 ### Core Commands
 
 | Command | Description |
