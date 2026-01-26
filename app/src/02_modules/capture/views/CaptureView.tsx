@@ -13,7 +13,7 @@ import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
 import { Icon, ViewHeader, UploadButton } from '../../../components';
-import { navigationStore } from '../../../00_kernel/navigation';
+import { setHighlightTxId } from '../../../00_kernel/navigation';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import './capture.css';
 
@@ -78,13 +78,11 @@ function getProcessingStatus(image: ReceiptImage): ProcessingStatus | null {
     return null;
   }
 
-  // Already processed - show transaction info
+  // Already processed - show completion status
   if (image.transactionId) {
-    const merchant = image.transactionMerchant || 'Unknown';
-    const amount = image.transactionAmount ? `¥${image.transactionAmount.toLocaleString()}` : '';
     return {
       icon: '✅',
-      text: `${merchant}${amount ? ` - ${amount}` : ''}`,
+      text: '处理完成',  // Processing Complete
       isClickable: true,
       transactionId: image.transactionId,
     };
@@ -97,10 +95,12 @@ function getProcessingStatus(image: ReceiptImage): ProcessingStatus | null {
 
     if (elapsedSec < 30) {
       return { icon: '🔄', text: 'Processing...', isClickable: false };
-    } else if (elapsedSec < 60) {
+    } else if (elapsedSec < 90) {
+      // 🔧 FIX: Extended to 90s - Lambda + Pull sync may take up to 90s
       return { icon: '⏱️', text: 'Processing (slower than usual)', isClickable: false };
     } else {
-      return { icon: '❌', text: 'Processing timeout', isClickable: false };
+      // 🔧 FIX: After 90s, suggest checking Ledger page
+      return { icon: '⏱️', text: 'Still processing (check Ledger page)', isClickable: false };
     }
   }
 
@@ -304,8 +304,8 @@ export function CaptureView({ onNavigate }: CaptureViewProps = {}) {
                   // Handle click for processed transactions (Issue #157)
                   const handleClick = () => {
                     if (processingStatus?.isClickable && processingStatus.transactionId && onNavigate) {
-                      // Set highlight intent in navigation store
-                      navigationStore.getState().setLedgerIntent({ highlightTxId: processingStatus.transactionId });
+                      // ✅ Set highlight ID using simple helper (no store complexity)
+                      setHighlightTxId(processingStatus.transactionId);
                       // Navigate to Ledger page
                       onNavigate('ledger');
                     }

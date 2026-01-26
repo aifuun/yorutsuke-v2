@@ -13,7 +13,6 @@ import { logger } from '../../../00_kernel/telemetry';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
-import { navigationStore } from '../../../00_kernel/navigation';
 import { SyncStatusIndicator, useSyncTrigger, useManualSyncStatus } from '../../sync';
 import { useIsOnline } from '../../../00_kernel/network';
 import './ledger.css';
@@ -123,25 +122,59 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   // Issue #157: Highlight transaction ID (from Capture page navigation)
   const [highlightTxId, setHighlightTxId] = useState<string | null>(null);
 
-  // Check for navigation intent on mount
+  // Listen for highlight events (Issue #157)
+  // ✅ Event-driven approach - works regardless of component mount state
   useEffect(() => {
-    const intent = navigationStore.getState().ledgerIntent;
-    if (intent) {
-      // Apply intent
-      if (intent.statusFilter) {
-        setStatusFilter(intent.statusFilter);
+    const cleanup = on('ledger:highlight', (payload: { txId: string }) => {
+      const txId = payload.txId;
+
+      console.log('[TransactionView] ✅ Received highlight event:', txId);
+      setHighlightTxId(txId);
+
+      // 🔧 Clear filters to ensure highlighted transaction is visible
+      setStatusFilter('all');
+      setTypeFilter('all');
+      setCategoryFilter('all');
+      setSelectedYear('all');
+      setSelectedMonth('all');
+      setSortBy('createdAt');  // Sort by creation time
+      setSortOrder('DESC');    // Newest first
+      setCurrentPage(1);       // Reset to first page
+
+      logger.debug('ledger_highlight_filters_cleared', {
+        txId,
+        note: 'Cleared all filters to ensure transaction is visible',
+      });
+
+      // 🔧 Manually load transactions after clearing filters
+      if (userId) {
+        const options: FetchTransactionsOptions = {
+          sortBy: 'createdAt',
+          sortOrder: 'DESC',
+          limit: pageSize,
+          offset: 0,
+        };
+        logger.debug('ledger_highlight_loading_transactions', { txId, options });
+        loadTransactions(options);
+
+        // 🔧 DEBUG: Check if transaction appears in list after load
+        setTimeout(() => {
+          const found = filteredTransactions.find(tx => tx.id === txId);
+          logger.debug('ledger_highlight_verification', {
+            txId,
+            found: !!found,
+            totalTransactions: filteredTransactions.length,
+            firstFewIds: filteredTransactions.slice(0, 5).map(tx => tx.id),
+          });
+        }, 500);
       }
-      // Issue #157: Handle highlight intent from Capture page
-      if (intent.highlightTxId) {
-        setHighlightTxId(intent.highlightTxId);
-        // Auto-clear highlight after 3 seconds
-        setTimeout(() => setHighlightTxId(null), 3000);
-      }
-      // Note: quickFilter removed with date picker redesign (Issue #115)
-      // Clear intent after applying
-      navigationStore.getState().clearLedgerIntent();
-    }
-  }, []); // Run only on mount
+
+      // Auto-clear highlight after 3 seconds
+      setTimeout(() => setHighlightTxId(null), 3000);
+    });
+
+    return cleanup;
+  }, [userId, loadTransactions, filteredTransactions, pageSize]); // Dependencies for the event handler
 
   // Track first render to skip initial effect execution
   const isFirstRenderRef = useRef(true);
@@ -527,6 +560,11 @@ interface TransactionCardProps {
 function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlighted }: TransactionCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // 🔍 DEBUG: Log highlight status
+  if (isHighlighted) {
+    console.log('[TransactionCard] ✅ Rendering HIGHLIGHTED card:', transaction.id);
+  }
+
   const { t, i18n } = useTranslation();
   const date = new Date(transaction.date);
 
@@ -547,15 +585,29 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
   // Issue #157: Scroll into view when highlighted
   useEffect(() => {
     if (isHighlighted && cardRef.current) {
-      // Wait for page to load, then scroll with smooth animation
+      logger.debug('transaction_card_highlighted', {
+        txId: transaction.id,
+        hasRef: !!cardRef.current,
+      });
+
+      // Wait for page to load and DOM to settle, then scroll with smooth animation
+      // Increased delay to ensure data is loaded and rendered
       setTimeout(() => {
-        cardRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-      }, 100);
+        if (cardRef.current) {
+          cardRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+          logger.debug('transaction_card_scrolled', { txId: transaction.id });
+        } else {
+          logger.warn('transaction_card_scroll_failed', {
+            txId: transaction.id,
+            reason: 'ref_not_attached',
+          });
+        }
+      }, 300); // Increased from 100ms to 300ms
     }
-  }, [isHighlighted]);
+  }, [isHighlighted, transaction.id]);
 
   // Load image URL when component mounts
   useEffect(() => {
@@ -600,6 +652,10 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
     <div
       ref={cardRef}
       className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''} ${isHighlighted ? 'transaction-card--highlighted' : ''}`}
+      style={isHighlighted ? {
+        border: '3px solid #facc15',
+        background: 'rgba(250, 204, 21, 0.15)',
+      } : undefined}
     >
       {/* Confirm Modal with Image, OCR text, and Transaction details */}
       {isConfirmModalOpen && (
