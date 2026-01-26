@@ -17,6 +17,12 @@ import { navigationStore } from '../../../00_kernel/navigation';
 import type { ReceiptImage } from '../../../01_domains/receipt';
 import './capture.css';
 
+type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
+
+interface CaptureViewProps {
+  onNavigate?: (view: ViewType) => void;
+}
+
 // Format file size for display
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`;
@@ -131,7 +137,7 @@ function StatusDots({ status }: { status: string }) {
   );
 }
 
-export function CaptureView() {
+export function CaptureView({ onNavigate }: CaptureViewProps = {}) {
   const { t } = useTranslation();
   const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -295,14 +301,13 @@ export function CaptureView() {
                   const isSkipped = image.status === 'skipped';
                   const processingStatus = getProcessingStatus(image);
 
-                  // Handle click for processed transactions
+                  // Handle click for processed transactions (Issue #157)
                   const handleClick = () => {
-                    if (processingStatus?.isClickable && processingStatus.transactionId) {
-                      // Navigate to Ledger with highlight
+                    if (processingStatus?.isClickable && processingStatus.transactionId && onNavigate) {
+                      // Set highlight intent in navigation store
                       navigationStore.getState().setLedgerIntent({ highlightTxId: processingStatus.transactionId });
-                      // Trigger navigation (assuming onNavigate prop exists)
-                      // Note: CaptureView doesn't have onNavigate prop yet, will add in App.tsx
-                      window.location.hash = '#/ledger';
+                      // Navigate to Ledger page
+                      onNavigate('ledger');
                     }
                   };
 
