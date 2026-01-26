@@ -3,8 +3,8 @@
  * @see docs/design/DATA-VIZ.md for specifications
  */
 import { useMemo } from 'react';
-import type { TrendDataPoint } from '../components/TrendChart';
-import type { CategoryDataPoint } from '../components/CategoryChart';
+import type { TrendDataPoint } from '../views/TrendChart';
+import type { CategoryDataPoint } from '../views/CategoryChart';
 
 interface Transaction {
   id: string;

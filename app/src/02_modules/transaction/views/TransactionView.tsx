@@ -11,7 +11,7 @@ import type { Transaction } from '../../../01_domains/transaction';
 import { on } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
-import { ImageLightbox, Pagination } from '../components';
+import { ImageLightbox, Pagination } from '.';
 import type { FetchTransactionsOptions } from '../services/transactionService';
 import { SyncStatusIndicator, useSyncTrigger, useManualSyncStatus } from '../../sync';
 import { useIsOnline } from '../../../00_kernel/network';
