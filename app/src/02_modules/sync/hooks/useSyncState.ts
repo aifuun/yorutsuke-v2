@@ -78,6 +78,43 @@ export function useSyncError(): string | null {
 }
 
 // ============================================================================
+// Manual Sync Service Store Hooks (ADR-020)
+// ============================================================================
+
+/**
+ * Get manual sync status
+ * @returns Manual sync status: 'idle' | 'syncing' | 'success' | 'error'
+ */
+export function useManualSyncStatus(): 'idle' | 'syncing' | 'success' | 'error' {
+  return useStore(manualSyncService.store, (s) => s.status);
+}
+
+/**
+ * Get manual sync last synced timestamp
+ * @returns ISO timestamp of last manual sync, null if never synced
+ */
+export function useManualSyncLastSyncedAt(): string | null {
+  return useStore(manualSyncService.store, (s) => s.lastSyncedAt);
+}
+
+/**
+ * Check if manual sync is in progress
+ * @returns True if manual sync in progress
+ */
+export function useIsManualSyncing(): boolean {
+  return useStore(manualSyncService.store, (s) => s.status === 'syncing');
+}
+
+/**
+ * Get manual sync error message
+ * @returns Error message if manual sync failed, null otherwise
+ */
+export function useManualSyncError(): string | null {
+  const state = useStore(manualSyncService.store);
+  return state.status === 'error' ? state.error : null;
+}
+
+// ============================================================================
 // Identity 3: Orchestrator (Coordinates Services)
 // ============================================================================
 

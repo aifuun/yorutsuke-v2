@@ -13,7 +13,15 @@ import { useNetworkStatus } from '../../../00_kernel/network';
 import { useEffectiveUserId } from '../../auth/headless';
 import { useTranslation } from '../../../i18n';
 import { Icon, ViewHeader, UploadButton } from '../../../components';
+import { setHighlightTxId } from '../../../00_kernel/navigation';
+import type { ReceiptImage } from '../../../01_domains/receipt';
 import './capture.css';
+
+type ViewType = 'dashboard' | 'ledger' | 'capture' | 'settings' | 'profile' | 'debug';
+
+interface CaptureViewProps {
+  onNavigate?: (view: ViewType) => void;
+}
 
 // Format file size for display
 function formatSize(bytes: number): string {
@@ -56,6 +64,50 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   skipped: 'capture.status.skipped',
 };
 
+// Get processing status for uploaded images (Issue #157)
+type ProcessingStatus = {
+  icon: string;
+  text: string;
+  isClickable: boolean;
+  transactionId?: string;
+};
+
+function getProcessingStatus(image: ReceiptImage): ProcessingStatus | null {
+  // Only show processing status for uploaded images
+  if (image.status !== 'uploaded') {
+    return null;
+  }
+
+  // Already processed - show completion status
+  if (image.transactionId) {
+    return {
+      icon: '✅',
+      text: '处理完成',  // Processing Complete
+      isClickable: true,
+      transactionId: image.transactionId,
+    };
+  }
+
+  // Processing - check elapsed time since upload
+  if (image.uploadedAt) {
+    const elapsedMs = Date.now() - new Date(image.uploadedAt).getTime();
+    const elapsedSec = elapsedMs / 1000;
+
+    if (elapsedSec < 30) {
+      return { icon: '🔄', text: 'Processing...', isClickable: false };
+    } else if (elapsedSec < 90) {
+      // 🔧 FIX: Extended to 90s - Lambda + Pull sync may take up to 90s
+      return { icon: '⏱️', text: 'Processing (slower than usual)', isClickable: false };
+    } else {
+      // 🔧 FIX: After 90s, suggest checking Ledger page
+      return { icon: '⏱️', text: 'Still processing (check Ledger page)', isClickable: false };
+    }
+  }
+
+  // Uploaded but no timestamp - assume processing
+  return { icon: '🔄', text: 'Processing...', isClickable: false };
+}
+
 // Status Dots Component (dots only, no label)
 function StatusDots({ status }: { status: string }) {
   const currentIndex = getStatusIndex(status);
@@ -85,7 +137,7 @@ function StatusDots({ status }: { status: string }) {
   );
 }
 
-export function CaptureView() {
+export function CaptureView({ onNavigate }: CaptureViewProps = {}) {
   const { t } = useTranslation();
   const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD in local TZ
   const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -247,10 +299,25 @@ export function CaptureView() {
                   const labelText = labelKey ? t(labelKey) : image.status;
                   const isFailed = image.status === 'failed';
                   const isSkipped = image.status === 'skipped';
+                  const processingStatus = getProcessingStatus(image);
+
+                  // Handle click for processed transactions (Issue #157)
+                  const handleClick = () => {
+                    if (processingStatus?.isClickable && processingStatus.transactionId && onNavigate) {
+                      // ✅ Set highlight ID using simple helper (no store complexity)
+                      setHighlightTxId(processingStatus.transactionId);
+                      // Navigate to Ledger page
+                      onNavigate('ledger');
+                    }
+                  };
+
                   return (
                     <div
                       key={image.id}
-                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''}`}
+                      className={`queue-item queue-item--3col ${isFailed ? 'queue-item--failed' : ''} ${isSkipped ? 'queue-item--skipped' : ''} ${processingStatus?.isClickable ? 'queue-item--clickable' : ''}`}
+                      onClick={processingStatus?.isClickable ? handleClick : undefined}
+                      role={processingStatus?.isClickable ? 'button' : undefined}
+                      tabIndex={processingStatus?.isClickable ? 0 : undefined}
                     >
                       {/* Column 1: Thumbnail + Filename + MD5/ID */}
                       <div className="queue-item__left">
@@ -271,13 +338,18 @@ export function CaptureView() {
                         </div>
                       </div>
 
-                      {/* Column 2: Status Label + Size/Error */}
+                      {/* Column 2: Status Label + Size/Error/Processing */}
                       <div className="queue-item__center">
                         <span className={`status-label status-label--${isFailed ? 'error' : isSkipped ? 'skipped' : 'default'}`}>
                           {labelText}
                         </span>
                         {isFailed && image.error ? (
                           <span className="queue-item__error">{image.error}</span>
+                        ) : processingStatus ? (
+                          <span className="queue-item__processing">
+                            <span className="processing-icon">{processingStatus.icon}</span>
+                            <span className="processing-text">{processingStatus.text}</span>
+                          </span>
                         ) : image.compressedSize && image.compressedSize > 0 ? (
                           <span className="queue-item__size">{formatSize(image.compressedSize)}</span>
                         ) : null}

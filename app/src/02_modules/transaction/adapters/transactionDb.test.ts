@@ -20,6 +20,204 @@ describe('transactionDb', () => {
     vi.clearAllMocks();
   });
 
+  // Issue #157: Test LEFT JOIN with images table for thumbnails
+  describe('fetchTransactions with thumbnails', () => {
+    it('TC-DB.7: LEFT JOIN images and include thumbnail_path in results', async () => {
+      // Given: Mock DB returns rows with thumbnail_path from LEFT JOIN
+      const mockRows = [
+        {
+          id: 'tx-1',
+          user_id: 'user-1',
+          image_id: 'img-1',
+          s3_key: 'uploads/user-1/img-1.jpg',
+          type: 'expense',
+          category: 'shopping',
+          amount: 1000,
+          currency: 'JPY',
+          description: 'Test purchase',
+          merchant: 'Test Store',
+          date: '2026-01-01',
+          created_at: '2026-01-01T10:00:00Z',
+          updated_at: '2026-01-01T10:00:00Z',
+          status: 'confirmed',
+          confidence: null,
+          raw_text: 'Receipt text',
+          primary_model_id: null,
+          primary_confidence: null,
+          trace_id: null,
+          processing_model: null,
+          version: null,
+          subtotal: null,
+          tax_amount: null,
+          tax_rate: null,
+          thumbnail_path: '/path/to/compressed/img-1.webp', // From LEFT JOIN
+        },
+      ];
+
+      (mockDb.select as ReturnType<typeof vi.fn>).mockResolvedValue(mockRows);
+
+      // When: fetchTransactions called
+      const { fetchTransactions } = await import('./transactionDb');
+      const userId = UserId('user-1');
+      const result = await fetchTransactions(userId);
+
+      // Then: Transaction objects include imageThumbnailPath
+      expect(result).toHaveLength(1);
+      expect(result[0].imageThumbnailPath).toBe('/path/to/compressed/img-1.webp');
+      expect(result[0].imageId).toBe('img-1');
+
+      // Verify SQL query includes LEFT JOIN
+      const [sql] = (mockDb.select as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(sql).toContain('LEFT JOIN images i ON i.id = t.image_id');
+      expect(sql).toContain('i.compressed_path as thumbnail_path');
+    });
+
+    it('TC-DB.8: Handle NULL thumbnail_path gracefully for transactions without images', async () => {
+      // Given: Transaction without image (manual entry)
+      const mockRows = [
+        {
+          id: 'tx-2',
+          user_id: 'user-1',
+          image_id: null,
+          s3_key: null,
+          type: 'income',
+          category: 'other',
+          amount: 2000,
+          currency: 'JPY',
+          description: 'Manual entry',
+          merchant: null,
+          date: '2026-01-02',
+          created_at: '2026-01-02T10:00:00Z',
+          updated_at: '2026-01-02T10:00:00Z',
+          status: 'unconfirmed',
+          confidence: null,
+          raw_text: null,
+          primary_model_id: null,
+          primary_confidence: null,
+          trace_id: null,
+          processing_model: null,
+          version: null,
+          subtotal: null,
+          tax_amount: null,
+          tax_rate: null,
+          thumbnail_path: null, // No image → NULL from LEFT JOIN
+        },
+      ];
+
+      (mockDb.select as ReturnType<typeof vi.fn>).mockResolvedValue(mockRows);
+
+      // When: fetchTransactions called
+      const { fetchTransactions } = await import('./transactionDb');
+      const userId = UserId('user-1');
+      const result = await fetchTransactions(userId);
+
+      // Then: imageThumbnailPath is null
+      expect(result).toHaveLength(1);
+      expect(result[0].imageThumbnailPath).toBeNull();
+      expect(result[0].imageId).toBeNull();
+    });
+
+    it('TC-DB.9: Return mixed results with and without thumbnails', async () => {
+      // Given: Multiple transactions, some with images, some without
+      const mockRows = [
+        {
+          id: 'tx-1',
+          user_id: 'user-1',
+          image_id: 'img-1',
+          s3_key: 'uploads/user-1/img-1.jpg',
+          type: 'expense',
+          category: 'shopping',
+          amount: 1000,
+          currency: 'JPY',
+          description: 'With receipt',
+          merchant: 'Store A',
+          date: '2026-01-01',
+          created_at: '2026-01-01T10:00:00Z',
+          updated_at: '2026-01-01T10:00:00Z',
+          status: 'confirmed',
+          confidence: null,
+          raw_text: null,
+          primary_model_id: null,
+          primary_confidence: null,
+          trace_id: null,
+          processing_model: null,
+          version: null,
+          subtotal: null,
+          tax_amount: null,
+          tax_rate: null,
+          thumbnail_path: '/path/to/img-1.webp', // Has thumbnail
+        },
+        {
+          id: 'tx-2',
+          user_id: 'user-1',
+          image_id: null,
+          s3_key: null,
+          type: 'income',
+          category: 'other',
+          amount: 2000,
+          currency: 'JPY',
+          description: 'Manual entry',
+          merchant: null,
+          date: '2026-01-02',
+          created_at: '2026-01-02T10:00:00Z',
+          updated_at: '2026-01-02T10:00:00Z',
+          status: 'confirmed',
+          confidence: null,
+          raw_text: null,
+          primary_model_id: null,
+          primary_confidence: null,
+          trace_id: null,
+          processing_model: null,
+          version: null,
+          subtotal: null,
+          tax_amount: null,
+          tax_rate: null,
+          thumbnail_path: null, // No thumbnail
+        },
+        {
+          id: 'tx-3',
+          user_id: 'user-1',
+          image_id: 'img-3',
+          s3_key: 'uploads/user-1/img-3.jpg',
+          type: 'expense',
+          category: 'transport',
+          amount: 500,
+          currency: 'JPY',
+          description: 'Another receipt',
+          merchant: 'Store B',
+          date: '2026-01-03',
+          created_at: '2026-01-03T10:00:00Z',
+          updated_at: '2026-01-03T10:00:00Z',
+          status: 'unconfirmed',
+          confidence: null,
+          raw_text: null,
+          primary_model_id: null,
+          primary_confidence: null,
+          trace_id: null,
+          processing_model: null,
+          version: null,
+          subtotal: null,
+          tax_amount: null,
+          tax_rate: null,
+          thumbnail_path: '/path/to/img-3.webp', // Has thumbnail
+        },
+      ];
+
+      (mockDb.select as ReturnType<typeof vi.fn>).mockResolvedValue(mockRows);
+
+      // When: fetchTransactions called
+      const { fetchTransactions } = await import('./transactionDb');
+      const userId = UserId('user-1');
+      const result = await fetchTransactions(userId);
+
+      // Then: Results contain correct thumbnail paths
+      expect(result).toHaveLength(3);
+      expect(result[0].imageThumbnailPath).toBe('/path/to/img-1.webp');
+      expect(result[1].imageThumbnailPath).toBeNull();
+      expect(result[2].imageThumbnailPath).toBe('/path/to/img-3.webp');
+    });
+  });
+
   describe('mapDbToTransaction', () => {
     // Note: mapDbToTransaction is not exported, so we test it indirectly via other functions
     // For direct testing, we'd need to export it or use integration tests

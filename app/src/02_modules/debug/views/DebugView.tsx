@@ -2,8 +2,7 @@
 // Reorganized layout: Mock & Data Mode | Seed Data | System Info | Danger Zone | Logs
 // Migrated to use authStateService and settingsStateService (Issue #141)
 import { useState, useEffect, useSyncExternalStore } from 'react';
-import { useStore } from 'zustand';
-import { authStateService, useEffectiveUserId } from '../../auth';
+import { useEffectiveUserId, useUser } from '../../auth';
 import { useDebugEnabled, debugSettingsActions, useDebugSettingsInit } from '../hooks';
 import { useSettingsTheme, useSettingsLanguage } from '../../settings/hooks';
 import { useQuota } from '../../capture/hooks/useQuotaState';
@@ -47,8 +46,8 @@ export function DebugView() {
   // Initialize debug settings (Issue #166: Option B - isolated from Settings module)
   useDebugSettingsInit();
 
-  // Subscribe to auth state (primitive selector to avoid infinite loops)
-  const user = useStore(authStateService.store, s => s.user);
+  // Subscribe to auth state (Hook Bridge Layer - ADR-020)
+  const user = useUser();
 
   const { effectiveUserId, isLoading: userIdLoading } = useEffectiveUserId();
 

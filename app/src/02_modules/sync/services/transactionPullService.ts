@@ -12,6 +12,7 @@ import {
   upsertLocalTransaction,
 } from '../adapters/transactionSyncAdapter';
 import { logger } from '../../../00_kernel/telemetry/logger';
+import { emit } from '../../../00_kernel/eventBus';
 import { syncImagesForTransactions, type ImageSyncResult } from './imageSyncService';
 import { syncStore } from '../stores/syncStore';
 
@@ -231,6 +232,26 @@ export async function pullTransactions(
     // This checks local images first, only downloads from S3 if needed
     const imageSyncResult = await syncImagesForTransactions(cloudTransactions, userId, traceId);
 
+    // Step 5: Emit events for transactions with images (Issue #157)
+    // This allows Capture page to update real-time when cloud processing completes
+    const transactionsWithImages = cloudTransactions.filter(tx => tx.imageId);
+    logger.debug('transaction_sync_emit_events', {
+      totalSynced: synced,
+      withImages: transactionsWithImages.length,
+      traceId,
+    });
+
+    for (const tx of transactionsWithImages) {
+      // Emit event for Capture page to update transaction info
+      emit('transaction:confirmed', { id: tx.id });
+
+      logger.debug('transaction_sync_event_emitted', {
+        txId: tx.id,
+        imageId: tx.imageId,
+        traceId,
+      });
+    }
+
     const result: PullSyncResult = {
       synced,
       conflicts,
@@ -240,7 +261,7 @@ export async function pullTransactions(
       images: imageSyncResult,
     };
 
-    // Step 5: Update lastSyncedAt on successful pull (IO-first pattern)
+    // Step 6: Update lastSyncedAt on successful pull (IO-first pattern)
     // Update happens AFTER all data operations complete
     const timestamp = new Date().toISOString();
     syncStore.getState().setLastSyncedAt(timestamp);

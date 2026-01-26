@@ -29,6 +29,7 @@ interface DbTransaction {
   subtotal: number | null; // v12: Tax fields for Japanese tax reporting
   tax_amount: number | null; // v12: Tax amount in yen
   tax_rate: number | null; // v12: Tax rate (8.0 or 10.0 for Japan)
+  thumbnail_path: string | null; // Issue #157: Receipt image thumbnail path
 }
 
 function mapDbToTransaction(row: DbTransaction): Transaction {
@@ -55,6 +56,7 @@ function mapDbToTransaction(row: DbTransaction): Transaction {
     subtotal: row.subtotal, // v12: Tax fields
     taxAmount: row.tax_amount,
     taxRate: row.tax_rate,
+    imageThumbnailPath: row.thumbnail_path, // Issue #157: Receipt thumbnail
   };
 }
 
@@ -86,47 +88,58 @@ export async function fetchTransactions(
   let query: string;
   const params: unknown[] = [userId];
 
+  // Issue #157: LEFT JOIN images to get receipt thumbnails
   if (includeDeleted) {
     // Include all transactions (for sync comparison)
-    query = 'SELECT * FROM transactions WHERE user_id = ?';
+    query = `SELECT
+      t.*,
+      i.compressed_path as thumbnail_path
+    FROM transactions t
+    LEFT JOIN images i ON i.id = t.image_id
+    WHERE t.user_id = ?`;
   } else {
     // Default: Filter out deleted transactions
-    query = 'SELECT * FROM transactions WHERE user_id = ? AND (status IS NULL OR status != ?)';
+    query = `SELECT
+      t.*,
+      i.compressed_path as thumbnail_path
+    FROM transactions t
+    LEFT JOIN images i ON i.id = t.image_id
+    WHERE t.user_id = ? AND (t.status IS NULL OR t.status != ?)`;
     params.push('deleted');
   }
 
   if (startDate) {
-    query += ' AND date >= ?';
+    query += ' AND t.date >= ?';
     params.push(startDate);
   }
   if (endDate) {
-    query += ' AND date <= ?';
+    query += ' AND t.date <= ?';
     params.push(endDate);
   }
 
   // Status filter: pending (unconfirmed) or confirmed
   if (statusFilter === 'pending') {
-    query += ' AND status != ?';
+    query += ' AND t.status != ?';
     params.push('confirmed');
   } else if (statusFilter === 'confirmed') {
-    query += ' AND status = ?';
+    query += ' AND t.status = ?';
     params.push('confirmed');
   }
 
   // Type filter (NEW: Issue #115)
   if (typeFilter) {
-    query += ' AND type = ?';
+    query += ' AND t.type = ?';
     params.push(typeFilter);
   }
 
   // Category filter (NEW: Issue #115)
   if (categoryFilter) {
-    query += ' AND category = ?';
+    query += ' AND t.category = ?';
     params.push(categoryFilter);
   }
 
   // Sorting (default: invoice date descending)
-  const sortField = sortBy === 'createdAt' ? 'created_at' : 'date';
+  const sortField = sortBy === 'createdAt' ? 't.created_at' : 't.date';
   query += ` ORDER BY ${sortField} ${sortOrder}`;
 
   // Pagination

@@ -420,3 +420,44 @@ export async function createImageRecord(params: {
     ],
   );
 }
+
+/**
+ * Load recent images for Capture page display
+ * Includes transaction information to show processing status
+ * Issue #157: Shows processing lifecycle (uploaded → processing → synced)
+ *
+ * @param userId - User identifier
+ * @param limit - Maximum number of images to load (default: 50)
+ * @returns Images with optional transaction data
+ */
+export async function loadRecentImagesWithTransactions(
+  userId: UserId,
+  limit = 50,
+): Promise<Array<ImageRow & {
+  transaction_id: string | null;
+  transaction_merchant: string | null;
+  transaction_amount: number | null;
+  transaction_status: string | null;
+}>> {
+  const rows = await select<Array<ImageRow & {
+    transaction_id: string | null;
+    transaction_merchant: string | null;
+    transaction_amount: number | null;
+    transaction_status: string | null;
+  }>>(
+    `SELECT
+      i.*,
+      t.id as transaction_id,
+      t.merchant as transaction_merchant,
+      t.amount as transaction_amount,
+      t.status as transaction_status
+    FROM images i
+    LEFT JOIN transactions t ON t.image_id = i.id
+    WHERE i.user_id = ?
+    ORDER BY i.created_at DESC
+    LIMIT ?`,
+    [String(userId), limit],
+  );
+
+  return rows;
+}

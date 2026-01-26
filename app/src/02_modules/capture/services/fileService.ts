@@ -17,6 +17,7 @@ import {
   deleteImageRecord,
   loadUnfinishedImages,
   resetInterruptedUploads,
+  loadRecentImagesWithTransactions,
 } from '../adapters';
 import { captureStore } from '../stores/captureStore';
 import type { ImageRow } from '../../../00_kernel/storage';
@@ -61,6 +62,29 @@ function rowToReceiptImage(row: ImageRow, userId: UserId): ReceiptImage {
     createdAt: row.created_at,
     uploadedAt: null,
     processedAt: null,
+  };
+}
+
+/**
+ * Convert database row with transaction info to ReceiptImage
+ * Issue #157: Used for displaying processing status in Capture page
+ */
+function rowWithTransactionToReceiptImage(
+  row: ImageRow & {
+    transaction_id: string | null;
+    transaction_merchant: string | null;
+    transaction_amount: number | null;
+    transaction_status: string | null;
+  },
+  userId: UserId,
+): ReceiptImage {
+  const base = rowToReceiptImage(row, userId);
+  return {
+    ...base,
+    transactionId: row.transaction_id,
+    transactionMerchant: row.transaction_merchant,
+    transactionAmount: row.transaction_amount,
+    transactionStatus: row.transaction_status,
   };
 }
 
@@ -188,7 +212,8 @@ class FileService {
 
   /**
    * Restore queue from database on app startup
-   * Validates that compressed files exist; marks missing ones as failed
+   * Loads both unfinished images (for processing) and recent uploaded images (for display)
+   * Issue #157: Shows processing status in Capture page
    */
   async restoreQueue(userId: UserId): Promise<void> {
     const restoreTraceId = createTraceId();
@@ -200,22 +225,24 @@ class FileService {
       await resetInterruptedUploads(userId, restoreTraceId);
       logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'reset_complete' });
 
-      // Load unfinished images
-      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'load_start' });
+      // Load unfinished images (for processing queue)
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'load_unfinished' });
       const unfinished = await loadUnfinishedImages(userId);
-      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'load_complete', count: unfinished.length });
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'unfinished_loaded', count: unfinished.length });
 
-      if (unfinished.length === 0) {
-        logger.info(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, count: 0 });
-        return;
-      }
+      // Load recent uploaded images with transaction status (for display)
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'load_recent' });
+      const recentWithTransactions = await loadRecentImagesWithTransactions(userId, 20);
+      logger.debug(EVENTS.QUEUE_RESTORED, { traceId: restoreTraceId, userId, phase: 'recent_loaded', count: recentWithTransactions.length });
 
-      // Convert to ReceiptImage and validate files exist
+      // Convert unfinished to ReceiptImage and validate files exist
       const images: ReceiptImage[] = [];
       const missingFiles: string[] = [];
+      const processedImageIds = new Set<string>();
 
       for (const row of unfinished) {
         const image = rowToReceiptImage(row, userId);
+        processedImageIds.add(image.id);
 
         // For compressed images, verify the file still exists
         if (image.status === 'compressed' && image.thumbnailPath) {
@@ -242,13 +269,24 @@ class FileService {
         images.push(image);
       }
 
-      // Update store with valid images only
+      // Add recent uploaded images (avoid duplicates from unfinished)
+      for (const row of recentWithTransactions) {
+        if (!processedImageIds.has(row.id)) {
+          const image = rowWithTransactionToReceiptImage(row, userId);
+          images.push(image);
+          processedImageIds.add(row.id);
+        }
+      }
+
+      // Update store with all images (unfinished + recent uploaded)
       captureStore.getState().restoreQueue(images);
 
       logger.info(EVENTS.QUEUE_RESTORED, {
         traceId: restoreTraceId,
         userId,
         count: images.length,
+        unfinishedCount: unfinished.length,
+        recentCount: recentWithTransactions.length,
         missingCount: missingFiles.length,
         statuses: images.reduce((acc, img) => {
           acc[img.status] = (acc[img.status] || 0) + 1;

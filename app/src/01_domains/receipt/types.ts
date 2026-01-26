@@ -28,6 +28,11 @@ export interface ReceiptImage {
   uploadedAt: string | null;
   processedAt: string | null;
   error?: string;      // Error message when status is 'failed'
+  // Issue #157: Transaction information for processing status display
+  transactionId?: string | null;
+  transactionMerchant?: string | null;
+  transactionAmount?: number | null;
+  transactionStatus?: string | null;
 }
 
 // Valid state transitions

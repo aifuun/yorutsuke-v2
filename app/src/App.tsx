@@ -107,7 +107,7 @@ function AppContent() {
           </div>
 
           <div className={`view-panel ${activeView === 'capture' ? 'active' : ''}`}>
-            <CaptureView />
+            <CaptureView onNavigate={handleViewChange} />
           </div>
 
           <div className={`view-panel ${activeView === 'ledger' ? 'active' : ''}`}>

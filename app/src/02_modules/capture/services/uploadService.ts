@@ -212,6 +212,9 @@ class UploadService {
       // Emit success event
       emit('upload:complete', { id, traceId, s3Key: key });
 
+      // ✨ Issue #157: Trigger boost mode for faster sync polling (10s instead of 60s)
+      emit('image:uploaded', { id, traceId, s3Key: key });
+
       // Trigger ledger refresh after upload completes
       // This allows transaction list to refresh if Lambda has already processed the image
       emit('data:refresh', { source: 'image_processed' });

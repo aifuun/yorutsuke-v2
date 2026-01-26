@@ -31,6 +31,11 @@ export {
   useIsSyncing,
   useHasError,
   useSyncError,
+  // Manual Sync Service hooks (ADR-020)
+  useManualSyncStatus,
+  useManualSyncLastSyncedAt,
+  useIsManualSyncing,
+  useManualSyncError,
   // Orchestrator hooks (actions)
   useSyncActions,
 } from './hooks/useSyncState';

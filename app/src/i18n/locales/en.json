@@ -101,6 +101,8 @@
     "extractedText": "Extracted Text",
     "confidence": "AI Confidence",
     "noImage": "No Image",
+    "receipt": "Receipt",
+    "viewReceipt": "View receipt image",
     "subtotal": "Subtotal (Pre-tax)",
     "taxAmount": "Tax Amount",
     "taxRate": "Tax Rate",

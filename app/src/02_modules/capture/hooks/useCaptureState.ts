@@ -29,20 +29,73 @@ export function useCaptureStatus() {
 }
 
 /**
- * Computed values from capture state
+ * Identity 2 (Selector): Computed primitive values from capture state
+ * Returns individual primitive values to comply with ADR-012 (Zustand Selector Safety)
+ */
+export function usePendingCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'pending').length
+  );
+}
+
+export function useCompressingCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'compressed').length
+  );
+}
+
+export function useUploadingCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'uploading').length
+  );
+}
+
+export function useUploadedCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'uploaded').length
+  );
+}
+
+export function useFailedCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'failed').length
+  );
+}
+
+export function useSkippedCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'skipped').length
+  );
+}
+
+export function useAwaitingProcessCount(): number {
+  return useStore(captureStore, (state) =>
+    state.queue.filter(img => img.status === 'uploaded' && !img.processedAt).length
+  );
+}
+
+export function useTotalCount(): number {
+  return useStore(captureStore, (state) => state.queue.length);
+}
+
+/**
+ * @deprecated Use individual primitive selectors instead (ADR-012)
+ * Legacy function kept for backward compatibility
+ *
+ * Migration guide:
+ * - useCaptureStats().pendingCount → usePendingCount()
+ * - useCaptureStats().uploadedCount → useUploadedCount()
+ * etc.
  */
 export function useCaptureStats() {
-  const queue = useStore(captureStore, (state) => state.queue);
-
-  const pendingCount = queue.filter(img => img.status === 'pending').length;
-  const compressingCount = queue.filter(img => img.status === 'compressed').length;
-  const uploadingCount = queue.filter(img => img.status === 'uploading').length;
-  const uploadedCount = queue.filter(img => img.status === 'uploaded').length;
-  const failedCount = queue.filter(img => img.status === 'failed').length;
-  const skippedCount = queue.filter(img => img.status === 'skipped').length;
-  const awaitingProcessCount = queue.filter(img =>
-    img.status === 'uploaded' && !img.processedAt
-  ).length;
+  const pendingCount = usePendingCount();
+  const compressingCount = useCompressingCount();
+  const uploadingCount = useUploadingCount();
+  const uploadedCount = useUploadedCount();
+  const failedCount = useFailedCount();
+  const skippedCount = useSkippedCount();
+  const awaitingProcessCount = useAwaitingProcessCount();
+  const totalCount = useTotalCount();
 
   return {
     pendingCount,
@@ -52,7 +105,7 @@ export function useCaptureStats() {
     failedCount,
     awaitingProcessCount,
     skippedCount,
-    totalCount: queue.length,
+    totalCount,
   };
 }
 

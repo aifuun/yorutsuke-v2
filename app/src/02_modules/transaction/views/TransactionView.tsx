@@ -1,9 +1,10 @@
 // Pillar L: Views are pure JSX, logic in services
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useStore } from 'zustand';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { useTransactionStatus, useTransactionError, useTransactionCount, useFilteredTransactions, useTransactionActions } from '../hooks/useTransactionState';
 import { useTranslation } from '../../../i18n';
-import { ViewHeader, AddButton, SyncButton } from '../../../components';
+import { ViewHeader, AddButton, SyncButton, Icon } from '../../../components';
+import { FileText } from 'lucide-react';
 import { ask } from '@tauri-apps/plugin-dialog';
 import type { UserId } from '../../../00_kernel/types';
 import type { Transaction } from '../../../01_domains/transaction';
@@ -12,8 +13,7 @@ import { logger } from '../../../00_kernel/telemetry';
 import { getImageUrl, type ImageUrlResult } from '../services/imageService';
 import { ImageLightbox, Pagination } from '../components';
 import type { FetchTransactionsOptions } from '../services/transactionService';
-import { navigationStore } from '../../../00_kernel/navigation';
-import { SyncStatusIndicator, manualSyncService, useSyncTrigger } from '../../sync';
+import { SyncStatusIndicator, useSyncTrigger, useManualSyncStatus } from '../../sync';
 import { useIsOnline } from '../../../00_kernel/network';
 import './ledger.css';
 
@@ -40,8 +40,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   // Auto-sync on mount (Issue #141: migrated from useSyncLogic)
   useSyncTrigger(userId, true);
 
-  // Subscribe to manual sync state
-  const syncStatus = useStore(manualSyncService.store, s => s.status);
+  // Subscribe to manual sync state (Hook Bridge Layer - ADR-020)
+  const syncStatus = useManualSyncStatus();
 
   // Network status - offline detection
   const isOnline = useIsOnline();
@@ -119,19 +119,62 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     return options;
   }, [selectedYear, selectedMonth, sortBy, sortOrder, currentPage, pageSize, statusFilter, typeFilter, categoryFilter]);
 
-  // Check for navigation intent on mount
+  // Issue #157: Highlight transaction ID (from Capture page navigation)
+  const [highlightTxId, setHighlightTxId] = useState<string | null>(null);
+
+  // Listen for highlight events (Issue #157)
+  // ✅ Event-driven approach - works regardless of component mount state
   useEffect(() => {
-    const intent = navigationStore.getState().ledgerIntent;
-    if (intent) {
-      // Apply intent
-      if (intent.statusFilter) {
-        setStatusFilter(intent.statusFilter);
+    const cleanup = on('ledger:highlight', (payload: { txId: string }) => {
+      const txId = payload.txId;
+
+      console.log('[TransactionView] ✅ Received highlight event:', txId);
+      setHighlightTxId(txId);
+
+      // 🔧 Clear filters to ensure highlighted transaction is visible
+      setStatusFilter('all');
+      setTypeFilter('all');
+      setCategoryFilter('all');
+      setSelectedYear('all');
+      setSelectedMonth('all');
+      setSortBy('createdAt');  // Sort by creation time
+      setSortOrder('DESC');    // Newest first
+      setCurrentPage(1);       // Reset to first page
+
+      logger.debug('ledger_highlight_filters_cleared', {
+        txId,
+        note: 'Cleared all filters to ensure transaction is visible',
+      });
+
+      // 🔧 Manually load transactions after clearing filters
+      if (userId) {
+        const options: FetchTransactionsOptions = {
+          sortBy: 'createdAt',
+          sortOrder: 'DESC',
+          limit: pageSize,
+          offset: 0,
+        };
+        logger.debug('ledger_highlight_loading_transactions', { txId, options });
+        loadTransactions(options);
+
+        // 🔧 DEBUG: Check if transaction appears in list after load
+        setTimeout(() => {
+          const found = filteredTransactions.find(tx => tx.id === txId);
+          logger.debug('ledger_highlight_verification', {
+            txId,
+            found: !!found,
+            totalTransactions: filteredTransactions.length,
+            firstFewIds: filteredTransactions.slice(0, 5).map(tx => tx.id),
+          });
+        }, 500);
       }
-      // Note: quickFilter removed with date picker redesign (Issue #115)
-      // Clear intent after applying
-      navigationStore.getState().clearLedgerIntent();
-    }
-  }, []); // Run only on mount
+
+      // Auto-clear highlight after 3 seconds
+      setTimeout(() => setHighlightTxId(null), 3000);
+    });
+
+    return cleanup;
+  }, [userId, loadTransactions, filteredTransactions, pageSize]); // Dependencies for the event handler
 
   // Track first render to skip initial effect execution
   const isFirstRenderRef = useRef(true);
@@ -216,17 +259,25 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
     loadTransactions(buildFetchOptions());
   }, [userId, loadTransactions, buildFetchOptions]);
 
+  // FIX #188: Store latest buildFetchOptions in ref to avoid closure trap
+  // When filters change, buildFetchOptions is recreated, but event listeners
+  // would still use the old closure. Using ref ensures we always call the latest version.
+  const buildFetchOptionsRef = useRef(buildFetchOptions);
+
+  useEffect(() => {
+    buildFetchOptionsRef.current = buildFetchOptions;
+  }, [buildFetchOptions]);
+
   // Listen to auto-sync completion events and reload transactions
   useEffect(() => {
     const cleanup = on('transaction:synced', () => {
-      // Auto-sync completed - reload transactions to show new data
-      // Note: Using latest buildFetchOptions without adding to deps to avoid infinite loop
-      loadTransactions(buildFetchOptions());
+      // Auto-sync completed - reload transactions with LATEST filter configuration
+      // Using ref ensures filters applied at time of sync, not at time of mount
+      loadTransactions(buildFetchOptionsRef.current());
     });
 
     return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadTransactions]); // Only depend on loadTransactions, buildFetchOptions will be captured from closure
+  }, [loadTransactions]); // Only loadTransactions as dependency - ref always has latest buildFetchOptions
 
   // Handle all states (Pillar D: FSM)
   // Check if user is not logged in first
@@ -463,6 +514,7 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                       onConfirm={() => confirm(transaction.id)}
                       onUpdate={(fields) => update(transaction.id, fields)}
                       onDelete={() => remove(transaction.id)}
+                      isHighlighted={highlightTxId === transaction.id}
                     />
                   ))}
                 </div>
@@ -502,9 +554,17 @@ interface TransactionCardProps {
   onConfirm: () => void;
   onUpdate: (fields: any) => void; // TODO: import UpdateTransactionFields type
   onDelete: () => void;
+  isHighlighted?: boolean;  // Issue #157: Highlight state
 }
 
-function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: TransactionCardProps) {
+function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlighted }: TransactionCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // 🔍 DEBUG: Log highlight status
+  if (isHighlighted) {
+    console.log('[TransactionCard] ✅ Rendering HIGHLIGHTED card:', transaction.id);
+  }
+
   const { t, i18n } = useTranslation();
   const date = new Date(transaction.date);
 
@@ -521,6 +581,33 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
   // Image state for modal
   const [imageResult, setImageResult] = useState<ImageUrlResult | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Issue #157: Scroll into view when highlighted
+  useEffect(() => {
+    if (isHighlighted && cardRef.current) {
+      logger.debug('transaction_card_highlighted', {
+        txId: transaction.id,
+        hasRef: !!cardRef.current,
+      });
+
+      // Wait for page to load and DOM to settle, then scroll with smooth animation
+      // Increased delay to ensure data is loaded and rendered
+      setTimeout(() => {
+        if (cardRef.current) {
+          cardRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+          logger.debug('transaction_card_scrolled', { txId: transaction.id });
+        } else {
+          logger.warn('transaction_card_scroll_failed', {
+            txId: transaction.id,
+            reason: 'ref_not_attached',
+          });
+        }
+      }, 300); // Increased from 100ms to 300ms
+    }
+  }, [isHighlighted, transaction.id]);
 
   // Load image URL when component mounts
   useEffect(() => {
@@ -562,7 +649,14 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
   };
 
   return (
-    <div className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''}`}>
+    <div
+      ref={cardRef}
+      className={`glass-card transaction-card ${isIncome ? 'transaction-card--income' : ''} ${isHighlighted ? 'transaction-card--highlighted' : ''}`}
+      style={isHighlighted ? {
+        border: '3px solid #facc15',
+        background: 'rgba(250, 204, 21, 0.15)',
+      } : undefined}
+    >
       {/* Confirm Modal with Image, OCR text, and Transaction details */}
       {isConfirmModalOpen && (
         <ImageLightbox
@@ -574,6 +668,29 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete }: Transac
           isConfirmed={isConfirmed}
           transaction={transaction}
         />
+      )}
+
+      {/* Issue #157: Receipt Thumbnail */}
+      {transaction.imageThumbnailPath && (
+        <div
+          className="transaction-thumbnail"
+          onClick={handleConfirmClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleConfirmClick(); }}
+          title={t('transaction.viewReceipt')}
+        >
+          <img
+            src={convertFileSrc(transaction.imageThumbnailPath)}
+            alt={t('transaction.receipt')}
+            className="transaction-thumbnail__image"
+          />
+        </div>
+      )}
+      {!transaction.imageThumbnailPath && transaction.imageId && (
+        <div className="transaction-thumbnail transaction-thumbnail--placeholder">
+          <Icon icon={FileText} size="md" aria-label={t('transaction.receipt')} />
+        </div>
       )}
 
       {/* Date Stamp - Year-Month-Day format */}
