@@ -39,6 +39,14 @@ export interface CaptureActions {
   startUpload: (id: ImageId) => void;
   uploadSuccess: (id: ImageId, s3Key: string) => void;
 
+  // Transaction info update (Issue #157: Real-time processing status)
+  updateTransactionInfo: (
+    imageId: ImageId,
+    transactionId: string,
+    merchant: string | null,
+    amount: number | null
+  ) => void;
+
   // Error handling
   failure: (id: ImageId, error: string) => void;
 
@@ -128,6 +136,21 @@ export const captureStore = createStore<CaptureStore>((set, get) => ({
     queue: state.queue.map(img =>
       img.id === id
         ? { ...img, status: 'uploaded' as ImageStatus, s3Key, uploadedAt: new Date().toISOString() }
+        : img
+    ),
+  })),
+
+  // Transaction info update (Issue #157)
+  updateTransactionInfo: (imageId, transactionId, merchant, amount) => set((state) => ({
+    queue: state.queue.map(img =>
+      img.id === imageId
+        ? {
+            ...img,
+            transactionId,
+            transactionMerchant: merchant,
+            transactionAmount: amount,
+            processedAt: new Date().toISOString(),
+          }
         : img
     ),
   })),

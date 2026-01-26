@@ -91,6 +91,44 @@ class CaptureService {
     document.addEventListener('paste', pasteHandler);
     this.cleanupPasteListener = () => document.removeEventListener('paste', pasteHandler);
 
+    // Issue #157: Listen for transaction creation to update processing status in real-time
+    const cleanupTransactionListener = on('transaction:confirmed', async (payload) => {
+      try {
+        // Import transactionDb dynamically to avoid circular dependency
+        const { getTransactionById } = await import('../../transaction/adapters/transactionDb');
+
+        // Fetch the transaction details (includes imageId)
+        const transaction = await getTransactionById(payload.id);
+        if (!transaction || !transaction.imageId) {
+          return; // Transaction not found or no associated image
+        }
+
+        // Update captureStore with transaction info
+        logger.debug('capture_transaction_update', {
+          imageId: transaction.imageId,
+          transactionId: transaction.id,
+          merchant: transaction.merchant,
+          amount: transaction.amount,
+        });
+
+        captureStore.getState().updateTransactionInfo(
+          transaction.imageId,
+          transaction.id,
+          transaction.merchant,
+          transaction.amount
+        );
+      } catch (error) {
+        logger.error('capture_transaction_update_failed', { error: String(error) });
+      }
+    });
+
+    // Store cleanup for transaction listener
+    const originalCleanup = this.cleanupAuthSubscription;
+    this.cleanupAuthSubscription = () => {
+      originalCleanup?.();
+      cleanupTransactionListener();
+    };
+
     logger.info(EVENTS.SERVICE_INITIALIZED, { service: 'CaptureService' });
   }
 
