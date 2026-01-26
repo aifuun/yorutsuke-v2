@@ -5,11 +5,11 @@
  */
 
 // Components
-export { TrendChart } from './components/TrendChart';
-export type { TrendDataPoint } from './components/TrendChart';
+export { TrendChart } from './views/TrendChart';
+export type { TrendDataPoint } from './views/TrendChart';
 
-export { CategoryChart } from './components/CategoryChart';
-export type { CategoryDataPoint } from './components/CategoryChart';
+export { CategoryChart } from './views/CategoryChart';
+export type { CategoryDataPoint } from './views/CategoryChart';
 
 // Headless hooks
 // Pure computation hooks (not business logic - no migration needed)

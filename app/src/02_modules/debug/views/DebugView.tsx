@@ -21,7 +21,7 @@ import { uploadStore } from '../../capture/stores/uploadStore';
 import { autoSyncService } from '../../sync/services/autoSyncService';
 import type { UserId } from '../../../00_kernel/types';
 import { deleteUserData } from '../adapters';
-import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ConfirmDialog } from './ConfirmDialog';
 import { DiagnosticPanel } from './DiagnosticPanel';
 import { PermitPanel } from './PermitPanel';
 import type { Transaction } from '../../../01_domains/transaction';
