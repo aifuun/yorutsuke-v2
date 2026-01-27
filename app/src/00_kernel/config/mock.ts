@@ -123,6 +123,9 @@ export async function loadMockMode(): Promise<void> {
   } catch (error) {
     logger.warn('mock_mode_load_failed', { error: String(error) });
   }
+
+  // Log final mock mode status (after DB load or default)
+  logger.info(EVENTS.MOCK_MODE_CHANGED, { mode: _mockMode, initial: true });
 }
 
 function isValidMockMode(value: string): value is MockMode {
@@ -205,7 +208,5 @@ export function mockDelay(ms?: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, delay));
 }
 
-// Log mock mode status in development
-if (import.meta.env.DEV) {
-  logger.info(EVENTS.MOCK_MODE_CHANGED, { mode: DEFAULT_MODE, initial: true });
-}
+// Note: Mock mode logging moved to loadMockMode() to avoid circular dependency
+// (logger imports debugLog, which can trigger mock.ts initialization before logger is ready)
