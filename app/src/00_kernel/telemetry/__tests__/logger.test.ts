@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { ContextProvider } from '../traceContext';
-import * as debugHeadless from '../../../02_modules/debug/headless';
+import * as debugServices from '../../../02_modules/debug/services';
 
 /**
  * Comprehensive test suite for Tauri logger.ts
@@ -21,7 +21,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 // Mock debugLog
-vi.mock('../../../02_modules/debug/headless', () => ({
+vi.mock('../../../02_modules/debug/services', () => ({
   debugLog: vi.fn(),
 }));
 
@@ -571,7 +571,7 @@ describe('logger.ts - Issue #158 Enhancement', () => {
     it('should call debugLog for all log levels', () => {
       logger.info(EVENTS.UPLOAD_STARTED, { imageId: 'img-123' });
 
-      expect(debugHeadless.debugLog).toHaveBeenCalledWith(
+      expect(debugServices.debugLog).toHaveBeenCalledWith(
         'info',
         'Upload',
         'Started',
@@ -583,7 +583,7 @@ describe('logger.ts - Issue #158 Enhancement', () => {
       const error = new Error('Test error');
       logger.error(EVENTS.APP_ERROR, error as any);
 
-      expect(debugHeadless.debugLog).toHaveBeenCalledWith(
+      expect(debugServices.debugLog).toHaveBeenCalledWith(
         'error',
         'App',
         'Error',
@@ -599,7 +599,7 @@ describe('logger.ts - Issue #158 Enhancement', () => {
       logger.debug(EVENTS.APP_STARTED);
 
       // Debug UI receives 'info' instead of 'debug'
-      expect(debugHeadless.debugLog).toHaveBeenCalledWith(
+      expect(debugServices.debugLog).toHaveBeenCalledWith(
         'info',
         'App',
         'Started',

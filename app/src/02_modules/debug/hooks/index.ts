@@ -24,5 +24,5 @@ export {
   debugSettingsActions,
 } from './useDebugSettings';
 
-// Re-export existing hooks from headless
-export { useSecretCode } from '../headless/useSecretCode';
+// Secret code detection hook
+export { useSecretCode } from './useSecretCode';
