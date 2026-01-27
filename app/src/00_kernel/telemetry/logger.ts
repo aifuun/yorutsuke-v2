@@ -25,7 +25,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import type { ContextProvider } from './traceContext';
-import { debugLog } from '../../02_modules/debug/headless';
+import { debugLog } from '../../02_modules/debug/services';
 
 /**
  * Log levels with numeric precedence (P1: LOG_LEVEL control)
