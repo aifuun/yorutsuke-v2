@@ -78,11 +78,13 @@ function getProcessingStatus(image: ReceiptImage): ProcessingStatus | null {
     return null;
   }
 
-  // Already processed - show completion status
+  // Already processed - show transaction details (merchant + amount)
   if (image.transactionId) {
+    const merchant = image.transactionMerchant || '未知商家';
+    const amount = image.transactionAmount ? `¥${image.transactionAmount.toLocaleString()}` : '金额未知';
     return {
       icon: '✅',
-      text: '处理完成',  // Processing Complete
+      text: `${merchant} • ${amount}`,  // Show transaction details
       isClickable: true,
       transactionId: image.transactionId,
     };
@@ -295,8 +297,10 @@ export function CaptureView({ onNavigate }: CaptureViewProps = {}) {
               </div>
               <div className="card--list__items">
                 {[...queue].reverse().map((image) => {
-                  const labelKey = STATUS_LABEL_KEYS[image.status];
-                  const labelText = labelKey ? t(labelKey) : image.status;
+                  // Show "处理完成" when transaction is synced back
+                  const isProcessed = image.transactionId != null;
+                  const labelKey = isProcessed ? null : STATUS_LABEL_KEYS[image.status];
+                  const labelText = isProcessed ? '处理完成' : (labelKey ? t(labelKey) : image.status);
                   const isFailed = image.status === 'failed';
                   const isSkipped = image.status === 'skipped';
                   const processingStatus = getProcessingStatus(image);
