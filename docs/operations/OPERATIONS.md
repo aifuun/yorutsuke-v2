@@ -387,4 +387,5 @@ aws ce get-cost-and-usage \
 - Architecture: `../architecture/README.md`
 - Quota Details: `./QUOTA.md`
 - Logging: `./LOGGING.md`
+- Local Storage: `./LOCAL_STORAGE.md`
 - CDK Stack: `infra/lib/yorutsuke-stack.ts`

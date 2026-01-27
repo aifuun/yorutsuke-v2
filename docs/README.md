@@ -35,6 +35,7 @@
 | [ADMIN_PANEL](./operations/ADMIN_PANEL.md) | Admin console | Ops |
 | [QUOTA](./operations/QUOTA.md) | Quota system | Dev, Ops |
 | [LOGGING](./operations/LOGGING.md) | Logging design | Dev |
+| [LOCAL_STORAGE](./operations/LOCAL_STORAGE.md) | Local DB & image storage guide | Dev |
 
 ### Testing (Quality)
 
@@ -108,7 +109,8 @@ npm run tauri dev
 1. **product/REQUIREMENTS.md** - Understand the product
 2. **architecture/README.md** - Understand the system
 3. **architecture/SCHEMA.md** - Understand the data
-4. **architecture/INTERFACES.md** - Understand the APIs
+4. **operations/LOCAL_STORAGE.md** - Understand local storage (DB & images)
+5. **architecture/INTERFACES.md** - Understand the APIs
 
 ### For UI/UX Work
 
@@ -146,7 +148,8 @@ docs/
 │   ├── OPERATIONS.md
 │   ├── ADMIN_PANEL.md
 │   ├── QUOTA.md
-│   └── LOGGING.md
+│   ├── LOGGING.md
+│   └── LOCAL_STORAGE.md
 ├── tests/                 # Quality
 │   ├── FRONTEND.md        # Index redirect
 │   ├── BACKEND.md

@@ -86,3 +86,4 @@ yorutsuke-images-{env}-{account}/
 
 - [SCHEMA.md](./SCHEMA.md) - Database tables and cloud interfaces
 - [MODELS.md](./MODELS.md) - Row vs Domain mappings
+- [LOCAL_STORAGE.md](../operations/LOCAL_STORAGE.md) - Detailed implementation guide for new engineers
