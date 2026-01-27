@@ -429,24 +429,20 @@
 /* Issue #157: Highlighted transaction (navigated from Capture) */
 .transaction-card--highlighted {
   animation: highlight-pulse 2s ease-in-out;
-  border: 3px solid #facc15 !important;  /* Yellow border */
-  background: rgba(250, 204, 21, 0.15) !important;   /* Subtle yellow background */
+  background: rgba(250, 204, 21, 0.25) !important;   /* Yellow background with increased opacity */
   position: relative;
   z-index: 10;
 }
 
 @keyframes highlight-pulse {
   0% {
-    background: rgba(250, 204, 21, 0.15);
-    border-color: #facc15;
+    background: rgba(250, 204, 21, 0.25);  /* Initial: more visible */
   }
   50% {
-    background: rgba(250, 204, 21, 0.08);
-    border-color: #fbbf24;
+    background: rgba(250, 204, 21, 0.15);  /* Middle: medium */
   }
   100% {
-    background: rgba(250, 204, 21, 0.05);
-    border-color: #facc15;
+    background: rgba(250, 204, 21, 0.08);  /* End: subtle */
   }
 }
 
