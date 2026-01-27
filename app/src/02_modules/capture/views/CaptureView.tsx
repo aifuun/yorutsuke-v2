@@ -83,7 +83,7 @@ function getProcessingStatus(image: ReceiptImage): ProcessingStatus | null {
     const merchant = image.transactionMerchant || '未知商家';
     const amount = image.transactionAmount ? `¥${image.transactionAmount.toLocaleString()}` : '金额未知';
     return {
-      icon: '✅',
+      icon: '',  // No icon for processed items
       text: `${merchant} • ${amount}`,  // Show transaction details
       isClickable: true,
       transactionId: image.transactionId,
@@ -351,7 +351,7 @@ export function CaptureView({ onNavigate }: CaptureViewProps = {}) {
                           <span className="queue-item__error">{image.error}</span>
                         ) : processingStatus ? (
                           <span className="queue-item__processing">
-                            <span className="processing-icon">{processingStatus.icon}</span>
+                            {processingStatus.icon && <span className="processing-icon">{processingStatus.icon}</span>}
                             <span className="processing-text">{processingStatus.text}</span>
                           </span>
                         ) : image.compressedSize && image.compressedSize > 0 ? (
