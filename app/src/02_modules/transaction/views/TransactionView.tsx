@@ -169,8 +169,8 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
         }, 500);
       }
 
-      // Auto-clear highlight after 3 seconds
-      setTimeout(() => setHighlightTxId(null), 3000);
+      // Auto-clear highlight after animation completes (3s animation + 100ms buffer)
+      setTimeout(() => setHighlightTxId(null), 3100);
     });
 
     return cleanup;

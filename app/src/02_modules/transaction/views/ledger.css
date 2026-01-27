@@ -428,8 +428,8 @@
 
 /* Issue #157: Highlighted transaction (navigated from Capture) */
 .transaction-card--highlighted {
-  animation: highlight-pulse 2s ease-in-out;
-  background: rgba(250, 204, 21, 0.25) !important;   /* Yellow background with increased opacity */
+  animation: highlight-pulse 3s ease-in-out forwards;  /* 3s animation with forwards to keep final state */
+  border: none !important;  /* Remove glass-card border */
   position: relative;
   z-index: 10;
 }
@@ -442,7 +442,7 @@
     background: rgba(250, 204, 21, 0.15);  /* Middle: medium */
   }
   100% {
-    background: rgba(250, 204, 21, 0.08);  /* End: subtle */
+    background: rgba(250, 204, 21, 0);     /* End: fade to transparent */
   }
 }
 
