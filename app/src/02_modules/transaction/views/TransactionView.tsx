@@ -122,6 +122,9 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
   // Issue #157: Highlight transaction ID (from Capture page navigation)
   const [highlightTxId, setHighlightTxId] = useState<string | null>(null);
 
+  // Issue #195: Modal state lifted to TransactionView to persist during reloads
+  const [openModalTxId, setOpenModalTxId] = useState<string | null>(null);
+
   // Listen for highlight events (Issue #157)
   // ✅ Event-driven approach - works regardless of component mount state
   useEffect(() => {
@@ -515,6 +518,9 @@ export function TransactionView({ userId, onNavigate }: TransactionViewProps) {
                       onUpdate={(fields) => update(transaction.id, fields)}
                       onDelete={() => remove(transaction.id)}
                       isHighlighted={highlightTxId === transaction.id}
+                      isModalOpen={openModalTxId === transaction.id}
+                      onOpenModal={() => setOpenModalTxId(transaction.id)}
+                      onCloseModal={() => setOpenModalTxId(null)}
                     />
                   ))}
                 </div>
@@ -555,9 +561,13 @@ interface TransactionCardProps {
   onUpdate: (fields: any) => void; // TODO: import UpdateTransactionFields type
   onDelete: () => void;
   isHighlighted?: boolean;  // Issue #157: Highlight state
+  // Issue #195: Modal state controlled by parent
+  isModalOpen: boolean;
+  onOpenModal: () => void;
+  onCloseModal: () => void;
 }
 
-function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlighted }: TransactionCardProps) {
+function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlighted, isModalOpen, onOpenModal, onCloseModal }: TransactionCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   // 🔍 DEBUG: Log highlight status
@@ -580,7 +590,6 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
 
   // Image state for modal
   const [imageResult, setImageResult] = useState<ImageUrlResult | null>(null);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Issue #157: Scroll into view when highlighted
   useEffect(() => {
@@ -623,7 +632,7 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
 
   // Handle confirm button click - opens confirm modal
   const handleConfirmClick = () => {
-    setIsConfirmModalOpen(true);
+    onOpenModal();
   };
 
   // Handle actual confirmation from modal (with optional edits)
@@ -633,7 +642,7 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
       onUpdate(edits);
     }
     onConfirm();
-    setIsConfirmModalOpen(false);
+    onCloseModal();
   };
 
   // Handle delete from modal
@@ -644,7 +653,7 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
     });
     if (confirmed) {
       onDelete();
-      setIsConfirmModalOpen(false);
+      onCloseModal();
     }
   };
 
@@ -658,11 +667,11 @@ function TransactionCard({ transaction, onConfirm, onUpdate, onDelete, isHighlig
       } : undefined}
     >
       {/* Confirm Modal with Image, OCR text, and Transaction details */}
-      {isConfirmModalOpen && (
+      {isModalOpen && (
         <ImageLightbox
           imageUrl={imageResult?.url || ''}
           alt={`Receipt from ${transaction.merchant || transaction.description}`}
-          onClose={() => setIsConfirmModalOpen(false)}
+          onClose={onCloseModal}
           onConfirm={isConfirmed ? undefined : handleModalConfirm}
           onDelete={handleModalDelete}
           isConfirmed={isConfirmed}
