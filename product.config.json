@@ -1,0 +1,31 @@
+{
+  "productName": "Recie",
+  "productNameJa": "レシエ",
+  "technicalName": "recie",
+  "version": "0.1.0",
+  "identifier": "com.recie.app",
+  "description": "Local-first AI accounting assistant",
+  "author": "Recie Team",
+  "website": "https://recie-jp.com",
+
+  "window": {
+    "title": "Recie",
+    "width": 1100,
+    "height": 750
+  },
+
+  "environments": {
+    "dev": {
+      "identifier": "com.recie.app.dev",
+      "productName": "Recie"
+    },
+    "staging": {
+      "identifier": "com.recie.app.staging",
+      "productName": "Recie"
+    },
+    "production": {
+      "identifier": "com.recie.app",
+      "productName": "Recie"
+    }
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "yorutsuke-v2-infra",
+  "name": "app-infra",
   "version": "0.1.0",
   "private": true,
   "scripts": {
