@@ -30,6 +30,7 @@ This document is a pure index of architectural decisions. All implementation det
 - [019-traceid-distributed-tracing.md](../docs/architecture/ADR/019-traceid-distributed-tracing.md) - End-to-end traceId propagation (frontend → S3 → Lambda → DynamoDB)
 - [020-unified-bootstrap-pattern.md](../docs/architecture/ADR/020-unified-bootstrap-pattern.md) - Unified bootstrap pattern for diagnostic export
 - [021-typescript-migrations-as-schema-truth.md](../docs/architecture/ADR/021-typescript-migrations-as-schema-truth.md) - TypeScript migrations as schema source of truth; Rust for bootstrap only
+- [022-single-source-product-config.md](../docs/architecture/ADR/022-single-source-product-config.md) - Single-source product configuration (one field updates 50+ locations)
 
 ## References
 
@@ -39,6 +40,6 @@ This document is a pure index of architectural decisions. All implementation det
 
 ---
 
-**Last Updated**: 2026-01-23 (ADR-020, 021 added - Bootstrap pattern, TypeScript migrations)
+**Last Updated**: 2026-01-27 (ADR-022 added - Single-source product configuration)
 **Purpose**: Pure ADR index (no project tracking)
 **Update Rule**: Add ADR link when closing major architectural issues

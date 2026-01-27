@@ -21,6 +21,7 @@ import { uploadStore } from '../../capture/stores/uploadStore';
 import { autoSyncService } from '../../sync/services/autoSyncService';
 import type { UserId } from '../../../00_kernel/types';
 import { deleteUserData } from '../adapters';
+import { getStorageStats, type StorageStats } from '../adapters/storageStats';
 import { ConfirmDialog } from './ConfirmDialog';
 import { DiagnosticPanel } from './DiagnosticPanel';
 import { PermitPanel } from './PermitPanel';
@@ -74,11 +75,31 @@ export function DebugView() {
   const [latestCloudTransactions, setLatestCloudTransactions] = useState<Transaction[]>([]);
   const [cloudTxLoading, setCloudTxLoading] = useState(false);
 
+  // Storage statistics state
+  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   // Sync verbose logging setting with dlog module
   // Must be before early returns to maintain hooks order
   useEffect(() => {
     setVerboseLogging(debugEnabled);
   }, [debugEnabled]);
+
+  // Load storage statistics on mount and when mock mode changes
+  useEffect(() => {
+    const loadStats = async () => {
+      setStatsLoading(true);
+      try {
+        const stats = await getStorageStats();
+        setStorageStats(stats);
+      } catch (error) {
+        logger.error('debug_load_stats_error', { error: String(error) });
+      }
+      setStatsLoading(false);
+    };
+
+    loadStats();
+  }, [mockMode]); // Reload when mock mode changes
 
   // Handle loading state
   if (userIdLoading) {
@@ -195,7 +216,11 @@ export function DebugView() {
         `cleared ${localCleared} local rows. Restarting...`
       );
 
-      // Step 4: Reload to reinitialize (autoSyncService will restart via setUser on app init)
+      // Step 4: Refresh storage stats before reload
+      const stats = await getStorageStats();
+      setStorageStats(stats);
+
+      // Step 5: Reload to reinitialize (autoSyncService will restart via setUser on app init)
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -378,6 +403,31 @@ export function DebugView() {
               <div className="debug-grid-item">
                 <span className="debug-label">DB</span>
                 <span className="debug-value mono">v3</span>
+              </div>
+
+              {/* Storage Statistics */}
+              <div className="debug-grid-item">
+                <span className="debug-label">Transactions</span>
+                <span className="debug-value mono">
+                  {statsLoading ? '...' : storageStats?.transactionCount ?? 0}
+                </span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">Image Records</span>
+                <span className="debug-value mono">
+                  {statsLoading ? '...' : storageStats?.imageRecordCount ?? 0}
+                </span>
+              </div>
+              <div className="debug-grid-item">
+                <span className="debug-label">Image Files</span>
+                <span className="debug-value mono" style={{
+                  color: storageStats && storageStats.imageFileCount !== storageStats.imageRecordCount ? '#ef4444' : 'inherit'
+                }}>
+                  {statsLoading ? '...' : storageStats?.imageFileCount ?? 0}
+                  {storageStats && storageStats.imageFileCount !== storageStats.imageRecordCount && (
+                    <span style={{ marginLeft: '4px', fontSize: '12px' }}>⚠️</span>
+                  )}
+                </span>
               </div>
             </div>
           </div>

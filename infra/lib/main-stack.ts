@@ -14,8 +14,16 @@ import * as cw_actions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as s3_notifications from "aws-cdk-lib/aws-s3-notifications";
 import { Construct } from "constructs";
+import {
+  RESOURCE_PREFIX,
+  getS3BucketName,
+  getDynamoTableName,
+  getLambdaFunctionName,
+  getCognitoPoolName,
+  getLayerName,
+} from "./generated/config";
 
-export class YorutsukeStack extends cdk.Stack {
+export class MainStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -23,7 +31,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // S3 Bucket for receipt images
     const imageBucket = new s3.Bucket(this, "ImageBucket", {
-      bucketName: `yorutsuke-images-us-${env}-${this.account}`,
+      bucketName: getS3BucketName("images", "us", env, this.account!),
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN
@@ -55,7 +63,7 @@ export class YorutsukeStack extends cdk.Stack {
     // DynamoDB Table for transactions
     // TTL enabled for guest user data expiration (60 days)
     const transactionsTable = new dynamodb.Table(this, "TransactionsTable", {
-      tableName: `yorutsuke-transactions-us-${env}`,
+      tableName: getDynamoTableName("transactions", "us", env),
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "transactionId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -75,7 +83,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // DynamoDB Table for daily upload quotas
     const quotasTable = new dynamodb.Table(this, "QuotasTable", {
-      tableName: `yorutsuke-quotas-us-${env}`,
+      tableName: getDynamoTableName("quotas", "us", env),
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "date", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -87,11 +95,11 @@ export class YorutsukeStack extends cdk.Stack {
     });
 
     // DynamoDB Table for Admin Control/Config (Physical table managed by AdminStack)
-    const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", `yorutsuke-control-us-${env}`);
+    const controlTable = dynamodb.Table.fromTableName(this, "ControlTable", getDynamoTableName("control", "us", env));
 
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, "UserPool", {
-      userPoolName: `yorutsuke-users-us-${env}`,
+      userPoolName: getCognitoPoolName("users-us", env),
       selfSignUpEnabled: true,
       signInAliases: { email: true },
       autoVerify: { email: true },
@@ -120,7 +128,7 @@ export class YorutsukeStack extends cdk.Stack {
     // ========================================
     // Default fallback model (immutable, guaranteed available)
     new ssm.StringParameter(this, "DefaultFallbackModel", {
-      parameterName: `/yorutsuke/${env}/model/fallback`,
+      parameterName: `/${RESOURCE_PREFIX}/${env}/model/fallback`,
       stringValue: "us.amazon.nova-lite-v1:0",
       tier: ssm.ParameterTier.STANDARD,
       description: "Default fallback model - Nova Lite (cannot be overridden)",
@@ -128,7 +136,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Available Bedrock models
     new ssm.StringParameter(this, "AvailableBedrockModels", {
-      parameterName: `/yorutsuke/${env}/models/bedrock`,
+      parameterName: `/${RESOURCE_PREFIX}/${env}/models/bedrock`,
       stringValue: JSON.stringify({
         "nova-lite": "us.amazon.nova-lite-v1:0",
         "nova-mini": "us.amazon.nova-mini-v1:0",
@@ -140,7 +148,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda Layer for shared code
     const sharedLayer = new lambda.LayerVersion(this, "SharedLayer", {
-      layerVersionName: `yorutsuke-shared-${env}`,
+      layerVersionName: getLayerName("shared", env),
       code: lambda.Code.fromAsset(".lambda-dist/shared-layer"),
       compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
       description: "Shared utilities for Yorutsuke Lambdas",
@@ -151,7 +159,7 @@ export class YorutsukeStack extends cdk.Stack {
     // (Must be defined before Lambdas that use it)
     // ========================================
     const permitSecret = new secretsmanager.Secret(this, "PermitSecret", {
-      secretName: `yorutsuke-permit-secret-us-${env}`,
+      secretName: `${RESOURCE_PREFIX}-permit-secret-us-${env}`,
       description: "Secret key for signing upload permits (HMAC-SHA256)",
       generateSecretString: {
         secretStringTemplate: JSON.stringify({}),
@@ -167,7 +175,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for presigned URLs
     const presignLambda = new lambda.Function(this, "PresignLambda", {
-      functionName: `yorutsuke-presign-us-${env}`,
+      functionName: getLambdaFunctionName("presign", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/presign"),
@@ -197,7 +205,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for quota check
     const quotaLambda = new lambda.Function(this, "QuotaLambda", {
-      functionName: `yorutsuke-quota-us-${env}`,
+      functionName: getLambdaFunctionName("quota", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/quota"),
@@ -223,7 +231,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for issuing permits (Permit v2 System)
     const issuePermitLambda = new lambda.Function(this, "IssuePermitLambda", {
-      functionName: `yorutsuke-issue-permit-us-${env}`,
+      functionName: getLambdaFunctionName("issue-permit", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/issue-permit"),
@@ -251,7 +259,7 @@ export class YorutsukeStack extends cdk.Stack {
       this,
       "MaintenanceModeParam",
       {
-        parameterName: `/yorutsuke/${env}/maintenance-mode`,
+        parameterName: `/${RESOURCE_PREFIX}/${env}/maintenance-mode`,
         stringValue: "false",
         description: "Set to 'true' to enable maintenance mode",
       }
@@ -259,7 +267,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for app configuration
     const configLambda = new lambda.Function(this, "ConfigLambda", {
-      functionName: `yorutsuke-config-us-${env}`,
+      functionName: getLambdaFunctionName("config", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/config"),
@@ -289,7 +297,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for transactions CRUD
     const transactionsLambda = new lambda.Function(this, "TransactionsLambda", {
-      functionName: `yorutsuke-transactions-us-${env}`,
+      functionName: getLambdaFunctionName("transactions", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/transactions"),
@@ -321,7 +329,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Lambda for report generation
     const reportLambda = new lambda.Function(this, "ReportLambda", {
-      functionName: `yorutsuke-report-us-${env}`,
+      functionName: getLambdaFunctionName("report", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/report"),
@@ -353,7 +361,7 @@ export class YorutsukeStack extends cdk.Stack {
     // @ai-intent: Create Azure DI secret in Secrets Manager for runtime credential management
     // Credentials can be updated without Lambda redeployment
     const azureDiSecret = new secretsmanager.Secret(this, "AzureDISecret", {
-      secretName: `yorutsuke/${env}/azure-di-credentials`,
+      secretName: `${RESOURCE_PREFIX}/${env}/azure-di-credentials`,
       description: "Azure Document Intelligence credentials for receipt OCR",
       removalPolicy:
         env === "prod"
@@ -362,7 +370,7 @@ export class YorutsukeStack extends cdk.Stack {
     });
 
     const instantProcessLambda = new lambda.Function(this, "InstantProcessLambda", {
-      functionName: `yorutsuke-instant-processor-us-${env}`,
+      functionName: getLambdaFunctionName("instant-processor", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/instant-processor"),
@@ -426,7 +434,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // SNS Topic for alarms
     const alertsTopic = new sns.Topic(this, "AlertsTopic", {
-      topicName: `yorutsuke-alerts-us-${env}`,
+      topicName: `${RESOURCE_PREFIX}-alerts-us-${env}`,
       displayName: "Yorutsuke Cost Alerts",
     });
 
@@ -435,7 +443,7 @@ export class YorutsukeStack extends cdk.Stack {
       this,
       "EmergencyStopParam",
       {
-        parameterName: `/yorutsuke/${env}/emergency-stop`,
+        parameterName: `/${RESOURCE_PREFIX}/${env}/emergency-stop`,
         stringValue: "false",
         description: "Set to 'true' to stop all uploads (circuit breaker)",
       }
@@ -450,7 +458,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Alarm: S3 uploads > 1500/day
     const s3UploadAlarm = new cloudwatch.Alarm(this, "S3UploadLimitAlarm", {
-      alarmName: `yorutsuke-s3-upload-limit-${env}`,
+      alarmName: `${RESOURCE_PREFIX}-s3-upload-limit-${env}`,
       alarmDescription: "S3 uploads exceeded 1500/day limit",
       metric: new cloudwatch.Metric({
         namespace: "AWS/S3",
@@ -471,7 +479,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Alarm: Presign Lambda errors > 100/5min (circuit breaker trigger)
     const presignErrorAlarm = new cloudwatch.Alarm(this, "PresignErrorAlarm", {
-      alarmName: `yorutsuke-presign-errors-${env}`,
+      alarmName: `${RESOURCE_PREFIX}-presign-errors-${env}`,
       alarmDescription: "Presign Lambda errors exceeded 100/5min - circuit breaker",
       metric: presignLambda.metricErrors({
         statistic: "Sum",
@@ -486,7 +494,7 @@ export class YorutsukeStack extends cdk.Stack {
 
     // Alarm: All Lambda concurrent executions (global throttle warning)
     const throttleAlarm = new cloudwatch.Alarm(this, "ThrottleAlarm", {
-      alarmName: `yorutsuke-throttle-warning-${env}`,
+      alarmName: `${RESOURCE_PREFIX}-throttle-warning-${env}`,
       alarmDescription: "Lambda throttling detected",
       metric: new cloudwatch.Metric({
         namespace: "AWS/Lambda",
@@ -505,7 +513,7 @@ export class YorutsukeStack extends cdk.Stack {
     // Admin Delete Data Lambda (Debug/Admin Only)
     // ========================================
     const adminDeleteDataLambda = new lambda.Function(this, "AdminDeleteDataLambda", {
-      functionName: `yorutsuke-admin-delete-data-us-${env}`,
+      functionName: getLambdaFunctionName("admin-delete-data", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/admin-delete-data"),
@@ -561,7 +569,7 @@ export class YorutsukeStack extends cdk.Stack {
     // ========================================
     // S3 bucket for diagnostic reports (7-day lifecycle)
     const diagnosticsBucket = new s3.Bucket(this, "DiagnosticsBucket", {
-      bucketName: `yorutsuke-diagnostics-us-${env}-${this.account}`,
+      bucketName: getS3BucketName("diagnostics", "us", env, this.account!),
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN
@@ -578,7 +586,7 @@ export class YorutsukeStack extends cdk.Stack {
     // Diagnostic Lambda function
     // Aggregates local diagnostic data with cloud data (DynamoDB, S3, CloudWatch)
     const diagnosticLambda = new lambda.Function(this, "DiagnosticLambda", {
-      functionName: `yorutsuke-diagnostic-us-${env}`,
+      functionName: getLambdaFunctionName("diagnostic", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/diagnostic"),
@@ -641,8 +649,8 @@ export class YorutsukeStack extends cdk.Stack {
           "logs:DescribeLogStreams", // Describe log streams
         ],
         resources: [
-          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-diagnostic-us-${env}:*`,
-          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/yorutsuke-instant-processor-us-${env}:*`,
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/${getLambdaFunctionName("diagnostic", "us", env)}:*`,
+          `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/lambda/${getLambdaFunctionName("instant-processor", "us", env)}:*`,
         ],
       })
     );

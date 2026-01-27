@@ -1,12 +1,12 @@
 [package]
-name = "yorutsuke-v2"
+name = "recie"
 version = "0.1.0"
-description = "AI Accounting Assistant"
+description = "Local-first AI accounting assistant"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "yorutsuke_v2_lib"
+name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -27,7 +27,7 @@ interface EmptyStateProps {
  * <EmptyState
  *   variant="first-use"
  *   icon="🎉"
- *   title="Welcome to Yorutsuke!"
+ *   title="Welcome to Recie!"
  *   description="Drop your first receipt to get started"
  *   action={{ label: "Learn More", onClick: handleLearnMore }}
  * />

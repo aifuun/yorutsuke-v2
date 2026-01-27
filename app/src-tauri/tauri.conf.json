@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Yorutsuke",
+  "productName": "Recie",
   "version": "0.1.0",
-  "identifier": "com.yorutsuke.app",
+  "identifier": "com.recie.app.dev",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Yorutsuke",
+        "title": "Recie",
         "width": 1100,
         "height": 750,
         "resizable": true,

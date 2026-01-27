@@ -11,6 +11,7 @@
 import { logger } from '../../00_kernel/telemetry/logger';
 import { validatePermitFormat, verifyPermitSignature } from './permitValidation';
 import * as permitDb from './permitDb';
+import { QUOTA_STORAGE_KEY } from '../../generated/config';
 
 // ============================================================
 // Type Definitions
@@ -54,7 +55,7 @@ export interface UsageStats {
 // Constants
 // ============================================================
 
-const STORAGE_KEY = 'yorutsuke:quota';
+const STORAGE_KEY = QUOTA_STORAGE_KEY;
 const MAX_DAILY_HISTORY_DAYS = 7;
 
 // ============================================================

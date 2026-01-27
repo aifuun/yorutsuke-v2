@@ -33,6 +33,8 @@ An Architecture Decision Record captures a single decision along with its contex
 | [018](./018-cdk-watch-cloud-driven-testing.md) | cdk watch Cloud-Driven Testing | Accepted | 2026-01 |
 | [019](./019-traceid-distributed-tracing.md) | TraceId for End-to-End Distributed Tracing | Accepted | 2026-01 |
 | [020](./020-hook-bridge-layer.md) | Hook Bridge Layer | Accepted | 2026-01 |
+| [021](./021-typescript-migrations-as-schema-truth.md) | TypeScript Migrations as Schema Truth | Accepted | 2026-01 |
+| [022](./022-single-source-product-config.md) | Single-Source Product Configuration | Accepted | 2026-01 |
 
 ## ADR Template
 

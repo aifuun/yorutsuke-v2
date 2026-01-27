@@ -3750,6 +3750,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "recie"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "dirs 5.0.1",
+ "image",
+ "machine-uid",
+ "md5",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-http",
+ "tauri-plugin-sql",
+ "tokio",
+ "tokio-test",
+ "uuid",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6728,28 +6750,6 @@ dependencies = [
  "quote",
  "syn 2.0.111",
  "synstructure",
-]
-
-[[package]]
-name = "yorutsuke-v2"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "dirs 5.0.1",
- "image",
- "machine-uid",
- "md5",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-http",
- "tauri-plugin-sql",
- "tokio",
- "tokio-test",
- "uuid",
 ]
 
 [[package]]

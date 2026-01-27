@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "夜付け",
+    "name": "レシエ",
     "tagline": "AI 記帳アシスタント"
   },
   "nav": {
@@ -272,10 +272,8 @@
   },
   "history": {
     "title": "履歴",
-    "monthlySummary": "月間サマリー",
-    "transactionCount": "取引件数",
-    "prevMonth": "前月",
-    "nextMonth": "翌月"
+    "noTransactions": "この日付には取引がありません",
+    "transactions": "取引"
   },
   "empty": {
     "first-use": {
@@ -405,11 +403,6 @@
       "fri": "金",
       "sat": "土"
     }
-  },
-  "history": {
-    "title": "履歴",
-    "noTransactions": "この日付には取引がありません",
-    "transactions": "取引"
   },
   "sync": {
     "recovery": {

@@ -7,6 +7,7 @@ use image::codecs::jpeg::JpegEncoder;
 use tauri::Manager;
 
 mod commands;
+mod generated;
 
 /// Get unified app data directory using Tauri API
 /// - macOS: ~/Library/Application Support/com.yorutsuke.app/
@@ -148,6 +149,39 @@ fn delete_file(path: String) -> Result<(), String> {
     }
     fs::remove_file(file_path)
         .map_err(|e| format!("Failed to delete file: {}", e))
+}
+
+/// Count image files in the images directory
+/// Used by Debug panel to show filesystem statistics
+#[tauri::command]
+fn count_image_files(app: tauri::AppHandle) -> Result<usize, String> {
+    let images_dir = get_data_dir(&app);
+
+    if !images_dir.exists() {
+        return Ok(0);
+    }
+
+    let mut count = 0;
+    match fs::read_dir(&images_dir) {
+        Ok(entries) => {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    if let Ok(file_type) = entry.file_type() {
+                        if file_type.is_file() {
+                            // Count .jpg and .webp files
+                            if let Some(ext) = entry.path().extension() {
+                                if ext == "jpg" || ext == "jpeg" || ext == "webp" {
+                                    count += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(count)
+        }
+        Err(e) => Err(format!("Failed to read images directory: {}", e))
+    }
 }
 
 // ============================================================================
@@ -367,7 +401,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:yorutsuke.db", vec![
+                .add_migrations(&format!("sqlite:{}", generated::config::DB_PRODUCTION), vec![
                     // Migration v0: Create settings table (needed for version tracking)
                     tauri_plugin_sql::Migration {
                         version: 0,
@@ -376,7 +410,7 @@ pub fn run() {
                         kind: tauri_plugin_sql::MigrationKind::Up,
                     },
                 ])
-                .add_migrations("sqlite:yorutsuke-mock.db", vec![
+                .add_migrations(&format!("sqlite:{}", generated::config::DB_MOCK), vec![
                     // Migration v0: Create settings table (needed for version tracking)
                     tauri_plugin_sql::Migration {
                         version: 0,
@@ -395,6 +429,7 @@ pub fn run() {
             compress_image,
             get_image_hash,
             delete_file,
+            count_image_files,
             log_write,
             log_cleanup,
             log_get_path,
