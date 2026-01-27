@@ -1,6 +1,7 @@
 // Pillar L: View - User profile and account management
 // Migrated to use authStateService (Issue #141)
-import { useUser } from '../../auth';
+// Issue #168: Updated to use authStateService from services
+import { useUser, authStateService } from '../../auth';
 import { useTranslation } from '../../../i18n';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { User, Crown, LogOut, UserPlus, LogIn, AlertTriangle } from 'lucide-react';

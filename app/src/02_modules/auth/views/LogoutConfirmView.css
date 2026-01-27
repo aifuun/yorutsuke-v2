@@ -1,0 +1,126 @@
+/* Logout Confirmation Modal Styles
+ * Following design system tokens from FEEDBACK.md
+ * Issue #168: Complete Auth Module 4-Layer Architecture
+ */
+
+.logout-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+/* Backdrop */
+.logout-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Modal Content */
+.logout-modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  padding: var(--space-6);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+  animation: modal-fade-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
+.logout-header {
+  margin-bottom: var(--space-4);
+}
+
+.logout-title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Body */
+.logout-body {
+  margin-bottom: var(--space-6);
+}
+
+.logout-message {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Footer */
+.logout-footer {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+/* Button Spinner */
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: var(--space-2);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360px);
+  }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .logout-modal {
+    padding: var(--space-4);
+  }
+
+  .logout-footer {
+    flex-direction: column-reverse;
+  }
+
+  .logout-footer .btn {
+    width: 100%;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .logout-modal {
+    animation: none;
+  }
+
+  .btn-spinner {
+    animation: none;
+  }
+}

@@ -10,7 +10,7 @@ import { useTranslation } from '../../../i18n';
 import { ViewHeader, AddButton, DeleteButton, SyncButton } from '../../../components';
 import { seedMockTransactions, getSeedScenarios, type SeedScenario } from '../../transaction';
 import { clearBusinessData, clearSettings } from '../../../00_kernel/storage/db';
-import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../headless';
+import { getLogs, clearLogs, subscribeLogs, setVerboseLogging, type LogEntry } from '../services/debugLogService';
 import { emit } from '../../../00_kernel/eventBus';
 import { logger } from '../../../00_kernel/telemetry';
 import { ask } from '@tauri-apps/plugin-dialog';
