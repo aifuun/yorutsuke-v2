@@ -10,16 +10,23 @@ import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
+import {
+  RESOURCE_PREFIX,
+  getDynamoTableName,
+  getLambdaFunctionName,
+  getLayerName,
+  getCognitoPoolName,
+} from "./generated/config";
 
-interface YorutsukeAdminStackProps extends cdk.StackProps {
+interface AdminStackProps extends cdk.StackProps {
   // Reference to main stack resources
   imageBucketName: string;
   transactionsTableName: string;
   quotasTableName: string;
 }
 
-export class YorutsukeAdminStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props: YorutsukeAdminStackProps) {
+export class AdminStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props: AdminStackProps) {
     super(scope, id, props);
 
     const env = this.node.tryGetContext("env") || "dev";
@@ -28,7 +35,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // Lambda Layer for shared code
     // ========================================
     const sharedLayer = new lambda.LayerVersion(this, "AdminSharedLayer", {
-      layerVersionName: `yorutsuke-admin-shared-us-${env}`,
+      layerVersionName: getLayerName("admin-shared-us", env),
       code: lambda.Code.fromAsset(".lambda-dist/shared-layer"),
       compatibleRuntimes: [lambda.Runtime.NODEJS_20_X],
       description: "Shared utilities for Yorutsuke Admin Lambdas",
@@ -38,7 +45,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // DynamoDB: Control Table (emergency stop state)
     // ========================================
     const controlTable = new dynamodb.Table(this, "ControlTable", {
-      tableName: `yorutsuke-control-us-${env}`,
+      tableName: getDynamoTableName("control", "us", env),
       partitionKey: { name: "key", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy:
@@ -51,7 +58,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // Cognito: Admin User Pool (no self-signup)
     // ========================================
     const adminUserPool = new cognito.UserPool(this, "AdminUserPool", {
-      userPoolName: `yorutsuke-admin-users-us-${env}`,
+      userPoolName: getCognitoPoolName("admin-users-us", env),
       selfSignUpEnabled: false, // Admin creates users manually
       signInAliases: { email: true },
       autoVerify: { email: true },
@@ -89,7 +96,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // (Moved before API to enable CORS restriction)
     // ========================================
     const adminBucket = new s3.Bucket(this, "AdminBucket", {
-      bucketName: `yorutsuke-admin-us-${env}-${this.account}`,
+      bucketName: `${RESOURCE_PREFIX}-admin-us-${env}-${this.account}`,
       removalPolicy:
         env === "prod"
           ? cdk.RemovalPolicy.RETAIN
@@ -138,7 +145,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // Lambda: Admin Stats
     // ========================================
     const statsLambda = new lambda.Function(this, "AdminStatsLambda", {
-      functionName: `yorutsuke-admin-stats-us-${env}`,
+      functionName: getLambdaFunctionName("admin-stats", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/admin/stats"),
@@ -183,7 +190,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // Lambda: Admin Control (emergency stop)
     // ========================================
     const controlLambda = new lambda.Function(this, "AdminControlLambda", {
-      functionName: `yorutsuke-admin-control-us-${env}`,
+      functionName: getLambdaFunctionName("admin-control", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/admin/control"),
@@ -200,7 +207,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // Lambda: Admin Costs
     // ========================================
     const costsLambda = new lambda.Function(this, "AdminCostsLambda", {
-      functionName: `yorutsuke-admin-costs-us-${env}`,
+      functionName: getLambdaFunctionName("admin-costs", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/admin/costs"),
@@ -223,7 +230,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // Lambda: Admin Model Config
     // ========================================
     const modelConfigLambda = new lambda.Function(this, "AdminModelConfigLambda", {
-      functionName: `yorutsuke-admin-model-config-us-${env}`,
+      functionName: getLambdaFunctionName("admin-model-config", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/admin/model-config"),
@@ -244,11 +251,11 @@ export class YorutsukeAdminStack extends cdk.Stack {
     const azureSecret = secretsmanager.Secret.fromSecretNameV2(
       this,
       "AzureDISecret",
-      `yorutsuke/${env}/azure-di-credentials`
+      `${RESOURCE_PREFIX}/${env}/azure-di-credentials`
     );
 
     const azureCredentialsLambda = new lambda.Function(this, "AdminAzureCredentialsLambda", {
-      functionName: `yorutsuke-admin-azure-credentials-us-${env}`,
+      functionName: getLambdaFunctionName("admin-azure-credentials", "us", env),
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: "index.handler",
       code: lambda.Code.fromAsset(".lambda-dist/admin/azure-credentials"),
@@ -266,7 +273,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // API Gateway with Cognito Authorization
     // ========================================
     const api = new apigateway.RestApi(this, "AdminApi", {
-      restApiName: `yorutsuke-admin-api-us-${env}`,
+      restApiName: `${RESOURCE_PREFIX}-admin-api-us-${env}`,
       description: "Admin API for Yorutsuke",
       defaultCorsPreflightOptions: {
         // @security: Restrict CORS to CloudFront domains only (not ALL_ORIGINS)
@@ -289,7 +296,7 @@ export class YorutsukeAdminStack extends cdk.Stack {
     // @security: Prevent brute force and DDoS
     // ========================================
     const usagePlan = api.addUsagePlan("AdminUsagePlan", {
-      name: `yorutsuke-admin-usage-us-${env}`,
+      name: `${RESOURCE_PREFIX}-admin-usage-us-${env}`,
       description: "Rate limiting for Admin API",
       throttle: {
         rateLimit: 100,  // requests per second

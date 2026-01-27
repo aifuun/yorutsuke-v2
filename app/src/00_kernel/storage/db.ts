@@ -15,9 +15,11 @@ import Database from '@tauri-apps/plugin-sql';
 import { logger, EVENTS } from '../telemetry';
 import { runMigrations } from './migrations';
 import { isMockMode } from '../config/mock';
+import { deleteLocalImage } from '../../02_modules/capture/adapters/imageIpc';
+import { DB_PRODUCTION, DB_MOCK } from '../../generated/config';
 
-const PRODUCTION_DB = 'sqlite:yorutsuke.db';
-const MOCK_DB = 'sqlite:yorutsuke-mock.db';
+const PRODUCTION_DB = DB_PRODUCTION;
+const MOCK_DB = DB_MOCK;
 
 let productionDb: Database | null = null;
 let mockDb: Database | null = null;
@@ -321,15 +323,60 @@ export async function setSchemaVersion(version: number): Promise<void> {
  * Clear business data from database (images, transactions, caches)
  * Preserves settings (language, theme, mock mode, etc.)
  * Returns count of deleted rows per table
+ * Issue #178: Now deletes actual image files before removing DB records
  */
 export async function clearBusinessData(): Promise<Record<string, number>> {
   const database = await getDb();
   const results: Record<string, number> = {};
 
-  // Business data tables (order matters for foreign keys: delete children first)
-  const tables = ['transactions', 'transactions_cache', 'morning_report_cache', 'analytics', 'images'];
+  // Special handling for images table: delete files before DB records
+  try {
+    // Step 1: Query all image records to get file paths
+    interface ImageRow {
+      id: string;
+      compressed_path: string | null;
+    }
+    const images = await database.select<ImageRow[]>(
+      'SELECT id, compressed_path FROM images'
+    );
 
-  for (const table of tables) {
+    // Step 2: Delete actual files (reuse existing deleteLocalImage IPC)
+    let filesDeleted = 0;
+    for (const img of images) {
+      if (img.compressed_path) {
+        try {
+          await deleteLocalImage(img.compressed_path);
+          filesDeleted++;
+        } catch (error) {
+          // Ignore file deletion failures (file may not exist)
+          logger.debug('db_clear_file_skip', {
+            imageId: img.id,
+            path: img.compressed_path,
+            error: String(error),
+          });
+        }
+      }
+    }
+
+    // Step 3: Delete database records
+    const result = await database.execute('DELETE FROM images');
+    results.images = result.rowsAffected ?? 0;
+    results.files_deleted = filesDeleted;
+
+    logger.info('db_images_cleared', {
+      dbRecords: results.images,
+      filesDeleted,
+    });
+  } catch (error) {
+    logger.debug('db_clear_table_skip', { table: 'images', error: String(error) });
+    results.images = 0;
+    results.files_deleted = 0;
+  }
+
+  // Clear other tables (preserving original logic)
+  const otherTables = ['transactions', 'transactions_cache', 'morning_report_cache', 'analytics'];
+
+  for (const table of otherTables) {
     try {
       const result = await database.execute(`DELETE FROM ${table}`);
       results[table] = result.rowsAffected ?? 0;

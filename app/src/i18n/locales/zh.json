@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "夜付",
+    "name": "Recie",
     "tagline": "AI 记账助手"
   },
   "nav": {
@@ -272,10 +272,8 @@
   },
   "history": {
     "title": "历史记录",
-    "monthlySummary": "月度汇总",
-    "transactionCount": "交易笔数",
-    "prevMonth": "上个月",
-    "nextMonth": "下个月"
+    "noTransactions": "此日期没有交易",
+    "transactions": "交易"
   },
   "empty": {
     "first-use": {
@@ -405,11 +403,6 @@
       "fri": "周五",
       "sat": "周六"
     }
-  },
-  "history": {
-    "title": "历史记录",
-    "noTransactions": "此日期没有交易",
-    "transactions": "交易"
   },
   "sync": {
     "recovery": {

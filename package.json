@@ -9,9 +9,14 @@
     "infra"
   ],
   "scripts": {
-    "dev:app": "npm run -w app tauri dev",
+    "config:sync": "node scripts/sync-product-config.js",
+    "config:sync:dev": "node scripts/sync-product-config.js dev",
+    "config:sync:staging": "node scripts/sync-product-config.js staging",
+    "dev:app": "npm run config:sync:dev && npm run -w app tauri dev",
     "dev:admin": "npm run -w admin dev",
-    "build": "npm run -w app tauri build && npm run -w admin build",
+    "build": "npm run config:sync && npm run -w app tauri build && npm run -w admin build",
+    "build:dev": "npm run config:sync:dev && npm run -w app tauri build && npm run -w admin build",
+    "build:staging": "npm run config:sync:staging && npm run -w app tauri build && npm run -w admin build",
     "deploy": "npm run -w infra deploy && npm run env:sync",
     "env:sync": "bash scripts/sync-env.sh",
     "test": "./scripts/run-all-tests.sh",

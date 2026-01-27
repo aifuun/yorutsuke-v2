@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Yorutsuke",
+    "name": "Recie",
     "tagline": "AI Accounting Assistant"
   },
   "nav": {
@@ -270,10 +270,8 @@
   },
   "history": {
     "title": "History",
-    "monthlySummary": "Monthly Summary",
-    "transactionCount": "Transactions",
-    "prevMonth": "Previous month",
-    "nextMonth": "Next month"
+    "noTransactions": "No transactions on this date",
+    "transactions": "Transactions"
   },
   "empty": {
     "first-use": {
@@ -403,11 +401,6 @@
       "fri": "Fri",
       "sat": "Sat"
     }
-  },
-  "history": {
-    "title": "History",
-    "noTransactions": "No transactions on this date",
-    "transactions": "Transactions"
   },
   "sync": {
     "recovery": {
