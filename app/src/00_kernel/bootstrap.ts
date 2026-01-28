@@ -14,6 +14,8 @@
  * 6. manualSyncService (no deps) - independent
  * 7. authStateService (async) - restore user session
  * 8. settingsStateService (async) - restore app settings
+ * 9. transactionService (auto-init) - transaction data management
+ * 10. reportService (deps: transactionStore) - subscribes to transaction changes
  */
 
 import { logger } from './telemetry';
@@ -82,9 +84,15 @@ export async function bootstrapServices(): Promise<void> {
     await import('../02_modules/transaction/services/transactionService');
     logger.debug('BOOTSTRAP_INIT', { service: 'transactionService', phase: 'auto_init' });
 
+    // 10. Report Service - subscribes to transactionStore changes
+    // Must be initialized after transactionService
+    const { reportService } = await import('../02_modules/report');
+    logger.debug('BOOTSTRAP_INIT', { service: 'reportService' });
+    reportService.init();
+
     logger.info('BOOTSTRAP_COMPLETE', {
       phase: 'services',
-      servicesCount: 9,
+      servicesCount: 10,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

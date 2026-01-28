@@ -1,15 +1,24 @@
 // Pillar L: View - Dashboard with premium UI design
-import { useMemo, useState } from 'react';
+// ADR-001: Service Pattern - uses report hooks instead of direct transaction hooks
+// ADR-020: Hook Bridge - connects to reportService via useReportState hooks
+import { useState } from 'react';
 import type { UserId } from '../../../00_kernel/types';
 import type { ViewType } from '../../../components/Sidebar';
-import { createDailySummaryWithBreakdown, createWeeklySummary } from '../../../01_domains/transaction';
-import { useTransactionStatus, useTransactions } from '../../transaction/hooks/useTransactionState';
 import { useQuota } from '../../capture/hooks/useQuotaState';
 import { useTranslation } from '../../../i18n';
 import { ViewHeader } from '../../../components';
 import { EmptyState } from './EmptyState';
 import { HistoryModal } from './HistoryModal';
 import { navigationStore } from '../../../00_kernel/navigation';
+import {
+  useReportStatus,
+  useSelectedDate,
+  useDailySummary,
+  useTrendData,
+  usePendingTransactions,
+  reportActions,
+} from '../hooks/useReportState';
+import { useTransactions } from '../../transaction/hooks/useTransactionState'; // Only for HistoryModal
 import '../styles/dashboard.css';
 
 interface DashboardViewProps {
@@ -64,10 +73,7 @@ function getLastWeekMonday(): string {
 export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
   const { t } = useTranslation();
 
-  // Date selector with smart default
-  const [selectedDate, setSelectedDate] = useState(getSmartDefaultDate());
-
-  // History modal state
+  // History modal state (UI-only state)
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Helper: Navigate to ledger with optional filter intent
@@ -81,72 +87,28 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     onViewChange('ledger');
   };
 
+  // ========== Use Report Hooks (ADR-001 Service Pattern) ==========
+  // All business logic moved to reportService
+  // DashboardView is now a pure presentation component
+  const status = useReportStatus();
+  const selectedDate = useSelectedDate();
+  const dailySummary = useDailySummary();
+  const trendData = useTrendData();
+  const pendingTransactions = usePendingTransactions();
+  const { quota } = useQuota();
+
+  // Only for HistoryModal - will be refactored later
+  const transactions = useTransactions();
+
+  // Date helpers (pure calculations, no state)
   const today = getTodayDate();
   const yesterday = getYesterdayDate();
   const dayOfWeek = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
 
-  // Service is already initialized in App.tsx, no need to set user again here
-  const status = useTransactionStatus();
-  const transactions = useTransactions();
-  const { quota } = useQuota();
-
-  // Phase 2: Use real data with breakdown (local-first reactive)
-  const dailySummary = useMemo(
-    () => createDailySummaryWithBreakdown(selectedDate, transactions),
-    [selectedDate, transactions]
-  );
-
-
-  // Phase 4: Pending transactions (unconfirmed only, limit 5)
-  const pendingTransactions = useMemo(() => {
-    return transactions
-      .filter(tx => tx.status !== 'confirmed')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)
-      .map(tx => ({
-        id: tx.id,
-        merchant: tx.merchant || t(`transaction.categories.${tx.category}`),
-        amount: tx.amount,
-        type: tx.type,
-        date: tx.date,
-        imageId: tx.imageId,
-        confidence: tx.confidence,
-        time: formatRelativeTime(tx.createdAt),
-      }));
-  }, [transactions, t]);
-
-  // Phase 5: Trend comparison (weekly)
-  const trendData = useMemo(() => {
-    const thisWeekMonday = getThisWeekMonday();
-    const lastWeekMonday = getLastWeekMonday();
-
-    const thisWeek = createWeeklySummary(thisWeekMonday, transactions);
-    const lastWeek = createWeeklySummary(lastWeekMonday, transactions);
-
-    // Calculate week-over-week change (handle edge cases)
-    const weekChange = lastWeek.net !== 0
-      ? ((thisWeek.net - lastWeek.net) / Math.abs(lastWeek.net)) * 100
-      : thisWeek.net === 0 ? 0 : (thisWeek.net > 0 ? 100 : -100);
-
-    // Calculate day-over-day change (today vs yesterday)
-    const todaySummary = createDailySummaryWithBreakdown(today, transactions);
-    const yesterdaySummary = createDailySummaryWithBreakdown(yesterday, transactions);
-    const todayNet = todaySummary.totalIncome - todaySummary.totalExpense;
-    const yesterdayNet = yesterdaySummary.totalIncome - yesterdaySummary.totalExpense;
-
-    const dayChange = yesterdayNet !== 0
-      ? ((todayNet - yesterdayNet) / Math.abs(yesterdayNet)) * 100
-      : todayNet === 0 ? 0 : (todayNet > 0 ? 100 : -100);
-
-    return {
-      thisWeek,
-      lastWeek,
-      weekChange,
-      todayNet,
-      yesterdayNet,
-      dayChange,
-    };
-  }, [transactions, today, yesterday]);
+  // Handle date selection through reportActions
+  const handleDateChange = (date: string) => {
+    reportActions.setDate(date);
+  };
 
   // Handle loading state
   if (!userId) {
@@ -197,6 +159,23 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
     );
   }
 
+  // Guard: ensure data is loaded before rendering
+  if (!dailySummary || !trendData) {
+    return (
+      <div className="dashboard">
+        <DashboardHeaderComponent
+          date={today}
+          dayOfWeek={dayOfWeek}
+          title={t('nav.dashboard')}
+          onHistoryClick={() => setIsHistoryOpen(true)}
+        />
+        <div className="dashboard-content">
+          <div className="dashboard-loading">{t('common.loading')}</div>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate net balance from real data
   const netBalance = dailySummary.totalIncome - dailySummary.totalExpense;
   const isPositive = netBalance >= 0;
@@ -226,14 +205,14 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
                 <button
                   type="button"
                   className={`date-btn ${selectedDate === yesterday ? 'active' : ''}`}
-                  onClick={() => setSelectedDate(yesterday)}
+                  onClick={() => handleDateChange(yesterday)}
                 >
                   {t('dashboard.yesterday')}
                 </button>
                 <button
                   type="button"
                   className={`date-btn ${selectedDate === today ? 'active' : ''}`}
-                  onClick={() => setSelectedDate(today)}
+                  onClick={() => handleDateChange(today)}
                 >
                   {t('dashboard.today')}
                 </button>
@@ -502,7 +481,11 @@ export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
                     </div>
                     <div className="pending-content">
                       <div className="pending-main">
-                        <span className="pending-merchant">{item.merchant}</span>
+                        <span className="pending-merchant">
+                          {item.merchant.startsWith('transaction.categories.')
+                            ? t(item.merchant)
+                            : item.merchant}
+                        </span>
                         <span className={`pending-amount ${item.type === 'income' ? 'income' : 'expense'}`}>
                           {item.type === 'income' ? '+' : '-'}¥{item.amount.toLocaleString()}
                         </span>
