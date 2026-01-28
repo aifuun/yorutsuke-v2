@@ -5,7 +5,7 @@
 
 import { reportStore } from '../stores/reportStore';
 import type { PendingTransactionItem, TrendData } from '../stores/reportStore';
-import { transactionStore } from '../../transaction/stores/transactionStore';
+import { transactionStore } from '../../transaction'; // Pillar I: Module boundaries
 import type { Transaction } from '../../../01_domains/transaction';
 import {
   createDailySummaryWithBreakdown,
