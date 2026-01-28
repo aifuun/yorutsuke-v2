@@ -3,6 +3,9 @@
 
 export * from './types';
 
+// Stores (Issue #168: Extracted vanilla store)
+export { authStore, authSelectors, type AuthState } from './stores';
+
 // Services (Issue #141: Service Pattern Migration)
 export { authStateService } from './services/authStateService';
 
@@ -18,3 +21,6 @@ export {
   useAuthActions,
   type AuthActions,
 } from './hooks/useAuthState';
+
+// Views (Issue #168: Complete 4-layer architecture)
+export { LoginView, LogoutConfirmView } from './views';

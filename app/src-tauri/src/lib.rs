@@ -466,7 +466,7 @@ pub fn run() {
                     println!("[MIGRATION] Migration complete - marker created");
                 }
             } else {
-                println!("[MIGRATION] Already migrated - skipping");
+                // Silent - already migrated
             }
 
             // DevTools can be opened manually with Cmd+Option+I (macOS) or F12 (Windows/Linux)

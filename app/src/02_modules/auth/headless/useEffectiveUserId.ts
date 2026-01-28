@@ -3,13 +3,14 @@
 // Pillar L: Headless - No JSX, returns data only
 //
 // Migrated to use authStateService (Issue #141)
+// Issue #168: Updated to use external authStore
 
 import { useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { UserId, type UserId as UserIdType } from '../../../00_kernel/types';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { getStoredGuestId } from '../services/authService';
-import { authStateService } from '../services/authStateService';
+import { authStore, authSelectors } from '../stores/authStore';
 
 /**
  * Returns an effective user ID that is always non-null
@@ -32,8 +33,8 @@ export function useEffectiveUserId(): {
   isLoading: boolean;
 } {
   // Subscribe to auth state (primitive selectors to avoid infinite loops)
-  const authStatus = useStore(authStateService.store, s => s.status);
-  const user = useStore(authStateService.store, s => s.user);
+  const authStatus = useStore(authStore, authSelectors.status);
+  const user = useStore(authStore, authSelectors.user);
   const authLoading = authStatus === 'loading';
 
   const [guestId, setGuestId] = useState<UserIdType | null>(null);

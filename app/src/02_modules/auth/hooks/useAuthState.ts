@@ -2,6 +2,8 @@
  * Auth State Hooks
  * Hook Bridge Layer (Layer 1.5) per ADR-020
  *
+ * Issue #168: Updated to use external authStore (ADR-001)
+ *
  * Three Identities:
  * 1. Connector: Bridge Vanilla Zustand → React (useStore)
  * 2. Selector: Extract primitives (ADR-012 compliance)
@@ -10,6 +12,7 @@
 
 import { useStore } from 'zustand';
 import { useMemo } from 'react';
+import { authStore, authSelectors } from '../stores/authStore';
 import { authStateService } from '../services/authStateService';
 import type { User } from '../types';
 
@@ -22,7 +25,7 @@ import type { User } from '../types';
  * @returns Auth status: 'idle' | 'loading' | 'authenticated' | 'error'
  */
 export function useAuthStatus(): 'idle' | 'loading' | 'authenticated' | 'error' {
-  return useStore(authStateService.store, (s) => s.status);
+  return useStore(authStore, authSelectors.status);
 }
 
 /**
@@ -30,7 +33,7 @@ export function useAuthStatus(): 'idle' | 'loading' | 'authenticated' | 'error' 
  * @returns User object if authenticated, null otherwise
  */
 export function useUser(): User | null {
-  return useStore(authStateService.store, (s) => s.user);
+  return useStore(authStore, authSelectors.user);
 }
 
 /**
@@ -38,7 +41,7 @@ export function useUser(): User | null {
  * @returns Error message if status is 'error', null otherwise
  */
 export function useAuthError(): string | null {
-  return useStore(authStateService.store, (s) => s.error);
+  return useStore(authStore, authSelectors.error);
 }
 
 /**
@@ -46,7 +49,7 @@ export function useAuthError(): string | null {
  * @returns True if authenticated, false otherwise
  */
 export function useIsAuthenticated(): boolean {
-  return useStore(authStateService.store, (s) => s.status === 'authenticated');
+  return useStore(authStore, authSelectors.isAuthenticated);
 }
 
 /**
@@ -54,7 +57,7 @@ export function useIsAuthenticated(): boolean {
  * @returns True if loading, false otherwise
  */
 export function useIsAuthLoading(): boolean {
-  return useStore(authStateService.store, (s) => s.status === 'loading');
+  return useStore(authStore, authSelectors.isLoading);
 }
 
 // ============================================================================
@@ -110,6 +113,6 @@ export function useAuthActions(): AuthActions {
     verify: (email: string, code: string) => authStateService.verify(email, code),
     login: (email: string, password: string) => authStateService.login(email, password),
     logout: () => authStateService.logout(),
-    refreshToken: () => authStateService.refreshAccessToken(),
+    refreshToken: async () => { await authStateService.refreshToken(); },
   }), []);
 }

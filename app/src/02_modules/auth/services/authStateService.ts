@@ -3,15 +3,16 @@
  * Manages authentication state and operations
  *
  * Migrated from auth/headless/useAuth.ts (Issue #141)
+ * Issue #168: Extracted store to separate file (ADR-001)
  * Pillar D: FSM - explicit state machine
  * Pillar J: Locality - state near usage
  */
 
-import { createStore } from 'zustand/vanilla';
 import { UserId } from '../../../00_kernel/types';
 import { logger, EVENTS } from '../../../00_kernel/telemetry';
 import { emit } from '../../../00_kernel/eventBus';
 import type { User } from '../types';
+import { authStore } from '../stores/authStore';
 import {
   registerUser,
   verifyUserEmail,
@@ -24,23 +25,8 @@ import {
 } from './authService';
 import { updateImagesUserId } from '../../capture';
 
-// FSM State
-type AuthState =
-  | { status: 'idle'; user: null; error: null }
-  | { status: 'loading'; user: User | null; error: null }
-  | { status: 'authenticated'; user: User; error: null }
-  | { status: 'error'; user: User | null; error: string };
-
 class AuthStateService {
   private static instance: AuthStateService | null = null;
-
-  // Zustand vanilla store
-  store = createStore<AuthState>(() => ({
-    status: 'loading', // Start with loading to check stored auth
-    user: null,
-    error: null,
-  }));
-
   private initialized = false;
 
   /**
@@ -75,13 +61,13 @@ class AuthStateService {
 
       if (session.tokens && session.user) {
         logger.info(EVENTS.AUTH_SESSION_RESTORED, { userId: session.user.id });
-        this.store.setState({ status: 'authenticated', user: session.user, error: null });
+        authStore.setState({ status: 'authenticated', user: session.user, error: null });
       } else {
-        this.store.setState({ status: 'idle', user: null, error: null });
+        authStore.setState({ status: 'idle', user: null, error: null });
       }
     } catch (e) {
       logger.error(EVENTS.AUTH_LOAD_FAILED, { error: String(e) });
-      this.store.setState({ status: 'idle', user: null, error: null });
+      authStore.setState({ status: 'idle', user: null, error: null });
     }
   }
 
@@ -92,12 +78,12 @@ class AuthStateService {
     email: string,
     password: string
   ): Promise<{ success: boolean; error?: string }> {
-    this.store.setState({ status: 'loading', user: null, error: null });
+    authStore.setState({ status: 'loading', user: null, error: null });
 
     const result = await registerUser(email, password);
 
     if (!result.success) {
-      this.store.setState({
+      authStore.setState({
         status: 'error',
         user: null,
         error: result.error || 'Registration failed',
@@ -106,7 +92,7 @@ class AuthStateService {
     }
 
     // Stay in idle state - user needs to verify email
-    this.store.setState({ status: 'idle', user: null, error: null });
+    authStore.setState({ status: 'idle', user: null, error: null });
     return { success: true };
   }
 
@@ -114,12 +100,12 @@ class AuthStateService {
    * Verify user email
    */
   async verify(email: string, code: string): Promise<{ success: boolean; error?: string }> {
-    this.store.setState({ status: 'loading', user: null, error: null });
+    authStore.setState({ status: 'loading', user: null, error: null });
 
     const result = await verifyUserEmail(email, code);
 
     if (!result.success) {
-      this.store.setState({
+      authStore.setState({
         status: 'error',
         user: null,
         error: result.error || 'Verification failed',
@@ -128,7 +114,7 @@ class AuthStateService {
     }
 
     // Stay logged out - user needs to login after verification
-    this.store.setState({ status: 'idle', user: null, error: null });
+    authStore.setState({ status: 'idle', user: null, error: null });
     return { success: true };
   }
 
@@ -137,13 +123,13 @@ class AuthStateService {
    * Handles guest data claim when applicable
    */
   async login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
-    this.store.setState({ status: 'loading', user: null, error: null });
+    authStore.setState({ status: 'loading', user: null, error: null });
 
     const result = await loginUser(email, password);
 
     if (!result.ok) {
       const error = result.error || 'Login failed';
-      this.store.setState({ status: 'error', user: null, error });
+      authStore.setState({ status: 'error', user: null, error });
       return { success: false, error };
     }
 
@@ -164,7 +150,7 @@ class AuthStateService {
     };
     await saveUserProfile(user);
 
-    this.store.setState({ status: 'authenticated', user, error: null });
+    authStore.setState({ status: 'authenticated', user, error: null });
     logger.info(EVENTS.AUTH_LOGIN_SUCCESS, { userId: user.id });
 
     // Handle guest data claim (#50)
@@ -199,7 +185,7 @@ class AuthStateService {
    */
   async logout(): Promise<void> {
     await logoutUser();
-    this.store.setState({ status: 'idle', user: null, error: null });
+    authStore.setState({ status: 'idle', user: null, error: null });
     logger.info(EVENTS.AUTH_LOGOUT, {});
   }
 
@@ -233,12 +219,12 @@ class AuthStateService {
    * Clear error state
    */
   clearError(): void {
-    const state = this.store.getState();
+    const state = authStore.getState();
 
     if (state.user) {
-      this.store.setState({ status: 'authenticated', user: state.user, error: null });
+      authStore.setState({ status: 'authenticated', user: state.user, error: null });
     } else {
-      this.store.setState({ status: 'idle', user: null, error: null });
+      authStore.setState({ status: 'idle', user: null, error: null });
     }
   }
 
@@ -248,7 +234,7 @@ class AuthStateService {
    */
   destroy(): void {
     this.initialized = false;
-    this.store.setState({ status: 'idle', user: null, error: null });
+    authStore.setState({ status: 'idle', user: null, error: null });
     AuthStateService.instance = null;
   }
 }

@@ -530,3 +530,4 @@ Day 8: Feature-Level Planning for #101
 - **Full Planning Reference**: `planning-reference.md` (complete Steps 0-8)
 - **Development Execution**: `workflow/development.md`
 - **Architecture**: `workflow/architecture.md`
+- **Issue Completion Checklist**: `ISSUE_COMPLETION_CHECKLIST.md` (before creating PR)

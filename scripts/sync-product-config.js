@@ -26,9 +26,14 @@ const cargoTomlPath = path.join(projectRoot, 'app/src-tauri/Cargo.toml');
 const appPackagePath = path.join(projectRoot, 'app/package.json');
 
 // Read environment from CLI argument or NODE_ENV
-const env = process.argv[2] || process.env.NODE_ENV || 'production';
+const args = process.argv.slice(2);
+const env = args.find(arg => !arg.startsWith('--')) || process.env.NODE_ENV || 'production';
+const isQuiet = args.includes('--quiet');
 
-console.log(`🔧 Syncing product config for environment: ${env}`);
+// Helper for conditional logging
+const log = (...args) => !isQuiet && console.log(...args);
+
+log(`🔧 Syncing product config for environment: ${env}`);
 
 // Read product configuration
 if (!fs.existsSync(productConfigPath)) {
@@ -72,19 +77,19 @@ if (productConfig.environments && productConfig.environments[env]) {
   };
 }
 
-console.log(`\n📦 Source Configuration:`);
-console.log(`   Product Name: ${activeConfig.productName}`);
-console.log(`   Technical Name: ${technicalName}`);
-console.log(`   Identifier: ${activeConfig.identifier}`);
-console.log(`   Version: ${activeConfig.version}`);
+log(`\n📦 Source Configuration:`);
+log(`   Product Name: ${activeConfig.productName}`);
+log(`   Technical Name: ${technicalName}`);
+log(`   Identifier: ${activeConfig.identifier}`);
+log(`   Version: ${activeConfig.version}`);
 
-console.log(`\n🔄 Derived Configuration (from technicalName: "${technicalName}"):`);
-console.log(`   Database: ${derivedConfig.databaseName}, ${derivedConfig.databaseNameMock}`);
-console.log(`   Storage Prefix: ${derivedConfig.localStoragePrefix}`);
-console.log(`   Log Directory: ${derivedConfig.logDirectory}`);
-console.log(`   Rust Lib: ${derivedConfig.rustLibName}`);
-console.log(`   AWS Stack: ${derivedConfig.stackNamePrefix}Stack-${env}`);
-console.log(`   AWS Resources: ${derivedConfig.resourcePrefix}-*`);
+log(`\n🔄 Derived Configuration (from technicalName: "${technicalName}"):`);
+log(`   Database: ${derivedConfig.databaseName}, ${derivedConfig.databaseNameMock}`);
+log(`   Storage Prefix: ${derivedConfig.localStoragePrefix}`);
+log(`   Log Directory: ${derivedConfig.logDirectory}`);
+log(`   Rust Lib: ${derivedConfig.rustLibName}`);
+log(`   AWS Stack: ${derivedConfig.stackNamePrefix}Stack-${env}`);
+log(`   AWS Resources: ${derivedConfig.resourcePrefix}-*`);
 
 // Read existing tauri.conf.json
 if (!fs.existsSync(tauriConfigPath)) {
@@ -106,7 +111,7 @@ if (productConfig.window && productConfig.window.title) {
 
 // Write updated tauri.conf.json
 fs.writeFileSync(tauriConfigPath, JSON.stringify(tauriConfig, null, 2) + '\n');
-console.log(`✅ Successfully updated ${tauriConfigPath}`);
+log(`✅ Successfully updated ${tauriConfigPath}`);
 
 // Update Cargo.toml
 if (fs.existsSync(cargoTomlPath)) {
@@ -136,7 +141,7 @@ if (fs.existsSync(cargoTomlPath)) {
   );
 
   fs.writeFileSync(cargoTomlPath, cargoContent);
-  console.log(`✅ Successfully updated ${cargoTomlPath}`);
+  log(`✅ Successfully updated ${cargoTomlPath}`);
 }
 
 // Update app/package.json
@@ -155,7 +160,7 @@ if (fs.existsSync(appPackagePath)) {
   }
 
   fs.writeFileSync(appPackagePath, JSON.stringify(appPackage, null, 2) + '\n');
-  console.log(`✅ Successfully updated ${appPackagePath}`);
+  log(`✅ Successfully updated ${appPackagePath}`);
 }
 
 // Update i18n translation files
@@ -182,11 +187,11 @@ for (const locale of locales) {
     }
 
     fs.writeFileSync(localePath, JSON.stringify(localeData, null, 2) + '\n');
-    console.log(`✅ Successfully updated ${localePath}`);
+    log(`✅ Successfully updated ${localePath}`);
   }
 }
 
-console.log(`📁 App data directory will be: ~/Library/Application Support/${activeConfig.identifier}/`);
+log(`📁 App data directory will be: ~/Library/Application Support/${activeConfig.identifier}/`);
 
 // Generate frontend technical config
 const frontendConfigDir = path.join(projectRoot, 'app/src/generated');
@@ -223,7 +228,7 @@ export const PRODUCT_IDENTIFIER = '${activeConfig.identifier}';
 `;
 
 fs.writeFileSync(frontendConfigPath, frontendConfigContent);
-console.log(`✅ Successfully generated ${frontendConfigPath}`);
+log(`✅ Successfully generated ${frontendConfigPath}`);
 
 // Generate infrastructure AWS config
 const infraConfigDir = path.join(projectRoot, 'infra/lib/generated');
@@ -274,7 +279,7 @@ export function getLayerName(layerName: string, env: string): string {
 `;
 
 fs.writeFileSync(infraConfigPath, infraConfigContent);
-console.log(`✅ Successfully generated ${infraConfigPath}`);
+log(`✅ Successfully generated ${infraConfigPath}`);
 
 // Update Cargo.toml lib name
 if (fs.existsSync(cargoTomlPath)) {
@@ -288,7 +293,7 @@ if (fs.existsSync(cargoTomlPath)) {
     );
 
     fs.writeFileSync(cargoTomlPath, cargoContent);
-    console.log(`✅ Updated Rust library name to: ${derivedConfig.rustLibName}`);
+    log(`✅ Updated Rust library name to: ${derivedConfig.rustLibName}`);
   }
 }
 
@@ -307,6 +312,8 @@ const rustConfigContent = `//! Auto-generated configuration file
 //! Generated: ${new Date().toISOString()}
 //! Environment: ${env}
 
+#![allow(dead_code)]
+
 /// Database configuration
 pub const DB_PRODUCTION: &str = "${derivedConfig.databaseName}";
 pub const DB_MOCK: &str = "${derivedConfig.databaseNameMock}";
@@ -321,7 +328,7 @@ pub const PRODUCT_IDENTIFIER: &str = "${activeConfig.identifier}";
 `;
 
 fs.writeFileSync(rustConfigPath, rustConfigContent);
-console.log(`✅ Successfully generated ${rustConfigPath}`);
+log(`✅ Successfully generated ${rustConfigPath}`);
 
 // Create Rust module file to export config
 const rustModPath = path.join(rustConfigDir, 'mod.rs');
@@ -331,10 +338,10 @@ const rustModContent = `//! Auto-generated module
 pub mod config;
 `;
 fs.writeFileSync(rustModPath, rustModContent);
-console.log(`✅ Successfully generated ${rustModPath}`);
+log(`✅ Successfully generated ${rustModPath}`);
 
-console.log('\n🎉 Product configuration sync completed!');
-console.log('📝 Generated configuration files:');
-console.log(`   - ${frontendConfigPath}`);
-console.log(`   - ${infraConfigPath}`);
-console.log(`   - ${rustConfigPath}`);
+log('\n🎉 Product configuration sync completed!');
+log('📝 Generated configuration files:');
+log(`   - ${frontendConfigPath}`);
+log(`   - ${infraConfigPath}`);
+log(`   - ${rustConfigPath}`);
