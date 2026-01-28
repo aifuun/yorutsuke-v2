@@ -2,6 +2,7 @@
   "name": "yorutsuke-v2",
   "private": true,
   "version": "0.1.0",
+  "type": "module",
   "description": "Local-first AI accounting assistant for second-hand business users",
   "workspaces": [
     "app",
