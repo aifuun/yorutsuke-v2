@@ -26,23 +26,6 @@ interface DashboardViewProps {
   onViewChange: (view: ViewType) => void;
 }
 
-
-// Smart default: 0:00-12:00 → yesterday, 12:00-24:00 → today
-function getSmartDefaultDate(): string {
-  const now = new Date();
-  const hour = now.getHours();
-
-  if (hour < 12) {
-    // Morning → show yesterday
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toLocaleDateString('sv-SE');
-  }
-
-  // Afternoon → show today
-  return now.toLocaleDateString('sv-SE');
-}
-
 function getTodayDate(): string {
   return new Date().toLocaleDateString('sv-SE');
 }
@@ -51,23 +34,6 @@ function getYesterdayDate(): string {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   return yesterday.toLocaleDateString('sv-SE');
-}
-
-// Get Monday of current week (YYYY-MM-DD)
-function getThisWeekMonday(): string {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diff);
-  return monday.toLocaleDateString('sv-SE');
-}
-
-// Get Monday of last week (YYYY-MM-DD)
-function getLastWeekMonday(): string {
-  const thisWeekMonday = new Date(getThisWeekMonday());
-  thisWeekMonday.setDate(thisWeekMonday.getDate() - 7);
-  return thisWeekMonday.toLocaleDateString('sv-SE');
 }
 
 export function DashboardView({ userId, onViewChange }: DashboardViewProps) {
@@ -573,19 +539,4 @@ function DashboardHeaderComponent({
       }
     />
   );
-}
-
-// Utility: Format relative time
-function formatRelativeTime(isoDate: string): string {
-  const now = Date.now();
-  const then = new Date(isoDate).getTime();
-  const diffMs = now - then;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 }
