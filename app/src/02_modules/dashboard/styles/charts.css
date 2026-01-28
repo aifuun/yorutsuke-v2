@@ -15,6 +15,8 @@
 }
 
 .chart-scroll-container > * {
+  /* @design-token-needed: --breakpoint-chart-min (600px) */
+  /* Chart requires minimum width for readability */
   min-width: 600px;
 }
 
@@ -33,6 +35,8 @@
 
 /* Tooltip hover effect */
 .recharts-active-dot {
+  /* @design-token-needed: --shadow-drop-light for drop-shadow filter */
+  /* drop-shadow uses different syntax than box-shadow tokens */
   filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.2));
 }
 
@@ -42,6 +46,7 @@
 }
 
 /* Mobile adjustments */
+/* @design-token-needed: --breakpoint-md (768px) */
 @media (max-width: 767px) {
   .chart-scroll-container {
     margin: 0 calc(-1 * var(--space-4));
@@ -51,6 +56,7 @@
   /* Reduce chart height on mobile */
   .trend-chart .recharts-responsive-container,
   .category-chart .recharts-responsive-container {
+    /* @design-token-needed: --space-chart-mobile-height */
     min-height: 250px;
   }
 }
@@ -60,6 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* @design-token-needed: --space-chart-default-height */
   min-height: 300px;
   background: var(--slate-50);
   border-radius: var(--radius-md);
@@ -72,6 +79,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* @design-token-needed: --space-chart-default-height */
   min-height: 300px;
   padding: var(--space-6);
   background: var(--bg-error);
@@ -80,12 +88,14 @@
 }
 
 .chart-error__icon {
+  /* Using rem for responsive scaling (2rem ≈ 32px) */
   font-size: 2rem;
   margin-bottom: var(--space-3);
 }
 
 .chart-error__message {
   color: var(--color-error);
+  /* Using rem for responsive scaling (0.875rem ≈ 14px) */
   font-size: 0.875rem;
 }
 
@@ -95,6 +105,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* @design-token-needed: --space-chart-default-height */
   min-height: 300px;
   padding: var(--space-6);
   background: var(--slate-50);
@@ -104,6 +115,7 @@
 }
 
 .chart-empty__icon {
+  /* Using rem for responsive scaling (2.5rem ≈ 40px) */
   font-size: 2.5rem;
   margin-bottom: var(--space-3);
   opacity: 0.5;
@@ -111,5 +123,6 @@
 
 .chart-empty__message {
   color: var(--text-secondary);
+  /* Using rem for responsive scaling (0.875rem ≈ 14px) */
   font-size: 0.875rem;
 }
