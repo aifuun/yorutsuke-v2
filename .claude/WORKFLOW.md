@@ -175,6 +175,7 @@ development (integration) ◄─┘
 - `architecture.md` - Three-layer (MVP/Issues/TODO) architecture explained
 - `feature-development.md` - Complete feature lifecycle example
 - `quick-reference.md` - One-page visual summary
+- `ISSUE_COMPLETION_CHECKLIST.md` - ⭐ Final checklist before creating PR
 
 **In `.claude/`** (quick access, minimal):
 - `WORKFLOW.md` - This index/cheatsheet (for quick lookup)
@@ -261,6 +262,7 @@ Understand MVP/Issues/TODO          → architecture.md
 See a complete example              → feature-development.md
 Code a feature                      → development.md (Phase 1-4)
 Know what to do next                → *next command
+Verify before creating PR           → ISSUE_COMPLETION_CHECKLIST.md ⭐
 Release a version                   → release.md
 ```
 
