@@ -213,9 +213,31 @@ const SENSITIVE_KEYS = [
 
 /**
  * Filter sensitive data from log objects (P1: sensitive data filtering)
+ *
+ * Design decisions:
+ * - Max depth 5: Prevents stack overflow on deeply nested objects
+ *   (Most log objects are 2-3 levels deep; 5 is sufficient for edge cases)
+ * - Case-insensitive matching: Catches 'Password', 'password', 'PASSWORD'
+ *   (Handles inconsistent casing from various sources)
+ * - Returns '[REDACTED]': Clear indicator without exposing data length
+ *   (Unlike '***', doesn't hint at original value length)
+ * - Short-circuits on primitives: Performance optimization for common cases
+ *   (Strings, numbers, booleans don't need recursion)
+ *
+ * Trade-offs:
+ * - May miss deeply nested secrets (>5 levels)
+ *   Rationale: Acceptable for security/performance balance; real-world logs rarely exceed 5 levels
+ * - Field name matching only, doesn't scan values
+ *   Rationale: Prevents false positives (e.g., user description: "My password was wrong")
+ * - No encryption, just removal
+ *   Rationale: CloudWatch logs are encrypted at rest; removal sufficient for Lambda logs
+ *
+ * @param data - Log data to filter (any type)
+ * @param depth - Current recursion depth (internal use)
+ * @returns Filtered data with sensitive fields replaced by '[REDACTED]'
  */
 function filterSensitiveData(data: unknown, depth = 0): unknown {
-  // Prevent infinite recursion
+  // Prevent infinite recursion (max depth check)
   if (depth > 5 || !data) return data;
 
   // Handle arrays
@@ -330,10 +352,50 @@ export function initContext(event: LambdaEvent, explicitTraceId: string | null =
 }
 
 /**
- * Create structured log entry with filtering (P1: sensitive data filtering)
+ * Create structured log entry with automatic context and filtering
+ *
+ * Design decisions:
+ * - JSON structure (not plain text): Enables CloudWatch Insights queries and log parsing
+ *   (Can query: fields @timestamp | filter event = 'PRESIGN_STARTED' | stats count() by userId)
+ * - ISO 8601 timestamps: Universal format, sortable, includes timezone
+ *   (YYYY-MM-DDTHH:mm:ss.sssZ format works across all tools)
+ * - Context fields always included: traceId, userId, requestId for correlation
+ *   (Even if null, consistent structure makes querying easier)
+ * - Spread user data last: Allows overriding context fields if needed (rare but useful)
+ *   (e.g., logger.info('EVENT', { traceId: 'custom-trace' }) works)
+ * - Filter before stringify: Prevents secrets from ever reaching JSON output
+ *   (filterSensitiveData runs before JSON.stringify, ensuring [REDACTED] in logs)
+ *
+ * Trade-offs:
+ * - All logs are JSON (not human-readable in raw form)
+ *   Rationale: CloudWatch/jq handle JSON better; production logs prioritize machine parsing
+ * - Context fields can't be removed (always present)
+ *   Rationale: Consistency > flexibility; correlation depends on these fields
+ * - No log size limits (can produce large entries)
+ *   Rationale: Lambda has 6 MB response limit; logs rarely approach this
+ *
+ * Log structure:
+ * {
+ *   timestamp: "2026-01-28T10:30:45.123Z",  // ISO 8601 UTC
+ *   level: "info" | "debug" | "warn" | "error",
+ *   event: "PRESIGN_STARTED",               // Semantic event name
+ *   traceId: "lambda-1234567890-abc123",    // Request correlation
+ *   userId: "device-xxx" | "user-yyy" | null,
+ *   requestId: "aws-request-id" | null,     // Lambda invocation ID
+ *   ...userData                             // Filtered user-provided fields
+ * }
+ *
+ * @param level - Log level (debug, info, warn, error)
+ * @param event - Semantic event name (from EVENTS constant)
+ * @param data - User-provided data to include in log entry
+ * @returns JSON string ready for console output
+ *
+ * @example
+ * createLogEntry('info', 'PRESIGN_STARTED', { userId: 'user-123', fileName: 'receipt.jpg' })
+ * // → '{"timestamp":"2026-01-28T10:30:45.123Z","level":"info","event":"PRESIGN_STARTED",...}'
  */
 function createLogEntry(level: LogLevel, event: EventName, data: Record<string, unknown> = {}): string {
-  // Filter sensitive data from user-provided data
+  // Filter sensitive data from user-provided data (P1: security)
   const filteredData = filterSensitiveData(data) as Record<string, unknown>;
 
   return JSON.stringify({
@@ -348,12 +410,36 @@ function createLogEntry(level: LogLevel, event: EventName, data: Record<string, 
 }
 
 /**
- * Extract error information from Error object or use as-is
+ * Extract error information from Error object or normalize arbitrary data
+ *
+ * Design decisions:
+ * - Extract stack trace from Error objects: Essential for debugging Lambda failures
+ *   (CloudWatch logs are only place to see errors; stack traces are critical)
+ * - Preserve error.name property: Helps distinguish error types (TypeError, ValidationError, etc.)
+ * - Wrap primitives in object: Ensures consistent JSON structure for all log entries
+ *   (Avoids "error: 123" vs "error: {message: '...'}" inconsistency)
+ * - Pass through plain objects unchanged: Respects caller's structure
+ *
+ * Trade-offs:
+ * - Always includes stack traces (can be verbose)
+ *   Rationale: Verbosity acceptable; debugging without stack traces is extremely difficult
+ * - Doesn't sanitize Error properties (e.g., no filtering of custom props)
+ *   Rationale: Error objects shouldn't contain secrets; filterSensitiveData() handles user data
+ * - No error serialization for circular refs
+ *   Rationale: Native Error objects don't have circular refs; custom errors should avoid them
+ *
+ * @param data - Error object, plain object, or primitive to normalize
+ * @returns Object with error details or original data wrapped in object
+ *
+ * @example
+ * normalizeErrorData(new Error('Failed')) // → { error: { message: '...', stack: '...', name: 'Error' } }
+ * normalizeErrorData({ code: 404 })       // → { code: 404 }
+ * normalizeErrorData('timeout')           // → { data: 'timeout' }
  */
 function normalizeErrorData(data?: Error | Record<string, unknown>): Record<string, unknown> {
   if (!data) return {};
 
-  // If it's an Error object, extract message and stack (P0 fix)
+  // If it's an Error object, extract message and stack (P0 fix: preserve debugging info)
   if (data instanceof Error) {
     return {
       error: {
@@ -364,7 +450,7 @@ function normalizeErrorData(data?: Error | Record<string, unknown>): Record<stri
     };
   }
 
-  // If it's already an object, return as-is
+  // If it's already an object, return as-is (respect caller's structure)
   return typeof data === 'object' ? data : { data };
 }
 
