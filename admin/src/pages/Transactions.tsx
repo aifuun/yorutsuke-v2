@@ -4,32 +4,41 @@
  */
 
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import '../styles/transactions.css';
 
-interface Transaction {
-  userId: string;
-  transactionId: string;
-  amount: number;
-  merchant: string;
-  date: string;
-  status: 'unconfirmed' | 'confirmed' | 'deleted' | 'needs_review';
-  category: string;
-  createdAt: string;
-  imageId?: string;
-  confidence?: number;
-}
+// Zod Schemas (Pillar B: Airlock validation)
+const TransactionSchema = z.object({
+  userId: z.string(),
+  transactionId: z.string(),
+  amount: z.number(),
+  merchant: z.string(),
+  date: z.string(),
+  status: z.enum(['unconfirmed', 'confirmed', 'deleted', 'needs_review']),
+  category: z.string(),
+  createdAt: z.string(),
+  imageId: z.string().optional(),
+  confidence: z.number().optional(),
+});
 
-interface TransactionsResponse {
-  transactions?: Transaction[];
-  Message?: string | null;
-}
+const TransactionsResponseSchema = z.object({
+  transactions: z.array(TransactionSchema).optional(),
+  Message: z.string().nullable().optional(),
+});
+
+type Transaction = z.infer<typeof TransactionSchema>;
+type TransactionsResponse = z.infer<typeof TransactionsResponseSchema>;
+
+// FSM State Machine (Pillar D: No boolean flags)
+type State =
+  | { status: 'loading' }
+  | { status: 'success'; data: Transaction[] }
+  | { status: 'error'; error: string };
 
 const API_ENDPOINT = 'https://yy2xogwnhx4sxu7tbmt6ax67r40zhzzo.lambda-url.ap-northeast-1.on.aws/';
 
 export function Transactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<State>({ status: 'loading' });
 
   // Filters
   const [searchMerchant, setSearchMerchant] = useState('');
@@ -41,8 +50,7 @@ export function Transactions() {
   }, []);
 
   async function fetchTransactions() {
-    setLoading(true);
-    setError(null);
+    setState({ status: 'loading' });
 
     try {
       const response = await fetch(API_ENDPOINT);
@@ -51,24 +59,30 @@ export function Transactions() {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: TransactionsResponse = await response.json();
+      const rawData = await response.json();
 
-      if (data.transactions && Array.isArray(data.transactions)) {
-        setTransactions(data.transactions);
-      } else {
-        // Empty response or no transactions
-        setTransactions([]);
+      // Pillar B: Validate with Zod schema
+      const validationResult = TransactionsResponseSchema.safeParse(rawData);
+
+      if (!validationResult.success) {
+        throw new Error(`Invalid API response: ${validationResult.error.message}`);
       }
+
+      const data = validationResult.data;
+      const transactions = data.transactions && Array.isArray(data.transactions)
+        ? data.transactions
+        : [];
+
+      setState({ status: 'success', data: transactions });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch transactions';
-      setError(message);
+      setState({ status: 'error', error: message });
       console.error('Failed to fetch transactions:', err);
-    } finally {
-      setLoading(false);
     }
   }
 
-  // Filter transactions
+  // Filter transactions (only when state is success)
+  const transactions = state.status === 'success' ? state.data : [];
   const filteredTransactions = transactions.filter(tx => {
     if (searchMerchant && !tx.merchant.toLowerCase().includes(searchMerchant.toLowerCase())) {
       return false;
@@ -120,29 +134,34 @@ export function Transactions() {
     });
   }
 
-  if (loading) {
+  // Render based on FSM state
+  if (state.status === 'loading') {
     return (
       <div className="transactions-page">
         <div className="page-header">
           <h1>Transactions</h1>
         </div>
         <div className="loading-state">
-          <div className="spinner"></div>
+          <div className="spinner" role="status" aria-label="Loading transactions"></div>
           <p>Loading transactions...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (state.status === 'error') {
     return (
       <div className="transactions-page">
         <div className="page-header">
           <h1>Transactions</h1>
         </div>
-        <div className="error-state">
-          <p className="error-message">❌ {error}</p>
-          <button onClick={fetchTransactions} className="btn btn-primary">
+        <div className="error-state" role="alert">
+          <p className="error-message">❌ {state.error}</p>
+          <button
+            onClick={fetchTransactions}
+            className="btn btn-primary"
+            aria-label="Retry loading transactions"
+          >
             Retry
           </button>
         </div>
@@ -150,17 +169,22 @@ export function Transactions() {
     );
   }
 
+  // state.status === 'success'
   return (
     <div className="transactions-page">
       <div className="page-header">
         <h1>Transactions</h1>
-        <button onClick={fetchTransactions} className="btn btn-secondary">
+        <button
+          onClick={fetchTransactions}
+          className="btn btn-secondary"
+          aria-label="Refresh transaction list"
+        >
           🔄 Refresh
         </button>
       </div>
 
       {/* Filters */}
-      <div className="filters">
+      <div className="filters" role="search" aria-label="Transaction filters">
         <div className="filter-group">
           <label htmlFor="search-merchant">Merchant Search:</label>
           <input
@@ -170,6 +194,7 @@ export function Transactions() {
             value={searchMerchant}
             onChange={(e) => setSearchMerchant(e.target.value)}
             className="filter-input"
+            aria-label="Search by merchant name"
           />
         </div>
 
@@ -182,6 +207,7 @@ export function Transactions() {
             value={filterUserId}
             onChange={(e) => setFilterUserId(e.target.value)}
             className="filter-input"
+            aria-label="Filter by user ID"
           />
         </div>
 
@@ -192,6 +218,7 @@ export function Transactions() {
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="filter-select"
+            aria-label="Filter by transaction status"
           >
             <option value="all">All</option>
             <option value="confirmed">Confirmed</option>
@@ -203,18 +230,18 @@ export function Transactions() {
       </div>
 
       {/* Results Summary */}
-      <div className="results-summary">
+      <div className="results-summary" role="status" aria-live="polite">
         Showing {filteredTransactions.length} of {transactions.length} transactions
       </div>
 
       {/* Transactions Table */}
       {filteredTransactions.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state" role="status">
           <p>No transactions found matching your filters.</p>
         </div>
       ) : (
         <div className="table-container">
-          <table className="transactions-table">
+          <table className="transactions-table" role="table" aria-label="Transaction history">
             <thead>
               <tr>
                 <th>Date</th>

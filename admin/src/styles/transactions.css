@@ -1,7 +1,7 @@
 /* Transactions Page Styles */
 
 .transactions-page {
-  padding: 2rem;
+  padding: var(--space-8);
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -10,13 +10,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-8);
 }
 
 .page-header h1 {
-  font-size: 2rem;
+  font-size: var(--text-3xl);
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -26,18 +26,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2rem;
-  color: #6b7280;
+  padding: var(--space-10) var(--space-8);
+  color: var(--text-secondary);
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 4px solid var(--border);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
 }
 
 @keyframes spin {
@@ -49,106 +49,106 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 3rem 2rem;
+  padding: var(--space-10) var(--space-8);
 }
 
 .error-message {
-  color: #ef4444;
-  font-size: 1rem;
-  margin-bottom: 1rem;
+  color: var(--color-error);
+  font-size: var(--text-base);
+  margin-bottom: var(--space-4);
 }
 
 /* Empty State */
 .empty-state {
   text-align: center;
-  padding: 3rem 2rem;
-  color: #6b7280;
-  font-size: 1rem;
+  padding: var(--space-10) var(--space-8);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
 }
 
 /* Filters */
 .filters {
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1.5rem;
-  background: #f9fafb;
-  border-radius: 8px;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+  padding: var(--space-6);
+  background: var(--bg-panel);
+  border-radius: var(--radius-md);
   flex-wrap: wrap;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
   min-width: 200px;
 }
 
 .filter-group label {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: #374151;
+  color: var(--text-default);
 }
 
 .filter-input,
 .filter-select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: white;
-  transition: border-color 0.2s;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--bg-card);
+  transition: border-color var(--duration-fast) var(--ease-out);
 }
 
-.filter-input:focus,
-.filter-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+.filter-input:focus-visible,
+.filter-select:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-color: var(--border-focus);
 }
 
 /* Results Summary */
 .results-summary {
-  margin-bottom: 1rem;
-  color: #6b7280;
-  font-size: 0.875rem;
+  margin-bottom: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 
 /* Table */
 .table-container {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
   overflow-x: auto;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-1);
 }
 
 .transactions-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
 .transactions-table thead {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
 }
 
 .transactions-table th {
-  padding: 0.75rem 1rem;
+  padding: var(--space-3) var(--space-4);
   text-align: left;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-default);
   white-space: nowrap;
 }
 
 .transactions-table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
-  transition: background-color 0.15s;
+  border-bottom: 1px solid var(--border);
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .transactions-table tbody tr:hover {
-  background-color: #f9fafb;
+  background-color: var(--bg-hover);
 }
 
 .transactions-table tbody tr:last-child {
@@ -156,8 +156,8 @@
 }
 
 .transactions-table td {
-  padding: 0.75rem 1rem;
-  color: #1f2937;
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-primary);
 }
 
 /* Table Cell Styles */
@@ -171,57 +171,57 @@
 
 .amount-cell {
   font-weight: 600;
-  color: #059669;
+  color: var(--color-income);
   text-align: right;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 .user-cell {
-  font-family: ui-monospace, monospace;
-  font-size: 0.8125rem;
-  color: #6b7280;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
 }
 
 .confidence-cell {
   text-align: center;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-mono);
 }
 
 .timestamp-cell {
-  font-size: 0.8125rem;
-  color: #6b7280;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 /* Status Badges */
 .status-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
   font-weight: 500;
   text-transform: capitalize;
   white-space: nowrap;
 }
 
 .status-confirmed {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bg-success);
+  color: var(--emerald-600);
 }
 
 .status-unconfirmed {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bg-warning);
+  color: var(--amber-800);
 }
 
 .status-needs-review {
-  background: #fecaca;
-  color: #991b1b;
+  background: var(--bg-error);
+  color: var(--rose-600);
 }
 
 .status-deleted {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--border);
+  color: var(--text-secondary);
   text-decoration: line-through;
 }
 
@@ -229,55 +229,65 @@
 .link-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8125rem;
-  color: #3b82f6;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-primary);
   text-decoration: none;
-  border-radius: 4px;
-  transition: background-color 0.15s;
+  border-radius: var(--radius-xs);
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .link-btn:hover {
-  background-color: #eff6ff;
-  color: #2563eb;
+  background-color: var(--bg-info);
+  color: var(--color-primary-hover);
+}
+
+.link-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 /* Buttons */
 .btn {
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
   border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: var(--color-primary);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: var(--color-primary-hover);
 }
 
 .btn-secondary {
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--bg-card);
+  color: var(--text-default);
+  border: 1px solid var(--border);
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
   .transactions-page {
-    padding: 1rem;
+    padding: var(--space-4);
   }
 
   .filters {
@@ -289,11 +299,27 @@
   }
 
   .transactions-table {
-    font-size: 0.8125rem;
+    font-size: var(--text-xs);
   }
 
   .transactions-table th,
   .transactions-table td {
-    padding: 0.5rem 0.75rem;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* Accessibility - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-top-color: var(--border);
+  }
+
+  .transactions-table tbody tr,
+  .filter-input,
+  .filter-select,
+  .link-btn,
+  .btn {
+    transition: none;
   }
 }
