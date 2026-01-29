@@ -11,6 +11,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Control } from './pages/Control';
 import { Costs } from './pages/Costs';
 import { Models } from './pages/Models';
+import { Transactions } from './pages/Transactions';
 
 /**
  * Protected Route - redirects to login if not authenticated
@@ -97,6 +98,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <Models />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/transactions"
+        element={
+          <ProtectedRoute>
+            <Transactions />
           </ProtectedRoute>
         }
       />
